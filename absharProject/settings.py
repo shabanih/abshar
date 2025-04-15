@@ -37,6 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'admin_panel',
+    'user_app',
 ]
 
 MIDDLEWARE = [
@@ -48,13 +51,15 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+AUTH_USER_MODEL = 'user_app.User'
 
 ROOT_URLCONF = 'absharProject.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates']
+        ,
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -114,7 +119,15 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'  # Use a consistent trailing slash for URL patterns
+STATICFILES_DIRS = [
+    BASE_DIR / "static",  # Directory for additional static files (e.g., custom JS, CSS)
+]
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Media files (Uploaded by users)
+MEDIA_URL = '/media/'  # Use a consistent trailing slash
+MEDIA_ROOT = BASE_DIR / 'uploads'  # Directory where uploaded files will be stored
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
