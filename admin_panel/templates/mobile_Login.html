@@ -1,0 +1,172 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>ورود با شماره همراه</title>
+     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"/>
+    <link rel="stylesheet" href="/static/css/all.css">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/bootstrap-rtl.min.css">
+    <link rel="stylesheet" href="/static/css/login_style.css">
+    <link rel="stylesheet" href="/static/css/core.css">
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/Bootstrap.min.js"></script>
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/popper.min.js"></script>
+    <script src="/static/js/sweetalert2@11.js"></script>
+    <script src="/static/js/jquery-3.5.1.slim.min.js"></script>
+    <script src="/static/js/custom.js"></script>
+
+
+
+</head>
+<body>
+
+<div class="global-container">
+	<div class="card login-form">
+	<div class="card-body">
+
+        <a href="{% url 'index' %}" class="text-center text-dark"><i class="fa fa-chevron-right m-2"></i>بازگشت</a>
+
+<div class="item">
+    <h2>time</h2>
+    <svg width="160" height="160" xmlns="http://www.w3.org/2000/svg">
+      <circle id="circle" class="circle_animation" r="69.85699" cy="81" cx="81" stroke-width="15" stroke="#6fdb6f" fill="1"/>
+    </svg>
+</div>
+
+   <h5 class="text-center mt-3">کد امنیتی را وارد کنید</h5>
+
+
+{#		<h3 class="card-title text-center">Log in to Codepen</h3>#}
+		<div class="card-text">
+
+            <form action="">
+
+ <p class="text-center mt-3">کد تایید به شماره موبایل 09124567821 ارسال شد.</p>
+
+          <div id="verification-input" class="d-flex justify-content-center" dir="ltr">
+                <input type="text" maxlength="1" />
+                <input type="text" maxlength="1" />
+                <input type="text" maxlength="1" />
+                <input type="text" maxlength="1" />
+                <input type="text" maxlength="1" />
+                <input type="text" maxlength="1" />
+            </div>
+
+                <div class="d-flex justify-content-between mt-3 px-5">
+                    <p>کد تایید دریافت نکرده اید؟</p>
+                      <a href="">ارسال مجدد کد تایید</a>
+                </div>
+
+
+                <div class="d-flex justify-content-center">
+                <button type="submit" class="btn btn-info btn-lg w-50 ">تایید</button>
+                    </div>
+                </form>
+		</div>
+	</div>
+</div>
+</div>
+
+
+
+</body>
+
+ <script>
+    let time = 120; // total seconds
+    let i = 0;
+    let finalOffset = 439.82; // 2πr
+    let step = finalOffset / time;
+
+    const timeCaption = document.querySelector('h2');
+    const circle = document.getElementById('circle');
+    const resendSection = document.querySelector('.d-flex.justify-content-between'); // Select the resend section
+
+    // Set dasharray and initial offset
+    circle.style.strokeDasharray = finalOffset;
+    circle.style.strokeDashoffset = 0;
+    timeCaption.innerText = time;
+
+    const interval = setInterval(() => {
+        timeCaption.innerText = time - i;
+
+        if (i === time) {
+            clearInterval(interval);
+
+            // Show the resend section when the timer is finished
+            resendSection.style.display = 'flex';  // Make it visible
+        } else {
+            circle.style.strokeDashoffset = step * i;
+            i++;
+        }
+    }, 1000);
+
+    const inputs = Array.from(document.getElementById("verification-input").children);
+
+    function getFirstEmptyIndex() {
+        return inputs.findIndex((input) => input.value === "");
+    }
+
+    inputs.forEach((input, i) => {
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace") {
+                if (input.value === "" && i > 0) {
+                    inputs[i - 1].value = "";
+                    inputs[i - 1].focus();
+                }
+
+                for (let j = i; j < inputs.length; j++) {
+                    let value = inputs[j + 1] ? inputs[j + 1].value : "";
+                    inputs[j].setRangeText(value, 0, 1, "start");
+                }
+            }
+
+            if (e.key === "ArrowLeft" && i > 0) {
+                inputs[i + 1].focus();
+            }
+
+            if (e.key === "ArrowRight" && i < inputs.length - 1) {
+                inputs[i - 1].focus();
+            }
+        });
+
+        input.addEventListener("input", (e) => {
+            input.value = "";
+
+            const start = getFirstEmptyIndex();
+            inputs[start].value = e.data;
+
+            if (start + 1 < inputs.length) inputs[start + 1].focus();
+        });
+
+        input.addEventListener("paste", (e) => {
+            e.preventDefault();
+
+            const text = (event.clipboardData || window.clipboardData).getData("text");
+            const firstEmpty = getFirstEmptyIndex();
+            const start = firstEmpty !== -1 ? Math.min(i, firstEmpty) : i;
+
+            for (let i = 0; start + i < inputs.length && i < text.length; i++) {
+                inputs[start + i].value = text.charAt(i);
+            }
+
+            inputs[Math.min(start + text.length, inputs.length - 1)].focus();
+        });
+
+        input.addEventListener("focus", () => {
+            const start = getFirstEmptyIndex();
+            if (start !== -1 && i > start) inputs[start].focus();
+        });
+    });
+
+</script>
+
+
+</html>

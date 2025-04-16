@@ -42,9 +42,7 @@ def index(request):
     return render(request, 'index.html', context)
 
 
-def login_page(request):
-
-
-    return render(request, 'dashboard.html')
+def mobile_login(request):
+    return render(request, 'mobile_Login.html')
 
 

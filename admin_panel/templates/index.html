@@ -4,7 +4,7 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <title>سامانه مدیریت مجتمع بلوک B آبشار</title>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"/>
     <link rel="stylesheet" href="/static/css/all.css">
     <link rel="stylesheet" href="/static/css/bootstrap.min.css">
@@ -75,14 +75,15 @@
                     <div class="row px-4">
                           <h5 class="mb-4 px-5">ورود به سامانه</h5>
                         <div class="col-md-12 px-5">
-                            <label class="label_form">شماره موبایل:</label>
+                            <label class="label_form">نام کاربری:</label>
                             {{ form.mobile }}
                         </div>
                         <div class="col-md-12 px-5">
                              <label class="label_form">کلمه عبور:</label>
                             {{ form.password }}
                         </div>
-                                <div class="d-flex justify-content-end px-5">
+                                <div class="d-flex justify-content-between px-5">
+                                    <a href="{% url 'mobile_login' %}" class="btn btn-info  px-3 mt-1">ورود با شماره همراه</a>
                                      <button type="submit" class="btn btn-info px-3 mt-1">ورود</button>
                                 </div>
                         </div>
