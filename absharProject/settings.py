@@ -38,8 +38,15 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    # main_app
     'admin_panel',
     'user_app',
+    'polls',
+
+    # other_app
+    'django_render_partial',
+    'sweetify',
+    'jalali_date',
 ]
 
 MIDDLEWARE = [
@@ -133,3 +140,25 @@ MEDIA_ROOT = BASE_DIR / 'uploads'  # Directory where uploaded files will be stor
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+Kavenegar_API = '795A7476367A46796858526E6E4744576A7A516E7750696E6C65654E654E525835784C38716437515270453D'
+
+
+JALALI_DATE_DEFAULTS = {
+   # if change it to true then all dates of the list_display will convert to the Jalali.
+   'LIST_DISPLAY_AUTO_CONVERT': False,
+   'Strftime': {
+        'date': '%y/%m/%d',
+        'datetime': '%H:%M:%S _ %y/%m/%d',
+    },
+    'Static': {
+        'js': [
+            'admin/js/django_jalali.min.js',
+        ],
+        'css': {
+            'all': [
+              'admin/css/django_jalali.min.css',
+            ]
+        }
+    },
+}

@@ -1,0 +1,291 @@
+
+@font-face {
+    font-family: Vazir;
+    src: url('../fonts/Vazir.eot');
+    src: url('../fonts/Vazir.eot?#iefix') format('embedded-opentype'),
+    url('../fonts/Vazir.woff2') format('woff2'),
+    url('../fonts/Vazir.woff') format('woff'),
+    url('../fonts/Vazir.ttf') format('truetype');
+    font-weight: normal;
+}
+
+@font-face {
+    font-family: Vazir;
+    src: url('../fonts/Vazir-Bold.eot');
+    src: url('../fonts/Vazir-Bold.eot?#iefix') format('embedded-opentype'),
+    url('../fonts/Vazir-Bold.woff2') format('woff2'),
+    url('../fonts/Vazir-Bold.woff') format('woff'),
+    url('../fonts/Vazir-Bold.ttf') format('truetype');
+    font-weight: bold;
+}
+
+@font-face {
+    font-family: Vazir;
+    src: url('../fonts/Vazir-Light.eot');
+    src: url('../fonts/Vazir-Light.eot?#iefix') format('embedded-opentype'),
+    url('../fonts/Vazir-Light.woff2') format('woff2'),
+    url('../fonts/Vazir-Light.woff') format('woff'),
+    url('../fonts/Vazir-Light.ttf') format('truetype');
+    font-weight: 300;
+}
+
+@font-face {
+    font-family: Vazir;
+    src: url('../fonts/Vazir-Medium.eot');
+    src: url('../fonts/Vazir-Medium.eot?#iefix') format('embedded-opentype'),
+    url('../fonts/Vazir-Medium.woff2') format('woff2'),
+    url('../fonts/Vazir-Medium.woff') format('woff'),
+    url('../fonts/Vazir-Medium.ttf') format('truetype');
+    font-weight: 500;
+}
+
+@font-face {
+    font-family: Vazir;
+    src: url('../fonts/Vazir-Thin.eot');
+    src: url('../fonts/Vazir-Thin.eot?#iefix') format('embedded-opentype'),
+    url('../fonts/Vazir-Thin.woff2') format('woff2'),
+    url('../fonts/Vazir-Thin.woff') format('woff'),
+    url('../fonts/Vazir-Thin.ttf') format('truetype');
+    font-weight: 100;
+}
+
+@font-face {
+    font-family: Vazir;
+    src: url('../fonts/Vazir-Black.eot');
+    src: url('../fonts/Vazir-Black.eot?#iefix') format('embedded-opentype'),
+    url('../fonts/Vazir-Black.woff2') format('woff2'),
+    url('../fonts/Vazir-Black.woff') format('woff'),
+    url('../fonts/Vazir-Black.ttf') format('truetype');
+    font-weight: 900;
+}
+
+/*---------------------------------- End of fonts ---------------------------------- */
+
+*:not(i){
+    font-family: 'Vazir', sans-serif !important;
+    direction: rtl;
+}
+/**:not(span){*/
+/*	font-family: Vazir, sans-serif !important;*/
+/*}*/
+
+
+body {
+	background: url("/media/pictures/ripi_backgrand.jpg") no-repeat center center fixed;
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	-o-background-size: cover;
+	background-size: cover;
+	font-size: 16px;
+	font-family: Vazir, sans-serif;
+	font-weight: 300;
+	margin: 0;
+	color: #b6d4fe;
+
+}
+
+
+.navbar{
+	backdrop-filter: blur(25px);
+	background-color: rgba(255,255,255,0.1);
+	margin: 0;
+}
+
+/*.navbar .navbar-light .navbar-brand {*/
+/*	margin-right: -1rem;*/
+/*}*/
+
+.navbar-brand{
+    font-weight: bold;
+	font-size: 5rem;
+	height: 80px;
+	margin-left: 27rem;
+
+}
+
+/*.navbar-light .navbar-brand {*/
+/*	font-size: 1.5rem;*/
+/*	font-weight: bold;*/
+/*}*/
+
+
+
+/* Typography */
+h1#title {
+	font-family: 'Roboto Slab', serif;
+	font-weight: 300;
+	font-size: 7em;
+	color: white;
+	text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+	margin: 0 auto;
+	padding-top: 180px;
+	max-width: 300px;
+	text-align: center;
+	position: relative;
+	top: 0;
+}
+/*h1#title span span {*/
+/*	font-weight: 400;*/
+/*}*/
+
+h1 {
+	/*text-transform: uppercase;*/
+	color: #ffffff;
+	/*letter-spacing: 2px;*/
+	font-size: 6rem;
+	line-height: 2.8em;
+	font-weight: 900;
+}
+
+a {
+	text-decoration: none;
+	color: #e8eff4;
+}
+
+a:hover {
+	/*color: #aeaeae;*/
+}
+
+p.small {
+	font-size: 1.8em;
+	margin: 20px 0 0;
+}
+
+
+ /*#Layout*/
+/*.container {*/
+/*	margin: 0;*/
+/*}*/
+
+/*.container.col-6 {*/
+/*	width: 30%;*/
+/*}*/
+
+/*.top {*/
+/*	margin: 0;*/
+/*	padding: 0;*/
+/*	width: 100%;*/
+/*	background: -moz-linear-gradient(top,  rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%); !* FF3.6-15 *!*/
+/*	background: -webkit-linear-gradient(top,  rgba(0,0,0,0.6) 0%,rgba(0,0,0,0) 100%); !* Chrome10-25,Safari5.1-6 *!*/
+/*	background: linear-gradient(to bottom,  rgba(0,0,0,0.6) 0%,rgba(0,0,0,0) 100%); !* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ *!*/
+/*	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#99000000', endColorstr='#00000000',GradientType=0 ); !* IE6-9 *!*/
+/*}*/
+
+.login-box {
+	max-width: 270px;
+	height: 350px;
+	margin:0 auto;
+	position: relative;
+	top: 0;
+	/*padding-bottom: 22px;*/
+	border-radius: 5px;
+	background: rgba(3, 3, 3, 0.46);
+	/*box-shadow: 0 5px 50px rgba(0,0,0,0.4);*/
+	text-align: center;
+	margin-top: 10rem;
+
+}
+
+.login-box .box-header {
+	/*background-color: #6c757d;*/
+	margin-top: 3rem;
+	height: 60px;
+	margin-bottom: 2rem;
+	border-radius: 5px;
+	background: rgba(3,3,3,.2);
+	box-shadow: 0 5px 50px rgba(0,0,0,0.1);
+	/*border: 1px solid #ccc;*/
+	text-align: center;
+	justify-content: center;
+	padding-top: 2rem;
+	color: #dfece6;
+
+
+}
+
+.login-box input {
+	background: rgb(172, 213, 195);
+	margin-bottom: 20px;
+	padding: 8px;
+	border: 1.5px solid #ccc;
+	border-radius: 10px;
+	font-size: 1.6rem;
+	color: #000706;
+	font-weight: 400;
+}
+
+ input[type="text"]::placeholder {
+        color: #000706; /* Replace "red" with your desired color */
+	 font-size: 1.3rem;
+    }
+  input[type="password"]::placeholder {
+        color: #000706; /* Replace "red" with your desired color */
+	  font-size: 1.3rem;
+    }
+
+.login-box input:focus {
+	outline: none;
+	border-color: #3dd6bf;
+	transition: 0.5s;
+	color: #000706;
+}
+
+.login-box button {
+	border: 0;
+	border-radius: 10px;
+	color: black;
+	padding: 13px;
+	text-transform: uppercase;
+	font-weight: 900;
+	font-size: 1.5em;
+	letter-spacing: 1px;
+	background-color: #9a55ff;
+	cursor:pointer;
+	outline: none;
+	width: 35%;
+	margin-top: 3rem;
+}
+
+.login-box button:hover {
+	opacity: 0.7;
+	transition: 0.5s;
+
+}
+
+.login-box button:hover {
+	opacity: 0.7;
+	transition: 0.5s;
+}
+
+.selected {
+	color: #b6d4fe!important;
+	transition: 0.5s;
+}
+.login-box {
+  -webkit-animation-duration: 1s;
+  -webkit-animation-delay: 1s;
+}
+.field-icon {
+  float: right;
+  margin-right: 6px;
+  margin-top: -44px;
+  position: relative;
+  z-index: 2;
+	color: #363535;
+	font-size: 1.5rem;
+}
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    transition: background-color 5000s ease-in-out 0s;
+    -webkit-text-fill-color: #000706 !important;
+}
+
+.alert {
+    color: #f6f5f5;
+	font-weight: bold;
+	font-size: 1.3em;
+    background-color: #e30a0a;
+    border-color: #ffd8e0;
+}
