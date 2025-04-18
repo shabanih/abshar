@@ -1,0 +1,64 @@
+﻿{% extends 'shared/base_template.html' %}
+{% load thumbnail %}
+{% load static %}
+{% load poll_extras %}
+{% block page_title %}
+مدیریت پیام های ارتباط با ما
+{% endblock page_title %}
+
+{% block main_content %}
+<div class="container mt-3">
+    <div class="container p-4">
+        <div class="row mt-2">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th>نام</th>
+                            <th>موضوع</th>
+                            <th>موبایل/ایمیل</th>
+                            <th>پیام</th>
+                            <th>تاریخ ایجاد</th>
+                            <th>خوانده شده</th>
+                        </tr>
+                    </thead>
+                    {% if contact_comments %}
+                        {% for comment in contact_comments %}
+                        <tbody class="text-center">
+                            <tr {% if not comment.is_read %}style="font-weight: bold;"{% endif %}>
+                                <td class="align-content-center">{{ forloop.counter }}</td>
+                                <td class="align-content-center">{{ comment.name }}</td>
+                                <td class="align-content-center">{{ comment.subject }}</td>
+                                <td class="align-content-center">{{ comment.mobile }}</td>
+                                <td class="align-content-center text-danger">{{ comment.message }}</td>
+                                <td class="align-content-center">{{ comment.created_at|show_jalali_date }}</td>
+                            <td class="align-content-center">
+                                 <a href="{% url 'approve_comment' comment.id %}" class="btn btn-info p-1">
+                                      <i class="mdi mdi-eye" aria-hidden="true"></i>
+                                    </a>
+                            </td>
+                            </tr>
+                        </tbody>
+                        {% endfor %}
+                    {% else %}
+                        <tbody>
+                            <tr>
+                                <td colspan="7" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                            </tr>
+                        </tbody>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+

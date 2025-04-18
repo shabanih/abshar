@@ -1,0 +1,220 @@
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>ورود با شماره همراه</title>
+     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"/>
+    <link rel="stylesheet" href="/static/css/all.css">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/bootstrap-rtl.min.css">
+    <link rel="stylesheet" href="/static/css/login_style.css">
+    <link rel="stylesheet" href="/static/css/core.css">
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/Bootstrap.min.js"></script>
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/popper.min.js"></script>
+    <script src="/static/js/sweetalert2@11.js"></script>
+    <script src="/static/js/jquery-3.5.1.slim.min.js"></script>
+    <script src="/static/js/custom.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+
+
+
+</head>
+<body>
+
+<div class="global-container">
+	<div class="card login-form">
+	<div class="card-body">
+
+        <a href="{% url 'index' %}" class="text-center text-dark"><i class="fa fa-chevron-right m-2"></i>بازگشت</a>
+
+<div class="container">
+  <div class="row text-center">
+    <div class="col">
+        <img src="/static/img/logo_login.png" width="120" alt="">
+
+        <p>یک کد تایید به شماره همراه شما پیامک خواهد شد.</p>
+               {% if messages %}
+                            <div class="alert alert-danger px-5 py-2">
+                                {% for message in messages %}
+                                    {{ message }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+        <form action="" method="post" novalidate>
+            {% csrf_token %}
+              <div class="d-flex justify-content-center">
+                 {{ form.mobile }}
+
+              </div>
+            <small class="text-danger">{{ form.mobile.errors }}</small>
+          <div class="d-flex justify-content-center">
+                <button type="submit" class="btn btn-info w-50">ارسال کد تایید</button>
+            </div>
+        </form>
+    </div>
+  </div>
+</div>
+
+
+
+
+	</div>
+</div>
+</div>
+
+
+
+</body>
+
+<script>
+    let interval;
+    let finalOffset = 439.82; // 2πr
+    const timeCaption = document.querySelector('h2');
+    const circle = document.getElementById('circle');
+    const resendSection = document.getElementById('resend-section');
+    const inputs = Array.from(document.getElementById("verification-input").children);
+
+    function formatTime(seconds) {
+        const m = String(Math.floor(seconds / 60)).padStart(1, '0');
+        const s = String(seconds % 60).padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    function startTimer(duration) {
+        let i = 0;
+        let step = finalOffset / duration;
+
+        clearInterval(interval); // Clear any previous interval
+        circle.style.strokeDasharray = finalOffset;
+        circle.style.strokeDashoffset = 0;
+        timeCaption.innerText = formatTime(duration - i);
+        resendSection.style.pointerEvents = "none";
+        resendSection.style.color = "#999";  // Hide resend
+
+        interval = setInterval(() => {
+            timeCaption.innerText = formatTime(duration - i);
+
+            if (i >= duration) {
+                clearInterval(interval);
+                resendSection.style.pointerEvents = "auto";
+                resendSection.style.color = "#007bff";  // Show resend
+            } else {
+                circle.style.strokeDashoffset = step * i;
+                i++;
+            }
+        }, 1000);
+    }
+
+    function resendOtp(){
+        console.log('Resending OTP...');
+        $.ajax({
+            url: '/resend-otp/',
+            type: 'GET',
+            success: function(response) {
+                console.log('OTP resent successfully.');
+                startTimer(120); // restart timer after resend
+            },
+            error: function(xhr, status, error) {
+                console.error('Error resending OTP:', error);
+            }
+        });
+    }
+
+    // Input logic remains unchanged...
+    function getFirstEmptyIndex() {
+        return inputs.findIndex((input) => input.value === "");
+    }
+
+    inputs.forEach((input, i) => {
+        input.addEventListener("keydown", (e) => {
+            if (e.key === "Backspace") {
+                if (input.value === "" && i > 0) {
+                    inputs[i - 1].value = "";
+                    inputs[i - 1].focus();
+                }
+                for (let j = i; j < inputs.length; j++) {
+                    let value = inputs[j + 1] ? inputs[j + 1].value : "";
+                    inputs[j].setRangeText(value, 0, 1, "start");
+                }
+            }
+            if (e.key === "ArrowLeft" && i > 0) inputs[i - 1].focus();
+            if (e.key === "ArrowRight" && i < inputs.length - 1) inputs[i + 1].focus();
+        });
+
+        input.addEventListener("input", (e) => {
+            input.value = "";
+            const start = getFirstEmptyIndex();
+            inputs[start].value = e.data;
+            if (start + 1 < inputs.length) inputs[start + 1].focus();
+        });
+
+        input.addEventListener("paste", (e) => {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData).getData("text");
+            const firstEmpty = getFirstEmptyIndex();
+            const start = firstEmpty !== -1 ? Math.min(i, firstEmpty) : i;
+            for (let j = 0; start + j < inputs.length && j < text.length; j++) {
+                inputs[start + j].value = text.charAt(j);
+            }
+            inputs[Math.min(start + text.length, inputs.length - 1)].focus();
+        });
+
+        input.addEventListener("focus", () => {
+            const start = getFirstEmptyIndex();
+            if (start !== -1 && i > start) inputs[start].focus();
+        });
+    });
+
+    // Start timer on page load
+    window.onload = () => startTimer(120);
+</script>
+
+
+{#<script>#}
+{#    const timerElement = document.getElementById("timer");#}
+{#    const resendLink = document.getElementById("resend-link");#}
+{#    const circle = document.getElementById("circle");#}
+{##}
+{#    let timeLeft = 60;#}
+{#    const radius = circle.r.baseVal.value;#}
+{#    const circumference = 2 * Math.PI * radius;#}
+{##}
+{#    circle.style.strokeDasharray = `${circumference}`;#}
+{#    circle.style.strokeDashoffset = `${circumference}`;#}
+{##}
+{#    function setProgress(percent) {#}
+{#        const offset = circumference - (percent / 100) * circumference;#}
+{#        circle.style.strokeDashoffset = offset;#}
+{#    }#}
+{##}
+{#    function countdown() {#}
+{#        const timer = setInterval(() => {#}
+{#            timeLeft--;#}
+{#            timerElement.textContent = `${timeLeft} ثانیه`;#}
+{#            setProgress(((60 - timeLeft) / 60) * 100);#}
+{##}
+{#            if (timeLeft <= 0) {#}
+{#                clearInterval(timer);#}
+{#                resendLink.style.pointerEvents = "auto";#}
+{#                resendLink.style.color = "#007bff";#}
+{#                timerElement.textContent = "کد منقضی شد!";#}
+{#            }#}
+{#        }, 1000);#}
+{#    }#}
+{##}
+{#    countdown();#}
+{#</script>#}
+
+
+
+</html>
