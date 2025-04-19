@@ -1,0 +1,145 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+افزودن مستاجر
+{% endblock page_title %}
+
+{% block main_content %}
+<div class="container mt-3">
+
+     {{ form.non_field_errors }}
+                              <form class="row gy-2 gx-5 justify-content-md-center" action="" method="POST"
+                                    enctype="multipart/form-data" novalidate>
+                                  {% csrf_token %}
+                                  <div class="container-fluid">
+                                    <div class="row justify-content-start mt-4">
+{#                                        <p class="mb-4 mt-4 mb-0" style="font-weight: 900">اطلاعات واحد مسکونی</p>#}
+                                      <div class="col-6 col-lg-3 col-xl-3">
+                                          {{ form.unit.label_tag }}
+                                          {{ form.unit }}
+                                          {{ form.unit.errors }}
+                                      </div>
+                                      <div class="col-6 col-lg-3 col-xl-3">
+                                          {{ form.renter_name.label_tag }}
+                                          {{ form.renter_name }}
+                                          {{ form.renter_name.errors }}
+                                      </div>
+                                      <div class="col-6 col-lg-3 col-xl-3">
+                                          {{ form.renter_mobile.label_tag }}
+                                          {{ form.renter_mobile }}
+                                          {{ form.renter_mobile.errors }}
+                                      </div>
+                                      <div class="col-6 col-lg-3 col-xl-3">
+                                          {{ form.renter_national_code.label_tag }}
+                                          {{ form.renter_national_code }}
+                                          {{ form.renter_national_code.errors }}
+                                      </div>
+
+                                    </div>
+                                         <div class="row">
+                                           <div class="col-6 col-lg-3 col-xl-3">
+                                          {{ form.people_count.label_tag }}
+                                          {{ form.people_count }}
+                                          {{ form.people_count.errors }}
+                                      </div>
+                                          <div class="col-6 col-lg-3 col-xl-3">
+                                           {{ form.contract_number.label_tag }}
+                                          {{ form.contract_number }}
+                                          {{ form.contract_number.errors }}
+                                      </div>
+                                      <div class="col-6 col-lg-3 col-xl-3">
+                                          {{ form.start_date.label_tag }}
+                                          {{ form.start_date }}
+                                          {{ form.start_date.errors }}
+                                      </div>
+                                        <div class="col-6 col-lg-3 col-xl-3">
+                                          {{ form.end_date.label_tag }}
+                                          {{ form.end_date }}
+                                          {{ form.end_date.errors }}
+                                      </div>
+                                    </div>
+                                      <div class="row">
+                                           <div class="col-6 col-lg-3 col-xl-3">
+                                          {{ form.estate_name.label_tag }}
+                                          {{ form.estate_name }}
+                                          {{ form.estate_name.errors }}
+                                      </div>
+                                        <div class="col-6 col-lg-3 col-xl-3">
+                                          {{ form.first_charge.label_tag }}
+                                          {{ form.first_charge }}
+                                          {{ form.first_charge.errors }}
+                                      </div>
+
+                                      </div>
+
+                                    <div class="d-flex justify-content-end mt-4">
+                                          <button type="submit" class="btn btn-gradient-success btn-md">ثبت مستاجر</button>
+                                         </div>
+                                  </div>
+
+                              </form>
+<hr/>
+                        <div class="container">
+                            <div class="row mt-1">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <thead class="text-center">
+                                            <tr>
+                                                <th>#</th>
+                                                <th>نام مالک</th>
+                                                <th>شماره همراه</th>
+                                                <th>کد ملی مالک</th>
+                                                <th>تاریخ خرید ملک</th>
+                                                <th>دستورات</th>
+                                            </tr>
+                                        </thead>
+                                        {% if announcements %}
+                                            {% for announcement in announcements %}
+                                            <tbody class="text-center">
+                                                <tr>
+                                                    <td>{{ forloop.counter }}</td>
+                                                    <td>{{user.name }}</td>
+                                                    <td>{{ announcement.title }}</td>
+
+                                                    <td>{{ announcement.created_at|show_jalali_date}}</td>
+                                                      <td>
+                                                       {% if announcement.is_active == True %}
+                                                        <button class="btn btn-primary bg-success p-2">فعال</button>
+                                                           {% else %}
+                                                           <button class="btn btn-danger p-2">غیر فعال</button>
+
+                                                       {% endif %}
+                                                    </td>
+
+                                                   <td class="col-lg-1 col-xl-1">
+                                                       <a href="" class="btn btn-primary p-1">
+                                                  <i class="mdi mdi-lead-pencil" aria-hidden="true"></i></a>
+                                                      <a href=""
+                                                         class="btn btn-danger p-1" onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                                          <i class="mdi mdi-delete" aria-hidden="true"></i></a>
+
+                                                </td>
+
+                                                </tr>
+                                            </tbody>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tbody>
+                                                <tr>
+                                                    <td colspan="7" class="text-center">هیچ رکوردی برای نمایش وجود ندارد!</td>
+                                                </tr>
+                                            </tbody>
+                                        {% endif %}
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+
+</div>
+{% endblock %}
+
+

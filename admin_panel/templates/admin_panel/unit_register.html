@@ -1,0 +1,166 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+افزودن واحد
+{% endblock page_title %}
+
+{% block main_content %}
+<div class="container mt-3">
+
+     {{ form.non_field_errors }}
+                              <form class="row gy-2 gx-5 justify-content-md-center" action="" method="POST"
+                                    enctype="multipart/form-data" novalidate>
+                                  {% csrf_token %}
+                                  <div class="container-fluid">
+                                    <div class="row justify-content-start">
+                                        <p class="mb-4 mt-4 mb-0" style="font-weight: 900">اطلاعات واحد مسکونی</p>
+                                      <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.unit.label_tag }}
+                                          {{ form.unit }}
+                                          {{ form.unit.errors }}
+                                      </div>
+                                      <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.floor_number.label_tag }}
+                                          {{ form.floor_number }}
+                                          {{ form.floor_number.errors }}
+                                      </div>
+                                      <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.area.label_tag }}
+                                          {{ form.area }}
+                                          {{ form.area.errors }}
+                                      </div>
+                                      <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.bedrooms_count.label_tag }}
+                                          {{ form.bedrooms_count }}
+                                          {{ form.bedrooms_count.errors }}
+                                      </div>
+                                            <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.parking_place.label_tag }}
+                                          {{ form.parking_place }}
+                                          {{ form.parking_place.errors }}
+                                      </div>
+                                      <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.parking_number.label_tag }}
+                                          {{ form.parking_number }}
+                                          {{ form.parking_number.errors }}
+                                      </div>
+                                    </div>
+                                         <div class="row">
+
+                                      <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.parking_count.label_tag }}
+                                          {{ form.parking_count }}
+                                          {{ form.parking_count.errors }}
+                                      </div>
+
+                                        <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.status.label_tag }}
+                                          {{ form.status }}
+                                          {{ form.status.errors }}
+                                      </div>
+                                          <div class="col-4 col-lg-2 col-xl-2">
+                                           {{ form.unit_phone.label_tag }}
+                                          {{ form.unit_phone }}
+                                          {{ form.unit_phone.errors }}
+                                      </div>
+                                    </div>
+
+                                       <hr class="mt-2" style="color: #0f1531">
+                                      <div class="row justify-content-start">
+                                             <p class="mt-2 mb-0" style="font-weight: 900">اطلاعات مالک</p>
+                                           <div class="col-6 col-lg-3 col-xl-3 ">
+                                          {{ form.owner_name.label_tag }}
+                                          {{ form.owner_name }}
+                                          {{ form.owner_name.errors }}
+                                          </div>
+                                              <div class="col-6 col-lg-3 col-xl-3">
+                                          {{ form.owner_mobile.label_tag }}
+                                          {{ form.owner_mobile }}
+                                          {{ form.owner_mobile.errors }}
+                                           </div>
+                                              <div class="col-6 col-lg-3 col-xl-3">
+                                          {{ form.owner_national_code.label_tag }}
+                                          {{ form.owner_national_code }}
+                                          {{ form.owner_national_code.errors }}
+                                           </div>
+                                              <div class="col-6 col-lg-3 col-xl-3">
+                                          {{ form.purchase_date.label_tag }}
+                                          {{ form.purchase_date }}
+                                          {{ form.purchase_date.errors }}
+                                           </div>
+
+                                      </div>
+                                       <div class="d-flex justify-content-start">
+                                          <button onclick="addOwner()" class="btn btn-gradient-success p-3">افزودن مالک</button>
+                                         </div>
+                                        <div class="container">
+                                                    <div class="row mt-1">
+                                                        <div class="table-responsive">
+                                                            <table class="table table-bordered">
+                                                                <thead class="text-center">
+                                                                    <tr>
+                                                                        <th>#</th>
+                                                                        <th>نام مالک</th>
+                                                                        <th>شماره همراه</th>
+                                                                        <th>کد ملی مالک</th>
+                                                                        <th>تاریخ خرید ملک</th>
+                                                                        <th>دستورات</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                {% if announcements %}
+                                                                    {% for announcement in announcements %}
+                                                                    <tbody class="text-center">
+                                                                        <tr>
+                                                                            <td>{{ forloop.counter }}</td>
+                                                                            <td>{{user.name }}</td>
+                                                                            <td>{{ announcement.title }}</td>
+
+                                                                            <td>{{ announcement.created_at|show_jalali_date}}</td>
+                                                                              <td>
+                                                                               {% if announcement.is_active == True %}
+                                                                                <button class="btn btn-primary bg-success p-2">فعال</button>
+                                                                                   {% else %}
+                                                                                   <button class="btn btn-danger p-2">غیر فعال</button>
+
+                                                                               {% endif %}
+                                                                            </td>
+
+                                                                           <td class="col-lg-1 col-xl-1">
+                                                                               <a href="" class="btn btn-primary p-1">
+                                                                          <i class="mdi mdi-lead-pencil" aria-hidden="true"></i></a>
+                                                                              <a href=""
+                                                                                 class="btn btn-danger p-1" onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                                                                  <i class="mdi mdi-delete" aria-hidden="true"></i></a>
+
+                                                                        </td>
+
+                                                                        </tr>
+                                                                    </tbody>
+                                                                    {% endfor %}
+                                                                {% else %}
+                                                                    <tbody>
+                                                                        <tr>
+                                                                            <td colspan="7" class="text-center">هیچ رکوردی برای نمایش وجود ندارد!</td>
+                                                                        </tr>
+                                                                    </tbody>
+                                                                {% endif %}
+                                                            </table>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                        <hr/>
+                                    <div class="d-flex justify-content-end mt-4">
+                                          <button type="submit" class="btn btn-gradient-success btn-md">ثبت واحد</button>
+                                         </div>
+                                  </div>
+
+                              </form>
+
+
+</div>
+{% endblock %}
+
+

@@ -1,5 +1,6 @@
 {% load render_partial %}
-<!DOCTYPE html>
+<!DOCTYPE html >
+
 {% load static %}
 {#{% load jalali_tags %}#}
 <html lang="en">
@@ -36,12 +37,16 @@
     <link rel="stylesheet" href="{% static 'admin_panel/css/bootstrap-rtl.min.css' %}">
     <link rel="stylesheet" href="{% static 'admin_panel/css/jquery.dataTables.min.css' %}">
   <link rel="stylesheet" href="{% static 'admin_panel/css/custom_style.css' %}">
-     <link rel="stylesheet" href="{% static 'admin_panel/css/stepformstyle.css' %}">
+  <link rel="stylesheet" href="{% static 'admin_panel/css/widgets.css' %}">
+
+
+
      
   
     <!-- End layout styles -->
 
    {% block custom_css %}{% endblock custom_css %}
+  {{ form.media }}
   </head>
   <body class="hold-transition light-skin sidebar-mini theme-primary fixed rtl">
     <div class="container-scroller">
@@ -141,41 +146,22 @@
 
 
 <!-- jQuery easing plugin -->
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.6.5/sweetalert2.all.min.js"></script>
-<script src="{% static 'admin_panel/js/bootstrap.min.js' %}"></script>
-    <script src="{% static 'admin_panel/js/jalaliHead.js' %}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/limonte-sweetalert2/11.6.5/sweetalert2.all.min.js"></script>
+    <script src="{% static 'admin_panel/js/bootstrap.min.js' %}"></script>
     <script src="{% static 'admin_panel/js/jQuery v1.12.4.js' %}" type="text/javascript"></script>
-{#<!--    <script src="{% static 'admin_panel/vendors/js/vendor.bundle.base.js' %}"></script>-->#}
-
-
-		<script src="{% static 'admin/js/django_jalali.min.js' %}"></script>
-		<script src="{% static 'admin/js/core.js' %}"></script>
-    
-    <script src="{% static 'admin_panel/js/ProductInfo.js' %}"></script>
-    
-    <!-- endinject -->
-    <!-- Plugin js for this page -->
+    <script src="{% static 'admin/js/django_jalali.min.js' %}"></script>
+    <script src="{% static 'admin/js/core.js' %}"></script>
     <script src="{% static 'admin_panel/vendors/chart.js/Chart.min.js' %}"></script>
     <script src="{% static 'admin_panel/js/jquery.cookie.js' %}" type="text/javascript"></script>
     <script type="text/javascript" src="{% static 'admin_panel/js/jquery.dataTables.min.js' %}"></script>
-
-
-    <!-- End plugin js for this page -->
-    <!-- inject:js -->
     <script src="{% static 'admin_panel/js/off-canvas.js' %}"></script>
     <script src="{% static 'admin_panel/js/hoverable-collapse.js' %}"></script>
     <script src="{% static 'admin_panel/js/misc.js' %}"></script>
-{#    <script src="{% static 'admin_panel/js/pieChart.js' %}"></script>#}
     <script src="{% static 'admin_panel/js/chart.js' %}"></script>
-
     <script src="{% static 'admin_panel/js/dashboard.js' %}"></script>
-    <script src="{% static 'admin_panel/js/todolist.js' %}"></script>
-
-  <script src="{% static 'admin_panel/js/tableSearch.js' %}"></script>
-  <script src="{% static 'admin_panel/js/custom.js' %}"></script>
-    
-  
-
+    <script src="{% static 'admin_panel/js/tableSearch.js' %}"></script>
+    <script src="{% static 'admin_panel/js/custom.js' %}"></script>
+    <script src="{% static 'admin_panel/js/django_jalali.min.js' %}"></script>
 
   </body>
 </html>
