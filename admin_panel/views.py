@@ -73,8 +73,14 @@ def announcement_delete(request, pk):
     return redirect(reverse('announcement'))
 
 
-def unit_Management(request):
-    return render(request, 'admin_panel/unit_Management.html')
+# =========================== unit Views ================================
+def unit_management(request):
+    units = Unit.objects.all()
+    renters = Renter.objects.all()
+    return render(request, 'admin_panel/unit_management.html', {
+        'units': units,
+        'renters': renters
+    })
 
 
 class UnitRegisterView(LoginRequiredMixin, CreateView):
@@ -94,6 +100,35 @@ class UnitRegisterView(LoginRequiredMixin, CreateView):
         return context
 
 
+class UnitUpdateView(UpdateView):
+    model = Unit
+    form_class = UnitForm
+    success_url = reverse_lazy('add_unit')
+    template_name = 'admin_panel/unit_register.html'
+
+    def form_valid(self, form):
+        edit_instance = form.instance
+        self.object = form.save()
+        messages.success(self.request, f'واحد {edit_instance}با موفقیت ثبت گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['units'] = Unit.objects.all()
+        return context
+
+
+def unit_delete(request, pk):
+    unit = get_object_or_404(Unit, id=pk)
+    try:
+        unit.delete()
+        messages.success(request, 'اطلاعات  با موفقیت حذف گردید!')
+    except ProtectedError:
+        messages.error(request, " امکان حذف وجود ندارد! ")
+    return redirect(reverse('add_unit'))
+
+
+# =========================== Renter Views ================================
 class RenterRegisterView(LoginRequiredMixin, CreateView):
     model = Renter
     form_class = RenterForm
@@ -102,7 +137,7 @@ class RenterRegisterView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         self.object = form.save()
-        messages.success(self.request, 'اطلاعات مستاجر با موفقیت ثبت گردید!')
+        messages.success(self.request, 'اطلاعات با موفقیت ثبت گردید!')
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
@@ -110,8 +145,30 @@ class RenterRegisterView(LoginRequiredMixin, CreateView):
         context['renters'] = Renter.objects.all()
         return context
 
-    # class UnitUpdateView(LoginRequiredMixin, UpdateView):
-    #     model = Unit
-    #     form_class = UnitForm
-    #     success_url = reverse_lazy('')
-    #     template_name = 'admin_panel/unit_management.html'
+
+class RenterUpdateView(UpdateView):
+    model = Renter
+    form_class = RenterForm
+    success_url = reverse_lazy('add_renter')
+    template_name = 'admin_panel/renter_register.html'
+
+    def form_valid(self, form):
+        edit_instance = form.instance
+        self.object = form.save(commit=False)
+        messages.success(self.request, f'اطلاعات {edit_instance} با موفقیت ویرایش گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['renters'] = Renter.objects.all()
+        return context
+
+
+def renter_delete(request, pk):
+    renter = get_object_or_404(Renter, id=pk)
+    try:
+        renter.delete()
+        messages.success(request, 'اطلاعات  با موفقیت حذف گردید!')
+    except ProtectedError:
+        messages.error(request, " امکان حذف وجود ندارد! ")
+    return redirect(reverse('add_renter'))

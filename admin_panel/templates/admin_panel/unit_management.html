@@ -3,56 +3,57 @@
 {% load poll_extras %}
 
 {% block page_title %}
-مدیریت واحد
+مدیریت واحدها
 {% endblock page_title %}
 
 {% block main_content %}
-<div class="container mt-3">
-    <div class="container p-3">
+    <hr/>
+<div class="container-fluid">
+    <div class="container p-0">
         <div class="row mt-2">
             <div class="table-responsive">
                 <table class="table table-bordered">
                     <thead class="text-center">
                         <tr>
                             <th>#</th>
-                            <th>ایجاد کننده</th>
-                            <th>موضوع اطلاعیه</th>
-                            <th>تاریخ ایجاد</th>
-                            <th>فعال/غیرفعال</th>
+                            <th>شماره واحد</th>
+                            <th>نام مالک</th>
+                            <th>موبایل مالک</th>
+                            <th>نام مستاجر</th>
+                            <th>موبایل مستاجر</th>
+                            <th>متراژ</th>
+                            <th>تعداد نفرات</th>
+                            <th>تعداد خواب</th>
+                            <th>وضعیت</th>
                             <th>دستورات</th>
                         </tr>
                     </thead>
-                    {% if announcements %}
-                        {% for announcement in announcements %}
+                {% if renters %}
+               {% for unit in units %}
+                        {% for renter in unit.renters.all %}
                         <tbody class="text-center">
                             <tr>
                                 <td>{{ forloop.counter }}</td>
-                                <td>{{user.name }}</td>
-                                <td>{{ announcement.title }}</td>
-
-                                <td>{{ announcement.created_at|show_jalali_date}}</td>
-                                  <td>
-                                   {% if announcement.is_active == True %}
-                                    <button class="btn btn-primary bg-success p-2">فعال</button>
-                                       {% else %}
-                                       <button class="btn btn-danger p-2">غیر فعال</button>
-
-                                   {% endif %}
-                                </td>
+                                <td>{{renter.unit.unit }}</td>
+                                <td>{{renter.unit.owner_name }}</td>
+                                <td>{{renter.unit.owner_mobile }}</td>
+                                <td>{{renter.renter_name }}</td>
+                                <td>{{renter.renter_name }}</td>
+                                <td>{{renter.unit.area }}</td>
+                                <td>{{renter.people_count }}</td>
+                                <td>{{renter.unit.bedrooms_count }}</td>
+                                <td>{{renter.unit.status }}</td>
 
                                <td class="col-lg-1 col-xl-1">
                                    <a href="" class="btn btn-primary p-1">
-                              <i class="mdi mdi-lead-pencil" aria-hidden="true"></i></a>
-                                  <a href=""
-                                     class="btn btn-danger p-1" onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
-                                      <i class="mdi mdi-delete" aria-hidden="true"></i></a>
-
+                              <i class="mdi mdi-eye" aria-hidden="true"></i></a>
                             </td>
-
                             </tr>
                         </tbody>
                         {% endfor %}
-                    {% else %}
+                        {% endfor %}
+
+                            {% else %}
                         <tbody>
                             <tr>
                                 <td colspan="7" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>

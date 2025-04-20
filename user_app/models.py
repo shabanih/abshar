@@ -44,24 +44,24 @@ class Unit(models.Model):
     floor_number = models.IntegerField()
     area = models.IntegerField()
     bedrooms_count = models.IntegerField()
-    parking_number = models.IntegerField()
+    parking_number = models.CharField(max_length=10, null=True, blank=True)
     parking_count = models.IntegerField()
     parking_place = models.CharField(max_length=100, null=True, blank=True, verbose_name='')
     owner_name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام مالک')
     owner_mobile = models.CharField(max_length=11, unique=True, verbose_name='همراه مالک')
-    owner_national_code = models.CharField(max_length=10, null=True, blank=True, verbose_name='')
+    owner_national_code = models.CharField(max_length=10, unique=True, null=True, blank=True, verbose_name='کد ملی')
     purchase_date = models.DateField(null=True, blank=True, verbose_name='تاریخ خرید')
-    status = models.BooleanField(null=True, blank=True)
+    status = models.CharField(max_length=100, null=True, blank=True)
 
     def __str__(self):
         return str(self.unit)
 
 
 class Renter(models.Model):
-    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, verbose_name='واحد مسکونی')
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, verbose_name='واحد مسکونی', related_name='renters')
     renter_name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام مستاجر')
-    renter_mobile = models.CharField(max_length=11, unique=True, verbose_name='همراه مستاجر')
-    renter_national_code = models.CharField(max_length=10, null=True, blank=True, verbose_name='')
+    renter_mobile = models.CharField(max_length=11, unique=True, verbose_name='همراه')
+    renter_national_code = models.CharField(max_length=10, null=True, unique=True, blank=True, verbose_name='کد ملی')
     people_count = models.IntegerField()
     start_date = models.DateField(null=True, blank=True, verbose_name='تاریخ شروع اجاره')
     end_date = models.DateField(null=True, blank=True, verbose_name='تاریخ پایان اجاره')

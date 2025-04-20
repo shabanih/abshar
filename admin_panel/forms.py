@@ -10,9 +10,10 @@ attr = {'class': 'form-control border-1 py-2 mb-4 '}
 attr1 = {'class': 'form-control border-1 py-1 mb-4 '}
 attr2 = {'class': 'form-control border-1 my-2 mb-4 ', 'placeholder': 'لطفا واحد را انتخاب گنید'}
 
-
 error_message = {
-    'required': "تکمیل کردن این فیلد ضروری است!"
+    'required': "تکمیل این فیلد ضروری است!",
+    'min_length': 'تعداد کاراکترهای وارد شده کمتر از حد مجاز است!',
+    'max_length': 'تعداد کاراکترهای وارد شده بیشتر از حد مجاز است!',
 }
 
 CHOICES = {
@@ -36,63 +37,89 @@ class announcementForm(forms.ModelForm):
 
 
 STATUS_CHOICES = {
-    'True': 'پر',
-    'False': 'خالی'
+    '': 'لطفا انتخاب نمایید',
+    'پر': 'پر',
+    'خالی': 'خالی'
 }
 
 BEDROOMS_COUNT_CHOICES = {
-    '1': '1', '2': '2', '3': '3', '4': '4',
+    '': 'لطفا انتخاب نمایید', '1': '1', '2': '2', '3': '3', '4': '4',
 }
 
 FLOOR_CHOICES = {
-    '1': '1', '2': '2', '3': '3', '4': '4',  '5': '5', '6': '6', '7': '7', '8': '8',  '9': '9', '10': '10',
+    '': 'لطفا انتخاب نمایید', '1': '1', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7', '8': '8', '9': '9',
+    '10': '10',
 }
 
 AREA_CHOICES = {
-    '1': '90', '2': '120', '3': '130', '4': '150',
+    '': 'لطفا انتخاب نمایید', '90': '90', '120': '120', '130': '130', '150': '150',
 }
 
 PARKING_PLACE_CHOICES = {
-  '1': 'همکف', '2': 'طبقه -1', '3': 'طبقه -2', '4': 'طبقه -3',
+    '': 'لطفا انتخاب نمایید', 'همکف': 'همکف', 'طبقه -1': 'طبقه -1', 'طبقه -2': 'طبقه -2', 'طبقه -3': 'طبقه -3',
 }
 
 PARKING_NUMBER_CHOICES = {
-    '1': 'B45', '2': 'B52', '3': 'B47',
+    ('', 'لطفا انتخاب نمایید'),
+    ('B45', 'B45'),
+    ('B52', 'B52'),
+    ('B47', 'B47'),
 }
 
 PARKING_COUNT_CHOICES = {
-    '1': '1', '2': '2', '3': '3',
+    '': 'لطفا انتخاب نمایید', '1': '1', '2': '2', '3': '3',
 }
 
 
 class UnitForm(forms.ModelForm):
     unit = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr1),
                            label='شماره واحد')
-    unit_phone = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr1),
+    unit_phone = forms.CharField(error_messages=error_message,
+                                 max_length=8,
+                                 min_length=8,
+                                 required=True, widget=forms.TextInput(attrs=attr1),
                                  label='شماره تلفن واحد')
-    floor_number = forms.ChoiceField(error_messages=error_message, choices=FLOOR_CHOICES, required=True, widget=forms.Select(attrs=attr),
-                                   label='شماره طبقه')
-    area = forms.ChoiceField(error_messages=error_message, required=True, choices=AREA_CHOICES, widget=forms.Select(attrs=attr),
-                           label='متراژ')
-    bedrooms_count = forms.ChoiceField(error_messages=error_message, choices=BEDROOMS_COUNT_CHOICES, required=True, widget=forms.Select(attrs=attr),
-                                     label='تعداد خواب')
+    floor_number = forms.ChoiceField(error_messages=error_message, choices=FLOOR_CHOICES, required=True,
+                                     widget=forms.Select(attrs=attr),
+                                     label='شماره طبقه')
+    area = forms.ChoiceField(error_messages=error_message, required=True, choices=AREA_CHOICES,
+                             widget=forms.Select(attrs=attr),
+                             label='متراژ')
+    bedrooms_count = forms.ChoiceField(error_messages=error_message, choices=BEDROOMS_COUNT_CHOICES, required=True,
+                                       widget=forms.Select(attrs=attr),
+                                       label='تعداد خواب')
 
-    parking_place = forms.ChoiceField(error_messages=error_message, choices=PARKING_PLACE_CHOICES, required=True, widget=forms.Select(attrs=attr),
-                                    label='موقعیت پارکینگ')
-    parking_number = forms.ChoiceField(error_messages=error_message, choices=PARKING_NUMBER_CHOICES, required=True, widget=forms.Select(attrs=attr),
-                                     label='شماره پارکینگ')
-    parking_count = forms.ChoiceField(error_messages=error_message, choices=PARKING_COUNT_CHOICES, required=True, widget=forms.Select(attrs=attr),
-                                    label='تعداد پارکینگ')
+    parking_place = forms.ChoiceField(error_messages=error_message, choices=PARKING_PLACE_CHOICES, required=True,
+                                      widget=forms.Select(attrs=attr),
+                                      label='موقعیت پارکینگ')
+
+    parking_number = forms.ChoiceField(
+        error_messages=error_message,
+        choices=PARKING_NUMBER_CHOICES,
+        required=True,
+        widget=forms.Select(attrs=attr),
+        label='شماره پارکینگ'
+    )
+    parking_count = forms.ChoiceField(error_messages=error_message, choices=PARKING_COUNT_CHOICES, required=True,
+                                      widget=forms.Select(attrs=attr),
+                                      label='تعداد پارکینگ')
     owner_name = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
                                  label='نام ')
-    owner_mobile = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
+    owner_mobile = forms.CharField(error_messages=error_message,
+                                   max_length=11,
+                                   min_length=11,
+                                   required=True, widget=forms.TextInput(attrs=attr),
                                    label='شماره تلفن ')
     owner_national_code = forms.CharField(error_messages=error_message, required=True,
+                                          max_length=10,
+                                          min_length=10,
                                           widget=forms.TextInput(attrs=attr),
                                           label='کد ملی ')
-    purchase_date = forms.DateField(error_messages=error_message, widget=forms.DateInput(attrs=attr),required=True,
+    purchase_date = JalaliDateField(error_messages=error_message, widget=AdminJalaliDateWidget(attrs=attr),
+                                    required=True,
                                     label='تاریخ خرید')
-    status = forms.ChoiceField(error_messages=error_message,choices=CHOICES, required=True,
+
+    status = forms.ChoiceField(error_messages=error_message, choices=STATUS_CHOICES, required=True,
                                widget=forms.Select(attrs=attr),
                                label='وضعیت واحد')
 
@@ -105,12 +132,18 @@ class UnitForm(forms.ModelForm):
 
 
 class RenterForm(forms.ModelForm):
-    unit = forms.ModelChoiceField(queryset=Unit.objects.all(), required=True, widget=forms.Select(attrs=attr2), label='انتخاب واحد')
+    unit = forms.ModelChoiceField(queryset=Unit.objects.all(), required=True, widget=forms.Select(attrs=attr2),
+                                  label='انتخاب واحد')
     renter_name = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
                                   label='نام مستاجر')
-    renter_mobile = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
+    renter_mobile = forms.CharField(error_messages=error_message,
+                                    max_length=11,
+                                    min_length=11,
+                                    required=True, widget=forms.TextInput(attrs=attr),
                                     label='شماره تلفن مستاجر')
-    renter_national_code = forms.CharField(error_messages=error_message, required=False,
+    renter_national_code = forms.CharField(error_messages=error_message, required=True,
+                                           max_length=10,
+                                           min_length=10,
                                            widget=forms.TextInput(attrs=attr), label='کد ملی مستاجر')
     people_count = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
                                    label='تعداد نفرات')
