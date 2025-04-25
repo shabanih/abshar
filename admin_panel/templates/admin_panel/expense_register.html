@@ -1,0 +1,299 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% block page_title %}
+مدیریت هزینه ها( تعداد کل هزینه های ثبت شده:{{ total_units }} )
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container-fluid">
+    <div class="container p-0">
+        <div class="row mt-2">
+
+        <div class="row mb-2 p-0 ">
+    <div class="col-md-7 px-5">
+         <form method="GET" action="" class="d-flex">
+            <select name="column" class="form-select" style="height: 40px; width: 200px">
+                <option value="" disabled selected>جستجو در ستون...</option>
+               <option value="unit" {% if request.GET.column == "unit" %}selected{% endif %}>شماره واحد</option>
+                <option value="owner_name" {% if request.GET.column == "owner_name" %}selected{% endif %}>نام مالک</option>
+                <option value="renter_name" {% if request.GET.column == "renter_name" %}selected{% endif %}>نام مستاجر</option>
+                <option value="status_residence" {% if request.GET.column == "status_residence" %}selected{% endif %}>وضعیت سکونت</option>
+                <option value="area" {% if request.GET.column == "area" %}selected{% endif %}>متراژ</option>
+                <option value="bedrooms_count" {% if request.GET.column == "bedrooms_count" %}selected{% endif %}>تعداد خواب</option>
+            </select>
+
+            <input type="text" name="search" class="form-control" placeholder="عبارت جستجو..." value="{{ request.GET.search }}"
+                   style="height: 40px; border-radius: 4px; width: 300px">
+            <input title="Search" value="جستجو" type="submit" class="button px-4 py-2" style="padding: 1px; 
+            background-color: #73acf8 ">
+
+        </form>
+    </div>
+        <div class=" col-12 col-md-4 col-xl-4 text-center align-content-center ">
+            <a href="{% url 'export_units_excel' %}" class="btn btn-gradient-success px-3 py-2">خروجی Excel</a>
+            <a href="{% url 'export_units_pdf' %}?search={{ request.GET.search }}&column={{ request.GET.column }}" 
+               class="btn btn-gradient-danger px-3 py-2">
+               خروجی PDF
+            </a>
+            <button type="button" class="btn btn-primary p-2 me-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">
+              <i class="mdi mdi-plus" aria-hidden="true"></i>ثبت هزینه جدید
+            </button>
+        </div>
+  
+</div>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th> موضوع</th>
+                            <th>شرح</th>
+                            <th>مبلغ</th>
+                              <th>شماره سند</th>
+                            <th>تاریخ سند</th>
+                            <th>تصویر سند</th>
+                            <th>تاریخ ایجاد </th>
+                            <th>دستورات</th>
+                        </tr>
+                    </thead>
+                {% if expenses %}
+               {% for expense in expenses %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{expense.category }}</td>
+                                <td>{{expense.description }}</td>
+                                <td>{{expense.amount }}</td>
+                                <td>{{expense.doc_no }}</td>
+                                 <td>{{expense.date }}</td>
+                                <td>{{expense.document }}</td>
+                                  <td>
+                                   {% if unit.is_active == True %}
+                                    <button class="btn btn-primary bg-success p-1">فعال</button>
+                                       {% else %}
+                                       <button class="btn btn-danger p-1">غیر فعال</button>
+
+                                   {% endif %}
+                                </td>
+
+                                   <td class="col-lg-1 col-xl-1 p-0">
+                                        <a href="" class="btn btn-info p-1 p-1">
+                                              <i class="mdi mdi-eye" aria-hidden="true"></i>
+                                            </a>
+                                         <a href="" class="btn btn-warning p-1">
+                                              <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
+                                            </a>
+                                              <a href="" class="btn btn-danger p-1"
+                                           onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                                  <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                                </a>
+
+                            </td>
+                            </tr>
+                        {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                            </tr>
+                     <tbody>
+                    {% endif %}
+                </table>
+
+
+
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div class="col-12">
+            <div class="pagination d-flex justify-content-center mt-5">
+
+            {% if page_obj.has_previous %}
+                 <a href="?page={{ page_obj.previous_page_number }}" class="rounded">قبلی</a>
+            {% endif %}
+
+                {% for pageNumber in paginator.page_range %}
+                      <a href="?page={{ pageNumber }}" class="{% if page_obj.number == pageNumber %}active{% endif %}">{{ pageNumber }}</a>
+                {% endfor %}
+
+            {% if page_obj.has_next %}
+                 <a href="?page={{ page_obj.next_page_number }}" class="rounded">بعدی</a>
+            {% endif %}
+            </div>
+        </div>
+{#      ============================= Moda Form ==================#}
+    
+    <div class="modal fade" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLongTitle">هزینه جدید</h5>
+      </div>
+      <div class="modal-body" >
+            <div class="col-12 text-start align-items-center p-0">
+{#                          <button type="button" class="btn btn-primary p-2 me-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong2">#}
+{#                              <i class="mdi mdi-plus" aria-hidden="true"></i>ثبت موضوع هزینه جدید#}
+{#                            </button>#}
+                <a type="button" class="btn btn-primary p-2 me-2 open-second-modal">
+                          <i class="mdi mdi-plus" aria-hidden="true"></i>ثبت موضوع هزینه جدید
+                        </a>
+                  </div>
+         {{ form.non_field_errors }}
+          <form action="" method="POST"
+                enctype="multipart/form-data" novalidate>
+              {% csrf_token %}
+                 <div class="row align-items-center p-0">
+                  <div class="col-4 col-lg-12 col-xl-12">
+                      {{ form.category.label_tag }}
+                      {{ form.category }}
+                      {{ form.category.errors }}
+                  </div>
+                   
+                     </div>
+                     <div class="row">
+                  <div class="col-4 col-lg-12 col-xl-12">
+                      {{ form.description.label_tag }}
+                      {{ form.description }}
+                      {{ form.description.errors }}
+                  </div>
+                     </div>
+                  <div class="row m-0 g-2">
+                   <div class="col-4 col-lg-4 col-xl-4 p-1">
+                       {{ form.amount.label_tag }}
+                      {{ form.amount }}
+                      {{ form.amount.errors }}
+                  </div>
+                      <div class="col-4 col-lg-4 col-xl-4 p-1">
+                       {{ form.date.label_tag }}
+                      {{ form.date }}
+                      {{ form.date.errors }}
+                  </div>
+                      <div class="col-4 col-lg-4 col-xl-4 p-1">
+                       {{ form.doc_no.label_tag }}
+                      {{ form.doc_no }}
+                      {{ form.doc_no.errors }}
+                  </div>
+                     </div>
+                <div class="row">
+                  <div class="form-group col-12">
+                    {{ form.details.label_tag }}
+                    {{ form.details }}
+                    {{ form.details.errors }}
+                  </div>
+                </div>
+             <div class="row">
+                  <div class="form-group col-12">
+                    {{ form.document.label_tag }}
+                    {{ form.document }}
+                    {{ form.document.errors }}
+                  </div>
+                </div>
+                   <hr class="mt-2" style="color: #0f1531">
+                <div class="d-flex justify-content-between">
+                      <button type="submit" class="btn btn-gradient-success px-4 py-2">ثبت هزینه</button>
+                           <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
+                     </div>
+        
+
+          </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+ <div class="modal fade" id="exampleModalLong2" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle2" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLongTitle2">موضوع جدید</h5>
+      </div>
+      <div class="modal-body" >
+      <form  action="{% url 'add_category' %}" method="post" enctype="multipart/form-data" novalidate>
+           {% csrf_token %}
+          <label>موضوع</label>
+          <input type="text" name="title" class="form-control">
+           <label>فعال/غیرفعال</label>
+          <input type="checkbox" name="is_active">
+        
+                      <hr class="mt-2" style="color: #0f1531">
+                            <div class="d-flex justify-content-between">
+                                  <button type="submit" class="btn btn-gradient-success px-4 py-2">ثبت </button>
+                                       <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
+                                 </div>
+                </form>
+       
+         
+           <div class="container mt-4">
+               <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="text-center">
+                                    <tr>
+                                        <th>#</th>
+                                        <th> موضوع</th>
+                                        <th>تاریخ ایجاد</th>
+                                        <th>فعال/غیرفعال</th>
+                                        <th>دستورات</th>
+                                    </tr>
+                                </thead>
+                            {% if categories %}
+                           {% for category in categories %}
+                                    <tbody class="text-center">
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{category.title }}</td>
+                                            <td>{{category.created_at }}</td>
+                                              <td>
+                                               {% if category.is_active == True %}
+                                                <button class="btn btn-primary bg-gradient-success p-1">فعال</button>
+                                                   {% else %}
+                                                   <button class="btn btn-gradient-danger p-1">غیر فعال</button>
+            
+                                               {% endif %}
+                                            </td>
+            
+                                               <td class="col-lg-1 col-xl-1 p-0">
+                                                     <a href="" class="btn btn-gradient-info p-1">
+                                                          <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
+                                                        </a>
+                                                          <a href="" class="btn btn-gradient-danger p-1"
+                                                       onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                                            </a>
+            
+                                        </td>
+                                        </tr>
+                                    {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="9" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                        </tr>
+                                 <tbody>
+                                {% endif %}
+                            </table>
+            
+            
+            
+                        </div>
+             </div>
+            </div>
+           
+      </div>
+      
+    </div>
+  </div>
+
+  
+{% endblock %}
+
+
+
+
+
+
+
+

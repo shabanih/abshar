@@ -13,7 +13,7 @@ from user_app.models import User
 
 
 def index(request):
-    announcements = Announcement.objects.filter(is_active=True).order_by('-created_at')[:3]
+    announcements = Announcement.objects.filter(is_active=True).order_by('-created_at')[:4]
     form = LoginForm(request.POST or None)
     if request.method == 'POST':
         form = LoginForm(request.POST)

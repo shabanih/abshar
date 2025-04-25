@@ -48,10 +48,11 @@ h1, h2, h3, h4, h5, h6 {
 	color: black;
 	margin: 10px;
 	text-shadow: 1px 5px 6px #525050;
+
 }
 
 .info-text{
-	/*margin: 10px;*/
+	max-height: 300px;
 	text-align: justify;
 }
 

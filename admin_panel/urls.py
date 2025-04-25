@@ -12,14 +12,19 @@ urlpatterns = [
 
     # Unit Urls
     path('add-unit', views.UnitRegisterView.as_view(), name='add_unit'),
+    path('info-unit/<int:pk>/', views.UnitInfoView.as_view(), name='unit_info'),
     path('edit/unit/<int:pk>/', views.UnitUpdateView.as_view(), name='edit_unit'),
     path('delete/unit/<int:pk>/', views.unit_delete, name='delete_unit'),
-    path('manage-unit', views.unit_management, name='manage_unit'),
+    path('manage-unit', views.UnitListView.as_view(), name='manage_unit'),
+    path('units/export/excel/', views.export_units_excel, name='export_units_excel'),
+    path('units/export/pdf/', views.export_units_pdf, name='export_units_pdf'),
 
-    # Renter Urls
-    path('add-renter', views.RenterRegisterView.as_view(), name='add_renter'),
-    path('edit/renter/<int:pk>/', views.RenterUpdateView.as_view(), name='edit_renter'),
-    path('delete/renter/<int:pk>/', views.renter_delete, name='delete_renter'),
+
+    # Expense Urls
+    path('add-expense', views.ExpenseView.as_view(), name='add_expense'),
+    path('add-category', views.ExpenseCategoryView.as_view(), name='add_category'),
+    # path('edit/renter/<int:pk>/', views.RenterUpdateView.as_view(), name='edit_renter'),
+    # path('delete/renter/<int:pk>/', views.renter_delete, name='delete_renter'),
 
 
 ]

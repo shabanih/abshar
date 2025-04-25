@@ -44,8 +44,8 @@
                 <ul class="nav flex-column sub-menu">
                   <li class="nav-item mt-0">
                     <a class="nav-link" href="{% url 'add_unit' %}"> افزودن واحد </a></li>
-                  <li class="nav-item mt-0">
-                    <a class="nav-link" href="{% url 'add_renter' %}"> افزودن مستاجر </a></li>
+{#                  <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="{% url 'add_renter' %}"> افزودن مستاجر </a></li>#}
                       <li class="nav-item mt-0">
                     <a class="nav-link" href="{% url 'manage_unit' %}"> مدیریت واحدها </a></li>
                 </ul>
@@ -80,7 +80,7 @@
                     <li class="nav-item mt-0">
                     <a class="nav-link" href="#"> ثبت درآمد  </a></li>
                     <li class="nav-item mt-0">
-                    <a class="nav-link" href="#"> ثبت هرینه  </a></li>
+                    <a class="nav-link" href="{% url 'add_expense' %}"> ثبت هرینه  </a></li>
                   <li class="nav-item mt-0">
                     <a class="nav-link" href="#"> ثبت دریافت و پرداخت </a></li>
                      <li class="nav-item mt-0">

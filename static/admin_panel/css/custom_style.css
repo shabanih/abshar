@@ -498,28 +498,7 @@ input[type=text]{
     font-size: small;
     /*width: -webkit-fill-available;*/
 }
-
 /*DatePicker*/
-.modal {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin: auto;
-    background: #FFF;
-    box-shadow: 0 0 8px rgba(0,0,0,.3);
-    transition: margin-top 0.3s ease, height 0.3s ease;
-    transform: translateZ(0);
-    box-sizing: border-box;
-    z-index: 999;
-    border-radius: 3px;
-    max-width: 600px;
-    display: block;
-    height: 400px;
-    overflow: scroll;
-    max-height: 50%;
-}
 
 
 /*End DatePicker*/
@@ -739,3 +718,6 @@ div.d-flex.justify-content-between div{
         height: 200px;
     }
 }
+
+/*=================================New Style for Abshar App ============================*/
+/* Modal Overlay (hidden by default) */

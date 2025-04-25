@@ -59,3 +59,10 @@ def show_jalali_date(value):
     # Format the date manually using Persian names without time
     formatted_date = f'{weekday} {jalali_datetime.day} {month} {jalali_datetime.year}'
     return formatted_date
+
+
+@register.filter(name='three_digit_currency')
+def three_digit_currency(value: int):
+    if value is None:
+        return '0'  # You can customize this to return whatever you'd like for None values
+    return '{:,}'.format(value)

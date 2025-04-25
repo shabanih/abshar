@@ -38,7 +38,20 @@
                                           {{ form.bedrooms_count }}
                                           {{ form.bedrooms_count.errors }}
                                       </div>
-                                            <div class="col-4 col-lg-2 col-xl-2">
+                                          <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.parking_count.label_tag }}
+                                          {{ form.parking_count }}
+                                          {{ form.parking_count.errors }}
+                                      </div>
+                                       <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.status_residence.label_tag }}
+                                          {{ form.status_residence }}
+                                          {{ form.status_residence.errors }}
+                                      </div>
+
+                                    </div>
+                                         <div class="row">
+                                      <div class="col-4 col-lg-2 col-xl-2">
                                           {{ form.parking_place.label_tag }}
                                           {{ form.parking_place }}
                                           {{ form.parking_place.errors }}
@@ -48,128 +61,124 @@
                                           {{ form.parking_number }}
                                           {{ form.parking_number.errors }}
                                       </div>
-                                    </div>
-                                         <div class="row">
-
-                                      <div class="col-4 col-lg-2 col-xl-2">
-                                          {{ form.parking_count.label_tag }}
-                                          {{ form.parking_count }}
-                                          {{ form.parking_count.errors }}
-                                      </div>
-
-                                        <div class="col-4 col-lg-2 col-xl-2">
-                                          {{ form.status.label_tag }}
-                                          {{ form.status }}
-                                          {{ form.status.errors }}
-                                      </div>
-                                          <div class="col-4 col-lg-2 col-xl-2">
+                                       <div class="col-4 col-lg-2 col-xl-2">
                                            {{ form.unit_phone.label_tag }}
                                           {{ form.unit_phone }}
                                           {{ form.unit_phone.errors }}
                                       </div>
+                                         </div>
+                                 <div class="row">
+                                      <div class="form-group col-12">
+                                        {{ form.unit_details.label_tag }}
+                                        {{ form.unit_details }}
+                                        {{ form.unit_details.errors }}
+                                      </div>
                                     </div>
-
                                        <hr class="mt-2" style="color: #0f1531">
                                       <div class="row justify-content-start">
                                              <p class="mt-2 mb-0" style="font-weight: 900">اطلاعات مالک</p>
-                                           <div class="col-6 col-lg-3 col-xl-3 ">
+                                           <div class="col-6 col-lg-2 col-xl-2 ">
                                           {{ form.owner_name.label_tag }}
                                           {{ form.owner_name }}
                                           {{ form.owner_name.errors }}
                                           </div>
-                                              <div class="col-6 col-lg-3 col-xl-3">
+                                              <div class="col-6 col-lg-2 col-xl-2">
                                           {{ form.owner_mobile.label_tag }}
                                           {{ form.owner_mobile }}
                                           {{ form.owner_mobile.errors }}
                                            </div>
-                                              <div class="col-6 col-lg-3 col-xl-3">
+                                              <div class="col-6 col-lg-2 col-xl-2">
                                           {{ form.owner_national_code.label_tag }}
                                           {{ form.owner_national_code }}
                                           {{ form.owner_national_code.errors }}
                                            </div>
-                                              <div class="col-6 col-lg-3 col-xl-3">
+                                              <div class="col-6 col-lg-2 col-xl-2">
                                           {{ form.purchase_date.label_tag }}
                                           {{ form.purchase_date }}
                                           {{ form.purchase_date.errors }}
                                            </div>
-
                                       </div>
-                                      {% if form.instance.id %}
-                                             <div class="d-flex justify-content-end mt-4">
-                                          <button type="submit" class="btn btn-gradient-success btn-md">ذخیره اطلاعات</button>
-                                         </div>
-                                            {% else %}
+                                     <div class="row">
+                                      <div class="form-group col-12">
+                                        {{ form.owner_details.label_tag }}
+                                        {{ form.owner_details }}
+                                        {{ form.owner_details.errors }}
+                                      </div>
+                                    </div>
+                             <hr class="mt-2" style="color: #0f1531">
+                                    <div class="row">
+                                       <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.is_owner.label_tag }}
+                                          {{ form.is_owner }}
+                                          {{ form.is_owner.errors }}
+                                           </div>
+                                  </div>
+                                  <div  id="renter_div" style="display: none">
+                                   <div class="row justify-content-start">
+                                        <p class="mb-4 mt-4 mb-0" style="font-weight: 900">اطلاعات مستاجر</p>
+                                      <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.renter_name.label_tag }}
+                                          {{ form.renter_name }}
+                                          {{ form.renter_name.errors }}
+                                      </div>
+                                      <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.renter_mobile.label_tag }}
+                                          {{ form.renter_mobile }}
+                                          {{ form.renter_mobile.errors }}
+                                      </div>
+                                      <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.renter_national_code.label_tag }}
+                                          {{ form.renter_national_code }}
+                                          {{ form.renter_national_code.errors }}
+                                      </div>
+                                          <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.people_count.label_tag }}
+                                          {{ form.people_count }}
+                                          {{ form.people_count.errors }}
+                                      </div>
+                                          <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.first_charge.label_tag }}
+                                          {{ form.first_charge }}
+                                          {{ form.first_charge.errors }}
+                                      </div>
+                                          <div class="col-6 col-lg-2 col-xl-2">
+                                           {{ form.contract_number.label_tag }}
+                                          {{ form.contract_number }}
+                                          {{ form.contract_number.errors }}
+                                      </div>
+
+                                    </div>
+                                    <div class="row">
+                                      <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.start_date.label_tag }}
+                                          {{ form.start_date }}
+                                          {{ form.start_date.errors }}
+                                      </div>
+                                        <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.end_date.label_tag }}
+                                          {{ form.end_date }}
+                                          {{ form.end_date.errors }}
+                                      </div>
+                                         <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.estate_name.label_tag }}
+                                          {{ form.estate_name }}
+                                          {{ form.estate_name.errors }}
+                                      </div>
+                                    </div>
+                                         <div class="row">
+                                      <div class="form-group col-12">
+                                        {{ form.renter_details.label_tag }}
+                                        {{ form.renter_details }}
+                                        {{ form.renter_details.errors }}
+                                      </div>
+                                    </div>
+                                  </div>
                                     <div class="d-flex justify-content-end mt-4">
                                           <button type="submit" class="btn btn-gradient-success btn-md">ثبت اطلاعات</button>
                                          </div>
-                                      {% endif %}
                                   </div>
 
                               </form>
-                        <hr/>
-                       <div class="container-fluid">
-                            <div class="row mt-1">
-
-                                    <table class="table table-bordered">
-                                        <thead class="text-center">
-                                            <tr>
-                                                <th>#</th>
-                                                <th>واحد</th>
-                                                <th>نام و نام خانوادگی مالک</th>
-                                                <th>همراه مالک</th>
-                                                <th>کد ملی مالک</th>
-                                                <th>متراژ</th>
-                                                <th>تعداد خواب</th>
-                                                <th class="p-1">تعداد پارکینگ</th>
-                                                <th> م.پارکینگ</th>
-                                                <th class="p-1">ش.پارکینگ</th>
-                                                <th>شماره تلفن</th>
-                                                <th>تاریخ خرید</th>
-                                                <th class="p-1">وضعیت</th>
-                                                <th>دستورات</th>
-                                            </tr>
-                                        </thead>
-                                        {% if units %}
-                                            {% for unit in units %}
-                                            <tbody class="text-center">
-                                                <tr>
-                                                    <td>{{ forloop.counter }}</td>
-                                                    <td>{{unit.unit }}</td>
-                                                    <td>{{ unit.owner_name }}</td>
-                                                    <td>{{ unit.owner_mobile }}</td>
-                                                    <td>{{ unit.owner_national_code }}</td>
-                                                    <td>{{ unit.area }}</td>
-                                                    <td>{{ unit.bedrooms_count }}</td>
-                                                    <td>{{ unit.parking_count }}</td>
-                                                    <td>{{ unit.parking_place }}</td>
-                                                    <td>{{ unit.parking_number }}</td>
-                                                    <td>{{ unit.unit_phone }}</td>
-                                                    <td>{{ unit.purchase_date|show_jalali_date_only}}</td>
-                                                    <td>{{ unit.status}}</td>
-                                                   <td class="col-lg-1 col-xl-1">
-                                                       <a href="{% url 'edit_unit' unit.id %}" class="btn btn-primary p-1">
-                                                  <i class="mdi mdi-lead-pencil" aria-hidden="true"></i></a>
-                                                      <a href="{% url 'delete_unit' unit.id %}"
-                                                         class="btn btn-danger p-1" onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
-                                                          <i class="mdi mdi-delete" aria-hidden="true"></i></a>
-
-                                                </td>
-
-                                                </tr>
-                                            </tbody>
-                                            {% endfor %}
-                                        {% else %}
-                                            <tbody>
-                                                <tr>
-                                                    <td colspan="13" class="text-center">هیچ رکوردی برای نمایش وجود ندارد!</td>
-                                                </tr>
-                                            </tbody>
-                                        {% endif %}
-                                    </table>
-                                </div>
-                            </div>
-
-
 
 </div>
 {% endblock %}

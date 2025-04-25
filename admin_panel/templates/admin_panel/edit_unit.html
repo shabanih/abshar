@@ -1,0 +1,181 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+   ویرایش واحد شماره  {{ unit.unit }}
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container mt-3">
+
+     {{ form.non_field_errors }}
+                              <form class="row gy-2 gx-5 justify-content-md-center" action="" method="POST"
+                                    enctype="multipart/form-data" novalidate>
+                                  {% csrf_token %}
+                                  <div class="container-fluid">
+                                    <div class="row justify-content-start">
+                                        <p class="mb-4 mt-4 mb-0" style="font-weight: 900">اطلاعات واحد مسکونی</p>
+                                      <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.unit.label_tag }}
+                                          {{ form.unit }}
+                                          {{ form.unit.errors }}
+                                      </div>
+                                      <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.floor_number.label_tag }}
+                                          {{ form.floor_number }}
+                                          {{ form.floor_number.errors }}
+                                      </div>
+                                      <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.area.label_tag }}
+                                          {{ form.area }}
+                                          {{ form.area.errors }}
+                                      </div>
+                                      <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.bedrooms_count.label_tag }}
+                                          {{ form.bedrooms_count }}
+                                          {{ form.bedrooms_count.errors }}
+                                      </div>
+                                      <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.parking_place.label_tag }}
+                                          {{ form.parking_place }}
+                                          {{ form.parking_place.errors }}
+                                      </div>
+                                      <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.parking_number.label_tag }}
+                                          {{ form.parking_number }}
+                                          {{ form.parking_number.errors }}
+                                      </div>
+                                    </div>
+                                         <div class="row">
+                                       <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.parking_count.label_tag }}
+                                          {{ form.parking_count }}
+                                          {{ form.parking_count.errors }}
+                                      </div>
+                                       <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.status_residence.label_tag }}
+                                          {{ form.status_residence }}
+                                          {{ form.status_residence.errors }}
+                                      </div>
+                                       <div class="col-4 col-lg-2 col-xl-2">
+                                           {{ form.unit_phone.label_tag }}
+                                          {{ form.unit_phone }}
+                                          {{ form.unit_phone.errors }}
+                                      </div>
+                                         </div>
+
+
+
+                                       <hr class="mt-2" style="color: #0f1531">
+                                      <div class="row justify-content-start">
+                                             <p class="mt-2 mb-0" style="font-weight: 900">اطلاعات مالک</p>
+                                           <div class="col-6 col-lg-2 col-xl-2 ">
+                                          {{ form.owner_name.label_tag }}
+                                          {{ form.owner_name }}
+                                          {{ form.owner_name.errors }}
+                                          </div>
+                                              <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.owner_mobile.label_tag }}
+                                          {{ form.owner_mobile }}
+                                          {{ form.owner_mobile.errors }}
+                                           </div>
+                                              <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.owner_national_code.label_tag }}
+                                          {{ form.owner_national_code }}
+                                          {{ form.owner_national_code.errors }}
+                                           </div>
+                                              <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.purchase_date.label_tag }}
+                                          {{ form.purchase_date }}
+                                          {{ form.purchase_date.errors }}
+                                           </div>
+                                            <div class="col-6 col-lg-2 col-xl-2 mt-4">
+                                          {{ form.is_active.label_tag }}
+                                          {{ form.is_active }}
+                                          {{ form.is_active.errors }}
+                                           </div>
+                                      </div>
+
+
+                             <hr class="mt-2" style="color: #0f1531">
+                                    <div class="row">
+                                       <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.is_owner.label_tag }}
+                                          {{ form.is_owner }}
+                                          {{ form.is_owner.errors }}
+                                           </div>
+                                  </div>
+                                  <div  id="renter_div" style="display: none">
+                                   <div class="row justify-content-start">
+                                        <p class="mb-4 mt-4 mb-0" style="font-weight: 900">اطلاعات مستاجر</p>
+                                      <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.renter_name.label_tag }}
+                                          {{ form.renter_name }}
+                                          {{ form.renter_name.errors }}
+                                      </div>
+                                      <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.renter_mobile.label_tag }}
+                                          {{ form.renter_mobile }}
+                                          {{ form.renter_mobile.errors }}
+                                      </div>
+                                      <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.renter_national_code.label_tag }}
+                                          {{ form.renter_national_code }}
+                                          {{ form.renter_national_code.errors }}
+                                      </div>
+                                          <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.people_count.label_tag }}
+                                          {{ form.people_count }}
+                                          {{ form.people_count.errors }}
+                                      </div>
+                                          <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.first_charge.label_tag }}
+                                          {{ form.first_charge }}
+                                          {{ form.first_charge.errors }}
+                                      </div>
+                                          <div class="col-6 col-lg-2 col-xl-2">
+                                           {{ form.contract_number.label_tag }}
+                                          {{ form.contract_number }}
+                                          {{ form.contract_number.errors }}
+                                      </div>
+
+                                    </div>
+                                    <div class="row">
+                                      <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.start_date.label_tag }}
+                                          {{ form.start_date }}
+                                          {{ form.start_date.errors }}
+                                      </div>
+                                        <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.end_date.label_tag }}
+                                          {{ form.end_date }}
+                                          {{ form.end_date.errors }}
+                                      </div>
+                                         <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.estate_name.label_tag }}
+                                          {{ form.estate_name }}
+                                          {{ form.estate_name.errors }}
+                                      </div>
+                                    </div>
+                                  </div>
+
+
+                                  <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                                     <button type="submit" class="btn btn-gradient-primary mr-1">ذخیره</button>
+                                            <a class="btn btn-danger" type="button"
+                                               href="{{ request.META.HTTP_REFERER }}">
+                                                انصراف
+                                            </a>
+                                     </div>
+
+                                  </div>
+
+                              </form>
+
+</div>
+{% endblock %}
+
+

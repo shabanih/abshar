@@ -1,0 +1,123 @@
+<!DOCTYPE html >
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta charset="UTF-8">
+
+
+   <style>
+   @font-face {
+    font-family: 'BYekan';
+    src: url('{{ font_path }}') format('truetype');
+}
+body {
+    font-family: 'BYekan';
+    direction: rtl;
+    text-align: right;
+    font-size: 14px;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead tr {
+        background-color: #9b9797; /* طلایی */
+        color: #000000; /* مشکی */
+    }
+th{
+      border: 1px solid #ccc;
+        padding:10px 2px;
+        text-align: center;
+    }
+    
+
+     td {
+        border: 1px solid #ccc;
+        padding:0 5px;
+        text-align: center;
+    }
+h1{
+    text-align: center;
+}
+.logo-style-pdf{
+    width: 200px;
+    height: 80px;
+    justify-content: center;
+}
+
+    </style>
+
+
+
+</head>
+<body>
+<div class="container">
+  <div class="row">
+    <div class="col">
+        <img src="/static/img/logo_core.png" class="logo-style-pdf" alt="">
+    </div>
+  </div>
+</div>
+ <h1 class="text-center">لیست واحدهای مسکونی</h1>
+    <table class="table table-bordered">
+        <thead>
+                  <tr>
+                            <th>#</th>
+                            <th> واحد</th>
+                            <th>نام مالک</th>
+                            <th>موبایل مالک</th>
+                              <th>متراژ</th>
+                            <th>تعداد خواب</th>
+                            <th>نام مستاجر</th>
+                            <th>موبایل مستاجر</th>
+                            <th>تعداد نفرات</th>
+                            <th>وضعیت سکونت</th>
+                            <th>فعال/غیرفعال</th>
+                        </tr>
+                    </thead>
+               {% for unit in units %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{unit.unit }}</td>
+                                <td>{{unit.owner_name }}</td>
+                                <td>{{unit.owner_mobile }}</td>
+                                <td>{{unit.area }}</td>
+                                <td>{{unit.bedrooms_count }}</td>
+                                 {% if unit.renter_name %}
+                            	<td>{{unit.renter_name }}</td>
+                                {% else %}
+                                <td>---</td>
+                            {% endif %} 
+                            
+                             {% if unit.renter_mobile %}
+                            	<td>{{unit.renter_mobile }}</td>
+                                {% else %}
+                                <td>---</td>
+                            {% endif %}
+                            
+                              {% if unit.people_count %}
+                            	<td>{{unit.people_count }}</td>
+                                {% else %}
+                                <td>---</td>
+                            {% endif %}
+                                <td>{{unit.status_residence }}</td>
+                                  <td>
+                                      {% if unit.is_active == True %}
+                                    <p >فعال</p>
+                                       {% else %}
+                                       <p>غیر فعال</p>
+
+                                   {% endif %}
+                                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</body>
+</html>

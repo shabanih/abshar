@@ -45,11 +45,11 @@
         <hr/>
         <h4 class="header-style mt-4">اطلاعیه ها:</h4>
         {% for announcement in announcements %}
-    <div class="row">
+    <div class="row" style="max-height: 300px">
         <div class="col-1 align-self-start mt-3">
             <i class="fa fa-bell d-flex justify-content-end" style="color: rgba(98,112,204,0.98);"></i>
         </div>
-        <div class="col-11 justify-content-center">
+        <div class="site-text col-11 justify-content-center" >
 
             	 <p class="info-text mt-2">
                  {{ announcement.title }}

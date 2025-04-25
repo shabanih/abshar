@@ -1,0 +1,123 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+ اطلاعات واحد شماره {{ unit.unit }}
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+      <div class="row text-end">
+
+          <div class="col-6 col-lg-3 col-xl-3">
+            <p class="renterInfoModal"><i class="fas fa-home px-1"></i>طبقه:<strong class="me-2">{{ unit.floor_number }}</strong></p>
+          </div>
+           <div class="col-6 col-lg-3 col-xl-3">
+           <p class="renterInfoModal">متراژ:<strong class="me-2">{{ unit.area }}متر</strong></p>
+
+          </div>
+         <div class="col-6 col-lg-3 col-xl-3">
+          <p class="renterInfoModal"> تعداد خواب:<strong class="me-2">{{ unit.bedrooms_count }}</strong></p>
+          </div>
+        <div class="col-6 col-lg-3 col-xl-3">
+                  <p class="renterInfoModal">تلفن واحد<strong class="me-2">{{ unit.unit_phone }}</strong></p>
+           </div>
+
+      </div>
+    <div class="row">
+       <div class="col-6 col-lg-3 col-xl-3">
+            <p class="renterInfoModal">تعداد پارکینگ:<strong class="me-2">{{ unit.parking_count }}</strong></p>
+        </div>
+      <div class="col-6 col-lg-3 col-xl-3">
+             <p class="renterInfoModal">موقعیت پارکینگ:<strong class="me-2">{{ unit.parking_place }}</strong></p>
+        </div>
+         <div class="col-6 col-lg-3 col-xl-3">
+             <p class="renterInfoModal">شماره پارکینگ:<strong class="me-2">{{ unit.parking_number }}</strong></p>
+        </div>
+         <div class="col-6 col-lg-3 col-xl-3">
+              <p class="renterInfoModal">وضعیت سکونت:<strong class="me-2">{{ unit.status_residence }}</strong></p>
+        </div>
+    </div>
+
+    <div class="row">
+       <div class="col">
+                <p> توضیحات:<strong class="me-2 text-danger">{{ unit.unit_details }}</strong></p>
+           </div>
+    </div>
+
+       <hr>
+      <div class="row">
+         <div class="col-6 col-lg-3 col-xl-3">
+             <p class="renterInfoModal"><i class="fas fa-user-tie px-1"></i>نام مالک:<strong class="me-2">{{ unit.owner_name }}</strong></p>
+        </div>
+      <div class="col-6 col-lg-3 col-xl-3 p-0">
+               <p class="renterInfoModal">شماره همراه:<strong class="me-2">{{ unit.owner_mobile }}</strong></p>
+        </div>
+         <div class="col-6 col-lg-3 col-xl-3">
+               <p class="renterInfoModal">کدملی مالک:<strong class="me-2">{{ unit.owner_national_code }}</strong></p>
+        </div>
+         <div class="col-6 col-lg-3 col-xl-3 p-0">
+               <p class="renterInfoModal"  style="font-size: 13px">تاریخ خرید:<strong class="me-2 t">{{ unit.purchase_date|show_jalali_date_only }}</strong></p>
+        </div>
+    </div>
+    <div class="row">
+    <div class="col">
+       <p class="renterInfoModal">توضیحات:<strong class="me-2 text-danger">{{ unit.owner_details }}</strong></p>
+    </div>
+    </div>
+
+           <hr>
+       {% if unit.is_owner == True %}
+
+
+            <div class="row">
+         <div class="col-6 col-lg-3 col-xl-3">
+            <p class="renterInfoModal"><i class="fas fa-users px-1"></i>نام مستاجر:<strong class="me-2">{{ unit.renter_name }}</strong></p>
+        </div>
+      <div class="col-6 col-lg-3 col-xl-3 p-0">
+                <p class="renterInfoModal">همراه:<strong class="me-2">{{ unit.renter_mobile }}</strong></p>
+        </div>
+         <div class="col-6 col-lg-3 col-xl-3">
+             <p class="renterInfoModal"> کدملی:<strong class="me-2">{{ unit.renter_national_code }}</strong></p>
+        </div>
+         <div class="col-6 col-lg-3 col-xl-3 p-0">
+            <p class="renterInfoModal">تعداد نفرات:<strong class="me-2">{{ unit.people_count }}</strong></p>
+        </div>
+    </div>
+            <div class="row">
+         <div class="col-6 col-lg-3 col-xl-3">
+           <p class="renterInfoModal"  style="font-size: 13px">تاریخ اجاره:<strong class="me-2">{{ unit.start_date|show_jalali_date_only }}</strong></p>
+        </div>
+      <div class="col-6 col-lg-3 col-xl-3 p-0">
+                <p class="renterInfoModal"  style="font-size: 13px">تاریخ پایان:<strong class="me-2">{{ unit.end_date|show_jalali_date_only }}</strong></p>
+        </div>
+         <div class="col-6 col-lg-3 col-xl-3">
+                <p class="renterInfoModal">ش.قرارداد:<strong class="me-2">{{ unit.contract_number }}</strong></p>
+        </div>
+         <div class="col-6 col-lg-3 col-xl-3 p-0">
+               <p class="renterInfoModal">اجاره دهنده:<strong class="me-2">{{ unit.estate_name }}</strong></p>
+        </div>
+    </div>
+           <div class="row">
+           <div class="col">
+               <p class="renterInfoModal">شارژ اولیه:<strong class="me-2">{{ unit.first_charge|three_digit_currency }}</strong></p>
+           </div>
+           </div>
+            <div class="row">
+           <div class="col">
+                <p class="renterInfoModal">توضیحات:<strong class="me-2 text-danger">{{ unit.renter_details }}</strong></p>
+
+           </div>
+           </div>
+        {% endif %}
+
+{% endblock %}
+
+
+
+
+
+
+
+
