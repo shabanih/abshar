@@ -186,3 +186,90 @@ document.getElementById("demo").innerHTML =
     " ";
 
 
+
+$(document).on('click', '.edit-expense-btn', function (e) {
+    e.preventDefault();
+
+    var images = $(this).data('images');
+    var expenseId = $(this).data('id');  // ← گرفتن expense_id صحیح
+
+    if (typeof images === 'string') {
+        try {
+            images = JSON.parse(images);
+        } catch (error) {
+            console.error('Error parsing images JSON:', error);
+            images = [];
+        }
+    }
+
+    $('#preview').empty();
+
+    if (images.length > 0) {
+        images.forEach(function(imgUrl, index) {
+            var imageWrapper = `
+                <div class="image-item m-2 position-relative" style="display:inline-block;">
+                    <img src="${imgUrl}"
+                         style="width: 100px; height: 100px; object-fit: cover; border: 1px solid #ccc;">
+                    <button type="button" class="btn btn-sm btn-danger delete-image-btn"
+                            data-url="${imgUrl}"
+                            data-expense-id="${expenseId}"
+                            style="position: absolute; top: -5px; right: -5px; border-radius: 50%;">
+                        ×
+                    </button>
+                </div>
+            `;
+            $('#preview').append(imageWrapper);
+        });
+    } else {
+        $('#preview').html('<p>تصویری وجود ندارد.</p>');
+    }
+});
+
+
+// Delete image or file
+$(document).on('click', '.delete-image-btn', function () {
+    var imageUrl = $(this).data('url');  // Image URL
+    var expenseId = $(this).data('expense-id');  // Expense ID
+    console.log(expenseId)
+
+    if (!imageUrl || !expenseId) {
+        Swal.fire('خطا', 'URL یا ID هزینه مشخص نیست', 'error');
+        return;
+    }
+
+    Swal.fire({
+        title: 'آیا مطمئنی میخوای این تصویر رو حذف کنی؟',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'بله، حذف کن!',
+        cancelButtonText: 'لغو'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Send the request to delete the image
+            $.ajax({
+                type: 'POST',
+                url: '/admin-panel/expense/delete-document/',  // Your delete URL
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}',  // Ensure CSRF token is included
+                    url: imageUrl,  // The URL of the image to delete
+                    expense_id: expenseId  // The ID of the related expense
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        Swal.fire('حذف شد!', 'تصویر با موفقیت حذف شد.', 'success');
+                        // Optionally, remove the image from the preview
+                        $(`[data-url="${imageUrl}"]`).closest('.image-item').remove();
+                    } else {
+                        Swal.fire('خطا', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('خطا', 'خطا در حذف تصویر', 'error');
+                }
+            });
+        }
+    });
+});
+

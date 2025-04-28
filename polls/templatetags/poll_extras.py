@@ -1,3 +1,5 @@
+import datetime
+
 import jdatetime
 import pytz
 from django import template
@@ -61,8 +63,45 @@ def show_jalali_date(value):
     return formatted_date
 
 
+@register.filter(name='show_jalali')
+def show_jalali(value):
+    if value is None:
+        return ''
+    try:
+        # Ensure the input is a datetime object
+        if isinstance(value, jdatetime.date):  # If it's already a Jalali date, no need to convert
+            jalali_datetime = value
+        else:
+            # Convert to datetime if it's not already a datetime object
+            if isinstance(value,
+                          datetime.date):  # If it's a datetime.date (without time), turn it into a datetime object
+                value = datetime.datetime.combine(value, datetime.datetime.min.time())
+
+            # Make sure the datetime object is timezone-aware
+            if timezone.is_naive(value):
+                value = timezone.make_aware(value, timezone=pytz.timezone('Asia/Tehran'))
+            else:
+                value = value.astimezone(pytz.timezone('Asia/Tehran'))
+
+            # Convert the Gregorian datetime to Jalali datetime
+            jalali_datetime = jdatetime.date.fromgregorian(datetime=value)
+
+        # Format the Jalali date as YYYY/MM/DD
+        formatted_date = jalali_datetime.strftime('%Y/%m/%d')
+        return formatted_date
+    except (ValueError, TypeError):
+        return ''  # Return empty string if there's an error in conversion
+
+
 @register.filter(name='three_digit_currency')
 def three_digit_currency(value: int):
     if value is None:
         return '0'  # You can customize this to return whatever you'd like for None values
     return '{:,}'.format(value)
+
+
+@register.filter(name='to_jalali')
+def to_jalali(value):
+    if value:
+        return jdatetime.date.fromgregorian(date=value).strftime('%Y/%m/%d')
+    return value

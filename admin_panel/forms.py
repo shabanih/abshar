@@ -1,3 +1,4 @@
+import jdatetime
 from django import forms
 from jalali_date import widgets
 from jalali_date.fields import JalaliDateField
@@ -210,34 +211,60 @@ class UnitForm(forms.ModelForm):
 # ======================== Expense Forms =============================
 
 class ExpenseForm(forms.ModelForm):
-    category = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
-                               label='موضوع هزینه')
+    category = forms.ModelChoiceField(
+        queryset=ExpenseCategory.objects.filter(is_active=True),
+        widget=forms.Select(attrs=attr),
+        empty_label="یک گروه انتخاب کنید",
+        error_messages=error_message,
+        required=True,
+        label='موضوع هزینه'
+    )
+    # category = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
+    #                            label='موضوع هزینه')
     amount = forms.CharField(error_messages=error_message, max_length=20, required=True,
                              widget=forms.TextInput(attrs=attr),
                              label='مبلغ')
-    description = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=False,
+    description = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=True,
                                   label='شرح سند')
     date = JalaliDateField(
         label='تاریخ ثبت سند',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
         error_messages=error_message, required=True
     )
-    doc_no = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=True,
+    doc_no = forms.CharField(error_messages=error_message, max_length=10, widget=forms.TextInput(attrs=attr), required=True,
                              label='شماره سند')
-    document = forms.FileField(required=True, error_messages=error_message, label='تصویر سند')
+    document = forms.FileField(
+        required=False,
+        error_messages=error_message,
+        widget=forms.ClearableFileInput(attrs=attr),
+        label='تصویر سند'
+    )
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
                               label='توضیحات ')
+
 
     class Meta:
         model = Expense
         fields = ['category', 'amount', 'date', 'description', 'doc_no', 'details', 'document']
 
+    def clean_date(self):
+        date_str = self.cleaned_data.get('date')
+
+        if date_str:
+            try:
+                # Convert the Jalali date to Gregorian date
+                gregorian_date = jdatetime.strptime(date_str, '%Y-%m-%d').togregorian()
+                return gregorian_date
+            except ValueError:
+                raise forms.ValidationError("یک تاریخ معتبر وارد کنید")
+        return date_str
+
 
 class ExpenseCategoryForm(forms.ModelForm):
     title = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=True,
                             label='موضوع')
-    is_active = forms.BooleanField(required=True, widget=forms.CheckboxInput(attrs=attr), label='فعال/غیرفعال')
+    is_active = forms.BooleanField(required=False, label='فعال/غیرفعال')
 
     class Meta:
         model = ExpenseCategory

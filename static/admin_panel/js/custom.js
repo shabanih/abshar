@@ -1,103 +1,45 @@
-﻿// document.addEventListener('DOMContentLoaded', function () {
-//     const isOwnerField = document.getElementById('id_is_owner');
-//     const renterDiv = document.getElementById('renter_div');
-//     console.log('ok')
-//
-//     function toggleRenterFields() {
-//         if (isOwnerField.value === 'True') {
-//             renterDiv.style.display = 'block';  // Switch to block for layout consistency
-//         } else {
-//             renterDiv.style.display = 'none';
-//         }
-//     }
-//
-//     isOwnerField.addEventListener('change', toggleRenterFields);
-//
-//     // Run the function on initial load to check the state of the field
-//     toggleRenterFields();
-// });
-//
-// // Select all open modal buttons and modal overlays
-// const openModalBtns = document.querySelectorAll('.open-modal-btn');
-// const closeModalBtns = document.querySelectorAll('.close-modal-btn');
-// const modalOverlays = document.querySelectorAll('.modal-overlay');
-//
-// // Loop through each open modal button
-// openModalBtns.forEach((button, index) => {
-//   button.addEventListener('click', function () {
-//     modalOverlays[index].classList.add('open'); // Show the corresponding modal
-//   });
-// });
-//
-// // Loop through each close modal button
-// closeModalBtns.forEach((button, index) => {
-//   button.addEventListener('click', function () {
-//     modalOverlays[index].classList.remove('open'); // Hide the corresponding modal
-//   });
-// });
-//
-// // Close modal if clicking outside the modal content
-// modalOverlays.forEach((overlay, index) => {
-//   overlay.addEventListener('click', function (e) {
-//     if (e.target === overlay) {
-//       modalOverlays[index].classList.remove('open'); // Close modal if clicking outside
-//     }
-//   });
-// });
-//
-document.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('expense-category-form');
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
+﻿document.querySelector('input[name="document"]').addEventListener('change', function(event) {
+    const preview = document.getElementById('preview');
+    preview.innerHTML = '';
 
-      const formData = new FormData(form);
-
-      fetch("{% url 'add_category' %}", {
-        method: 'POST',
-        headers: {
-          'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-        },
-        body: formData
-      })
-      .then(response => {
-        if (response.redirected) {
-          // مودال دوم رو ببند
-          const modal2 = bootstrap.Modal.getInstance(document.getElementById('exampleModalLong2'));
-          modal2.hide();
-
-          // مودال اول رو باز کن
-          const modal1 = new bootstrap.Modal(document.getElementById('exampleModalLong'));
-          modal1.show();
-
-          // رفرش کردن لیست موضوع‌ها (می‌تونی اینجا از AJAX هم استفاده کنی)
-          // یا ساده‌ترین حالت: reload کل صفحه (در صورت نیاز)
-          location.reload();
-        } else {
-          return response.text();
+    for (let file of event.target.files) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.classList.add('m-2');
+            img.style.width = '70px';
+            img.style.height = '100px';
+            img.style.objectFit = 'cover';
+            preview.appendChild(img);
         }
-      })
-      .then(html => {
-        // در صورت داشتن ارورهای فرم، آن‌ها را نمایش بده
-        document.getElementById('exampleModalLong2').querySelector('.modal-body').innerHTML = html;
-      });
-    });
-  });
+        reader.readAsDataURL(file);
+    }
+});
 
+$(document).on('click', '.edit-expense-btn', function () {
+    console.log('ویرایش کلیک شد');
 
-  document.addEventListener("DOMContentLoaded", function () {
-    const modal1El = document.getElementById('exampleModalLong');    // مودال اول
-    const modal2El = document.getElementById('exampleModalLong2');   // مودال دوم
+    // Get the expense ID from the clicked button's data attributes
+    var id = $(this).data('id');
+    // Set the form action URL dynamically
+    $('#expenseForm').attr('action', '/admin-panel/expense/edit/' + id + '/');
 
-    const modal1 = new bootstrap.Modal(modal1El);
-    const modal2 = new bootstrap.Modal(modal2El);
+    // Populate the form with the expense data
+    $('#id_category').val($(this).data('category')).trigger('change');
+    $('#id_amount').val($(this).data('amount'));
 
-    // وقتی روی دکمه ثبت موضوع کلیک شد، مودال دوم باز شه ولی مودال اول بسته نشه
-    document.querySelector(".open-second-modal").addEventListener("click", function () {
-      modal2.show();
-    });
+    // Ensure date is in YYYY-MM-DD format before setting it
+    var expenseDate = $(this).data('date');
+    // If the date is in a format other than YYYY-MM-DD, convert it here
+    // You can use moment.js or another library for conversion if necessary
+    $('#id_date').val(expenseDate);  // Assuming it's already in correct format
 
-    // وقتی مودال دوم بسته شد، مودال اول دوباره باز بشه
-    modal2El.addEventListener("hidden.bs.modal", function () {
-      modal1.show();
-    });
-  });
+    $('#id_doc_no').val($(this).data('doc_no'));
+    $('#id_description').val($(this).data('description'));
+    $('#id_details').val($(this).data('details'));
+
+    // Update the modal title and submit button text for editing
+    $('#exampleModalLongTitle').text('ویرایش هزینه');
+    $('#btn-submit-expense').text('ویرایش هزینه');
+});

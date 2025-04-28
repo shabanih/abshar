@@ -1,4 +1,7 @@
+import json
+
 from django.db import models
+from django.utils.safestring import mark_safe
 
 
 class Announcement(models.Model):
@@ -25,11 +28,23 @@ class Expense(models.Model):
     date = models.DateField(verbose_name='تاریخ سند')
     doc_no = models.IntegerField(verbose_name='شماره سند')
     description = models.CharField(max_length=4000, verbose_name='شرح')
-    amount = models.PositiveIntegerField(verbose_name='قیمت', null=True, blank=True, default='0')
+    amount = models.PositiveIntegerField(verbose_name='قیمت', null=True, blank=True, default=0)
     details = models.TextField(verbose_name='توضیحات', null=True, blank=True)
-    document = models.FileField(upload_to='images/expense', verbose_name='تصاویر هزینه', null=True, blank=True)
+    # document = models.FileField(upload_to='images/expense', verbose_name='تصاویر هزینه', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 
     def __str__(self):
-        return self.doc_no
+        return str(self.doc_no)
+
+    def get_image_urls_json(self):
+        # Use the correct attribute to access the file URL in the related `ExpenseDocument` model
+        image_urls = [doc.document.url for doc in self.documents.all() if doc.document]
+        print(image_urls)
+        return mark_safe(json.dumps(image_urls))
+
+
+class ExpenseDocument(models.Model):
+    expense = models.ForeignKey(Expense, on_delete=models.CASCADE, related_name='documents')
+    document = models.FileField(upload_to='images/expense/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)

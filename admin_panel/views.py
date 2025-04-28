@@ -10,11 +10,12 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import IntegrityError
 from django.db.models import ProtectedError, Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import get_template, render_to_string
 from django.urls import reverse_lazy, reverse
 from django.views import View
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, UpdateView, DetailView, ListView
 
 from openpyxl.styles import PatternFill, Font
@@ -24,7 +25,7 @@ from weasyprint import HTML, CSS
 from xhtml2pdf import pisa
 
 from admin_panel.forms import announcementForm, UnitForm, ExpenseForm, ExpenseCategoryForm
-from admin_panel.models import Announcement, Expense, ExpenseCategory
+from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDocument
 from user_app.models import Unit
 
 
@@ -311,21 +312,59 @@ def unit_delete(request, pk):
 
 
 # ================================= Expense Views ==============================
-class ExpenseCategoryView(View):
-    template_name = 'admin_panel/expense_register.html'
+class ExpenseCategoryView(CreateView):
+    model = ExpenseCategory
+    template_name = 'admin_panel/add_category.html'
+    form_class = ExpenseCategoryForm
+    success_url = reverse_lazy('add_category')
 
-    def get(self, request):
-        categories = ExpenseCategory.objects.all()
-        return render(request, self.template_name, {'categories': categories})
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        try:
+            self.object = form.save()
+            messages.success(self.request, 'موضوع هزینه با موفقیت ثبت گردید!')
+            return super().form_valid(form)
+        except ProtectedError:
+            messages.error(self.request, 'خطا در ثبت !')
+            return self.form_invalid(form)
 
-    def post(self, request):
-        title = request.POST.get('title')
-        if title:
-            ExpenseCategory.objects.create(title=title)
-            messages.success(request, 'موضوع هزینه با موفقیت ثبت گردید')
-        else:
-            messages.error(request, 'لطفاً عنوان را وارد کنید!')
-        return redirect(reverse('add_category'))
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['categories'] = ExpenseCategory.objects.all()
+        return context
+
+
+class ExpenseCategoryUpdate(UpdateView):
+    model = ExpenseCategory
+    template_name = 'admin_panel/add_category.html'
+    form_class = ExpenseCategoryForm
+    success_url = reverse_lazy('add_category')
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        try:
+            edit_instance = form.instance
+            self.object = form.save()
+            messages.success(self.request, f' موضوع هزینه با موفقیت ویرایش گردید!')
+            return super().form_valid(form)
+        except ProtectedError:
+            messages.error(self.request, 'خطا در ثبت !')
+            return self.form_invalid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['categories'] = ExpenseCategory.objects.all()
+        return context
+
+
+def category_delete(request, pk):
+    category = get_object_or_404(ExpenseCategory, id=pk)
+    try:
+        category.delete()
+        messages.success(request, 'موضوع هزینه با موفقیت حذف گردید!')
+    except ProtectedError:
+        messages.error(request, " امکان حذف وجود ندارد! ")
+    return redirect(reverse('add_category'))
 
 
 class ExpenseView(CreateView):
@@ -338,6 +377,11 @@ class ExpenseView(CreateView):
         form.instance.user = self.request.user
         try:
             self.object = form.save()
+            files = self.request.FILES.getlist('document')
+
+            # ذخیره فایل‌ها در مدل ExpenseDocument
+            for f in files:
+                ExpenseDocument.objects.create(expense=self.object, document=f)
             messages.success(self.request, 'هزینه با موفقیت ثبت گردید')
             return super().form_valid(form)
         except ProtectedError:
@@ -348,3 +392,104 @@ class ExpenseView(CreateView):
         context = super().get_context_data(**kwargs)
         context['expenses'] = Expense.objects.all()
         return context
+
+
+class ExpenseUpdateView(UpdateView):
+    model = Expense
+    template_name = 'admin_panel/expense_register.html'
+    form_class = ExpenseForm
+    success_url = reverse_lazy('add_expense')
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        try:
+            self.object = form.save()
+            files = self.request.FILES.getlist('document')
+
+            # ذخیره فایل‌ها در مدل ExpenseDocument
+            for f in files:
+                ExpenseDocument.objects.create(expense=self.object, document=f)
+            messages.success(self.request, 'هزینه با موفقیت ثبت گردید')
+            return super().form_valid(form)
+        except ProtectedError:
+            messages.error(self.request, 'خطا در ثبت هزینه!')
+            return self.form_invalid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['expenses'] = Expense.objects.all()
+        return context
+
+
+# def expense_edit(request, pk):
+#     expense = get_object_or_404(Expense, pk=pk)
+#
+#     if request.method == 'POST':
+#         form = ExpenseForm(request.POST, request.FILES, instance=expense)
+#
+#         if form.is_valid():
+#             expense = form.save()  # Save the form (updates or creates expense)
+#
+#             # Handle multiple file uploads
+#             files = request.FILES.getlist('document')
+#             if files:
+#                 for f in files:
+#                     ExpenseDocument.objects.create(expense=expense, document=f)
+#
+#             messages.success(request, 'هزینه با موفقیت ویرایش شد.')
+#             return redirect('add_expense')  # Adjust redirect as necessary
+#
+#         else:
+#             messages.error(request, 'فرم ویرایش نامعتبر بود. لطفا دوباره تلاش کنید.')
+#             return render(request, 'admin_panel/expense_register.html', {'form': form, 'expense': expense})
+#     else:
+#         # If the request is not POST, redirect to the appropriate page
+#         return redirect('add_expense')
+
+
+def expense_delete(request, pk):
+    expense = get_object_or_404(Expense, id=pk)
+    try:
+        expense.delete()
+        messages.success(request, ' هزینه با موفقیت حذف گردید!')
+    except ProtectedError:
+        messages.error(request, " امکان حذف وجود ندارد! ")
+    return redirect(reverse('add_expense'))
+
+
+@csrf_exempt
+def delete_expense_document(request):
+    if request.method == 'POST':
+        image_url = request.POST.get('url')
+        expense_id = request.POST.get('expense_id')
+
+        print(f"Image URL: {image_url}")
+        print(f"Expense ID: {expense_id}")
+
+        if not image_url or not expense_id:
+            return JsonResponse({'status': 'error', 'message': 'URL یا ID هزینه مشخص نیست'})
+
+        try:
+            expense = get_object_or_404(Expense, id=expense_id)
+
+            relative_path = image_url.replace(settings.MEDIA_URL, '')  # دقیق کردن مسیر
+            doc = ExpenseDocument.objects.filter(expense=expense, document=relative_path).first()
+
+            if doc:
+                # Delete the file from filesystem
+                if doc.document:
+                    file_path = os.path.join(settings.MEDIA_ROOT, doc.document.name)
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+
+                doc.delete()
+                return JsonResponse({'status': 'success'})
+            else:
+                return JsonResponse({'status': 'error', 'message': 'تصویر مرتبط پیدا نشد'})
+
+        except Expense.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'هزینه یافت نشد'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': f'خطا در حذف تصویر: {str(e)}'})
+
+    return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})

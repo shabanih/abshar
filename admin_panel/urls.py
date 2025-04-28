@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import path
 
 from admin_panel import views
@@ -22,9 +24,16 @@ urlpatterns = [
 
     # Expense Urls
     path('add-expense', views.ExpenseView.as_view(), name='add_expense'),
+    path('expense/edit/<int:pk>/', views.ExpenseUpdateView.as_view(), name='expense_edit'),
+    path('expense/delete/<int:pk>/', views.expense_delete, name='expense_delete'),
+    path('expense/delete-document/', views.delete_expense_document, name='delete_expense_document'),
+
     path('add-category', views.ExpenseCategoryView.as_view(), name='add_category'),
-    # path('edit/renter/<int:pk>/', views.RenterUpdateView.as_view(), name='edit_renter'),
-    # path('delete/renter/<int:pk>/', views.renter_delete, name='delete_renter'),
+    path('edit/category/<int:pk>/', views.ExpenseCategoryUpdate.as_view(), name='edit_category'),
+    path('delete/category/<int:pk>/', views.category_delete, name='delete_category'),
 
 
 ]
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
