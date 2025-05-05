@@ -7,60 +7,84 @@
 
 {% block main_content %}
     <hr/>
-<div class="container-fluid">
-    <div class="container p-0">
-        <div class="row mt-2">
-
-        <div class="row mb-2 p-0 ">
-    <div class="col-md-7 px-5">
-         <form method="GET" action="" class="d-flex">
-            <select name="column" class="form-select" style="height: 40px; width: 200px">
-                <option value="" disabled selected>جستجو در ستون...</option>
-               <option value="unit" {% if request.GET.column == "unit" %}selected{% endif %}>شماره واحد</option>
-                <option value="owner_name" {% if request.GET.column == "owner_name" %}selected{% endif %}>نام مالک</option>
-                <option value="renter_name" {% if request.GET.column == "renter_name" %}selected{% endif %}>نام مستاجر</option>
-                <option value="status_residence" {% if request.GET.column == "status_residence" %}selected{% endif %}>وضعیت سکونت</option>
-                <option value="area" {% if request.GET.column == "area" %}selected{% endif %}>متراژ</option>
-                <option value="bedrooms_count" {% if request.GET.column == "bedrooms_count" %}selected{% endif %}>تعداد خواب</option>
-            </select>
-
-            <input type="text" name="search" class="form-control" placeholder="عبارت جستجو..." value="{{ request.GET.search }}"
-                   style="height: 40px; border-radius: 4px; width: 300px">
-            <input title="Search" value="جستجو" type="submit" class="button px-4 py-2" style="padding: 1px; 
-            background-color: #73acf8 ">
-
-        </form>
-    </div>
-        <div class=" col-12 col-md-4 col-xl-4 text-center align-content-center ">
-            <a href="{% url 'export_units_excel' %}" class="btn btn-gradient-success px-3 py-2">خروجی Excel</a>
-            <a href="{% url 'export_units_pdf' %}?search={{ request.GET.search }}&column={{ request.GET.column }}" 
+<div class="container">
+ 
+      <div class="row align-self-center mb-2">
+                <div class="col-3 col-md-3 col-xl-3 align-self-center">
+                <button type="button" class="btn btn-primary px-3 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">
+                  <i class="mdi mdi-plus" aria-hidden="true"></i>ثبت هزینه جدید
+                </button>
+                 </div>
+          <div class="col-4 col-md-5 col-xl-5">
+              <input type="text" id="searchInput" placeholder="جستجوی سریع در جدول..." onkeyup="searchTable()" class="form-control mb-2">
+          </div>
+        <div class=" col-5 col-md-5 col-xl-4 text-start align-self-center">
+            <button onclick="openQuery()" class="btn btn-gradient-info px-3 py-2">جستجوی پیشرفته</button>
+            <a href="{% url 'export_expense_excel' %}?{{ request.GET.urlencode }}"
+   class="btn btn-gradient-success px-3 py-2">خروجی Excel</a>
+            <a href="{% url 'export_expense_pdf' %}?search={{ request.GET.search }}&column={{ request.GET.column }}?{{ request.GET.urlencode }}"
                class="btn btn-gradient-danger px-3 py-2">
                خروجی PDF
             </a>
-            <button type="button" class="btn btn-primary p-2 me-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">
-              <i class="mdi mdi-plus" aria-hidden="true"></i>ثبت هزینه جدید
-            </button>
-        </div>
-  
-</div>
+            </div>
+          </div>
+       <div id="query-form" style="display: none;" class="row mt-2">
+            <form method="get">
+               <div class="row mt-2">
+                     <div class="col-md-3">
+                        <input type="text" name="category__title" class="form-control" placeholder="موضوع هزینه"
+                               value="{{ request.GET.category__title }}">
+                    </div>
+                     <div class="col-md-3">
+                        <input type="text" name="amount" class="form-control" placeholder="مبلغ"
+                               value="{{ request.GET.amount }}">
+                    </div>
+                     <div class="col-md-2">
+                        <input type="text" name="doc_no" class="form-control" placeholder="شماره سند"
+                               value="{{ request.GET.doc_no }}">
+                    </div>
+                     <div class="col-md-2">
+                            <input type="text" id="from_date" name="from_date" class="form-control" placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
+                          </div>
+                     <div class="col-md-2">
+                        <input type="text" id="to_date" name="to_date" class="form-control" placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
+                        </div>
+               </div>
+                <div class="row mt-2 mb-2">
+                      <div class="col-md-4">
+                <input type="text" name="description" class="form-control" placeholder="شرح سند"
+                       value="{{ request.GET.description }}">
+            </div>
+                      <div class="col-md-6">
+                       <input type="text" name="details" class="form-control" placeholder="توضیحات سند"
+                       value="{{ request.GET.details }}">
+                      </div>
+                      <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary px-4">جستجوی پیشرفته</button>
+                        </div>
+                    </div>
+               </form>
+         </div>
+
+
             <div class="table-responsive">
-                <table class="table table-bordered">
+                <table class="table table-bordered " id="expenseTable">
                     <thead class="text-center">
                         <tr>
                             <th>#</th>
-                            <th> موضوع</th>
-                            <th>شرح</th>
+                            <th> موضوع هزینه</th>
+                            <th>شرح سند</th>
                             <th>مبلغ</th>
                               <th>شماره سند</th>
                             <th>تاریخ سند</th>
                              <th>توضیحات سند</th>
                             <th>تصویر سند</th>
-                            
+{#                            <th>تاریخ ایجاد سند</th>#}
                             <th>دستورات</th>
                         </tr>
                     </thead>
-                {% if expenses %}
-               {% for expense in expenses %}
+                {% if page_obj %}
+               {% for expense in page_obj %}
                         <tbody class="text-center">
                             <tr>
                                 <td>{{ forloop.counter }}</td>
@@ -79,16 +103,17 @@
                                      !No File
                                     {% endfor %}
                                 </td>
+{#                            <td>{{expense.created_at|show_jalali_date_only }}</td>#}
                             
 
                                    <td class="col-lg-1 col-xl-1 p-0">
-                                      <a 
+                                      <a
                                            class="btn btn-gradient-warning p-1 edit-expense-btn"
                                            data-id="{{ expense.id }}"
                                            data-category="{{ expense.category.id }}"
                                            data-amount="{{ expense.amount }}"
-                                           data-date="{{ expense.date|to_jalali}}"
-                                           data-doc_no="{{ expense.doc_no }}"
+                                           data-date="{{ expense.date|show_jalali }}"
+                                           data-doc_no="{{ expense.doc_no}}"
                                            data-description="{{ expense.description }}"
                                            data-details="{{ expense.details }}"
                                            data-images='{{ expense.get_image_urls_json|default:"[]" }}'
@@ -107,35 +132,35 @@
                         {% endfor %}
                             {% else %}
                             <tr>
-                                <td colspan="9" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                <td colspan="10" class="text-center">هیچ هزینه ای برای نمایش وجود ندارد.</td>
                             </tr>
                      <tbody>
                     {% endif %}
                 </table>
-
-
-
+                   <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
 
-    <div class="col-12">
-            <div class="pagination d-flex justify-content-center mt-5">
 
-            {% if page_obj.has_previous %}
-                 <a href="?page={{ page_obj.previous_page_number }}" class="rounded">قبلی</a>
-            {% endif %}
 
-                {% for pageNumber in paginator.page_range %}
-                      <a href="?page={{ pageNumber }}" class="{% if page_obj.number == pageNumber %}active{% endif %}">{{ pageNumber }}</a>
-                {% endfor %}
-
-            {% if page_obj.has_next %}
-                 <a href="?page={{ page_obj.next_page_number }}" class="rounded">بعدی</a>
-            {% endif %}
-            </div>
-        </div>
 {#      ============================= Moda Form ==================#}
     
     <div class="modal fade" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
