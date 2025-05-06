@@ -1,0 +1,265 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+مدیریت ساختمان
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container mt-3">
+ <div class="col-12 mb-2">
+                <button type="button" class="btn btn-primary px-3 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong3">
+                  <i class="mdi mdi-plus" aria-hidden="true"></i>افزودن حساب بانکی
+                </button>
+                 </div>
+               <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="text-center">
+                                    <tr>
+                                        <th>#</th>
+                                        <th> نام بانک</th>
+                                        <th>نام صاحب حساب</th>
+                                        <th>شماره حساب</th>
+                                        <th>شماره شبا</th>
+                                        <th>شماره کارت</th>
+                                        <th>موجودی اولیه</th>
+{#                                        <th>فعال/غیرفعال</th>#}
+                                        <th>دستورات</th>
+                                    </tr>
+                                </thead>
+                            {% if banks %}
+                           {% for bank in banks %}
+                                    <tbody class="text-center">
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{bank.bank_name }}</td>
+                                            <td>{{bank.account_holder_name }}</td>
+                                            <td>{{bank.account_no }}</td>
+                                            <td>{{bank.sheba_number }}</td>
+                                            <td>{{bank.cart_number|four_digit_cart }}</td>
+                                            <td>{{bank.initial_fund|three_digit_currency }}</td>
+{#                                              <td>#}
+{#                                               {% if bank.is_active == True %}#}
+{#                                                <button class="btn btn-primary bg-gradient-success p-1">فعال</button>#}
+{#                                                   {% else %}#}
+{#                                                   <button class="btn btn-gradient-danger p-1">غیر فعال</button>#}
+{##}
+{#                                               {% endif %}#}
+{#                                            </td>#}
+
+                                               <td>
+                                                      <a
+                                           class="btn btn-gradient-info p-1 edit-bank-btn"
+                                           data-id="{{ bank.id }}"
+                                           data-bank_name="{{ bank.bank_name }}"
+                                           data-account_holder_name="{{ bank.account_holder_name}}"
+                                           data-account_no="{{ bank.account_no }}"
+                                           data-sheba_number="{{ bank.sheba_number }}"
+                                           data-cart_number="{{ bank.cart_number }}"
+                                           data-initial_fund="{{ bank.initial_fund|three_digit_currency }}"
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#exampleModalLong3">
+                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
+                                        </a>
+                                                          <a href="{% url 'delete_bank' bank.id %}" class="btn btn-gradient-danger p-1"
+                                                       onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                                            </a>
+
+                                        </td>
+                                        </tr>
+                                    {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="9" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                        </tr>
+                                 <tbody>
+                                {% endif %}
+                            </table>
+               </div>
+
+    <hr>
+ <div class="col-12 mb-2">
+                <button type="button" class="btn btn-primary px-3 py-2">
+                  <i class="mdi mdi-plus" aria-hidden="true"></i>افزودن ساختمان
+                </button>
+                 </div>
+         {{ form.non_field_errors }}
+              <form class="row gy-2 gx-5 justify-content-md-center" action="" method="POST"
+                    enctype="multipart/form-data" novalidate>
+                  {% csrf_token %}
+                  <div class="container-fluid">
+                     <div class="row">
+                      <div class="form-group col-12 col-lg-2 col-xl-2 align-self-center">
+                        {{ house_form.name.label_tag }}
+                        {{ house_form.name }}
+                        {{ house_form.name.errors }}
+                      </div>
+                       <div class="form-group col-12 col-lg-4 col-xl-4 align-self-center">
+                        {{ house_form.address.label_tag }}
+                        {{ house_form.address }}
+                        {{ house_form.address.errors }}
+                      </div>
+                  <div class="form-group col-12 col-lg-4 col-xl-4">
+                        {{ house_form.account_number.label_tag }}
+                        {{ house_form.account_number }}
+                        {{ house_form.account_number.errors }}
+                    </div>
+                     <div class="form-group col-12 col-lg-2 col-xl-2 align-self-center">
+                        {{ house_form.is_active.label_tag }}
+                        {{ house_form.is_active }}
+                        {{ house_form.is_active.errors }}
+                    </div>
+                     </div>
+                    
+                                {% if form.instance.id %}
+                        <div class="col-12 align-self-center text-start ">
+                          <button type="submit" class="btn btn-gradient-success btn-md mb-3">ذخیره اطلاعات </button>
+                         </div>
+                              {% else %}
+                          <div class="col-12 align-self-center text-start">
+                          <button type="submit" name="submit_house" class="btn btn-gradient-success btn-md mb-3">ثبت اطلاعات </button>
+                         </div>
+                        {% endif %}
+                    </div>
+                
+              </form>
+
+
+         
+               <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="text-center">
+                                    <tr>
+                                        <th>#</th>
+                                        <th> نام ساختمان</th>
+                                        <th>آدرس</th>
+                                        <th>شماره حساب بانکی</th>
+                                        <th>تاریخ ایجاد</th>
+                                        <th>فعال/غیرفعال</th>
+                                        <th>دستورات</th>
+                                    </tr>
+                                </thead>
+                            {% if houses %}
+                           {% for house in houses %}
+                                    <tbody class="text-center">
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{house.name }}</td>
+                                            <td>{{house.address }}</td>
+                                            <td>{{house.account_number }}</td>
+                                            <td>{{house.created_at|show_jalali_date_only }}</td>
+                                              <td>
+                                               {% if house.is_active == True %}
+                                                <button class="btn btn-primary bg-gradient-success p-1">فعال</button>
+                                                   {% else %}
+                                                   <button class="btn btn-gradient-danger p-1">غیر فعال</button>
+
+                                               {% endif %}
+                                            </td>
+
+                                               <td>
+                                                     <a href="{% url 'edit_house' house.id %}" class="btn btn-gradient-info p-1">
+                                                          <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
+                                                        </a>
+                                                          <a href="{% url 'delete_house' house.id %}" class="btn btn-gradient-danger p-1"
+                                                       onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                                            </a>
+
+                                        </td>
+                                        </tr>
+                                    {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="9" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                        </tr>
+                                 <tbody>
+                                {% endif %}
+                            </table>
+               </div>
+         
+
+</div>
+    
+        <div class="modal fade" id="exampleModalLong3" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle3" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header" id="exampleModalLongTitle3">
+        <h5 class="modal-title">افزودن حساب بانکی جدید</h5>
+      </div>
+         <hr>
+      <div class="modal-body" >
+         {{ form.non_field_errors }}
+          <form id="bankForm" action="" method="POST"
+                enctype="multipart/form-data" novalidate>
+              {% csrf_token %}
+                 <div class="row g-2">
+                  <div class="col-4 col-lg-4 col-xl-4">
+                      {{ bank_form.bank_name.label_tag }}
+                      {{ bank_form.bank_name }}
+                      {{ bank_form.bank_name.errors }}
+                  </div>
+                      <div class="col-4 col-lg-8 col-xl-8">
+                       {{ bank_form.account_holder_name.label_tag }}
+                      {{ bank_form.account_holder_name }}
+                      {{ bank_form.account_holder_name.errors }}
+                  </div>
+                     </div>
+                  <div class="row g-2">
+                      <div class="col-4 col-lg-4 col-xl-4 ">
+                       {{ bank_form.account_no.label_tag }}
+                      {{ bank_form.account_no }}
+                      {{ bank_form.account_no.errors }}
+                  </div>
+                      <div class="col-4 col-lg-8 col-xl-8">
+                       {{ bank_form.sheba_number.label_tag }}
+                      {{ bank_form.sheba_number }}
+                      {{ bank_form.sheba_number.errors }}
+                  </div>
+                     </div>
+              
+                  <div class="row g-2">
+                  <div class="col-4 col-lg-8 col-xl-8">
+                      {{ bank_form.cart_number.label_tag }}
+                      {{ bank_form.cart_number }}
+                      {{ bank_form.cart_number.errors }}
+                  </div>
+                    <div class="col-4 col-lg-4 col-xl-4">
+                      {{ bank_form.initial_fund.label_tag }}
+                      {{ bank_form.initial_fund }}
+                      {{ bank_form.initial_fund.errors }}
+                  </div>
+                     </div>
+                  <div class="row">
+                  <div class="col-4 col-lg-8 col-xl-8">
+                      {{ bank_form.is_active.label_tag }}
+                      {{ bank_form.is_active }}
+                      {{ bank_form.is_active.errors }}
+                     </div>
+                 </div>
+                 
+              
+              
+                   <hr class="mt-2" style="color: #0f1531">
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" name="submit_bank" id="account_holder_name" class="btn btn-gradient-success px-4 py-2">ثبت هزینه</button>
+                           <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
+                     </div>
+        
+
+          </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+    
+    
+{% endblock %}
+
+

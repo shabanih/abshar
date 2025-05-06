@@ -2,7 +2,7 @@
 {% load static %}
 {% load poll_extras %}
 {% block page_title %}
-مدیریت هزینه ها( تعداد کل هزینه های ثبت شده:{{ total_units }} )
+مدیریت هزینه ها( تعداد کل هزینه های ثبت شده:{{ total_expense }} )
 {% endblock page_title %}
 
 {% block main_content %}
@@ -22,18 +22,28 @@
             <button onclick="openQuery()" class="btn btn-gradient-info px-3 py-2">جستجوی پیشرفته</button>
             <a href="{% url 'export_expense_excel' %}?{{ request.GET.urlencode }}"
    class="btn btn-gradient-success px-3 py-2">خروجی Excel</a>
-            <a href="{% url 'export_expense_pdf' %}?search={{ request.GET.search }}&column={{ request.GET.column }}?{{ request.GET.urlencode }}"
-               class="btn btn-gradient-danger px-3 py-2">
-               خروجی PDF
-            </a>
+{#            <a href="{% url 'export_expense_pdf' %}?search={{ request.GET.search }}&column={{ request.GET.column }}?{{ request.GET.urlencode }}"#}
+{#               class="btn btn-gradient-danger px-3 py-2">#}
+{#               خروجی PDF#}
+{#            </a>#}
+            <a href="{% url 'export_expense_pdf' %}?{{ request.GET.urlencode }}"
+   class="btn btn-gradient-danger px-3 py-2">
+   خروجی PDF
+</a>
             </div>
           </div>
        <div id="query-form" style="display: none;" class="row mt-2">
             <form method="get">
                <div class="row mt-2">
                      <div class="col-md-3">
-                        <input type="text" name="category__title" class="form-control" placeholder="موضوع هزینه"
-                               value="{{ request.GET.category__title }}">
+{#                        <input type="text" name="category__title" class="form-control" placeholder="موضوع هزینه"#}
+{#                               value="{{ request.GET.category__title }}">#}
+                         <select name="category" class="form-control form-control-sm">
+                            <option value="">انتخاب کنید</option>
+                            {% for cat in categories %}
+                                <option value="{{ cat.id }}" {% if request.GET.category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.title }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                      <div class="col-md-3">
                         <input type="text" name="amount" class="form-control" placeholder="مبلغ"
@@ -59,8 +69,8 @@
                        <input type="text" name="details" class="form-control" placeholder="توضیحات سند"
                        value="{{ request.GET.details }}">
                       </div>
-                      <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary px-4">جستجوی پیشرفته</button>
+                      <div class="col-md-2 align-self-center text-center">
+                            <button type="submit" class="btn btn-facebook px-4 py-2">جستجوی پیشرفته</button>
                         </div>
                     </div>
                </form>
@@ -168,7 +178,7 @@
     <div class="modal-content">
       <div class="modal-header" id="exampleModalLongTitle">
         <h5 class="modal-title">ثبت هزینه جدید</h5>
-         <a href="{% url 'add_category' %}" class="btn btn-primary p-2 me-2">
+         <a href="{% url 'add_category_expense' %}" class="btn btn-primary p-2 me-2">
                           <i class="mdi mdi-plus" aria-hidden="true"></i>ثبت موضوع هزینه جدید
                         </a>
       </div>

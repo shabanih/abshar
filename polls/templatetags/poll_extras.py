@@ -1,5 +1,3 @@
-import datetime
-
 import jdatetime
 import pytz
 from django import template
@@ -67,30 +65,16 @@ def show_jalali_date(value):
 def show_jalali(value):
     if value is None:
         return ''
-    try:
-        # Ensure the input is a datetime object
-        if isinstance(value, jdatetime.date):  # If it's already a Jalali date, no need to convert
-            jalali_datetime = value
-        else:
-            # Convert to datetime if it's not already a datetime object
-            if isinstance(value,
-                          datetime.date):  # If it's a datetime.date (without time), turn it into a datetime object
-                value = datetime.datetime.combine(value, datetime.datetime.min.time())
+    # Convert the Gregorian datetime to Jalali datetime
+    jalali_datetime = jdatetime.datetime.fromgregorian(datetime=value)
 
-            # Make sure the datetime object is timezone-aware
-            if timezone.is_naive(value):
-                value = timezone.make_aware(value, timezone=pytz.timezone('Asia/Tehran'))
-            else:
-                value = value.astimezone(pytz.timezone('Asia/Tehran'))
+    # Get the Persian weekday and month name
+    # weekday = WEEKDAYS[jalali_datetime.weekday()]
+    # month = MONTHS[jalali_datetime.month - 1]  # Index starts from 0 for MONTHS list
 
-            # Convert the Gregorian datetime to Jalali datetime
-            jalali_datetime = jdatetime.date.fromgregorian(datetime=value)
-
-        # Format the Jalali date as YYYY/MM/DD
-        formatted_date = jalali_datetime.strftime('%Y/%m/%d')
-        return formatted_date
-    except (ValueError, TypeError):
-        return ''  # Return empty string if there's an error in conversion
+    # Format the date manually using Persian names without time
+    formatted_date = f' {jalali_datetime.year}-{jalali_datetime.month}-{jalali_datetime.day}'
+    return formatted_date
 
 
 @register.filter(name='three_digit_currency')
@@ -100,8 +84,30 @@ def three_digit_currency(value: int):
     return '{:,}'.format(value)
 
 
-@register.filter(name='to_jalali')
-def to_jalali(value):
-    if value:
-        return jdatetime.date.fromgregorian(date=value).strftime('%Y/%m/%d')
-    return value
+@register.filter(name='four_digit_cart')
+def four_digit_cart(value):
+    try:
+        # Convert the value to a string
+        value_str = str(int(value))
+    except (ValueError, TypeError):
+        return value  # Return the original value if conversion fails
+
+        # Group digits in chunks of 4
+    grouped = ' '.join([value_str[i:i + 4] for i in range(0, len(value_str), 4)])
+
+    # Prepend Left-to-Right Mark to ensure correct display in RTL contexts
+    return '\u200E' + grouped
+
+
+
+    # if value is None:
+    #     return '0'
+    # # value_str = str(value)
+    # # Reverse the string for grouping
+    # reversed_str = value[::-1]
+    # # Group digits in chunks of 4
+    # chunks = [reversed_str[i:i + 4] for i in range(0, len(reversed_str), 4)]
+    # # Join chunks with spaces and reverse back
+    # formatted_value = ' '.join(chunks)[::-1]
+    # # Prepend LRM to ensure correct display in RTL
+    # return '\u200E' + formatted_value

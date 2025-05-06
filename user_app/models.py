@@ -23,16 +23,26 @@ class User(AbstractUser):
         return self.username
 
 
+class Bank(models.Model):
+    bank_name = models.CharField(max_length=100, verbose_name='نام بانک')
+    account_no = models.CharField(max_length=100, verbose_name='شماره حساب ')
+    account_holder_name = models.CharField(max_length=100, verbose_name='نام صاحب حساب')
+    sheba_number = models.CharField(max_length=100, verbose_name='شماره شبا')
+    cart_number = models.CharField(max_length=100, verbose_name='شماره کارت')
+    initial_fund = models.PositiveIntegerField(verbose_name='موجود اولیه صندوق')
+    create_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
+    is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
+
+    def __str__(self):
+        return f"{self.bank_name}  - {self.account_no}"
+
+
 class MyHouse(models.Model):
     name = models.CharField(max_length=100, verbose_name='نام ساختمان')
     address = models.CharField(max_length=100, verbose_name='آدرس')
-    account_no = models.CharField(max_length=100, verbose_name='شماره حساب شبا')
-    account_name = models.CharField(max_length=100, verbose_name='نام صاحب حساب')
-    cart_no = models.CharField(max_length=100, verbose_name='شماره کارت')
-    cart_name = models.CharField(max_length=100, verbose_name='نام صاحب کارت')
-    initial_fund = models.CharField(max_length=100, verbose_name='موجود اولیه صندوق')
+    account_number = models.ForeignKey(Bank, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='شماره حساب')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
-    is_active = models.BooleanField()
+    is_active = models.BooleanField(default=True, verbose_name='')
 
     def __str__(self):
         return self.name
@@ -71,4 +81,3 @@ class Unit(models.Model):
 
     def __str__(self):
         return str(self.unit)
-

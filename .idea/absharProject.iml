@@ -19,17 +19,25 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="all" level="application" />
-    <orderEntry type="library" name="bootstrap" level="application" />
     <orderEntry type="library" name="jquery-3.6.0" level="application" />
     <orderEntry type="library" name="jquery" level="application" />
     <orderEntry type="library" name="limonte-sweetalert2" level="application" />
+    <orderEntry type="library" name="persian-datepicker" level="application" />
     <orderEntry type="library" name="bootstrap" level="application" />
+    <orderEntry type="library" name="bootstrap" level="application" />
+    <orderEntry type="library" name="limonte-sweetalert2" level="application" />
+    <orderEntry type="library" name="jquery" level="application" />
+    <orderEntry type="library" name="persian-date" level="application" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_CONFIGURATION" value="Django" />
     <option name="TEMPLATE_FOLDERS">
       <list>
         <option value="$MODULE_DIR$/admin_panel/templates" />
+        <option value="$MODULE_DIR$/admin_panel/templates/unit_templates" />
+        <option value="$MODULE_DIR$/admin_panel/templates/expense_templates" />
+        <option value="$MODULE_DIR$/admin_panel/templates/income_templates" />
+        <option value="$MODULE_DIR$/admin_panel/templates/admin_panel" />
       </list>
     </option>
   </component>

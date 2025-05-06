@@ -1,15 +1,18 @@
+from datetime import datetime
+
 import jdatetime
 from django import forms
 from jalali_date import widgets
 from jalali_date.fields import JalaliDateField
 from jalali_date.widgets import AdminJalaliDateWidget
 
-from admin_panel.models import Announcement, Expense, ExpenseCategory
-from user_app.models import Unit
+from admin_panel.models import Announcement, Expense, ExpenseCategory, Income, IncomeCategory
+from user_app.models import Unit, Bank, MyHouse
 
 attr = {'class': 'form-control border-1 py-2 mb-4 '}
 attr1 = {'class': 'form-control border-1 py-1 mb-4 '}
-attr2 = {'class': 'form-control border-1 my-2 mb-4 ', 'placeholder': 'لطفا واحد را انتخاب گنید'}
+attr3 = {'class': 'form-control form-control-sm border-1'}
+attr2 = {'class': 'form-control border-1 my-2 mb-4 ', 'placeholder': 'لطفا واحد را انتخاب کنید'}
 
 error_message = {
     'required': "تکمیل این فیلد ضروری است!",
@@ -70,6 +73,56 @@ PARKING_NUMBER_CHOICES = {
 PARKING_COUNT_CHOICES = {
     '': '--- انتخاب کنید ---', '1': '1', '2': '2', '3': '3',
 }
+
+BANK_CHOICES = {
+    '': '--- انتخاب کنید ---', 'ملی': 'ملی', 'ملت': 'ملت', 'تجارت': 'تجارت', 'صادرات': 'صادرات', 'رسالت': 'رسالت',
+    'صنعت و معدن': 'صنعت و معدن', 'کشاورزی': 'کشاورزی', 'مسکن': 'مسکن', 'رفاه': 'رفاه', 'سپه': 'سپه', 'سینا': 'سینا',
+    'توسعه صادرات': 'توسعه صادرات', 'پست بانک': 'پست بانک', 'پاسارگاد': 'پاسارگاد', 'اقتصاد نوین': 'اقتصاد نوین',
+    'پارسیان': 'پارسیان',
+    'سامان': 'سامان', 'گردشگری': 'گردشگری', 'کارآفرین': 'کارآفرین', 'دی': 'دی', 'شهر': 'شهر', 'ایران زمین': 'ایران زمین',
+    'مهر ایران': 'مهر ایران',
+}
+
+
+class BankForm(forms.ModelForm):
+    bank_name = forms.ChoiceField(error_messages=error_message, required=True,choices=BANK_CHOICES,
+                             widget=forms.Select(attrs=attr3), label='نام بانک')
+
+    account_holder_name = forms.CharField(error_messages=error_message, required=True,
+                                          widget=forms.TextInput(attrs=attr),
+                                          label='نام صاحب حساب')
+    account_no = forms.CharField(error_messages=error_message, required=True, widget=forms.NumberInput(attrs=attr),
+                                     label='شماره حساب')
+    sheba_number = forms.CharField(error_messages=error_message,
+                                   max_length=24,
+                                   min_length=24,
+                                   required=False, widget=forms.TextInput(attrs=attr),
+                                   label='شماره شبا')
+    cart_number = forms.CharField(error_messages=error_message,
+                                  max_length=16,
+                                  min_length=16,
+                                  required=False, widget=forms.NumberInput(attrs=attr),
+                                  label='شماره کارت')
+    initial_fund = forms.CharField(error_messages=error_message, required=True, widget=forms.NumberInput(attrs=attr),
+                                   label='موجودی اولیه')
+
+    class Meta:
+        model = Bank
+        fields = ('bank_name', 'account_holder_name', 'account_no', 'sheba_number', 'cart_number', 'initial_fund')
+
+
+class MyHouseForm(forms.ModelForm):
+    name = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
+                           label='نام ساختمان')
+    address = forms.CharField(error_messages=error_message, required=True,
+                              widget=forms.TextInput(attrs=attr),
+                              label='آدرس')
+    account_number = forms.ModelChoiceField(queryset=Bank.objects.all(),widget=forms.Select(attrs=attr2), label="شماره حساب")
+    is_active = forms.BooleanField(initial=True, required=False, label='فعال/غیرفعال')
+
+    class Meta:
+        model = MyHouse
+        fields = ['name', 'address', 'account_number', 'is_active']
 
 
 class UnitForm(forms.ModelForm):
@@ -229,9 +282,10 @@ class ExpenseForm(forms.ModelForm):
     date = JalaliDateField(
         label='تاریخ ثبت سند',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
-        error_messages=error_message, required=True
+        error_messages=error_message, required=False
     )
-    doc_no = forms.CharField(error_messages=error_message, max_length=10, widget=forms.TextInput(attrs=attr), required=True,
+    doc_no = forms.CharField(error_messages=error_message, max_length=10, widget=forms.TextInput(attrs=attr),
+                             required=True,
                              label='شماره سند')
     document = forms.FileField(
         required=False,
@@ -243,29 +297,123 @@ class ExpenseForm(forms.ModelForm):
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
                               label='توضیحات ')
 
-
     class Meta:
         model = Expense
         fields = ['category', 'amount', 'date', 'description', 'doc_no', 'details', 'document']
-
-    def clean_date(self):
-        date_str = self.cleaned_data.get('date')
-
-        if date_str:
-            try:
-                # Convert the Jalali date to Gregorian date
-                gregorian_date = jdatetime.strptime(date_str, '%Y-%m-%d').togregorian()
-                return gregorian_date
-            except ValueError:
-                raise forms.ValidationError("یک تاریخ معتبر وارد کنید")
-        return date_str
 
 
 class ExpenseCategoryForm(forms.ModelForm):
     title = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=True,
                             label='موضوع')
-    is_active = forms.BooleanField(required=False, label='فعال/غیرفعال')
+    is_active = forms.BooleanField(required=False, initial=True, label='فعال/غیرفعال')
 
     class Meta:
         model = ExpenseCategory
         fields = ['title', 'is_active']
+
+
+class SearchExpenseForm(forms.Form):
+    category = forms.ModelChoiceField(
+        queryset=ExpenseCategory.objects.all(), required=False, label='گروه هزینه'
+    )
+    description = forms.CharField(
+        max_length=200, required=False, label='شرح هزینه', widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    amount = forms.IntegerField(
+        required=False, label=' مبلغ', widget=forms.TextInput(attrs=attr)
+    )
+    details = forms.CharField(
+        required=False, label=' توضیحات', widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    date_from = JalaliDateField(
+        label='از تاریخ',
+        widget=AdminJalaliDateWidget(),
+        error_messages=error_message, required=False
+    )
+    date_to = JalaliDateField(
+        required=False,
+        label='تا تاریخ',
+        widget=AdminJalaliDateWidget()
+    )
+    doc_no = forms.IntegerField(
+        required=False, label='شماره سند', widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+
+
+# =============================== Income Forms ===================================
+
+class IncomeForm(forms.ModelForm):
+    category = forms.ModelChoiceField(
+        queryset=IncomeCategory.objects.filter(is_active=True),
+        widget=forms.Select(attrs=attr),
+        empty_label="یک گروه انتخاب کنید",
+        error_messages=error_message,
+        required=True,
+        label='موضوع درآمد'
+    )
+    # category = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
+    #                            label='موضوع هزینه')
+    amount = forms.CharField(error_messages=error_message, max_length=20, required=True,
+                             widget=forms.TextInput(attrs=attr),
+                             label='مبلغ')
+    description = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=True,
+                                  label='شرح سند')
+    doc_date = JalaliDateField(
+        label='تاریخ ثبت سند',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    doc_number = forms.CharField(error_messages=error_message, max_length=10, widget=forms.TextInput(attrs=attr),
+                                 required=True,
+                                 label='شماره سند')
+    document = forms.FileField(
+        required=False,
+        error_messages=error_message,
+        widget=forms.ClearableFileInput(attrs=attr),
+        label='تصویر سند'
+    )
+    details = forms.CharField(error_messages=error_message, required=False,
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+                              label='توضیحات ')
+
+    class Meta:
+        model = Income
+        fields = ['category', 'amount', 'doc_date', 'description', 'doc_number', 'details', 'document']
+
+
+class IncomeCategoryForm(forms.ModelForm):
+    subject = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=True,
+                              label='موضوع درآمد')
+    is_active = forms.BooleanField(required=False, initial=True, label='فعال/غیرفعال')
+
+    class Meta:
+        model = IncomeCategory
+        fields = ['subject', 'is_active']
+
+
+class SearchIncomeForm(forms.Form):
+    category = forms.ModelChoiceField(
+        queryset=ExpenseCategory.objects.all(), required=False, label='گروه درآمد'
+    )
+    description = forms.CharField(
+        max_length=200, required=False, label='شرح درآمد', widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    amount = forms.IntegerField(
+        required=False, label=' مبلغ', widget=forms.TextInput(attrs=attr)
+    )
+    details = forms.CharField(
+        required=False, label=' توضیحات', widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    date_from = JalaliDateField(
+        label='از تاریخ',
+        widget=AdminJalaliDateWidget(),
+        error_messages=error_message, required=False
+    )
+    date_to = JalaliDateField(
+        required=False,
+        label='تا تاریخ',
+        widget=AdminJalaliDateWidget()
+    )
+    doc_number = forms.IntegerField(
+        required=False, label='شماره سند', widget=forms.TextInput(attrs={'class': 'form-control'})
+    )

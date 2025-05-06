@@ -226,7 +226,7 @@ $(document).on('click', '.edit-expense-btn', function (e) {
 });
 
 
-// Delete image or file
+
 $(document).on('click', '.delete-image-btn', function () {
     var imageUrl = $(this).data('url');  // Image URL
     var expenseId = $(this).data('expense-id');  // Expense ID
@@ -273,3 +273,107 @@ $(document).on('click', '.delete-image-btn', function () {
     });
 });
 
+// ==========================================
+$(document).on('click', '.edit-income-btn', function (e) {
+    e.preventDefault();
+
+    var images = $(this).data('images');
+    var incomeId = $(this).data('id');  // ← گرفتن expense_id صحیح
+
+    if (typeof images === 'string') {
+        try {
+            images = JSON.parse(images);
+        } catch (error) {
+            console.error('Error parsing images JSON:', error);
+            images = [];
+        }
+    }
+
+    $('#preview').empty();
+
+    if (images.length > 0) {
+        images.forEach(function(imgUrl, index) {
+            var imageWrapper = `
+                <div class="image-item m-2 position-relative" style="display:inline-block;">
+                    <img src="${imgUrl}"
+                         style="width: 100px; height: 100px; object-fit: cover; border: 1px solid #ccc;">
+                    <button type="button" class="btn btn-sm btn-danger delete-image-btn"
+                            data-url="${imgUrl}"
+                            data-income-id="${incomeId}"
+                            style="position: absolute; top: -5px; right: -5px; border-radius: 50%;">
+                        ×
+                    </button>
+                </div>
+            `;
+            $('#preview').append(imageWrapper);
+        });
+    } else {
+        $('#preview').html('<p>تصویری وجود ندارد.</p>');
+    }
+});
+
+$(document).on('click', '.delete-image-btn', function () {
+    var imageUrl = $(this).data('url');  // Image URL
+    var incomeId = $(this).data('income-id');  // Expense ID
+
+
+    if (!imageUrl || !incomeId) {
+        Swal.fire('خطا', 'URL یا ID هزینه مشخص نیست', 'error');
+        return;
+    }
+
+    Swal.fire({
+        title: 'آیا مطمئنی میخوای این تصویر رو حذف کنی؟',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'بله، حذف کن!',
+        cancelButtonText: 'لغو'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Send the request to delete the image
+            $.ajax({
+                type: 'POST',
+                url: '/admin-panel/income/delete-document/',  // Your delete URL
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}',  // Ensure CSRF token is included
+                    url: imageUrl,  // The URL of the image to delete
+                    income_id: incomeId  // The ID of the related expense
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        Swal.fire('حذف شد!', 'تصویر با موفقیت حذف شد.', 'success');
+                        // Optionally, remove the image from the preview
+                        $(`[data-url="${imageUrl}"]`).closest('.image-item').remove();
+                    } else {
+                        Swal.fire('خطا2', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('خطا', 'خطا در حذف تصویر', 'error');
+                }
+            });
+        }
+    });
+});
+
+$(document).on('click', '.edit-bank-btn', function () {
+    console.log('ویرایش کلیک شد2');
+
+    // Get the expense ID from the clicked button's data attributes
+    var id = $(this).data('id');
+    $('#bankForm').attr('action', '/admin-panel/bank/edit/' + id + '/');
+
+    // Populate the form with the expense data
+    $('#id_bank_name').val($(this).data('bank_name'));
+    $('#id_account_holder_name').val($(this).data('account_holder_name'));
+    $('#id_account_no').val($(this).data('account_no'));
+    $('#id_sheba_number').val($(this).data('sheba_number'));
+    $('#id_cart_number').val($(this).data('cart_number'));
+    $('#id_initial_fund').val($(this).data('initial_fund').toString().replace(/,/g, ''));
+
+    // Update the modal title and submit button text for editing
+    $('#exampleModalLongTitle3').text('ویرایش حساب بانکی');
+    $('#btn-submit-bank').text('ویرایش حساب بانکی');
+});
