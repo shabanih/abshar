@@ -9,34 +9,32 @@ from django.views.generic import TemplateView
 from user_app import helper
 from admin_panel.models import Announcement
 from user_app.forms import LoginForm, MobileLoginForm
-from user_app.models import User
+from user_app.models import User, Unit
 
 
 def index(request):
     announcements = Announcement.objects.filter(is_active=True).order_by('-created_at')[:4]
     form = LoginForm(request.POST or None)
+
     if request.method == 'POST':
-        form = LoginForm(request.POST)
         if form.is_valid():
             mobile = form.cleaned_data['mobile']
             password = form.cleaned_data['password']
             user = authenticate(request, username=mobile, password=password)
             if user is not None:
                 login(request, user)
-                return redirect(reverse('admin_dashboard'))
-            else:
-                messages.error(request, 'شماره موبایل یا کلمه عبور نادرست است!')
-                return redirect(reverse('index'))
-        else:
-            messages.error(request, 'شماره موبایل یا کلمه عبور نادرست است!')
-            return redirect(reverse('index'))
+                if user.is_superuser:
+                    return redirect(reverse('admin_dashboard'))  # Superuser route
+                else:
+                    return redirect(reverse('user_panel'))  # Regular user route (change as needed)
 
-    context = {
+        messages.error(request, 'شماره موبایل یا کلمه عبور نادرست است!')
+        return redirect(reverse('index'))
+
+    return render(request, 'index.html', {
         'announcements': announcements,
-        'form': form
-
-    }
-    return render(request, 'index.html', context)
+        'form': form,
+    })
 
 
 def mobile_login(request):
@@ -115,10 +113,33 @@ def resend_otp(request):
         user.save()
         messages.add_message(request, messages.SUCCESS, "رمز یکبار مصرف جدید ارسال شد!")
 
-
         # Redirect back to the verification page
         return HttpResponseRedirect(reverse('verify_otp'))
 
     except User.DoesNotExist:
         messages.error(request, 'User does not exist.')
         return HttpResponseRedirect(reverse('index'))
+
+
+def site_header_component(request):
+    context = {
+        'user': request.user,
+        # اگر اعلان داری می‌توانی اعلان‌ها را هم اضافه کنی مثلا:
+        # 'notifications': Notification.objects.filter(user=request.user, is_read=False),
+    }
+    return render(request, 'partials/notification_template.html', context)
+
+
+def user_panel(request):
+    units = Unit.objects.filter(user=request.user, is_active=True).prefetch_related('renters')
+
+    units_with_active_renter = []
+    for unit in units:
+        active_renter = unit.renters.filter(renter_is_active=True).first()
+        units_with_active_renter.append((unit, active_renter))
+
+    context = {
+        'user': request.user,
+        'units': units
+    }
+    return render(request, 'partials/home_template.html', context)

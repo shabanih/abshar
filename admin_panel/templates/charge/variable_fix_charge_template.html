@@ -1,0 +1,221 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+
+{% block page_title %}
+محاسبه شارژ بر اساس هزینه های ثابت و متغیر
+{% endblock page_title %}
+
+{% block main_content %}
+<div class="container mt-3">
+ <div class="col-12 mb-2">
+                <button type="button" class="btn btn-primary px-3 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">
+                  <i class="mdi mdi-plus" aria-hidden="true"></i>افزودن شارژ جدید 
+                </button>
+                 </div>
+
+               <div class="table-responsive">
+                  <table class="table table-bordered">
+                                <thead class="text-center">
+                                    <tr>
+                                        <th>#</th>
+                                        <th> عنوان شارژ </th>
+                                       
+                                        <th class="p-0">مبلغ شارژ ثابت هر واحد</th>
+                                        <th class="p-0">مبلغ شارژ متغیر هر متر</th>
+                                        <th class="p-0">مبلغ شارژ متغیر هر نفر</th>
+                                       
+                                        <th> تعداد واحدها</th>
+                                        <th> متراژ کل </th>
+                                        <th>تعداد نفرات </th>
+                                        <th>شارژ عمرانی </th>
+                                        <th> توضیحات </th>
+                                        <th>تاریخ ایجاد</th>
+                                        <th>دستورات</th>
+                                    </tr>
+                                </thead>
+                            {% if charges %}
+                           {% for charge in charges %}
+                                    <tbody class="text-center">
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{charge.charge_name }}</td>
+                                         
+                                            <td>{{charge.unit_fix_amount|three_digit_currency }}</td>
+                                            <td>{{charge.unit_variable_amount_person|three_digit_currency }}</td>
+                                            <td>{{charge.unit_variable_amount_area|three_digit_currency }}</td>
+                                      
+                           
+                                            <td>{{charge.unit_count|three_digit_currency }}</td>
+                                            <td>{{charge.total_area|three_digit_currency }}</td>
+                                          <td>{{ charge.total_people|three_digit_currency }}</td>
+                                          <td>{{ charge.civil_charge|three_digit_currency }}</td>
+                                            <td>{{charge.details }}</td>
+                                            <td>{{charge.created_at|show_jalali }}</td>
+                                            
+                                               <td class="col-1 p-0">
+                                                                   <a
+                                           class="btn btn-gradient-info p-1 edit-variable-fix-btn"
+                                           data-id="{{ charge.id }}"
+                                           data-charge_name="{{ charge.charge_name }}"
+                                           data-salary="{{ charge.salary }}"
+                                           data-elevator_cost="{{ charge.elevator_cost }}"
+                                           data-public_electricity="{{ charge.public_electricity }}"
+                                           data-common_expenses="{{ charge.common_expenses }}"
+                                           data-facility_cost="{{ charge.facility_cost }}"
+                                           data-camera_cost="{{ charge.camera_cost }}"
+                                           data-office_cost="{{ charge.office_cost }}"
+                                           data-insurance_cost="{{ charge.insurance_cost}}"
+                                           data-extinguished_cost="{{ charge.extinguished_cost }}"
+                                           data-green_space_cost="{{ charge.green_space_cost }}"
+                                           data-public_water="{{ charge.public_water }}"
+                                           data-public_gas="{{ charge.public_gas }}"
+                                           data-civil_charge="{{ charge.civil_charge }}"
+                                           data-details="{{ charge.details }}"
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#exampleModalLong">
+                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
+                                        </a>
+                             
+                                            <a href="{% url 'charge_variable_fix_delete' charge.id %}" class="btn btn-gradient-danger p-1"
+                                       onclick="return confirmDeleteWithSweetAlert(event)">
+                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                            </a>
+
+                                        </td>
+                                        </tr>
+                                    {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="12" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
+                                        </tr>
+                                 <tbody>
+                                {% endif %}
+
+                            </table>
+               </div>
+
+    <hr>
+
+</div>
+    
+  <div class="modal fade" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header" id="exampleModalLongTitle">
+        <h5 class="modal-title">محاسبه شارژ بر اساس هزینه های ثابت و متغیر</h5>
+      </div>
+         <hr>
+      <div class="modal-body" >
+         {{ form.non_field_errors }}
+          <form id="variableFixForm" action="" method="POST"
+                enctype="multipart/form-data" novalidate>
+              {% csrf_token %}
+                     <div class="row justify-content-start">
+                                        <p class="mb-2 mt-2 mb-0" style="font-weight: 900">ثبت شارژ ثابت</p>
+                                      <div class="col-6">
+                                          {{ form.charge_name.label_tag }}
+                                          {{ form.charge_name }}
+                                          {{ form.charge_name.errors }}
+                                      </div>
+
+                                          <div class="col-6">
+                                          {{ form.salary.label_tag }}
+                                          {{ form.salary }}
+                                          {{ form.salary.errors }}
+                                      </div>
+                                       <div class="col-6">
+                                          {{ form.elevator_cost.label_tag }}
+                                          {{ form.elevator_cost }}
+                                          {{ form.elevator_cost.errors }}
+                                      </div>
+                                        <div class="col-6">
+                                          {{ form.public_electricity.label_tag }}
+                                          {{ form.public_electricity }}
+                                          {{ form.public_electricity.errors }}
+                                      </div>
+                                      <div class="col-6">
+                                          {{ form.common_expenses.label_tag }}
+                                          {{ form.common_expenses }}
+                                          {{ form.common_expenses.errors }}
+                                      </div>
+                                       <div class="col-6">
+                                           {{ form.facility_cost.label_tag }}
+                                          {{ form.facility_cost }}
+                                          {{ form.facility_cost.errors }}
+                                      </div>
+
+                                    </div>
+                                         <div class="row">
+                                          <div class="col-6">
+                                          {{ form.office_cost.label_tag }}
+                                          {{ form.office_cost }}
+                                          {{ form.office_cost.errors }}
+                                      </div>
+                                             <div class="col-6">
+                                          {{ form.extinguished_cost.label_tag }}
+                                          {{ form.extinguished_cost }}
+                                          {{ form.extinguished_cost.errors }}
+                                      </div>
+                                      <div class="col-6">
+                                          {{ form.camera_cost.label_tag }}
+                                          {{ form.camera_cost }}
+                                          {{ form.camera_cost.errors }}
+                                      </div>
+                                       <div class="col-6">
+                                           {{ form.insurance_cost.label_tag }}
+                                          {{ form.insurance_cost }}
+                                          {{ form.insurance_cost.errors }}
+                                      </div>
+                                               <div class="col-6">
+                                           {{ form.green_space_cost.label_tag }}
+                                          {{ form.green_space_cost }}
+                                          {{ form.green_space_cost.errors }}
+                                      </div>
+                                         </div>
+                                       <hr class="mt-2" style="color: #0f1531">
+                                      <div class="row justify-content-start ">
+                                             <p class="mt-2 mb-2 mb-0" style="font-weight: 900">ثبت شارژ متغیر</p>
+                                              <div class="col-6">
+                                          {{ form.public_water.label_tag }}
+                                          {{ form.public_water }}
+                                          {{ form.public_water.errors }}
+                                           </div>
+                                              <div class="col-6">
+                                          {{ form.public_gas.label_tag }}
+                                          {{ form.public_gas }}
+                                          {{ form.public_gas.errors }}
+                                           </div>
+                                              <div class="col-6">
+                                          {{ form.civil_charge.label_tag }}
+                                          {{ form.civil_charge }}
+                                          {{ form.civil_charge.errors }}
+                                           </div>
+
+                                      </div>
+                                     <div class="row">
+                                      <div class="form-group col-12">
+                                        {{ form.details.label_tag }}
+                                        {{ form.details }}
+                                        {{ form.details.errors }}
+                                      </div>
+                                    </div>
+              
+                   <hr class="mt-2" style="color: #0f1531">
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" name="submit_receive" id="btn-submit-receive" class="btn btn-gradient-success px-4 py-2">ثبت شارژ</button>
+                           <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
+                     </div>
+        
+
+          </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+

@@ -72,10 +72,10 @@
 }
 
 .card .card-body {
-    margin-top: 1rem !important;
-    margin-right: -1rem !important;
-    margin-bottom: 1rem !important;
-    margin-left: -1rem !important;
+    /*margin-top: 1rem !important;*/
+    /*margin-right: -1rem !important;*/
+    /*margin-bottom: 1rem !important;*/
+    /*margin-left: -1rem !important;*/
     /*padding-right: 1rem !important;*/
 }
 .page-title {
@@ -720,4 +720,18 @@ div.d-flex.justify-content-between div{
 }
 
 /*=================================New Style for Abshar App ============================*/
+.charge-text{
+   max-height: 300px;
+	text-align: justify;
+}
+
+#Register, #dark {
+  display: none;
+}
+.card-charge-text{
+    font-size: 11px;
+}
+.card-charge-title{
+    font-size: 14px;
+}
 

@@ -38,6 +38,13 @@
         <option value="$MODULE_DIR$/admin_panel/templates/expense_templates" />
         <option value="$MODULE_DIR$/admin_panel/templates/income_templates" />
         <option value="$MODULE_DIR$/admin_panel/templates/admin_panel" />
+        <option value="$MODULE_DIR$/admin_panel/templates/receiveMoney" />
+        <option value="$MODULE_DIR$/admin_panel/templates/payMoney" />
+        <option value="$MODULE_DIR$/admin_panel/templates/property" />
+        <option value="$MODULE_DIR$/admin_panel/templates/maintenance" />
+        <option value="$MODULE_DIR$/admin_panel/templates/charge" />
+        <option value="$MODULE_DIR$/templates" />
+        <option value="$MODULE_DIR$/user_app/templates" />
       </list>
     </option>
   </component>

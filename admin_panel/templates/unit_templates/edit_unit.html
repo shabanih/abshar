@@ -66,6 +66,13 @@
                                           {{ form.unit_phone.errors }}
                                       </div>
                                          </div>
+                                       <div class="row">
+                                      <div class="form-group col-12">
+                                        {{ form.unit_details.label_tag }}
+                                        {{ form.unit_details }}
+                                        {{ form.unit_details.errors }}
+                                      </div>
+                                    </div>
 
 
 
@@ -87,6 +94,11 @@
                                           {{ form.owner_national_code }}
                                           {{ form.owner_national_code.errors }}
                                            </div>
+                                            <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.owner_people_count.label_tag }}
+                                          {{ form.owner_people_count }}
+                                          {{ form.owner_people_count.errors }}
+                                           </div>
                                               <div class="col-6 col-lg-2 col-xl-2">
                                           {{ form.purchase_date.label_tag }}
                                           {{ form.purchase_date }}
@@ -96,6 +108,11 @@
                                           {{ form.is_active.label_tag }}
                                           {{ form.is_active }}
                                           {{ form.is_active.errors }}
+                                           </div>
+                                             <div class="col-6 col-lg-12 col-xl-12">
+                                          {{ form.owner_details.label_tag }}
+                                          {{ form.owner_details }}
+                                          {{ form.owner_details.errors }}
                                            </div>
                                       </div>
 
@@ -127,9 +144,9 @@
                                           {{ form.renter_national_code.errors }}
                                       </div>
                                           <div class="col-6 col-lg-2 col-xl-2">
-                                          {{ form.people_count.label_tag }}
-                                          {{ form.people_count }}
-                                          {{ form.people_count.errors }}
+                                          {{ form.renter_people_count.label_tag }}
+                                          {{ form.renter_people_count }}
+                                          {{ form.renter_people_count.errors }}
                                       </div>
                                           <div class="col-6 col-lg-2 col-xl-2">
                                           {{ form.first_charge.label_tag }}
@@ -159,14 +176,38 @@
                                           {{ form.estate_name }}
                                           {{ form.estate_name.errors }}
                                       </div>
+                                           <div class="col-6 col-lg-12 col-xl-12">
+                                          {{ form.renter_details.label_tag }}
+                                          {{ form.renter_details }}
+                                          {{ form.renter_details.errors }}
+                                      </div>
                                     </div>
                                   </div>
+                                       <hr class="mt-2" style="color: #0f1531">
+                                      <div class="row justify-content-start">
+                                             <p class="mt-2 mb-0" style="font-weight: 900">اطلاعات کاربری</p>
+                                           <div class="col-6 col-lg-2 col-xl-2 ">
+                                          {{ form.mobile.label_tag }}
+                                          {{ form.mobile }}
+                                          {{ form.mobile.errors }}
+                                          </div>
+                                              <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.password.label_tag }}
+                                          {{ form.password }}
+                                          {{ form.password.errors }}
+                                           </div>
+                                              <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.confirm_password.label_tag }}
+                                          {{ form.confirm_password }}
+                                          {{ form.confirm_password.errors }}
+                                           </div>
+                                      </div>
 
 
                                   <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
                                      <button type="submit" class="btn btn-gradient-primary mr-1">ذخیره</button>
                                             <a class="btn btn-danger" type="button"
-                                               href="{{ request.META.HTTP_REFERER }}">
+                                               href="{% url 'manage_unit' %}">
                                                 انصراف
                                             </a>
                                      </div>

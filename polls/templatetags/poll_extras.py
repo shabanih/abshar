@@ -1,3 +1,5 @@
+import datetime
+
 import jdatetime
 import pytz
 from django import template
@@ -20,29 +22,29 @@ MONTHS = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرد�
           'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند']
 
 
-@register.filter(name='show_jalali_date')
-def show_jalali_date(value):
-    if value is None:
-        return ''
-    try:
-        # Convert to timezone-aware datetime in the desired timezone
-        if timezone.is_naive(value):
-            value = timezone.make_aware(value, timezone=pytz.timezone('Asia/Tehran'))
-        else:
-            value = value.astimezone(pytz.timezone('Asia/Tehran'))
-
-        # Convert the Gregorian datetime to Jalali datetime
-        jalali_datetime = jdatetime.datetime.fromgregorian(datetime=value)
-
-        # Adjust weekday to match Persian week (Saturday as 0)
-        weekday = WEEKDAYS[jalali_datetime.weekday()]
-        month = MONTHS[jalali_datetime.month - 1]  # Index starts from 0 for MONTHS list
-
-        # Format the date and time manually using Persian names
-        formatted_date = f'{weekday} {jalali_datetime.day} {month} {jalali_datetime.year} ساعت {jalali_datetime.strftime("%H:%M:%S")}'
-        return formatted_date
-    except (ValueError, TypeError):
-        return ''  # Return empty string if there's an error in conversion
+# @register.filter(name='show_jalali_date')
+# def show_jalali_date(value):
+#     if value is None:
+#         return ''
+#     try:
+#         # Convert to timezone-aware datetime in the desired timezone
+#         if timezone.is_naive(value):
+#             value = timezone.make_aware(value, timezone=pytz.timezone('Asia/Tehran'))
+#         else:
+#             value = value.astimezone(pytz.timezone('Asia/Tehran'))
+#
+#         # Convert the Gregorian datetime to Jalali datetime
+#         jalali_datetime = jdatetime.datetime.fromgregorian(datetime=value)
+#
+#         # Adjust weekday to match Persian week (Saturday as 0)
+#         weekday = WEEKDAYS[jalali_datetime.weekday()]
+#         month = MONTHS[jalali_datetime.month - 1]  # Index starts from 0 for MONTHS list
+#
+#         # Format the date and time manually using Persian names
+#         formatted_date = f'{weekday} {jalali_datetime.day} {month} {jalali_datetime.year} ساعت {jalali_datetime.strftime("%H:%M:%S")}'
+#         return formatted_date
+#     except (ValueError, TypeError):
+#         return ''  # Return empty string if there's an error in conversion
 
 
 @register.filter(name='show_jalali_date_only')
@@ -63,25 +65,23 @@ def show_jalali_date(value):
 
 @register.filter(name='show_jalali')
 def show_jalali(value):
-    if value is None:
+    if not value:
         return ''
-    # Convert the Gregorian datetime to Jalali datetime
-    jalali_datetime = jdatetime.datetime.fromgregorian(datetime=value)
-
-    # Get the Persian weekday and month name
-    # weekday = WEEKDAYS[jalali_datetime.weekday()]
-    # month = MONTHS[jalali_datetime.month - 1]  # Index starts from 0 for MONTHS list
-
-    # Format the date manually using Persian names without time
-    formatted_date = f' {jalali_datetime.year}-{jalali_datetime.month}-{jalali_datetime.day}'
-    return formatted_date
+    if isinstance(value, datetime.datetime):
+        jalali = jdatetime.datetime.fromgregorian(datetime=value)
+    elif isinstance(value, datetime.date):
+        jalali = jdatetime.date.fromgregorian(date=value)
+    else:
+        return ''
+    return f'{jalali.year}-{jalali.month:02d}-{jalali.day:02d}'
 
 
 @register.filter(name='three_digit_currency')
-def three_digit_currency(value: int):
-    if value is None:
-        return '0'  # You can customize this to return whatever you'd like for None values
-    return '{:,}'.format(value)
+def three_digit_currency(value):
+    try:
+        return '{:,}'.format(int(value))
+    except (ValueError, TypeError):
+        return '0'
 
 
 @register.filter(name='four_digit_cart')

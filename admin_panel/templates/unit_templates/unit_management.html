@@ -8,42 +8,80 @@
 
 {% block main_content %}
     <hr/>
-<div class="container-fluid">
-    <div class="container p-0">
-        <div class="row mt-2">
+<div class="container p-0">
+      <div class="row align-self-center mb-2">
+            <div class="col-12 col-md-3 col-xl-3 align-self-center">
+                <a href="{% url 'add_unit' %}" class="btn btn-primary px-3 py-2">
+                  <i class="mdi mdi-plus" aria-hidden="true"></i>افزودن واحد جدید
+                </a>
+                 </div>
+          <div class="col-12 col-md-5 col-xl-5">
+              <input type="text" id="searchInput" placeholder="جستجوی سریع در جدول..." onkeyup="searchTableUnit()" class="form-control mb-2 mt-2 p-1">
+          </div>
+        <div class=" col-12 col-md-4 col-xl-4 text-center align-self-center">
+            <button onclick="openQuery()" class="btn btn-gradient-info px-2 py-2">جستجوی پیشرفته</button>
+            <a href="{% url 'export_units_excel' %}?{{ request.GET.urlencode }}"
+   class="btn btn-gradient-success px-2 py-2">خروجی Excel</a>
+            <a href="{% url 'export_units_pdf' %}?{{ request.GET.urlencode }}"
+               class="btn btn-gradient-danger px-2 py-2">
+               خروجی PDF
+            </a>
+            </div>
+          </div>
+       <div id="query-form" style="display: none;" class="row mt-2">
+            <form method="get">
+               <div class="row mt-2">
+                     <div class="col-md-2">
+                          <input type="text" name="unit" class="form-control" placeholder="شماره واحد"
+                               value="{{ request.GET.unit }}">
+                    </div>
+                     <div class="col-md-2">
+                        <input type="text" name="owner_name" class="form-control" placeholder="نام مالک"
+                               value="{{ request.GET.owner_name }}">
+                    </div>
+                     <div class="col-md-2">
+                        <input type="text" name="owner_mobile" class="form-control" placeholder="موبایل مالک"
+                               value="{{ request.GET.owner_mobile }}">
+                    </div>
+                     <div class="col-md-2">
+                            <input type="text"  name="area" class="form-control" placeholder=" متراژ"
+                                   value="{{ request.GET.area }}">
+                          </div>
+                     <div class="col-md-2">
+                        <input type="text"  name="bedrooms_count" class="form-control" placeholder=" تعداد خواب"
+                               value="{{ request.GET.bedrooms_count }}">
+                        </div>
+               </div>
+                <div class="row mt-2 mb-2">
+                      <div class="col-md-2">
+                <input type="text" name="renter_name" class="form-control" placeholder=" نام مستاجر"
+                       value="{{ request.GET.renter_name }}">
+            </div>
+                      <div class="col-md-2">
+                       <input type="text" name="renter_mobile" class="form-control" placeholder=" موبایل مستاجر"
+                       value="{{ request.GET.renter_mobile }}">
+                      </div>
+                     <div class="col-md-2">
+                       <input type="text" name="people_count" class="form-control" placeholder=" تعداد نفرات"
+                       value="{{ request.GET.people_count }}">
+                      </div>
+                     <div class="col-md-2">
+                       <input type="text" name="status_residence" class="form-control" placeholder="وضعیت سکونت"
+                       value="{{ request.GET.status_residence }}">
+                      </div>
+                    
+                     <div class="col-md-2 align-self-center text-center">
+                      <button type="submit" class="btn btn-facebook px-4 py-2">جستجوی پیشرفته</button>
+                    </div>
+                    <div class="col-md-2 align-self-center text-center ">
+                      <a href="{% url 'manage_unit' %}" class="btn btn-gradient-danger px-4 py-2">پاک‌کردن فیلتر</a>
+                    </div>
+                    </div>
+               </form>
+         </div>
 
-        <div class="row mb-2 p-0 ">
-    <div class="col-md-9 px-5">
-         <form method="GET" action="" class="d-flex">
-            <select name="column" class="form-select" style="height: 40px; width: 200px">
-                <option value="" disabled selected>جستجو در ستون...</option>
-               <option value="unit" {% if request.GET.column == "unit" %}selected{% endif %}>شماره واحد</option>
-                <option value="owner_name" {% if request.GET.column == "owner_name" %}selected{% endif %}>نام مالک</option>
-                <option value="renter_name" {% if request.GET.column == "renter_name" %}selected{% endif %}>نام مستاجر</option>
-                <option value="status_residence" {% if request.GET.column == "status_residence" %}selected{% endif %}>وضعیت سکونت</option>
-                <option value="area" {% if request.GET.column == "area" %}selected{% endif %}>متراژ</option>
-                <option value="bedrooms_count" {% if request.GET.column == "bedrooms_count" %}selected{% endif %}>تعداد خواب</option>
-            </select>
-
-            <input type="text" name="search" class="form-control" placeholder="عبارت جستجو..." value="{{ request.GET.search }}"
-                   style="height: 40px; border-radius: 4px; width: 300px">
-            <input title="Search" value="جستجو" type="submit" class="button px-4 py-2" style="padding: 1px; 
-            background-color: #73acf8 ">
-
-        </form>
-    </div>
-        <div class=" col-12 col-md-3 col-xl-3 text-center align-content-center ">
-            <a href="{% url 'export_units_excel' %}" class="btn btn-outline-success px-3 py-2">خروجی Excel</a>
-            <a href="{% url 'export_units_pdf' %}?search={{ request.GET.search }}&column={{ request.GET.column }}" 
-               class="btn btn-outline-danger px-3 py-2">
-   خروجی PDF
-</a>
-{#            <a href="{% url 'export_units_pdf' %}" class="btn btn-outline-danger px-3 py-2">خروجی PDF</a>#}
-        </div>
-
-</div>
             <div class="table-responsive">
-                <table class="table table-bordered">
+                <table class="table table-bordered" id="unitTable">
                     <thead class="text-center">
                         <tr>
                             <th>#</th>
@@ -52,51 +90,67 @@
                             <th>موبایل مالک</th>
                               <th>متراژ</th>
                             <th>تعداد خواب</th>
+{#                            <th>تعداد نفرات مالک</th>#}
                             <th>نام مستاجر</th>
                             <th>موبایل مستاجر</th>
-                            <th>تعداد نفرات</th>
+                            <th>تعداد نفرات </th>
                             <th>وضعیت سکونت</th>
                             <th>فعال/غیرفعال</th>
                             <th>دستورات</th>
                         </tr>
                     </thead>
-                {% if units %}
-               {% for unit in units %}
+               
                         <tbody class="text-center">
+                         {% if object_list  %}
+                      {% for unit in object_list  %}
                             <tr>
-                                <td>{{ forloop.counter }}</td>
-                                <td>{{unit.unit }}</td>
-                                <td>{{unit.owner_name }}</td>
-                                <td>{{unit.owner_mobile }}</td>
-                                <td>{{unit.area }}</td>
-                                 <td>{{unit.bedrooms_count }}</td>
-                            {% if unit.renter_name %}
-                            	<td>{{unit.renter_name }}</td>
-                                {% else %}
-                                <td>---</td>
-                            {% endif %} 
+                          <td>{{ forloop.counter }}</td>
+                            <td>{{ unit.unit }}</td>
+                            <td>{{ unit.owner_name }}</td>
+                            <td>{{ unit.owner_mobile }}</td>
+                            <td>{{ unit.area }}</td>
+                            <td>{{ unit.bedrooms_count }}</td>
+{#                            <td>{{ unit.owner_people_count }}</td>#}
                             
-                             {% if unit.renter_mobile %}
-                            	<td>{{unit.renter_mobile }}</td>
+                            <!-- Display Renters (multiple possible) -->
+                            <td>
+                                {% if unit.renters.all %}
+                                    {% for renter in unit.renters.all %}
+                                         {% if renter.renter_is_active %}
+                                        {{ renter.renter_name }} <br>
+                                        {% endif %}
+                                    {% endfor %}
                                 {% else %}
-                                <td>---</td>
-                            {% endif %}
+                                    ---
+                                {% endif %}
+                            </td>
                             
-                              {% if unit.people_count %}
-                            	<td>{{unit.people_count }}</td>
+                            <!-- Display Renters' Mobile Numbers (multiple possible) -->
+                            <td>
+                                {% if unit.renters.all %}
+                                    {% for renter in unit.renters.all %}
+                                         {% if renter.renter_is_active %}
+                                        {{ renter.renter_mobile }} <br>
+                                        {% endif %}
+                                    {% endfor %}
                                 {% else %}
-                                <td>---</td>
-                            {% endif %}
+                                    ---
+                                {% endif %}
+                            </td>
                             
-                                <td>{{unit.status_residence }}</td>
-                                  <td>
-                                   {% if unit.is_active == True %}
+                            <!-- Display Renters' People Count (multiple possible) -->
+                            <td>
+                              {{ unit.people_count }}
+                            </td>
+                            
+                            <td>{{ unit.status_residence }}</td>
+                            <td>
+                                {% if unit.is_active %}
                                     <button class="btn btn-primary bg-success p-1">فعال</button>
-                                       {% else %}
-                                       <button class="btn btn-danger p-1">غیر فعال</button>
-
-                                   {% endif %}
-                                </td>
+                                {% else %}
+                                    <button class="btn btn-danger p-1">غیر فعال</button>
+                                {% endif %}
+                            </td>
 
                                    <td class="col-lg-1 col-xl-1 p-0">
                                         <a href="{% url 'unit_info' unit.id %}" class="btn btn-info p-1 p-1">
@@ -115,18 +169,18 @@
                         {% endfor %}
                             {% else %}
                             <tr>
-                                <td colspan="11" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                <td colspan="13" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
                             </tr>
+                 {% endif %}
                      <tbody>
-                    {% endif %}
+                   
                 </table>
 
 
 
             </div>
         </div>
-    </div>
-</div>
+
 
     <div class="col-12">
             <div class="pagination d-flex justify-content-center mt-5">
@@ -144,78 +198,6 @@
             {% endif %}
             </div>
         </div>
-{#      {% for unit in units %}#}
-{#                         <div class="modal-overlay p-0" id="exampleModal{{ unit.id }}" tabindex="-1" aria-labelledby="exampleModalLabel{{ unit.id }}">#}
-{#                              <div class="modal-content">#}
-{#                                   <h5 class="modal-title" id="exampleModalLabel{{ unit.id }}">اطلاعات واحد {{ unit.unit }}</h5>#}
-{#                                       <hr class="p-0 m-1">#}
-{#                               <div class="modal-body p-0">#}
-{#                                     <div class="row text-end mb-0">#}
-{#                                       <div class="col-4">#}
-{#                                         <p class="renterInfoModal">طبقه:<strong class="me-2">{{ unit.floor_number }}</strong></p>#}
-{#                                            <p class="renterInfoModal">موقعیت پارکینگ:<strong class="me-2">{{ unit.parking_place }}</strong></p>#}
-{#                                            <p class="renterInfoModal">تلفن:<strong class="me-2">{{ unit.unit_phone }}</strong></p>#}
-{##}
-{##}
-{#                                       </div>#}
-{#                                        <div class="col-4">#}
-{#                                             <p class="renterInfoModal">متراژ:<strong class="me-2">{{ unit.area }}</strong></p>#}
-{#                                            <p class="renterInfoModal">تعداد پارکینگ:<strong class="me-2">{{ unit.parking_count }}</strong></p>#}
-{#                                              <p class="renterInfoModal">وضعیت سکونت:<strong class="me-2">{{ unit.status_residence }}</strong></p>#}
-{##}
-{#                                       </div>#}
-{#                                            <div class="col-4 ">#}
-{#                                            <p class="renterInfoModal"> تعداد خواب:<strong class="me-2">{{ unit.bedrooms_count }}</strong></p>#}
-{#                                                  <p class="renterInfoModal">شماره پارکینگ:<strong class="me-2">{{ unit.parking_number }}</strong></p>#}
-{##}
-{#                                       </div>#}
-{##}
-{#                                   </div>#}
-{#                                   <hr class="p-0 m-1">#}
-{#                                   <div class="row row-cols-2 text-end mt-0">#}
-{#                                       <div class="col ">#}
-{#                                           <p class="renterInfoModal">نام مالک:<strong class="me-2">{{ unit.owner_name }}</strong></p>#}
-{#                                           <p class="renterInfoModal">همراه:<strong class="me-2">{{ unit.owner_mobile }}</strong></p>#}
-{#                                       </div>#}
-{#                                        <div class="col p-0 m-0">#}
-{#                                           <p class="renterInfoModal">کدملی مالک:<strong class="me-2">{{ unit.owner_national_code }}</strong></p>#}
-{#                                           <p class="renterInfoModal">تاریخ خرید:<strong class="me-2">{{ unit.purchase_date|show_jalali_date_only }}</strong></p>#}
-{#                                       </div>#}
-{#                                   </div>#}
-{#                                       <hr class="p-0 m-1">#}
-{#                                   {% if unit.is_owner == True %}#}
-{#                                       <div class="row row-cols-3 text-end mb-0 py-0">#}
-{#                                       <div class="col ">#}
-{#                                           <p class="renterInfoModal">نام مستاجر:<strong class="me-2">{{ unit.renter_name }}</strong></p>#}
-{#                                        <p class="renterInfoModal">تعداد نفرات:<strong class="me-2">{{ unit.people_count }}</strong></p>#}
-{#                                       <p class="renterInfoModal">تاریخ اجاره:<strong class="me-2">{{ unit.start_date|show_jalali_date_only }}</strong></p>#}
-{##}
-{#                                       </div>#}
-{#                                        <div class="col ">#}
-{#                                            <p class="renterInfoModal">همراه:<strong class="me-2">{{ unit.renter_mobile }}</strong></p>#}
-{#                                            <p class="renterInfoModal">ش.قرارداد:<strong class="me-2">{{ unit.contract_number }}</strong></p>#}
-{##}
-{#                                            <p class="renterInfoModal">تاریخ پایان:<strong class="me-2">{{ unit.end_date|show_jalali_date_only }}</strong></p>#}
-{#                                       </div>#}
-{#                                            <div class="col ">#}
-{#                                                   <p class="renterInfoModal"> کدملی:<strong class="me-2">{{ unit.renter_national_code }}</strong></p>#}
-{#                                           <p class="renterInfoModal">اجاره دهنده:<strong class="me-2">{{ unit.estate_name }}</strong></p>#}
-{#                                           <p class="renterInfoModal">شارژ اولیه:<strong class="me-2">{{ unit.first_charge|three_digit_currency }}</strong></p>#}
-{#                                       </div>#}
-{##}
-{#                                   </div>#}
-{#                                        <hr class="p-0 m-1">#}
-{#                                    {% endif %}#}
-{#                                </div>#}
-{##}
-{#                              <div class="text-start">#}
-{#                                   <button class="close-modal-btn">بستن</button>#}
-{#                              </div>#}
-{##}
-{#                              </div>#}
-{#                            </div>#}
-{##}
-{#            {% endfor %}#}
 {% endblock %}
 
 

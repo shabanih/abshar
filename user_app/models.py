@@ -20,7 +20,7 @@ class User(AbstractUser):
     # backend = 'account_app.mybackend.MobileBackend'
 
     def get_username(self):
-        return self.username
+        return self.name
 
 
 class Bank(models.Model):
@@ -34,23 +34,24 @@ class Bank(models.Model):
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 
     def __str__(self):
-        return f"{self.bank_name}  - {self.account_no}"
+        return f"{self.bank_name} - {self.cart_number}"
 
 
 class MyHouse(models.Model):
     name = models.CharField(max_length=100, verbose_name='نام ساختمان')
     address = models.CharField(max_length=100, verbose_name='آدرس')
-    account_number = models.ForeignKey(Bank, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='شماره حساب')
+    account_number = models.ForeignKey(Bank, on_delete=models.SET_NULL, null=True, blank=True,
+                                       verbose_name='شماره حساب')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='')
 
     def __str__(self):
-        return self.name
+        return str(self.account_number)
 
 
 class Unit(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='کاربر')
-    unit = models.IntegerField(verbose_name='واحد')
+    unit = models.IntegerField(unique=True, verbose_name='واحد')
     unit_phone = models.CharField(max_length=8, null=True, blank=True, verbose_name='')
     floor_number = models.IntegerField()
     area = models.IntegerField()
@@ -63,21 +64,37 @@ class Unit(models.Model):
     owner_mobile = models.CharField(max_length=11, unique=True, verbose_name='همراه مالک')
     owner_national_code = models.CharField(max_length=10, unique=True, null=True, blank=True, verbose_name='کد ملی')
     purchase_date = models.DateField(null=True, blank=True, verbose_name='تاریخ خرید')
+    owner_people_count = models.CharField(max_length=10, null=True, blank=True, verbose_name='تعداد نفرات مالک')
     owner_details = models.TextField(null=True, blank=True, verbose_name='توضیحات مالک')
     status_residence = models.CharField(max_length=100, null=True, blank=True, verbose_name='وضعیت سکونت')
+    is_owner = models.BooleanField(default=False, verbose_name='مالک یا مستاجر', null=True, blank=True)
+    people_count = models.IntegerField(null=True, blank=True, verbose_name='تعداد نفرات')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='زمان ایجاد')
+    is_active = models.BooleanField(default=True, verbose_name='فعال/غیر فعال')
+
+    def __str__(self):
+        return f'واحد {self.unit} - کاربر {self.user}'
+
+    def get_active_renter(self):
+        return self.renters.filter(renter_is_active=True).first()
+
+
+class Renter(models.Model):
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, verbose_name='واحد', related_name='renters', null=True, blank=True)
     renter_name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام مستاجر')
     renter_mobile = models.CharField(max_length=11, null=True, blank=True, verbose_name='همراه')
     renter_national_code = models.CharField(max_length=10, null=True, blank=True, verbose_name='کد ملی')
-    people_count = models.CharField(max_length=10, null=True, blank=True, verbose_name='تعداد نفرات')
+    renter_people_count = models.CharField(max_length=10, null=True, blank=True, verbose_name='تعداد نفرات')
     start_date = models.DateField(null=True, blank=True, verbose_name='تاریخ شروع اجاره')
     end_date = models.DateField(null=True, blank=True, verbose_name='تاریخ پایان اجاره')
     contract_number = models.CharField(max_length=100, null=True, blank=True, verbose_name='شماره قرارداد')
     estate_name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام مشاور املاک')
     first_charge = models.IntegerField(null=True, blank=True, verbose_name='شارژ اولیه', default=0)
-    is_owner = models.BooleanField(default=False, verbose_name='مالک یا مستاجر', null=True, blank=True)
     renter_details = models.TextField(null=True, blank=True, verbose_name='توضیحات مستاجر')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='زمان ایجاد')
-    is_active = models.BooleanField(default=True, verbose_name='فعال/غیر فعال')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
+    renter_is_active = models.BooleanField(default=True, verbose_name='')
+
+
 
     def __str__(self):
-        return str(self.unit)
+        return self.renter_name

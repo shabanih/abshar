@@ -6,7 +6,9 @@ from jalali_date import widgets
 from jalali_date.fields import JalaliDateField
 from jalali_date.widgets import AdminJalaliDateWidget
 
-from admin_panel.models import Announcement, Expense, ExpenseCategory, Income, IncomeCategory
+from admin_panel.models import Announcement, Expense, ExpenseCategory, Income, IncomeCategory, ReceiveMoney, PayMoney, \
+    Property, Maintenance, FixedChargeCalc, ChargeByPersonArea, AreaChargeCalc, PersonChargeCalc, FixAreaChargeCalc, \
+    FixPersonChargeCalc, ChargeByFixPersonArea, ChargeCalcFixVariable
 from user_app.models import Unit, Bank, MyHouse
 
 attr = {'class': 'form-control border-1 py-2 mb-4 '}
@@ -79,20 +81,21 @@ BANK_CHOICES = {
     'صنعت و معدن': 'صنعت و معدن', 'کشاورزی': 'کشاورزی', 'مسکن': 'مسکن', 'رفاه': 'رفاه', 'سپه': 'سپه', 'سینا': 'سینا',
     'توسعه صادرات': 'توسعه صادرات', 'پست بانک': 'پست بانک', 'پاسارگاد': 'پاسارگاد', 'اقتصاد نوین': 'اقتصاد نوین',
     'پارسیان': 'پارسیان',
-    'سامان': 'سامان', 'گردشگری': 'گردشگری', 'کارآفرین': 'کارآفرین', 'دی': 'دی', 'شهر': 'شهر', 'ایران زمین': 'ایران زمین',
+    'سامان': 'سامان', 'گردشگری': 'گردشگری', 'کارآفرین': 'کارآفرین', 'دی': 'دی', 'شهر': 'شهر',
+    'ایران زمین': 'ایران زمین',
     'مهر ایران': 'مهر ایران',
 }
 
 
 class BankForm(forms.ModelForm):
-    bank_name = forms.ChoiceField(error_messages=error_message, required=True,choices=BANK_CHOICES,
-                             widget=forms.Select(attrs=attr3), label='نام بانک')
+    bank_name = forms.ChoiceField(error_messages=error_message, required=True, choices=BANK_CHOICES,
+                                  widget=forms.Select(attrs=attr3), label='نام بانک')
 
     account_holder_name = forms.CharField(error_messages=error_message, required=True,
                                           widget=forms.TextInput(attrs=attr),
                                           label='نام صاحب حساب')
     account_no = forms.CharField(error_messages=error_message, required=True, widget=forms.NumberInput(attrs=attr),
-                                     label='شماره حساب')
+                                 label='شماره حساب')
     sheba_number = forms.CharField(error_messages=error_message,
                                    max_length=24,
                                    min_length=24,
@@ -117,8 +120,11 @@ class MyHouseForm(forms.ModelForm):
     address = forms.CharField(error_messages=error_message, required=True,
                               widget=forms.TextInput(attrs=attr),
                               label='آدرس')
-    account_number = forms.ModelChoiceField(queryset=Bank.objects.all(),widget=forms.Select(attrs=attr2), label="شماره حساب")
+    account_number = forms.ModelChoiceField(queryset=Bank.objects.all(), widget=forms.Select(attrs=attr2),
+                                            label="شماره حساب")
     is_active = forms.BooleanField(initial=True, required=False, label='فعال/غیرفعال')
+
+
 
     class Meta:
         model = MyHouse
@@ -170,6 +176,9 @@ class UnitForm(forms.ModelForm):
                                           min_length=10,
                                           widget=forms.TextInput(attrs=attr),
                                           label='کد ملی ')
+    owner_people_count = forms.CharField(error_messages=error_message, required=True,
+                                         widget=forms.TextInput(attrs=attr),
+                                         label='تعداد نفرات مالک')
     purchase_date = JalaliDateField(error_messages=error_message, widget=AdminJalaliDateWidget(attrs=attr),
                                     required=True,
                                     label='تاریخ خرید')
@@ -187,16 +196,18 @@ class UnitForm(forms.ModelForm):
     renter_name = forms.CharField(error_messages=error_message, required=False, widget=forms.TextInput(attrs=attr),
                                   label='نام مستاجر')
     renter_mobile = forms.CharField(error_messages=error_message,
+                                    required=False,
                                     max_length=11,
                                     min_length=11,
-                                    required=False, widget=forms.TextInput(attrs=attr),
+                                    widget=forms.TextInput(attrs=attr),
                                     label='شماره تلفن مستاجر')
     renter_national_code = forms.CharField(error_messages=error_message, required=False,
                                            max_length=10,
                                            min_length=10,
                                            widget=forms.TextInput(attrs=attr), label='کد ملی مستاجر')
-    people_count = forms.CharField(error_messages=error_message, required=False, widget=forms.TextInput(attrs=attr),
-                                   label='تعداد نفرات')
+    renter_people_count = forms.CharField(error_messages=error_message, required=False,
+                                          widget=forms.TextInput(attrs=attr),
+                                          label='تعداد نفرات')
 
     start_date = JalaliDateField(
         label='تاریخ شروع اجاره',
@@ -216,16 +227,49 @@ class UnitForm(forms.ModelForm):
                                    label='شارژ اولیه')
     renter_details = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'rows': 8}), required=False,
                                      label='توضیحات')
-    is_active = forms.BooleanField(required=False, label='فعال/غیرفعال نمودن')
+    is_active = forms.BooleanField(required=False, initial=True, label='فعال/غیرفعال نمودن')
+    mobile = forms.CharField(
+        required=True,
+        max_length=11,
+        min_length=11,
+        error_messages=error_message,
+        label='نام کاربری',
+        widget=forms.TextInput(attrs=attr)
+    )
+    password = forms.CharField(
+        required=True,
+        label='رمز عبور',
+        widget=forms.PasswordInput(attrs=attr),
+        help_text='رمز عبور باید شامل اعداد و حروف باشد'
+    )
+    confirm_password = forms.CharField(
+        required=True,
+        label='تایید رمز عبور',
+        widget=forms.PasswordInput(attrs=attr),
+        help_text='رمز عبور باید شامل اعداد و حروف باشد'
+    )
 
     def clean(self):
         cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if password and confirm_password and password != confirm_password:
+            self.add_error('confirm_password', "کلمه عبور و تکرار آن باید یکسان باشند.")
+
         is_owner = cleaned_data.get('is_owner')
 
-        if is_owner == 'True':
+        if cleaned_data.get('start_date') and cleaned_data.get('end_date'):
+            start_date = cleaned_data.get('start_date')
+            end_date = cleaned_data.get('end_date')
+
+            if start_date > end_date:
+                self.add_error('start_date', 'تاریخ شروع اجاره نباید از تاریخ پایان بزرگتر باشد.')
+
+        if str(is_owner).lower() == 'true':
             required_fields_if_rented = [
                 'renter_name', 'renter_mobile', 'renter_national_code', 'estate_name',
-                'people_count', 'start_date', 'end_date', 'contract_number', 'first_charge'
+                'renter_people_count', 'start_date', 'end_date', 'contract_number', 'first_charge'
             ]
             for field in required_fields_if_rented:
                 if not cleaned_data.get(field):
@@ -239,25 +283,42 @@ class UnitForm(forms.ModelForm):
                   'owner_national_code', 'unit_phone', 'owner_details',
                   'parking_number', 'parking_count', 'status_residence', 'purchase_date', 'renter_name',
                   'renter_national_code', 'renter_details',
-                  'renter_mobile', 'is_owner',
-                  'people_count', 'start_date', 'end_date', 'first_charge', 'contract_number',
-                  'estate_name', 'is_active']
+                  'renter_mobile', 'is_owner', 'owner_people_count',
+                  'renter_people_count', 'start_date', 'end_date', 'first_charge', 'contract_number',
+                  'estate_name', 'is_active', 'mobile', 'password', 'confirm_password']
 
     def save(self, commit=True):
         instance = super().save(commit=False)
-        if self.cleaned_data.get('is_owner') == 'False':
-            # Exclude renter fields when owner is 'True'
+
+        is_owner = self.cleaned_data.get('is_owner') == 'False'
+
+        if is_owner:
+            # Owner is resident, clear renter fields
             instance.renter_name = ''
             instance.renter_mobile = ''
             instance.renter_national_code = ''
-            instance.people_count = ''
+            instance.renter_people_count = ''
             instance.start_date = None
             instance.end_date = None
             instance.contract_number = ''
             instance.first_charge = 0
             instance.renter_details = ''
+            # Set people_count from owner's info
+            instance.people_count = self.cleaned_data.get('owner_people_count') or 0
+        else:
+            # We'll assign renter_people_count later
+            instance.people_count = 0  # default for now
+
         if commit:
-            instance.save()  # Commit the changes to the DB
+            instance.save()  # ✅ Save first so instance has a PK
+
+            # ✅ Now you can access related renters
+            if not is_owner:
+                active_renter = instance.renters.filter(renter_is_active=True).last()
+                if active_renter:
+                    instance.people_count = active_renter.renter_people_count or 0
+                    instance.save(update_fields=['people_count'])  # update only this field
+
         return instance
 
 
@@ -294,7 +355,7 @@ class ExpenseForm(forms.ModelForm):
         label='تصویر سند'
     )
     details = forms.CharField(error_messages=error_message, required=False,
-                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
 
     class Meta:
@@ -373,7 +434,7 @@ class IncomeForm(forms.ModelForm):
         label='تصویر سند'
     )
     details = forms.CharField(error_messages=error_message, required=False,
-                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
 
     class Meta:
@@ -417,3 +478,476 @@ class SearchIncomeForm(forms.Form):
     doc_number = forms.IntegerField(
         required=False, label='شماره سند', widget=forms.TextInput(attrs={'class': 'form-control'})
     )
+
+
+# ================================ Receive Forms ======================
+
+class ReceiveMoneyForm(forms.ModelForm):
+    bank = forms.ModelChoiceField(
+        queryset=MyHouse.objects.filter(is_active=True),
+        widget=forms.Select(attrs=attr),
+        empty_label="شماره حساب را انتخاب کنید",
+        error_messages=error_message,
+        required=True,
+        label='شماره حساب بانکی'
+    )
+    payer_name = forms.CharField(
+        max_length=200, required=False, label='پرداخت کننده ', widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+
+    amount = forms.CharField(error_messages=error_message, max_length=20, required=True,
+                             widget=forms.TextInput(attrs=attr),
+                             label='مبلغ')
+    description = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=True,
+                                  label='شرح سند')
+    doc_date = JalaliDateField(
+        label='تاریخ ثبت سند',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    doc_number = forms.CharField(error_messages=error_message, max_length=10, widget=forms.TextInput(attrs=attr),
+                                 required=True,
+                                 label='شماره سند')
+    document = forms.FileField(
+        required=False,
+        error_messages=error_message,
+        widget=forms.ClearableFileInput(attrs=attr),
+        label='تصویر سند'
+    )
+    details = forms.CharField(error_messages=error_message, required=False,
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+                              label='توضیحات ')
+    is_active = forms.BooleanField(required=False)
+
+    class Meta:
+        model = ReceiveMoney
+        fields = ['bank', 'amount', 'doc_date', 'description', 'doc_number',
+                  'details', 'document', 'is_active', 'payer_name']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['bank'].queryset = MyHouse.objects.filter(is_active=True)
+
+
+class PayerMoneyForm(forms.ModelForm):
+    bank = forms.ModelChoiceField(
+        queryset=MyHouse.objects.filter(is_active=True),
+        widget=forms.Select(attrs=attr),
+        empty_label="یک گروه انتخاب کنید",
+        error_messages=error_message,
+        required=True,
+        label='شماره حساب بانکی'
+    )
+    receiver_name = forms.CharField(
+        max_length=200, required=False, label='شخص دریافت کننده',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+
+    amount = forms.CharField(error_messages=error_message, max_length=20, required=True,
+                             widget=forms.TextInput(attrs=attr),
+                             label='مبلغ')
+    description = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=True,
+                                  label='شرح سند')
+    document_date = JalaliDateField(
+        label='تاریخ ثبت سند',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    document_number = forms.CharField(error_messages=error_message, max_length=10, widget=forms.TextInput(attrs=attr),
+                                      required=True,
+                                      label='شماره سند')
+    document = forms.FileField(
+        required=False,
+        error_messages=error_message,
+        widget=forms.ClearableFileInput(attrs=attr),
+        label='تصویر سند'
+    )
+    details = forms.CharField(error_messages=error_message, required=False,
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+                              label='توضیحات ')
+    is_active = forms.BooleanField(required=False)
+
+    class Meta:
+        model = PayMoney
+        fields = ['bank', 'amount', 'document_date', 'description', 'document_number',
+                  'details', 'document', 'is_active', 'receiver_name']
+
+
+PROPERTY_CHOICES = {
+    '': '--- انتخاب کنید ---', 'عدد': 'عدد', 'دستگاه': 'دستگاه', 'تخته': 'تخته', 'کپسول': 'کپسول',
+}
+
+
+class PropertyForm(forms.ModelForm):
+    property_name = forms.CharField(
+        max_length=200, required=True, label='نام اموال', widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+
+    property_unit = forms.ChoiceField(error_messages=error_message, required=True, choices=PROPERTY_CHOICES,
+                                      widget=forms.Select(attrs=attr3),
+                                      label='واحد')
+    property_location = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=True,
+                                        label='موقعیت')
+    property_purchase_date = JalaliDateField(
+        label='تاریخ خرید',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=True
+    )
+    property_code = forms.CharField(error_messages=error_message, max_length=10, widget=forms.TextInput(attrs=attr),
+                                    required=True,
+                                    label='کد اموال')
+    property_price = forms.IntegerField(error_messages=error_message, widget=forms.NumberInput(attrs=attr),
+                                        required=True,
+                                        label='ارزش')
+    document = forms.FileField(
+        required=False,
+        error_messages=error_message,
+        widget=forms.ClearableFileInput(attrs=attr),
+        label='تصویر اموال'
+    )
+    details = forms.CharField(error_messages=error_message, required=False,
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+                              label='توضیحات ')
+
+    class Meta:
+        model = Property
+        fields = ['property_name', 'property_code', 'property_unit', 'property_price', 'property_location',
+                  'property_purchase_date', 'details', 'document']
+
+
+MAINTENANCE_CHOICES = {
+    ' ': '--- انتخاب کنید ---', 'تکمیل شده': 'تکمیل شده', 'در حال انجام': 'در حال انجام', 'تکمیل ناقص': 'تکمیل ناقص'
+}
+
+
+class MaintenanceForm(forms.ModelForm):
+    maintenance_description = forms.CharField(
+        max_length=200, required=True, label='شرح کار', widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+
+    maintenance_start_date = JalaliDateField(
+        label='تاریخ شروع',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=True
+    )
+    maintenance_end_date = JalaliDateField(
+        label='تاریخ پایان',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=True
+    )
+
+    maintenance_price = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+                                        required=True,
+                                        label='اجرت و دستمزد')
+    service_company = forms.CharField(error_messages=error_message, max_length=100,
+                                      widget=forms.TextInput(attrs=attr),
+                                      required=True,
+                                      label='شرکت خدماتی')
+    maintenance_document_no = forms.CharField(error_messages=error_message, max_length=20,
+                                              widget=forms.TextInput(attrs=attr),
+                                              required=True,
+                                              label='شماره فاکتور')
+    maintenance_status = forms.ChoiceField(error_messages=error_message, required=True, choices=MAINTENANCE_CHOICES,
+                                           widget=forms.Select(attrs=attr3),
+                                           label='آخرین وضعیت')
+    document = forms.FileField(
+        required=False,
+        error_messages=error_message,
+        widget=forms.ClearableFileInput(attrs=attr),
+        label='تصویر سند'
+    )
+    details = forms.CharField(error_messages=error_message, required=False,
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+                              label='توضیحات ')
+
+    class Meta:
+        model = Maintenance
+        fields = ['maintenance_description', 'maintenance_start_date', 'maintenance_end_date', 'maintenance_price',
+                  'maintenance_status', 'service_company', 'details', 'document', 'maintenance_document_no']
+
+
+# ============================== Charge Forms ===================================
+
+class FixChargeForm(forms.ModelForm):
+    charge_name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+                                  required=True,
+                                  label='عنوان شارژ ')
+    amount = forms.IntegerField(error_messages=error_message,
+                                widget=forms.TextInput(attrs=attr),
+                                required=True,
+                                label='مبلغ شارژ به ازای هر واحد')
+    civil_charge = forms.IntegerField(error_messages=error_message,
+                                      widget=forms.TextInput(attrs=attr),
+                                      required=False, min_value=0,
+                                      label='شارژ عمرانی')
+    details = forms.CharField(error_messages=error_message, required=False,
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+                              label='توضیحات ')
+
+    def clean_civil_charge(self):
+        value = self.cleaned_data.get('civil_charge')
+        if value in [None, '']:  # empty string or None
+            return 0
+        return value
+
+    class Meta:
+        model = FixedChargeCalc
+        fields = ['charge_name', 'amount', 'details', 'civil_charge']
+
+
+class AreaChargeForm(forms.ModelForm):
+    charge_name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+                                  required=True,
+                                  label='عنوان شارژ ')
+    area_amount = forms.IntegerField(error_messages=error_message,
+                                     widget=forms.TextInput(attrs=attr),
+                                     required=True,
+                                     label='مبلغ شارژ به اساس متراژ')
+    civil_charge = forms.IntegerField(error_messages=error_message,
+                                      widget=forms.TextInput(attrs=attr),
+                                      required=False, min_value=0,
+                                      label='شارژ عمرانی')
+    details = forms.CharField(error_messages=error_message, required=False,
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+                              label='توضیحات ')
+
+    def clean_civil_charge(self):
+        value = self.cleaned_data.get('civil_charge')
+        if value in [None, '']:  # empty string or None
+            return 0
+        return value
+
+    class Meta:
+        model = AreaChargeCalc
+        fields = ['charge_name', 'area_amount', 'details', 'civil_charge']
+
+
+class PersonChargeForm(forms.ModelForm):
+    charge_name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+                                  required=True,
+                                  label='عنوان شارژ ')
+    person_amount = forms.IntegerField(error_messages=error_message,
+                                       widget=forms.TextInput(attrs=attr),
+                                       required=True,
+                                       label='مبلغ شارژ به ازای هر نفر')
+    civil_charge = forms.IntegerField(error_messages=error_message,
+                                      widget=forms.TextInput(attrs=attr),
+                                      required=False, min_value=0,
+                                      label='شارژ عمرانی')
+    details = forms.CharField(error_messages=error_message, required=False,
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+                              label='توضیحات ')
+
+    def clean_civil_charge(self):
+        value = self.cleaned_data.get('civil_charge')
+        if value in [None, '']:  # empty string or None
+            return 0
+        return value
+
+    class Meta:
+        model = PersonChargeCalc
+        fields = ['charge_name', 'person_amount', 'details', 'civil_charge']
+
+
+class FixAreaChargeForm(forms.ModelForm):
+    charge_name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+                                  required=True,
+                                  label='عنوان شارژ ')
+    fix_charge = forms.IntegerField(error_messages=error_message,
+                                    widget=forms.TextInput(attrs=attr),
+                                    required=True,
+                                    label=' شارژ ثابت')
+    area_amount = forms.IntegerField(error_messages=error_message,
+                                     widget=forms.TextInput(attrs=attr),
+                                     required=True,
+                                     label='مبلغ شارژ به اساس متراژ')
+    civil_charge = forms.IntegerField(error_messages=error_message,
+                                      widget=forms.TextInput(attrs=attr),
+                                      required=False, min_value=0,
+                                      label='شارژ عمرانی')
+    details = forms.CharField(error_messages=error_message, required=False,
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+                              label='توضیحات ')
+
+    def clean_civil_charge(self):
+        value = self.cleaned_data.get('civil_charge')
+        if value in [None, '']:  # empty string or None
+            return 0
+        return value
+
+    class Meta:
+        model = FixAreaChargeCalc
+        fields = ['charge_name', 'area_amount', 'details', 'civil_charge', 'fix_charge']
+
+
+class FixPersonChargeForm(forms.ModelForm):
+    charge_name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+                                  required=True,
+                                  label='عنوان شارژ ')
+    fix_charge = forms.IntegerField(error_messages=error_message,
+                                    widget=forms.TextInput(attrs=attr),
+                                    required=True,
+                                    label=' شارژ ثابت')
+    person_amount = forms.IntegerField(error_messages=error_message,
+                                       widget=forms.TextInput(attrs=attr),
+                                       required=True,
+                                       label='مبلغ شارژ به ازای هر نفر')
+    civil_charge = forms.IntegerField(error_messages=error_message,
+                                      widget=forms.TextInput(attrs=attr),
+                                      required=False, min_value=0,
+                                      label='شارژ عمرانی')
+    details = forms.CharField(error_messages=error_message, required=False,
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+                              label='توضیحات ')
+
+    def clean_civil_charge(self):
+        value = self.cleaned_data.get('civil_charge')
+        if value in [None, '']:  # empty string or None
+            return 0
+        return value
+
+    class Meta:
+        model = FixPersonChargeCalc
+        fields = ['charge_name', 'person_amount', 'details', 'civil_charge', 'fix_charge']
+
+
+class PersonAreaChargeForm(forms.ModelForm):
+    charge_name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+                                  required=True,
+                                  label='عنوان شارژ ')
+    person_charge = forms.IntegerField(error_messages=error_message,
+                                       widget=forms.TextInput(attrs=attr),
+                                       required=True,
+                                       label='مبلغ شارژ نفر')
+    area_charge = forms.IntegerField(error_messages=error_message,
+                                     widget=forms.TextInput(attrs=attr),
+                                     required=True,
+                                     label='مبلغ شارژ هر متر')
+    details = forms.CharField(error_messages=error_message, required=False,
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+                              label='توضیحات ')
+    civil_charge = forms.IntegerField(error_messages=error_message,
+                                      widget=forms.TextInput(attrs=attr),
+                                      required=False, min_value=0,
+                                      label='شارژ عمرانی(تومان)')
+
+    def clean_civil_charge(self):
+        value = self.cleaned_data.get('civil_charge')
+        if value in [None, '']:  # empty string or None
+            return 0
+        return value
+
+    class Meta:
+        model = ChargeByPersonArea
+        fields = ['charge_name', 'area_charge', 'details', 'person_charge', 'civil_charge']
+
+
+class PersonAreaFixChargeForm(forms.ModelForm):
+    charge_name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+                                  required=True,
+                                  label='عنوان شارژ ')
+    fix_charge = forms.IntegerField(error_messages=error_message,
+                                    widget=forms.TextInput(attrs=attr),
+                                    required=True,
+                                    label=' شارژ ثابت')
+    person_charge = forms.IntegerField(error_messages=error_message,
+                                       widget=forms.TextInput(attrs=attr),
+                                       required=True,
+                                       label='مبلغ شارژ نفر')
+    area_charge = forms.IntegerField(error_messages=error_message,
+                                     widget=forms.TextInput(attrs=attr),
+                                     required=True,
+                                     label='مبلغ شارژ هر متر')
+    details = forms.CharField(error_messages=error_message, required=False,
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+                              label='توضیحات ')
+    civil_charge = forms.IntegerField(error_messages=error_message,
+                                      widget=forms.TextInput(attrs=attr),
+                                      required=False, min_value=0,
+                                      label='شارژ عمرانی')
+
+    def clean_civil_charge(self):
+        value = self.cleaned_data.get('civil_charge')
+        if value in [None, '']:  # empty string or None
+            return 0
+        return value
+
+    class Meta:
+        model = ChargeByFixPersonArea
+        fields = ['charge_name', 'area_charge', 'details', 'person_charge', 'civil_charge', 'fix_charge']
+
+
+class VariableFixChargeForm(forms.ModelForm):
+    charge_name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+                                  required=True,
+                                  label='عنوان شارژ ')
+
+    salary = forms.IntegerField(error_messages=error_message,
+                                widget=forms.TextInput(attrs=attr),
+                                required=True,
+                                label='هزینه حقوق و دستمزد')
+    elevator_cost = forms.IntegerField(error_messages=error_message,
+                                           widget=forms.TextInput(attrs=attr),
+                                           required=True,
+                                           label='هزینه آسانسور')
+    public_electricity = forms.IntegerField(error_messages=error_message,
+                                            widget=forms.TextInput(attrs=attr),
+                                            required=True,
+                                            label='هزینه برق')
+    common_expenses = forms.IntegerField(error_messages=error_message,
+                                         widget=forms.TextInput(attrs=attr),
+                                         required=True,
+                                         label='هزینه اقلام مصرفی')
+    facility_cost = forms.IntegerField(error_messages=error_message,
+                                       widget=forms.TextInput(attrs=attr),
+                                       required=True,
+                                       label='هزینه تاسیسات')
+
+    camera_cost = forms.IntegerField(error_messages=error_message,
+                                     widget=forms.TextInput(attrs=attr),
+                                     required=True,
+                                     label='هزینه دوربین')
+    insurance_cost = forms.IntegerField(error_messages=error_message,
+                                        widget=forms.TextInput(attrs=attr),
+                                        required=True,
+                                        label='هزینه بیمه')
+    extinguished_cost = forms.IntegerField(error_messages=error_message,
+                                        widget=forms.TextInput(attrs=attr),
+                                        required=True,
+                                        label='هزینه آتش نشانی')
+    office_cost = forms.IntegerField(error_messages=error_message,
+                                     widget=forms.TextInput(attrs=attr),
+                                     required=True,
+                                     label='هزینه عمومی')
+    green_space_cost = forms.IntegerField(error_messages=error_message,
+                                          widget=forms.TextInput(attrs=attr),
+                                          required=True,
+                                          label='هزینه فضای سبز')
+    public_water = forms.IntegerField(error_messages=error_message,
+                                      widget=forms.TextInput(attrs=attr),
+                                      required=True,
+                                      label='هزینه آب')
+    public_gas = forms.IntegerField(error_messages=error_message,
+                                    widget=forms.TextInput(attrs=attr),
+                                    required=True,
+                                    label='هزینه گاز')
+
+    details = forms.CharField(error_messages=error_message, required=False,
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+                              label='توضیحات ')
+    civil_charge = forms.IntegerField(error_messages=error_message,
+                                      widget=forms.TextInput(attrs=attr),
+                                      required=False, min_value=0,
+                                      label='شارژ عمرانی')
+
+    def clean_civil_charge(self):
+        value = self.cleaned_data.get('civil_charge')
+        if value in [None, '']:  # empty string or None
+            return 0
+        return value
+
+    class Meta:
+        model = ChargeCalcFixVariable
+        fields = ['charge_name', 'salary', 'public_electricity', 'elevator_cost', 'office_cost','facility_cost',
+                  'green_space_cost', 'insurance_cost', 'common_expenses', 'camera_cost',
+                  'public_water', 'public_gas', 'insurance_cost', 'civil_charge', 'details', 'extinguished_cost']

@@ -6,6 +6,8 @@ from admin_panel import views
 
 urlpatterns = [
     path('', views.admin_dashboard, name='admin_dashboard'),
+    # path('login-admin/', views.admin_login_view, name='login_admin'),
+    path('log-out-admin/', views.logout_admin, name='logout_admin'),
 
     # Announce urls
     path('announcement/', views.AnnouncementView.as_view(), name='announcement'),
@@ -54,6 +56,75 @@ urlpatterns = [
     path('income/delete-document/', views.delete_income_document, name='delete_income_document'),
     path('income/export/excel/', views.export_income_excel, name='export_income_excel'),
     path('income/export/pdf/', views.export_income_pdf, name='export_income_pdf'),
+
+    # ReceiveMoney Urls
+    path('add-receive', views.ReceiveMoneyCreateView.as_view(), name='add_receive'),
+    path('receive/edit/<int:pk>/', views.receive_edit, name='receive_edit'),
+    path('receive/delete/<int:pk>/', views.receive_delete, name='receive_delete'),
+    path('receive/delete-document/', views.delete_receive_document, name='delete_delete_document'),
+    path('receive/export/excel/', views.export_receive_excel, name='export_receive_excel'),
+    path('receive/export/pdf/', views.export_receive_pdf, name='export_receive_pdf'),
+
+    # PayMoney Urls
+    path('add-pay', views.PaymentMoneyCreateView.as_view(), name='add_pay'),
+    path('pay/edit/<int:pk>/', views.pay_edit, name='pay_edit'),
+    path('pay/delete/<int:pk>/', views.pay_delete, name='pay_delete'),
+    path('pay/delete-document/', views.delete_pay_document, name='delete_pay_document'),
+    path('pay/export/excel/', views.export_pay_excel, name='export_pay_excel'),
+    path('pay/export/pdf/', views.export_pay_pdf, name='export_pay_pdf'),
+
+    # Property Urls
+    path('add-property', views.PropertyCreateView.as_view(), name='add_property'),
+    path('property/edit/<int:pk>/', views.property_edit, name='property_edit'),
+    path('property/delete/<int:pk>/', views.property_delete, name='property_delete'),
+    path('property/delete-document/', views.delete_property_document, name='delete_property_document'),
+    path('property/export/excel/', views.export_property_excel, name='export_property_excel'),
+    path('property/export/pdf/', views.export_property_pdf, name='export_property_pdf'),
+
+    # Property Urls
+    path('add-maintenance', views.MaintenanceCreateView.as_view(), name='add_maintenance'),
+    path('maintenance/edit/<int:pk>/', views.maintenance_edit, name='maintenance_edit'),
+    path('maintenance/delete/<int:pk>/', views.maintenance_delete, name='maintenance_delete'),
+    path('maintenance/delete-document/', views.delete_maintenance_document, name='delete_maintenance_document'),
+    path('maintenance/export/excel/', views.export_maintenance_excel, name='export_maintenance_excel'),
+    path('maintenance/export/pdf/', views.export_maintenance_pdf, name='export_maintenance_pdf'),
+
+    # Charge Urls
+    path('add-charge', views.charge_view, name='add_charge'),
+    path('add-fixed-charge', views.FixChargeCreateView.as_view(), name='add_fixed_charge'),
+    path('charge/edit/<int:pk>/', views.fix_charge_edit, name='charge_edit'),
+    path('charge/delete/<int:pk>/', views.fix_charge_delete, name='charge_delete'),
+    path('charge/notify/<int:pk>/', views.show_fix_charge_notification_form, name='notification_fix_charge_form'),
+    path('charge/notify/send/<int:pk>/', views.notification_fix_charge_to_user, name='notification_fix_charge_to_user'),
+
+    path('add-area-charge', views.AreaChargeCreateView.as_view(), name='add_area_charge'),
+    path('area/charge/edit/<int:pk>/', views.area_charge_edit, name='charge_area_edit'),
+    path('area/charge/delete/<int:pk>/', views.area_charge_delete, name='charge-area_delete'),
+
+    path('add-person-charge', views.PersonChargeCreateView.as_view(), name='add_person_charge'),
+    path('person/charge/edit/<int:pk>/', views.person_charge_edit, name='charge_person_edit'),
+    path('person/charge/delete/<int:pk>/', views.person_charge_delete, name='charge-person_delete'),
+
+    path('add-fix_area-charge', views.FixAreaChargeCreateView.as_view(), name='add_fix_area_charge'),
+    path('fix/area/charge/edit/<int:pk>/', views.fix_area_charge_edit, name='charge_fix_area_edit'),
+    path('fix/area/charge/delete/<int:pk>/', views.fix_area_charge_delete, name='charge-fix_area_delete'),
+
+    path('add-fix_person-charge', views.FixPersonChargeCreateView.as_view(), name='add_fix_person_charge'),
+    path('fix/person/charge/edit/<int:pk>/', views.fix_person_charge_edit, name='charge_fix_person_edit'),
+    path('fix/person/charge/delete/<int:pk>/', views.fix_person_charge_delete, name='charge_fix_person_delete'),
+
+    path('add-person_area-charge', views.PersonAreaChargeCreateView.as_view(), name='add_person_area_charge'),
+    path('area/person/charge/edit/<int:pk>/', views.person_area_charge_edit, name='charge_area_person_edit'),
+    path('area/person/charge/delete/<int:pk>/', views.person_area_charge_delete, name='charge_area_person_delete'),
+
+    path('add-person_area-fix-charge', views.PersonAreaFixChargeCreateView.as_view(), name='add_person_area_fix_charge'),
+    path('fix/area/person/charge/edit/<int:pk>/', views.person_area_fix_charge_edit, name='charge_area_person_fix_edit'),
+    path('fix/area/person/charge/delete/<int:pk>/', views.person_area_fix_delete, name='charge_area_person_fix_delete'),
+
+    path('add-variable-fix-charge', views.VariableFixChargeCreateView.as_view(), name='add_variable_fix_charge'),
+    path('fix/variable/charge/edit/<int:pk>/', views.variable_fix_charge_edit, name='charge_variable_fix_edit'),
+    path('variable/fix/charge/delete/<int:pk>/', views.variable_fix_charge_delete, name='charge_variable_fix_delete'),
+
 
 ]
 if settings.DEBUG:

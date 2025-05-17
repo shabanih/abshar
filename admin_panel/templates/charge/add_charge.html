@@ -1,0 +1,121 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+مدیریت شارژ
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container mt-3">
+    <div class="row">
+        <div class="col-md-4 grid-margin">
+            <a href="{% url 'add_fixed_charge' %}">
+            <div class="card bg-gradient-danger card-img-holder text-white">
+                <div class="py-4">
+                    <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">
+                     <h4 class="text-center text-white"><i class="mdi mdi-bookmark-outline mdi-24px float-right">
+                   </i>محاسبه شارژ ثابت واحدی</h4></div></div></a></div>
+        
+        <div class="col-md-4 grid-margin text-white">
+            <a href="{% url 'add_area_charge' %}">
+            <div class="card bg-gradient-dark card-img-holder text-white">
+            <div class="py-4">
+                <img src="/static/admin_panel/images/circle.png" class="card-img-absolute" alt="circle">
+                   <h4 class="text-center text-white"><i class="mdi mdi-bookmark-outline mdi-24px float-right">
+                   </i>محاسبه شارژ متراژی</h4></div></div></a></div>
+        
+        <div class="col-md-4 grid-margin text-white">
+            <a href="{% url 'add_person_charge' %}">
+            <div class="card bg-gradient-success card-img-holder text-white">
+            <div class="py-4">
+                <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">
+                 <h4 class="text-center text-white p-0"><i class="mdi mdi-bookmark-outline mdi-24px float-right p-0">
+                   </i>محاسبه شارژ نفری</h4></div></div></a></div>
+             </div>
+    <div class="row">
+        <div class="col-md-4 grid-margin">
+            <a href="{% url 'add_fix_area_charge' %}">
+            <div class="card bg-secondary card-img-holder text-white">
+                <div class="py-4">
+                    <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">
+                     <h4 class="text-center text-white"><i class="mdi mdi-bookmark-outline mdi-24px float-right">
+                   </i>محاسبه شارژ واحدی متراژی</h4></div></div></a></div>
+        
+        <div class="col-md-4 grid-margin text-white">
+            <a href="{% url 'add_fix_person_charge' %}">
+            <div class="card bg-gradient-primary card-img-holder text-white">
+            <div class="py-4">
+                <img src="/static/admin_panel/images/circle.png" class="card-img-absolute" alt="circle">
+                   <h4 class="text-center text-white"><i class="mdi mdi-bookmark-outline mdi-24px float-right">
+                   </i>محاسبه شارژ واحدی نفری</h4></div></div></a></div>
+        
+        <div class="col-md-4 grid-margin text-white">
+            <a href="{% url 'add_person_area_charge' %}">
+            <div class="card bg-secondary card-img-holder text-white">
+            <div class="py-4">
+                <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">
+                 <h4 class="text-center text-white p-0"><i class="mdi mdi-bookmark-outline mdi-24px float-right p-0">
+                   </i>محاسبه شارژ نفری متراژی</h4></div></div></a></div>
+             </div>
+    <div class="row">
+        <div class="col-md-4 grid-margin text-white">
+            <a href="{%  url 'add_person_area_fix_charge' %}">
+            <div class="card bg-gradient-warning card-img-holder text-white">
+            <div class="py-4">
+                <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">
+                 <h4 class="text-center text-white p-0"><i class="mdi mdi-bookmark-outline mdi-24px float-right p-0">
+                   </i>محاسبه شارژ واحدی نفری متراژی</h4></div></div></a></div>
+        <div class="col-md-4 grid-margin text-white">
+            <a href="{% url 'add_variable_fix_charge' %}">
+            <div class="card bg-gradient-dark card-img-holder text-white">
+            <div class="py-4">
+                <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">
+                 <h4 class="text-center text-white p-0"><i class="mdi mdi-bookmark-outline mdi-24px float-right p-0">
+                   </i>محاسبه شارژ بر اساس شارژ ثابت و متغیر</h4></div></div></a></div>
+        <div class="col-md-4 grid-margin text-white">
+            <a href="">
+            <div class="card bg-gradient-info card-img-holder text-white">
+            <div class="py-4">
+                <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">
+                 <h4 class="text-center text-white p-0"><i class="mdi mdi-bookmark-outline mdi-24px float-right p-0">
+                   </i>محاسبه شارژ بر اساس هزینه های ساختمان</h4></div></div></a></div>
+             </div>
+
+      </div>
+    
+    <div class="container text-end mt-1">
+      <div class="row align-items-start" >
+        <div class="col-12 ">
+            <hr/>
+            <div class="col-12 justify-content-center" >
+                
+                     <p class="charge-text mt-2 p-0 m-0"><i class="fas fa-home"></i>
+                         روش محاسبه شارژ برای مجتمع‌هایی که واحدهای مشابه دارند و سیستم گرمایش و سرمایش مرکزی ندارند، به نام "شارژ واحدی" شناخته می‌شود. در این روش، هر واحد دارای کنتورهای مستقل برای آب و گاز است و هزینه‌ های مشترک مجتمع براساس تعداد واحد ها به صورت یکسان بین ساکنین تقسیم می ‌شود. این روش برای مجتمع ‌های مسکونی، اداری و تجاری کارآمد است و به ازای هر واحد محاسبه می ‌شود. علاوه بر این، داشتن پارکینگ یا انباری می‌ تواند موجب افزایش مبلغ شارژ واحد مربوطه شود و به مبلغ کل اضافه شود.
+                     </p>
+                     <p class="charge-text mt-2"><i class="fas fa-home"></i>
+                          روش شارژ نفری متراژی، برای مجتمع‌ هایی که واحدهایشان متراژ مختلفی دارند و از سیستم گرمایش و سرمایش مرکزی نیز استفاده می‌کنند، بسیار مناسب است. در این روش، میزان شارژ هر واحد براساس تعداد افراد و متراژ واحد در جدول شارژ ساختمان محاسبه می ‌شود. نحوه محاسبه شارژ نفری متراژی به این صورت است که میزان شارژی که برای متراژ تعیین می ‌شود، باید نسبت بیست به هشتاد (20٪ از 80٪) با میزان شارژ نفری متناسب باشد.
+                     </p>
+                     <p class="charge-text mt-2"><i class="fas fa-home"></i>
+                         در روش محاسبه شارژ بر اساس هزینه ثابت و متغیر، واحدها شارژی ثابت پرداخت می ‌کنند و شارژ متغیری که بر اساس تعداد ساکنین هر واحد مشخص می‌شود، به آن اضافه می ‌شود و واحدها باید آن را به صورت ماهانه پرداخت کنند. شارژ نفری با اضافه شدن افراد خانواده بیشتر می ‌شود اما شارژ ثابت بر اساس هزینه‌ های ثابت هر ساله تعیین می ‌گردد. این روش از تعادل میان شارژ نفری و شارژ ثابت برای تقسیم هزینه ‌های مشترک در مجتمع‌های مسکونی با واحدهای مشابه بهره می‌برد.
+                     </p>
+            </div>
+        </div>
+    
+      </div>
+</div>
+    
+{#    <div class="d-flex justify-content-between">#}
+{#                                  <a class="btn btn-outline-info btn-md"#}
+{#                                     href="">مرحله قبل</a>#}
+{#                                #}
+{#                                  <a class="btn btn-outline-info btn-md"#}
+{#                                     href=""> تایید و ادامه</a>#}
+{#                              </div>#}
+
+    
+{% endblock %}
+
+

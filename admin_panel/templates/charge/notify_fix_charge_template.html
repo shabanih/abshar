@@ -1,0 +1,119 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+ اعلام  شارژ {{ charge.charge_name }}   به واحدها 
+{% endblock page_title %}
+
+{% block main_content %}
+<div class="container mt-4 p-0">
+      <div class="row mb-4 ">
+              <div class="col-12 col-md-10 col-xl-10 align-self-center ">
+            <form method="get" action="">
+                <input type="text" class="p-2" name="search" id="searchInput" value="{{ request.GET.search|default_if_none:'' }}" placeholder="جستجوی واحد مسکونی...">
+                <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
+            </form>          
+          </div>
+             <div class="col-6 col-md-2 col-xl-2 text-start ">
+                  <label for="cardsPerPage" class="form-label">تعداد نمایش :</label>
+                 <select id="cardsPerPage" class="form-select" style="width: auto;height: auto; display: inline-block;">
+                  <option value="20" selected>20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="1000">همه</option>
+                </select>
+                </div>
+        
+        </div>
+    
+     
+
+    <form method="post" action="{% url 'notification_fix_charge_to_user' charge.id %}">
+        {% csrf_token %}
+       
+        <hr>
+      <div class="row mb-2">
+            <div class="col-12 col-md-6 col-xl-6 form-check align-self-center">
+            <button type="button" id="toggle-select-btn" class="btn btn-gradient-info shadow_style">
+                انتخاب همه واحدها
+            </button>
+            </div>
+         
+            <div class="col-12 col-md-6 col-xl-6 text-start align-self-center">
+                <button type="submit" class="btn btn-gradient-success shadow_style">اعلام شارژ به واحدها</button>
+                <a href="{% url 'add_fixed_charge' %}" class="btn btn-gradient-danger shadow_style"> بازگشت</a>
+             </div>
+        </div>
+    
+  
+<div class="row g-2">
+    {% for unit, active_renter in page_obj %}
+    <div class="col-6 col-lg-2 col-md-2 col-xl-2 mb-3">
+        <div class="card shadow_style fixChargeTable">
+            <div class="card-body text-center p-0 m-0 mt-3">
+                <p class="card-charge-title shadow_style">
+                    <input class="form-check-input unit-checkbox mx-2" 
+                           type="checkbox" name="units" 
+                           value="{{ unit.id }}" id="unit{{ unit.id }}">
+                    واحد شماره {{ unit.unit }}
+                </p>
+                {% if unit.is_owner %}
+                    <p class="card-charge-text">مستاجر: 
+                        {% if active_renter %}
+                            {{ active_renter.renter_name }}
+                        {% else %}
+                            ندارد
+                        {% endif %}
+                    </p>
+                {% else %}
+                    <p class="card-charge-text">مالک: {{ unit.owner_name }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+        <hr>
+      
+  
+    </form>
+</div>
+     <div class="col-12">
+    <div class="pagination d-flex justify-content-center mt-5">
+
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="rounded">قبلی</a>
+        {% endif %}
+
+        {% for pageNumber in page_obj.paginator.page_range %}
+            <a href="?page={{ pageNumber }}" class="{% if page_obj.number == pageNumber %}active{% endif %}">{{ pageNumber }}</a>
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="rounded">بعدی</a>
+        {% endif %}
+
+    </div>
+</div>
+
+<script>
+  const select = document.getElementById('cardsPerPage');
+  // Set the current selection from URL on page load:
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentPerPage = urlParams.get('per_page');
+  if (currentPerPage) {
+    select.value = currentPerPage;
+  }
+
+  select.addEventListener('change', () => {
+    const perPage = select.value;
+    // Preserve existing query params except 'per_page':
+    urlParams.set('per_page', perPage);
+    urlParams.set('page', 1); // reset page to 1 when changing per_page
+    window.location.search = urlParams.toString();
+  });
+</script>
+{% endblock %}

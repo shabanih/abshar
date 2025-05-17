@@ -65,7 +65,7 @@
                                 <td>{{user.name }}</td>
                                 <td>{{ announcement.title }}</td>
 
-                                <td>{{ announcement.created_at|show_jalali_date}}</td>
+                                <td>{{ announcement.created_at|show_jalali}}</td>
                                   <td>
                                    {% if announcement.is_active == True %}
                                     <button class="btn btn-primary bg-success p-2">فعال</button>
