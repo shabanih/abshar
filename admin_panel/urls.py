@@ -91,15 +91,26 @@ urlpatterns = [
 
     # Charge Urls
     path('add-charge', views.charge_view, name='add_charge'),
+
+
     path('add-fixed-charge', views.FixChargeCreateView.as_view(), name='add_fixed_charge'),
     path('charge/edit/<int:pk>/', views.fix_charge_edit, name='charge_edit'),
-    path('charge/delete/<int:pk>/', views.fix_charge_delete, name='charge_delete'),
-    path('charge/notify/<int:pk>/', views.show_fix_charge_notification_form, name='notification_fix_charge_form'),
-    path('charge/notify/send/<int:pk>/', views.notification_fix_charge_to_user, name='notification_fix_charge_to_user'),
+    path('charge/delete/<int:pk>/', views.fix_charge_delete, name='fix_charge_delete'),
+    path('charge/notify/<int:pk>/', views.show_fix_charge_notification_form, name='show_notification_fix_charge_form'),
+    path('charge/notify/send/<int:pk>/', views.send_notification_fix_charge_to_user,
+         name='send_notification_fix_charge_to_user'),
 
     path('add-area-charge', views.AreaChargeCreateView.as_view(), name='add_area_charge'),
     path('area/charge/edit/<int:pk>/', views.area_charge_edit, name='charge_area_edit'),
     path('area/charge/delete/<int:pk>/', views.area_charge_delete, name='charge-area_delete'),
+    path('charge/area/notify/<int:pk>/', views.show_area_charge_notification_form,
+         name='show_notification_area_charge_form'),
+    path('charge/area/notify/send/<int:pk>/', views.send_notification_area_charge_to_user,
+         name='send_notification_area_charge_to_user'),
+    path('remove-send-notification-ajax/<int:pk>/', views.remove_send_notification_ajax,
+         name='remove_send_notification_ajax'),
+
+
 
     path('add-person-charge', views.PersonChargeCreateView.as_view(), name='add_person_charge'),
     path('person/charge/edit/<int:pk>/', views.person_charge_edit, name='charge_person_edit'),

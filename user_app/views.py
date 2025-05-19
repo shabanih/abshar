@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -7,7 +8,7 @@ from django.utils import timezone
 from django.views.generic import TemplateView
 
 from user_app import helper
-from admin_panel.models import Announcement
+from admin_panel.models import Announcement, FixedChargeCalc
 from user_app.forms import LoginForm, MobileLoginForm
 from user_app.models import User, Unit
 
@@ -143,3 +144,22 @@ def user_panel(request):
         'units': units
     }
     return render(request, 'partials/home_template.html', context)
+
+
+# def fetch_user_fixed_charges(request):
+#     charges = FixedChargeCalc.objects.filter(user=request.user, send_notification=True).select_related('unit').order_by(
+#         '-created_at')
+#     return render(request, 'fixed_charges.html', {'charges': charges})
+
+@login_required
+def fetch_user_fixed_charges(request):
+    unit = Unit.objects.filter(user=request.user, is_active=True).first()
+    charges = FixedChargeCalc.objects.filter(
+        user=request.user,
+        send_notification=True
+    ).select_related('unit').order_by('-created_at')
+
+    return render(request, 'fixed_charges.html', {
+        'charges': charges,
+        'unit': unit
+    })

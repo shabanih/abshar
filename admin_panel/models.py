@@ -217,39 +217,79 @@ class MaintenanceDocument(models.Model):
 
 
 # =========================== Charge Modals =============================
+class FixCharge(models.Model):
+    name = models.CharField(max_length=300, verbose_name='', null=True, blank=True)
+    fix_amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True)
+    civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
+    details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
+    is_active = models.BooleanField(default=True, verbose_name='')
+
+    def __str__(self):
+        return str(self.name)
+
+
 class FixedChargeCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_fix')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_fix')
+    fix_charge = models.ForeignKey(FixCharge, on_delete=models.CASCADE, related_name='fix_charge_amount')
     charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
     amount = models.PositiveIntegerField(verbose_name='مبلغ')
     unit_count = models.PositiveIntegerField(verbose_name='تعداد واحدها', null=True, blank=True)
     civil_charge = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
     total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
-    send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر', null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
-    is_active = models.BooleanField(default=True, verbose_name='')
+    send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
+    is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
+    is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 
     def __str__(self):
         return f"{self.charge_name or 'شارژ'} - {self.amount} تومان"
+
+    def save(self, *args, **kwargs):
+        base = max(self.amount or 0, 0) * max(self.unit_count or 1, 1)
+        self.total_charge_month = base + (self.civil_charge or 0)
+        super().save(*args, **kwargs)
+
+
+class AreaCharge(models.Model):
+    name = models.CharField(max_length=300, verbose_name='', null=True, blank=True)
+    area_amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True)
+    civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
+    details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
+    is_active = models.BooleanField(default=True, verbose_name='')
 
 
 class AreaChargeCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_area')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_area')
+    area_charge = models.ForeignKey(AreaCharge, on_delete=models.CASCADE, related_name='area_charge_amount')
     charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
-    area_amount = models.PositiveIntegerField(verbose_name='مبلغ')
+    amount = models.PositiveIntegerField(verbose_name='مبلغ')
     unit_count = models.PositiveIntegerField(verbose_name='تعداد واحدها', null=True, blank=True)
     total_area = models.PositiveIntegerField(verbose_name='متراژ کل', null=True, blank=True)
     final_area_amount = models.PositiveIntegerField(verbose_name='مبلغ شارژ نهایی', null=True, blank=True)
     civil_charge = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
     total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
+    send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
+    is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
 
     def __str__(self):
-        return str(self.area_amount)
+        return str(self.charge_name)
+
+    def save(self, *args, **kwargs):
+        if self.total_area and self.amount:
+            self.final_area_amount = self.total_area * self.amount
+
+        if self.final_area_amount and self.civil_charge:
+            self.total_charge_month = self.final_area_amount + self.civil_charge
+
+        super().save(*args, **kwargs)
 
 
 class PersonChargeCalc(models.Model):
@@ -360,8 +400,10 @@ class ChargeCalcFixVariable(models.Model):
     total_people = models.PositiveIntegerField(verbose_name=' کل نفرات', null=True, blank=True)
     total_area = models.PositiveIntegerField(verbose_name='متراژ کل', null=True, blank=True)
     unit_fix_amount = models.PositiveIntegerField(verbose_name='مبلغ شارژ ثابت', null=True, blank=True)
-    unit_variable_amount_person = models.PositiveIntegerField(verbose_name='مبلغ شارژ متغیر هر نفر', null=True, blank=True)
-    unit_variable_amount_area = models.PositiveIntegerField(verbose_name='مبلغ شارژ متغیر هر متر', null=True, blank=True)
+    unit_variable_amount_person = models.PositiveIntegerField(verbose_name='مبلغ شارژ متغیر هر نفر', null=True,
+                                                              blank=True)
+    unit_variable_amount_area = models.PositiveIntegerField(verbose_name='مبلغ شارژ متغیر هر متر', null=True,
+                                                            blank=True)
     elevator_fix_cost = models.PositiveIntegerField(verbose_name='هزینه 60% آسانسور', null=True, blank=True)
     elevator_variable_cost = models.PositiveIntegerField(verbose_name='هزینه 40% آسانسور', null=True, blank=True)
     total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
@@ -370,7 +412,8 @@ class ChargeCalcFixVariable(models.Model):
     salary = models.PositiveIntegerField(verbose_name='هزینه حقوق و دستمزد', null=True, blank=True)
     elevator_cost = models.PositiveIntegerField(verbose_name='هزینه  آسانسور', null=True, blank=True)
     public_electricity = models.PositiveIntegerField(verbose_name='هزینه برق عمومی', null=True, blank=True)
-    common_expenses = models.PositiveIntegerField(verbose_name='هزینه های سالیانه عمومی(روشنایی،نظافت و ...)', null=True, blank=True)
+    common_expenses = models.PositiveIntegerField(verbose_name='هزینه های سالیانه عمومی(روشنایی،نظافت و ...)',
+                                                  null=True, blank=True)
     facility_cost = models.PositiveIntegerField(verbose_name='هزینه سالیانه تاسیسات', null=True, blank=True)
     extinguished_cost = models.PositiveIntegerField(verbose_name='هزینه سالیانه آتش نشانس', null=True, blank=True)
     camera_cost = models.PositiveIntegerField(verbose_name='هزینه سالیانه دوربین', null=True, blank=True)

@@ -903,14 +903,13 @@ $(document).on('click', '.edit-charge-btn', function () {
     // Set the form action URL dynamically
     $('#chargeForm').attr('action', '/admin-panel/charge/edit/' + id + '/');
 
-    $('#id_charge_name').val($(this).data('charge_name'));
-    $('#id_amount').val($(this).data('amount'));
-    $('#id_total_charge_month').val($(this).data('total_charge_month'));
-    $('#id_civil_charge').val($(this).data('civil_charge'));
+    $('#id_name').val($(this).data('name'));
+    $('#id_fix_amount').val($(this).data('fix_amount'));
+    $('#id_civil').val($(this).data('civil'));
     $('#id_details').val($(this).data('details'));
 
     // Update the modal title and submit button text for editing
-    let chargeName = $(this).data('charge_name');
+    let chargeName = $(this).data('name');
     $('#exampleModalLongTitle').text('ویرایش : ' + chargeName);
     $('#btn-submit-receive').text('ویرایش شارژ');
 });
@@ -931,14 +930,13 @@ $(document).on('click', '.edit-charge-area-btn', function () {
     // Set the form action URL dynamically
     $('#areaForm').attr('action', '/admin-panel/area/charge/edit/' + id + '/');
 
-    $('#id_charge_name').val($(this).data('charge_name'));
+    $('#id_name').val($(this).data('name'));
     $('#id_area_amount').val($(this).data('area_amount'));
-    $('#id_final_area_amount').val($(this).data('final_area_amount'));
-    $('#id_civil_charge').val($(this).data('civil_charge'));
+    $('#id_civil').val($(this).data('civil'));
     $('#id_details').val($(this).data('details'));
 
     // Update the modal title and submit button text for editing
-   let chargeName = $(this).data('charge_name');
+   let chargeName = $(this).data('name');
     $('#exampleModalLongTitle').text('ویرایش : ' + chargeName);
     $('#btn-submit-receive').text('ویرایش شارژ');
 });
@@ -1152,24 +1150,17 @@ $(document).on('click', '.edit-variable-fix-btn', function () {
     });
   });
   // =======================================================
-   const toggleBtn = document.getElementById('toggle-select-btn');
+    document.addEventListener('DOMContentLoaded', function () {
+        const toggleBtn = document.getElementById('toggle-select-btn');
+        let allSelected = false;
 
-    toggleBtn.addEventListener('click', () => {
-        // Get all unit checkboxes
-        const checkboxes = document.querySelectorAll('.unit-checkbox');
+        toggleBtn.addEventListener('click', function () {
+            const checkboxes = document.querySelectorAll('.unit-checkbox:not(:disabled)');
+            checkboxes.forEach(cb => cb.checked = !allSelected);
 
-        // Check if all are currently checked
-        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-
-        if (allChecked) {
-            // If all checked, uncheck all
-            checkboxes.forEach(cb => cb.checked = false);
-            toggleBtn.textContent = 'انتخاب همه واحدها'; // Change button text accordingly
-        } else {
-            // Otherwise, check all
-            checkboxes.forEach(cb => cb.checked = true);
-            toggleBtn.textContent = 'لغو انتخاب همه'; // Change button text accordingly
-        }
+            allSelected = !allSelected;
+            toggleBtn.textContent = allSelected ? 'لغو انتخاب همه واحدها' : 'انتخاب همه واحدها';
+        });
     });
 
 // ============================================

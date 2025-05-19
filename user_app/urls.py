@@ -8,5 +8,7 @@ urlpatterns = [
     path('mobile-login/', views.mobile_login, name='mobile_login'),
     path('verify-otp/', views.verify_otp, name='verify_otp'),
     path('resend-otp/', views.resend_otp, name='resend_otp'),
+
+    path('fixed-charges/', views.fetch_user_fixed_charges, name='user_fixed_charges'),
 ]
 

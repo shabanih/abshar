@@ -8,7 +8,7 @@ from jalali_date.widgets import AdminJalaliDateWidget
 
 from admin_panel.models import Announcement, Expense, ExpenseCategory, Income, IncomeCategory, ReceiveMoney, PayMoney, \
     Property, Maintenance, FixedChargeCalc, ChargeByPersonArea, AreaChargeCalc, PersonChargeCalc, FixAreaChargeCalc, \
-    FixPersonChargeCalc, ChargeByFixPersonArea, ChargeCalcFixVariable
+    FixPersonChargeCalc, ChargeByFixPersonArea, ChargeCalcFixVariable, FixCharge, AreaCharge
 from user_app.models import Unit, Bank, MyHouse
 
 attr = {'class': 'form-control border-1 py-2 mb-4 '}
@@ -669,14 +669,14 @@ class MaintenanceForm(forms.ModelForm):
 # ============================== Charge Forms ===================================
 
 class FixChargeForm(forms.ModelForm):
-    charge_name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+    name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
                                   required=True,
                                   label='عنوان شارژ ')
-    amount = forms.IntegerField(error_messages=error_message,
+    fix_amount = forms.IntegerField(error_messages=error_message,
                                 widget=forms.TextInput(attrs=attr),
                                 required=True,
                                 label='مبلغ شارژ به ازای هر واحد')
-    civil_charge = forms.IntegerField(error_messages=error_message,
+    civil = forms.IntegerField(error_messages=error_message,
                                       widget=forms.TextInput(attrs=attr),
                                       required=False, min_value=0,
                                       label='شارژ عمرانی')
@@ -685,25 +685,25 @@ class FixChargeForm(forms.ModelForm):
                               label='توضیحات ')
 
     def clean_civil_charge(self):
-        value = self.cleaned_data.get('civil_charge')
+        value = self.cleaned_data.get('civil')
         if value in [None, '']:  # empty string or None
             return 0
         return value
 
     class Meta:
-        model = FixedChargeCalc
-        fields = ['charge_name', 'amount', 'details', 'civil_charge']
+        model = FixCharge
+        fields = ['name', 'fix_amount', 'details', 'civil']
 
 
 class AreaChargeForm(forms.ModelForm):
-    charge_name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+    name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
                                   required=True,
                                   label='عنوان شارژ ')
     area_amount = forms.IntegerField(error_messages=error_message,
                                      widget=forms.TextInput(attrs=attr),
                                      required=True,
                                      label='مبلغ شارژ به اساس متراژ')
-    civil_charge = forms.IntegerField(error_messages=error_message,
+    civil = forms.IntegerField(error_messages=error_message,
                                       widget=forms.TextInput(attrs=attr),
                                       required=False, min_value=0,
                                       label='شارژ عمرانی')
@@ -712,14 +712,14 @@ class AreaChargeForm(forms.ModelForm):
                               label='توضیحات ')
 
     def clean_civil_charge(self):
-        value = self.cleaned_data.get('civil_charge')
+        value = self.cleaned_data.get('civil')
         if value in [None, '']:  # empty string or None
             return 0
         return value
 
     class Meta:
-        model = AreaChargeCalc
-        fields = ['charge_name', 'area_amount', 'details', 'civil_charge']
+        model = AreaCharge
+        fields = ['name', 'area_amount', 'details', 'civil']
 
 
 class PersonChargeForm(forms.ModelForm):

@@ -22,10 +22,9 @@
                                     <tr>
                                         <th>#</th>
                                         <th> عنوان شارژ </th>
-                                        <th class="p-0">مبلغ ثابت بر اساس متراژ</th>
+                                        <th class="p-0">مبلغ شارژ به ازای هر متر</th>
                                         <th class="p-0">تعداد واحدها</th>
                                         <th>متراژ کل</th>
-                                        <th>مبلغ شارژ به ازای هر متر</th>
                                         <th> شارژ عمرانی </th>
                                         <th> توضیحات </th>
                                         <th>تاریخ ایجاد</th>
@@ -37,12 +36,12 @@
                                     <tbody class="text-center">
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
-                                            <td>{{charge.charge_name }}</td>
+                                            <td>{{charge.name }}</td>
                                             <td>{{charge.area_amount|three_digit_currency }}</td>
-                                            <td>{{charge.unit_count }}</td>
-                                            <td>{{charge.total_area }}</td>
-                                            <td class="bg-gradient-light p-0"><strong>{{charge.final_area_amount|three_digit_currency }}</strong></td>
-                                            <td>{{charge.civil_charge|three_digit_currency }}</td>
+                                            <td>{{unit_count }}</td>
+                                            <td>{{total_area }}</td>
+{#                                            <td class="bg-gradient-light p-0"><strong>{{charge.final_area_amount|three_digit_currency }}</strong></td>#}
+                                            <td>{{charge.civil|three_digit_currency }}</td>
                                             <td>{{charge.details }}</td>
                                             <td>{{charge.created_at|show_jalali }}</td>
                                             
@@ -50,23 +49,22 @@
                                                       <a
                                            class="btn btn-gradient-info p-1 edit-charge-area-btn"
                                            data-id="{{ charge.id }}"
-                                           data-charge_name="{{ charge.charge_name }}"
+                                           data-name="{{ charge.name }}"
                                            data-area_amount="{{ charge.area_amount}}"
-                                           data-civil_charge="{{ charge.civil_charge }}"
-                                           data-final_area_amount="{{ charge.final_area_amount }}"
+                                           data-civil="{{ charge.civil }}"
                                            data-details="{{ charge.details }}"
                                            data-bs-toggle="modal"
                                            data-bs-target="#exampleModalLong">
                                            <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
                                         </a>
-                                                          <a href="{% url 'charge-area_delete' charge.id %}" class="btn btn-gradient-danger p-1"
-                                                       onclick="return confirmDeleteWithSweetAlert(event)">
-                                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
-                                                            </a>
-                                                     <a href="" class="btn btn-gradient-success p-2"
-                                                       onclick="return confirm('آیا نسبت به اعلام شارژ اطمینان دارید؟')">
-                                                            اعلام شارژ
-                                                            </a>
+                                          <a href="{% url 'charge-area_delete' charge.id %}" class="btn btn-gradient-danger p-1"
+                                       onclick="return confirmDeleteWithSweetAlert(event)">
+                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                            </a>
+                                     <a href="{% url 'show_notification_area_charge_form' charge.id %}"
+                                       class="btn btn-gradient-success p-2">
+                                            اعلام شارژ
+                                            </a>
 
                                         </td>
                                         </tr>
@@ -77,34 +75,11 @@
                                         </tr>
                                  <tbody>
                                 {% endif %}
-                           
-{#                                <td class="bg-gradient-light text-dark" colspan="5"> تعداد واحدها:  {{ unit_count }}</td>#}
-{#                                <td class="bg-gradient-primary" colspan="1"> تعداد نفرات: {{ total_people }}</td>#}
-{#                                <td class="bg-gradient-primary" colspan="4"> متراژ کل واحدها: {{ total_area }}</td>#}
                             
                             </table>
                 
        
                </div>
-{#                <div class="container">#}
-{#                        <div class="row align-items-center text-center mt-3">#}
-{#                                <div class="col-2 bg-gradient-info">#}
-{#                                    <p style="font-size: 15px">#}
-{#                                   تعداد واحدها:  {{ unit_count }}#}
-{#                                        </p>#}
-{#                                </div>#}
-{#                                <div class="col-2 bg-gradient-dark p-0">#}
-{#                                    <p>#}
-{#                                   تعداد نفرات: {{ total_people }}#}
-{#                                        </p>#}
-{#                                </div>#}
-{#                                <div class="col-2 bg-gradient-warning">#}
-{#                                    <p>#}
-{#                                  متراژ کل واحدها: {{ total_area }}#}
-{#                                        </p>#}
-{#                                </div>#}
-{#                              </div>#}
-{#                    </div>#}
     <hr>
 
 </div>
@@ -123,9 +98,9 @@
               {% csrf_token %}
                  <div class="row g-2">
                   <div class="col-6">
-                      {{ form.charge_name.label_tag }}
-                      {{ form.charge_name }}
-                      {{ form.charge_name.errors }}
+                      {{ form.name.label_tag }}
+                      {{ form.name }}
+                      {{ form.name.errors }}
                   </div>
                      <div class="col-6">
                          <label for="">متراژ کل ساختمان:</label>
@@ -140,9 +115,9 @@
                       {{ form.area_amount.errors }}
                   </div>
                      <div class="col-6">
-                       {{ form.civil_charge.label_tag }}
-                      {{ form.civil_charge }}
-                      {{ form.civil_charge.errors }}
+                       {{ form.civil.label_tag }}
+                      {{ form.civil }}
+                      {{ form.civil.errors }}
                   </div>
                      </div>
                   <div class="row g-2">
