@@ -92,13 +92,14 @@ urlpatterns = [
     # Charge Urls
     path('add-charge', views.charge_view, name='add_charge'),
 
-
     path('add-fixed-charge', views.FixChargeCreateView.as_view(), name='add_fixed_charge'),
     path('charge/edit/<int:pk>/', views.fix_charge_edit, name='charge_edit'),
     path('charge/delete/<int:pk>/', views.fix_charge_delete, name='fix_charge_delete'),
     path('charge/notify/<int:pk>/', views.show_fix_charge_notification_form, name='show_notification_fix_charge_form'),
     path('charge/notify/send/<int:pk>/', views.send_notification_fix_charge_to_user,
          name='send_notification_fix_charge_to_user'),
+    path('remove-send-notification-fix/<int:pk>/', views.remove_send_notification_fix,
+         name='remove_send_notification_fix'),
 
     path('add-area-charge', views.AreaChargeCreateView.as_view(), name='add_area_charge'),
     path('area/charge/edit/<int:pk>/', views.area_charge_edit, name='charge_area_edit'),
@@ -110,11 +111,15 @@ urlpatterns = [
     path('remove-send-notification-ajax/<int:pk>/', views.remove_send_notification_ajax,
          name='remove_send_notification_ajax'),
 
-
-
     path('add-person-charge', views.PersonChargeCreateView.as_view(), name='add_person_charge'),
     path('person/charge/edit/<int:pk>/', views.person_charge_edit, name='charge_person_edit'),
     path('person/charge/delete/<int:pk>/', views.person_charge_delete, name='charge-person_delete'),
+    path('charge/person/notify/<int:pk>/', views.show_person_charge_notification_form,
+         name='show_notification_person_charge_form'),
+    path('charge/person/notify/send/<int:pk>/', views.send_notification_person_charge_to_user,
+         name='send_notification_person_charge_to_user'),
+    path('remove-send-notification-person/<int:pk>/', views.remove_send_notification_person,
+         name='remove_send_notification_person'),
 
     path('add-fix_area-charge', views.FixAreaChargeCreateView.as_view(), name='add_fix_area_charge'),
     path('fix/area/charge/edit/<int:pk>/', views.fix_area_charge_edit, name='charge_fix_area_edit'),
@@ -128,14 +133,15 @@ urlpatterns = [
     path('area/person/charge/edit/<int:pk>/', views.person_area_charge_edit, name='charge_area_person_edit'),
     path('area/person/charge/delete/<int:pk>/', views.person_area_charge_delete, name='charge_area_person_delete'),
 
-    path('add-person_area-fix-charge', views.PersonAreaFixChargeCreateView.as_view(), name='add_person_area_fix_charge'),
-    path('fix/area/person/charge/edit/<int:pk>/', views.person_area_fix_charge_edit, name='charge_area_person_fix_edit'),
+    path('add-person_area-fix-charge', views.PersonAreaFixChargeCreateView.as_view(),
+         name='add_person_area_fix_charge'),
+    path('fix/area/person/charge/edit/<int:pk>/', views.person_area_fix_charge_edit,
+         name='charge_area_person_fix_edit'),
     path('fix/area/person/charge/delete/<int:pk>/', views.person_area_fix_delete, name='charge_area_person_fix_delete'),
 
     path('add-variable-fix-charge', views.VariableFixChargeCreateView.as_view(), name='add_variable_fix_charge'),
     path('fix/variable/charge/edit/<int:pk>/', views.variable_fix_charge_edit, name='charge_variable_fix_edit'),
     path('variable/fix/charge/delete/<int:pk>/', views.variable_fix_charge_delete, name='charge_variable_fix_delete'),
-
 
 ]
 if settings.DEBUG:

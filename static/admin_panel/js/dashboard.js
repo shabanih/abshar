@@ -959,14 +959,13 @@ $(document).on('click', '.edit-charge-person-btn', function () {
     // Set the form action URL dynamically
     $('#personForm').attr('action', '/admin-panel/person/charge/edit/' + id + '/');
 
-    $('#id_charge_name').val($(this).data('charge_name'));
+    $('#id_name').val($(this).data('name'));
     $('#id_person_amount').val($(this).data('person_amount'));
-    $('#id_final_person_amount').val($(this).data('final_person_amount'));
-    $('#id_civil_charge').val($(this).data('civil_charge'));
+    $('#id_civil').val($(this).data('civil'));
     $('#id_details').val($(this).data('details'));
 
     // Update the modal title and submit button text for editing
-    let chargeName = $(this).data('charge_name');
+    let chargeName = $(this).data('name');
     $('#exampleModalLongTitle').text('ویرایش : ' + chargeName);
     $('#btn-submit-receive').text('ویرایش شارژ');
 });

@@ -8,7 +8,7 @@ from jalali_date.widgets import AdminJalaliDateWidget
 
 from admin_panel.models import Announcement, Expense, ExpenseCategory, Income, IncomeCategory, ReceiveMoney, PayMoney, \
     Property, Maintenance, FixedChargeCalc, ChargeByPersonArea, AreaChargeCalc, PersonChargeCalc, FixAreaChargeCalc, \
-    FixPersonChargeCalc, ChargeByFixPersonArea, ChargeCalcFixVariable, FixCharge, AreaCharge
+    FixPersonChargeCalc, ChargeByFixPersonArea, ChargeCalcFixVariable, FixCharge, AreaCharge, PersonCharge
 from user_app.models import Unit, Bank, MyHouse
 
 attr = {'class': 'form-control border-1 py-2 mb-4 '}
@@ -723,14 +723,14 @@ class AreaChargeForm(forms.ModelForm):
 
 
 class PersonChargeForm(forms.ModelForm):
-    charge_name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+    name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
                                   required=True,
                                   label='عنوان شارژ ')
     person_amount = forms.IntegerField(error_messages=error_message,
                                        widget=forms.TextInput(attrs=attr),
                                        required=True,
                                        label='مبلغ شارژ به ازای هر نفر')
-    civil_charge = forms.IntegerField(error_messages=error_message,
+    civil = forms.IntegerField(error_messages=error_message,
                                       widget=forms.TextInput(attrs=attr),
                                       required=False, min_value=0,
                                       label='شارژ عمرانی')
@@ -739,14 +739,14 @@ class PersonChargeForm(forms.ModelForm):
                               label='توضیحات ')
 
     def clean_civil_charge(self):
-        value = self.cleaned_data.get('civil_charge')
+        value = self.cleaned_data.get('civil')
         if value in [None, '']:  # empty string or None
             return 0
         return value
 
     class Meta:
-        model = PersonChargeCalc
-        fields = ['charge_name', 'person_amount', 'details', 'civil_charge']
+        model = PersonCharge
+        fields = ['name', 'person_amount', 'details', 'civil']
 
 
 class FixAreaChargeForm(forms.ModelForm):

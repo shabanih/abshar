@@ -78,6 +78,13 @@ class Unit(models.Model):
     def get_active_renter(self):
         return self.renters.filter(renter_is_active=True).first()
 
+    def save(self, *args, **kwargs):
+        owner_count = int(self.owner_people_count) if self.owner_people_count else 0
+        renter_count = int(self.renter_people_count) if hasattr(self,
+                                                                'renter_people_count') and self.renter_people_count else 0
+        self.people_count = owner_count + renter_count
+        super().save(*args, **kwargs)
+
 
 class Renter(models.Model):
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, verbose_name='واحد', related_name='renters', null=True, blank=True)
@@ -93,8 +100,6 @@ class Renter(models.Model):
     renter_details = models.TextField(null=True, blank=True, verbose_name='توضیحات مستاجر')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     renter_is_active = models.BooleanField(default=True, verbose_name='')
-
-
 
     def __str__(self):
         return self.renter_name

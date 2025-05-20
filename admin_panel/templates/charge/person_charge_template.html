@@ -22,12 +22,8 @@
                                     <tr>
                                         <th>#</th>
                                         <th> عنوان شارژ </th>
-                                        <th class="p-0">مبلغ ثابت بر اساس نفرات</th>
-                                        <th>تعداد واحدها</th>
-                                        <th>تعداد کل نفرات</th>
-                                        <th>مبلغ شارژ هر واحد(تومان)</th>
+                                        <th class="p-0">مبلغ شارژ به ازای هر نفر</th>
                                         <th> شارژ عمرانی </th>
-                                        <th>جمع کل شارژ ماه </th>
                                         <th> توضیحات </th>
                                         <th>تاریخ ایجاد</th>
                                         <th>دستورات</th>
@@ -38,51 +34,45 @@
                                     <tbody class="text-center">
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
-                                            <td>{{charge.charge_name }}</td>
+                                            <td>{{charge.name }}</td>
                                             <td>{{charge.person_amount|three_digit_currency }}</td>
-                                            <td>{{charge.unit_count }}</td>
-                                            <td>{{charge.total_people }}</td>
-                                            <td class="bg-gradient-light p-0"><strong>{{charge.final_person_amount|three_digit_currency }}</strong></td>
-                                            <td>{{charge.civil_charge|three_digit_currency }}</td>
-                                          <td>{{ charge.total_charge_month|three_digit_currency }}</td>
+                                            <td>{{charge.civil|three_digit_currency }}</td>
                                             <td>{{charge.details }}</td>
                                             <td>{{charge.created_at|show_jalali }}</td>
                                             
-                                               <td>
+                                               <td class="p-0">
                                                       <a
                                            class="btn btn-gradient-info p-1 edit-charge-person-btn"
                                            data-id="{{ charge.id }}"
-                                           data-charge_name="{{ charge.charge_name }}"
+                                           data-name="{{ charge.name }}"
                                            data-person_amount="{{ charge.person_amount}}"
-                                           data-civil_charge="{{ charge.civil_charge }}"
-                                           data-final_person_amount="{{ charge.final_person_amount }}"
+                                           data-civil="{{ charge.civil }}"
                                            data-details="{{ charge.details }}"
                                            data-bs-toggle="modal"
                                            data-bs-target="#exampleModalLong">
                                            <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
                                         </a>
-                                                          <a href="{% url 'charge-person_delete' charge.id %}" class="btn btn-gradient-danger p-1"
-                                                       onclick="return confirmDeleteWithSweetAlert(event)">
-                                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
-                                                            </a>
+                                          <a href="{% url 'charge-person_delete' charge.id %}" class="btn btn-gradient-danger p-1"
+                                       onclick="return confirmDeleteWithSweetAlert(event)">
+                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                            </a>
+                                     <a href="{% url 'show_notification_person_charge_form' charge.id %}"
+                                       class="btn btn-gradient-success p-2">
+                                            اعلام شارژ
+                                            </a>
 
                                         </td>
                                         </tr>
                                     {% endfor %}
                                         {% else %}
                                         <tr>
-                                            <td colspan="11" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                            <td colspan="11" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
                                         </tr>
                                  <tbody>
                                 {% endif %}
-                            <tfoot class="text-center bg-light">
-                            <tr>
-                                <td colspan="7" class="text-end"><strong>جمع شارژ سالانه:</strong></td>
-                                <td class="text-dark"><strong>{{ total_charge_year|floatformat:0|three_digit_currency }} تومان</strong></td>
-                                <td colspan="3"></td>
-                            </tr>
-                        </tfoot>
+                            
                             </table>
+                
        
                </div>
 
@@ -94,7 +84,7 @@
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header" id="exampleModalLongTitle">
-        <h5 class="modal-title">افزودن شارژ بر اساس متراژ</h5>
+        <h5 class="modal-title">افزودن شارژ بر اساس تعداد نفرات</h5>
       </div>
          <hr>
       <div class="modal-body" >
@@ -104,26 +94,26 @@
               {% csrf_token %}
                  <div class="row g-2">
                   <div class="col-6">
-                      {{ form.charge_name.label_tag }}
-                      {{ form.charge_name }}
-                      {{ form.charge_name.errors }}
+                      {{ form.name.label_tag }}
+                      {{ form.name }}
+                      {{ form.name.errors }}
                   </div>
                      <div class="col-6">
                          <label for="">تعداد کل نفرات</label>
-                         <input type="text" class="form-control" placeholder="متراژ کل"
+                         <input type="text" class="form-control" placeholder="تعداد نفرات "
                                value="{{ total_people }}" readonly>
                      </div>
                  </div>
-              <div class="row">
+              <div class="row g-2">
                       <div class="col-6">
                        {{ form.person_amount.label_tag }}
                       {{ form.person_amount }}
                       {{ form.person_amount.errors }}
                   </div>
                      <div class="col-6">
-                       {{ form.civil_charge.label_tag }}
-                      {{ form.civil_charge }}
-                      {{ form.civil_charge.errors }}
+                       {{ form.civil.label_tag }}
+                      {{ form.civil }}
+                      {{ form.civil.errors }}
                   </div>
                      </div>
                   <div class="row g-2">

@@ -40,7 +40,7 @@ from admin_panel.forms import announcementForm, UnitForm, ExpenseForm, ExpenseCa
 from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDocument, Income, IncomeDocument, \
     IncomeCategory, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, FixedChargeCalc, ChargeByPersonArea, AreaChargeCalc, PersonChargeCalc, FixAreaChargeCalc, \
-    FixPersonChargeCalc, ChargeByFixPersonArea, ChargeCalcFixVariable, FixCharge, AreaCharge
+    FixPersonChargeCalc, ChargeByFixPersonArea, ChargeCalcFixVariable, FixCharge, AreaCharge, PersonCharge
 from user_app.models import Unit, MyHouse, Bank, Renter, User
 
 
@@ -2782,6 +2782,59 @@ def send_notification_fix_charge_to_user(request, pk):
     return redirect('show_notification_fix_charge_form', pk=pk)
 
 
+@login_required
+def remove_send_notification_fix(request, pk):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'فقط درخواست‌های POST مجاز است.'}, status=400)
+
+    charge = get_object_or_404(FixCharge, id=pk)
+    selected_units = request.POST.getlist('units[]')
+
+    if not selected_units:
+        return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
+
+    try:
+        if selected_units == ['all']:
+            # حذف همه رکوردهای مرتبط با این شارژ
+            deleted_count, _ = FixedChargeCalc.objects.filter(fix_charge=charge).delete()
+
+            # غیر فعال کردن ارسال اطلاعیه
+            charge.send_notification = False
+            charge.save()
+
+            if deleted_count:
+                return JsonResponse({'success': f'{deleted_count} اطلاعیه با موفقیت حذف شد.'})
+            else:
+                return JsonResponse({'info': 'اطلاعیه‌ای برای حذف یافت نشد.'})
+
+        # در غیر این صورت، حذف براساس واحدهای انتخاب‌شده
+        selected_unit_ids = [int(uid) for uid in selected_units if uid.isdigit()]
+        if not selected_unit_ids:
+            return JsonResponse({'error': 'شناسه‌های واحد نامعتبر هستند.'}, status=400)
+
+        units_qs = Unit.objects.filter(id__in=selected_unit_ids, is_active=True)
+        if not units_qs.exists():
+            return JsonResponse({'warning': 'هیچ واحد معتبری یافت نشد.'})
+
+        deleted_count, _ = FixedChargeCalc.objects.filter(
+            fix_charge=charge,
+            unit__in=units_qs,
+        ).delete()
+
+        # بررسی اینکه آیا رکوردی باقی مانده یا نه
+        if not FixedChargeCalc.objects.filter(fix_charge=charge).exists():
+            charge.send_notification = False
+            charge.save()
+
+        if deleted_count:
+            return JsonResponse({'success': f'{deleted_count} اطلاعیه برای واحدهای انتخاب‌شده حذف شد.'})
+        else:
+            return JsonResponse({'info': 'رکوردی برای حذف یافت نشد.'})
+
+    except Exception as e:
+        return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
+
+
 # ===============================================
 class AreaChargeCreateView(CreateView):
     model = AreaCharge
@@ -2960,7 +3013,6 @@ def send_notification_area_charge_to_user(request, pk):
     return redirect('show_notification_area_charge_form', pk=pk)
 
 
-
 @login_required
 def remove_send_notification_ajax(request, pk):
     if request.method != 'POST':
@@ -3014,148 +3066,233 @@ def remove_send_notification_ajax(request, pk):
         return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
 
 
-
-# def remove_send_notification(request, pk):
-#     charge = get_object_or_404(AreaCharge, id=pk)
-#
-#     selected_units = request.POST.getlist('units')
-#     if not selected_units:
-#         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
-#         return redirect('show_notification_area_charge_form', pk=pk)
-#
-#     try:
-#         selected_unit_ids = [int(uid) for uid in selected_units]
-#     except ValueError:
-#         messages.warning(request, 'شناسه واحدها نامعتبر است.')
-#         return redirect('show_notification_area_charge_form', pk=pk)
-#
-#     units_qs = Unit.objects.filter(id__in=selected_unit_ids, is_active=True)
-#
-#     if not units_qs.exists():
-#         messages.warning(request, 'هیچ واحد معتبری یافت نشد.')
-#         return redirect('show_notification_area_charge_form', pk=pk)
-#
-#     # Update send_notification to False for these records
-#     updated_count = AreaChargeCalc.objects.filter(
-#         area_charge=charge,
-#         unit__in=units_qs,
-#         send_notification=True
-#     ).update(send_notification=False)
-#
-#     if updated_count:
-#         messages.success(request, f'اطلاعیه ارسال برای {updated_count} واحد لغو شد.')
-#     else:
-#         messages.info(request, 'هیچ اطلاعیه فعالی برای لغو یافت نشد.')
-#
-#     # Only reset charge.send_notification if no notified units remain
-#     still_notified = AreaChargeCalc.objects.filter(area_charge=charge, send_notification=True).exists()
-#
-#     if not still_notified:
-#         charge.send_notification = False
-#         charge.save()
-#
-#     return redirect('show_notification_area_charge_form', pk=pk)
-
-
 # ===============================================
+
 class PersonChargeCreateView(CreateView):
-    model = PersonChargeCalc
+    model = PersonCharge
     template_name = 'charge/person_charge_template.html'
     form_class = PersonChargeForm
     success_url = reverse_lazy('add_person_charge')
 
     def form_valid(self, form):
-        form.instance.user = self.request.user
-        form.instance.unit = Unit.objects.filter(is_active=True, user=self.request.user).first()
-        person_amount = form.cleaned_data.get('person_amount') or 0
-        civil_charge = form.cleaned_data.get('civil_charge') or 0
-
-        total_people = Unit.objects.filter(is_active=True, user=self.request.user).aggregate(
-            total=Sum('people_count')
-        )['total'] or 0
-
-        unit_count = Unit.objects.filter(is_active=True, user=self.request.user).count()
-
-        form.instance.total_people = total_people
-        form.instance.unit_count = unit_count
-
-        final_person_amount = round((total_people * person_amount) / unit_count, -2)
-
-        form.instance.final_person_amount = final_person_amount
-
-        form.instance.total_charge_month = (final_person_amount + civil_charge) * unit_count
-
         try:
+            # Snapshot at registration time
+            total_people = Unit.objects.filter(is_active=True).aggregate(
+                total=Sum('people_count')
+            )['total'] or 0
+            unit_count = Unit.objects.filter(is_active=True).count()
+
+            form.instance.total_people = total_people
+            form.instance.unit_count = unit_count
+
             self.object = form.save()
             messages.success(self.request, 'محاسبه شارژ با موفقیت ثبت گردید')
             return super().form_valid(form)
-        except:
-            messages.error(self.request, 'خطا در ثبت!')
+        except Exception as e:
+            messages.error(self.request, f'خطا در ثبت! {str(e)}')
             return self.form_invalid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['charges'] = PersonChargeCalc.objects.all()
-        context['total_people'] = \
-            Unit.objects.filter(is_active=True, user=self.request.user).aggregate(total=Sum('people_count'))[
-                'total'] or 0
-        total_charge_year = PersonChargeCalc.objects.aggregate(
-            total_year=Sum('total_charge_month')
-        )['total_year'] or 0
-        context['total_charge_year'] = total_charge_year
+        context['charges'] = PersonCharge.objects.all()
+        context['unit_count'] = Unit.objects.filter(is_active=True).count()
+        context['total_people'] = Unit.objects.filter(is_active=True).aggregate(total=Sum('people_count'))['total'] or 0
         return context
 
 
 def person_charge_edit(request, pk):
-    charge = get_object_or_404(PersonChargeCalc, pk=pk)
+    charge = get_object_or_404(PersonCharge, pk=pk)
 
     if request.method == 'POST':
         form = PersonChargeForm(request.POST, request.FILES, instance=charge)
 
         if form.is_valid():
-            form.instance.unit = Unit.objects.filter(user=request.user).first()
-            person_amount = form.cleaned_data.get('person_amount') or 0
-            civil_charge = form.cleaned_data.get('civil_charge') or 0
+            charge_name = form.cleaned_data.get('name') or 0
 
-            total_people = Unit.objects.filter(is_active=True, user=request.user).aggregate(
-                total=Sum('people_count')
-            )['total'] or 0
-
-            unit_count = Unit.objects.filter(is_active=True, user=request.user).count()
-
-            form.instance.total_people = total_people
-            form.instance.unit_count = unit_count
-
-            if unit_count == 0:
-                messages.error(request, 'هیچ واحدی برای کاربر ثبت نشده است.')
-                return redirect('add_person_charge')
-
-            final_person_amount = round((total_people * person_amount) / unit_count, -2)
-            total_charge_month = final_person_amount + (civil_charge * unit_count)
-
-            form.instance.final_person_amount = final_person_amount
-            form.instance.total_charge_month = total_charge_month
-
+            are_charge = form.save(commit=False)
+            are_charge.name = charge_name
+            are_charge.save()
             form.save()
-
             messages.success(request, 'شارژ با موفقیت ویرایش شد.')
             return redirect('add_person_charge')
-
         else:
             messages.error(request, 'خطا در ویرایش فرم. لطفا دوباره تلاش کنید.')
             return redirect('add_person_charge')
-
     return redirect('add_person_charge')
 
 
 def person_charge_delete(request, pk):
-    charge = get_object_or_404(PersonChargeCalc, id=pk)
+    charge = get_object_or_404(PersonCharge, id=pk)
     try:
         charge.delete()
         messages.success(request, ' شارژ با موفقیت حذف گردید!')
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
     return redirect(reverse('add_person_charge'))
+
+
+def show_person_charge_notification_form(request, pk):
+    charge = get_object_or_404(PersonCharge, id=pk)  # شیء اصلی شارژ ثابت
+    units = Unit.objects.filter(is_active=True).order_by('unit')
+
+    notified_ids = PersonChargeCalc.objects.filter(
+        person_charge=charge,
+        send_notification=True
+    ).values_list('unit_id', flat=True)
+
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        units = units.filter(
+            Q(unit__icontains=search_query) |
+            Q(owner_name__icontains=search_query) |
+            Q(renters__renter_name__icontains=search_query)
+        ).distinct()
+
+    units_with_active_renter = []
+    for unit in units:
+        active_renter = unit.renters.filter(renter_is_active=True).first()
+        person_calc = PersonChargeCalc.objects.filter(unit=unit, person_charge=charge).first()
+        units_with_active_renter.append((unit, active_renter, person_calc))
+
+    # Pagination
+    per_page = request.GET.get('per_page', 30)
+    try:
+        per_page = int(per_page)
+    except ValueError:
+        per_page = 30
+
+    paginator = Paginator(units_with_active_renter, per_page)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'charge': charge,  # این خط اضافه شد
+        'pk': pk,
+        'notified_ids': list(notified_ids),  # ارسال به قالب
+
+    }
+
+    return render(request, 'charge/notify_person_charge_template.html', context)
+
+
+@require_POST
+def send_notification_person_charge_to_user(request, pk):
+    charge = get_object_or_404(PersonCharge, id=pk)
+    selected_units = request.POST.getlist('units')
+
+    if not selected_units:
+        messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
+        return redirect('show_notification_person_charge_form', pk=pk)
+
+    units_qs = Unit.objects.filter(is_active=True)
+
+    if 'all' in selected_units:
+        units_to_notify = units_qs
+    else:
+        units_to_notify = units_qs.filter(id__in=selected_units)
+
+    if not units_to_notify.exists():
+        messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
+        return redirect('show_notification_person_charge_form', pk=pk)
+
+    notified_units = []
+
+    with transaction.atomic():
+        for unit in units_to_notify:
+            exists = PersonChargeCalc.objects.filter(
+                unit=unit,
+                person_charge=charge,
+                send_notification=True
+            ).exists()
+
+            if not exists:
+                people = unit.people_count or 0
+                amount = charge.person_amount or 0
+                civil = charge.civil or 0
+
+                final_person_amount = amount * people
+                total_charge = final_person_amount + civil
+
+                PersonChargeCalc.objects.create(
+                    user=unit.user,
+                    unit=unit,
+                    person_charge=charge,
+                    amount=amount,
+                    unit_count=1,
+                    total_people=people,
+                    final_person_amount=final_person_amount,
+                    civil_charge=civil,
+                    total_charge_month=total_charge,
+                    charge_name=charge.name,
+                    details=charge.details,
+                    send_notification=True
+                )
+
+                notified_units.append(f"واحد {unit.unit}")
+
+        charge.send_notification = True
+        charge.save()
+
+    if notified_units:
+        messages.success(request, "اطلاعیه شارژ برای واحد انتخابی ارسال گردید!")
+    else:
+        messages.info(request, 'اطلاعیه‌ای ارسال نشد؛ ممکن است قبلاً برای واحد انتخابی ثبت شده باشد.')
+
+    return redirect('show_notification_person_charge_form', pk=pk)
+
+
+@login_required
+def remove_send_notification_person(request, pk):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'فقط درخواست‌های POST مجاز است.'}, status=400)
+
+    charge = get_object_or_404(PersonCharge, id=pk)
+    selected_units = request.POST.getlist('units[]')
+
+    if not selected_units:
+        return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
+
+    try:
+        if selected_units == ['all']:
+            # حذف همه رکوردهای مرتبط با این شارژ
+            deleted_count, _ = PersonChargeCalc.objects.filter(person_charge=charge).delete()
+
+            # غیر فعال کردن ارسال اطلاعیه
+            charge.send_notification = False
+            charge.save()
+
+            if deleted_count:
+                return JsonResponse({'success': f'{deleted_count} اطلاعیه با موفقیت حذف شد.'})
+            else:
+                return JsonResponse({'info': 'اطلاعیه‌ای برای حذف یافت نشد.'})
+
+        # در غیر این صورت، حذف براساس واحدهای انتخاب‌شده
+        selected_unit_ids = [int(uid) for uid in selected_units if uid.isdigit()]
+        if not selected_unit_ids:
+            return JsonResponse({'error': 'شناسه‌های واحد نامعتبر هستند.'}, status=400)
+
+        units_qs = Unit.objects.filter(id__in=selected_unit_ids, is_active=True)
+        if not units_qs.exists():
+            return JsonResponse({'warning': 'هیچ واحد معتبری یافت نشد.'})
+
+        deleted_count, _ = PersonChargeCalc.objects.filter(
+            person_charge=charge,
+            unit__in=units_qs,
+        ).delete()
+
+        # بررسی اینکه آیا رکوردی باقی مانده یا نه
+        if not PersonChargeCalc.objects.filter(person_charge=charge).exists():
+            charge.send_notification = False
+            charge.save()
+
+        if deleted_count:
+            return JsonResponse({'success': f'{deleted_count} اطلاعیه برای واحدهای انتخاب‌شده حذف شد.'})
+        else:
+            return JsonResponse({'info': 'رکوردی برای حذف یافت نشد.'})
+
+    except Exception as e:
+        return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
 
 
 # =================================================

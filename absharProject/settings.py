@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'admin_panel',
     'user_app',
     'polls',
+    'payment_app',
 
     # other_app
     'django_render_partial',

@@ -45,6 +45,9 @@
             </div>
          
             <div class="col-12 col-md-6 col-xl-6 text-start align-self-center">
+                  <button type="button" id="remove-all-btn" class="btn btn-dark px-3 shadow_style">
+                    حذف اطلاعیه همه واحدها
+                </button>
                 <button type="submit" onclick="return confirmWithSweetAlert(event)" class="btn btn-gradient-success px-3 shadow_style">ارسال اطلاعیه شارژ به واحد</button>
                 <a href="{% url 'add_fixed_charge' %}" class="btn btn-gradient-danger shadow_style"> بازگشت</a>
              </div>
@@ -144,5 +147,51 @@ function confirmWithSweetAlert(event) {
 
     return false; // جلوگیری از رفتار پیش‌فرض
 }
+
+document.getElementById('remove-all-btn').addEventListener('click', function(e) {
+    e.preventDefault();
+
+    Swal.fire({
+        title: 'آیا مطمئن هستید؟',
+        text: "همه اطلاعیه‌های این شارژ برای تمامی واحدها حذف خواهند شد.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'بله، حذف کن!',
+        cancelButtonText: 'لغو'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const params = new URLSearchParams();
+            params.append('units[]', 'all');
+
+            fetch("{% url 'remove_send_notification_fix' pk=charge.id %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: params
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);  // <-- اینجا اضافه کن
+                if (data.success) {
+                    Swal.fire('حذف شد!', data.success, 'success').then(() => {
+                        location.reload();
+                    });
+                } else if (data.warning) {
+                    Swal.fire('هشدار', data.warning, 'warning');
+                } else {
+                    Swal.fire('خطا', data.error || 'مشکلی در حذف پیش آمده است.', 'error');
+                }
+            })
+            .catch(error => {
+                Swal.fire('خطا', 'درخواست با خطا مواجه شد.', 'error');
+                console.error(error);
+            });
+        }
+    });
+});
 </script>
 {% endblock %}
