@@ -4,22 +4,18 @@ from absharProject.settings import Kavenegar_API
 from user_app.models import User
 
 
-def send_notify_to_user(mobile, title, full_name, otp=None):
+def send_notify_user_by_sms(mobile, fix_charge, name, otp=None):
     mobile = [mobile]
-    full_name = [full_name]
-    title = [title]
-    text = '.'
-
+    fix_charge = [fix_charge]
+    name = [name]
     try:
         api = KavenegarAPI(Kavenegar_API)
 
         params = {
             'receptor': [mobile],  # List of strings for mobile numbers
-
-            'token': text,
-            'token10': full_name,
-            'token20': title,
-            'template': 'notify',  # Template name (if using a template)
+            'token': fix_charge,  # OTP token
+            'token10': name,
+            'template': 'raya',  # Template name (if using a template)
             'message': otp,  # Custom message
             'type': 'sms'
         }

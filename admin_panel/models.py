@@ -240,8 +240,10 @@ class FixedChargeCalc(models.Model):
     total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
     send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
+    send_sms = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر با پیامک')
     is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
     payment_date = models.DateField(verbose_name='', null=True, blank=True)
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 
@@ -273,9 +275,11 @@ class AreaChargeCalc(models.Model):
     total_area = models.PositiveIntegerField(verbose_name='متراژ کل', null=True, blank=True)
     final_area_amount = models.PositiveIntegerField(verbose_name='مبلغ شارژ نهایی', null=True, blank=True)
     civil_charge = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
-    total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
+    total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه هر واحد')
     send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
     is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
+    payment_date = models.DateField(verbose_name='', null=True, blank=True)
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
@@ -296,10 +300,14 @@ class AreaChargeCalc(models.Model):
 class PersonCharge(models.Model):
     name = models.CharField(max_length=300, verbose_name='', null=True, blank=True)
     person_amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True)
-    civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
+    civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', default=0, null=True, blank=True)
+    total_people = models.PositiveIntegerField(null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
+
+    def __str__(self):
+        return str(self.name)
 
 
 class PersonChargeCalc(models.Model):
@@ -316,6 +324,8 @@ class PersonChargeCalc(models.Model):
     total_charge_year = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل سالیانه')
     send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
     is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
+    payment_date = models.DateField(verbose_name='', null=True, blank=True)
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
@@ -333,12 +343,27 @@ class PersonChargeCalc(models.Model):
         super().save(*args, **kwargs)
 
 
+class FixPersonCharge(models.Model):
+    name = models.CharField(max_length=300, verbose_name='', null=True, blank=True)
+    fix_charge_amount = models.PositiveIntegerField(verbose_name='مبلغ ثابت', null=True, blank=True)
+    person_amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True)
+    total_people = models.PositiveIntegerField(null=True, blank=True)
+    civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', default=0, null=True, blank=True)
+    details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
+    is_active = models.BooleanField(default=True, verbose_name='')
+
+    def __str__(self):
+        return str(self.name)
+
+
 class FixPersonChargeCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_fix_person')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_fix_person')
+    fix_person = models.ForeignKey(FixPersonCharge, on_delete=models.CASCADE, related_name='fix_person_charge')
     charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
     fix_charge = models.PositiveIntegerField(verbose_name='شارژ ثابت', null=True, blank=True)
-    person_amount = models.PositiveIntegerField(verbose_name='شارژ به ازای نفرات', null=True, blank=True)
+    amount = models.PositiveIntegerField(verbose_name='شارژ به ازای نفرات', null=True, blank=True)
     final_person_amount = models.PositiveIntegerField(verbose_name='مبلغ شارژ نهایی', null=True, blank=True)
     unit_count = models.PositiveIntegerField(null=True, blank=True, verbose_name='تعداد واحدها')
     total_people = models.PositiveIntegerField(null=True, blank=True, verbose_name='تعداد نفرات')
@@ -346,6 +371,8 @@ class FixPersonChargeCalc(models.Model):
     total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
     send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
     is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
+    payment_date = models.DateField(verbose_name='', null=True, blank=True)
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
@@ -353,13 +380,37 @@ class FixPersonChargeCalc(models.Model):
     def __str__(self):
         return str(self.charge_name)
 
+    def save(self, *args, **kwargs):
+        if self.unit.people_count and self.amount and self.fix_charge:
+            self.final_person_amount = (self.unit.people_count * self.amount) + self.fix_charge
+
+        if self.final_person_amount and self.civil_charge:
+            self.total_charge_month = self.final_person_amount + self.civil_charge
+
+        super().save(*args, **kwargs)
+
+
+class FixAreaCharge(models.Model):
+    name = models.CharField(max_length=300, verbose_name='', null=True, blank=True)
+    fix_charge_amount = models.PositiveIntegerField(verbose_name='مبلغ ثابت', null=True, blank=True)
+    area_amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True)
+    total_area = models.PositiveIntegerField(null=True, blank=True)
+    civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', default=0, null=True, blank=True)
+    details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
+    is_active = models.BooleanField(default=True, verbose_name='')
+
+    def __str__(self):
+        return str(self.name)
+
 
 class FixAreaChargeCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_fix_area')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_fix_area')
+    fix_area = models.ForeignKey(FixAreaCharge, on_delete=models.CASCADE, related_name='fix_area_charge')
     charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
     fix_charge = models.PositiveIntegerField(verbose_name='شارژ ثابت', null=True, blank=True)
-    area_amount = models.PositiveIntegerField(verbose_name='شارژ به ازای متراژ', null=True, blank=True)
+    amount = models.PositiveIntegerField(verbose_name='شارژ به ازای متراژ', null=True, blank=True)
     unit_count = models.PositiveIntegerField(verbose_name='تعداد واحدها', null=True, blank=True)
     total_area = models.PositiveIntegerField(verbose_name='متراژ کل', null=True, blank=True)
     final_person_amount = models.PositiveIntegerField(verbose_name='مبلغ شارژ نهایی', null=True, blank=True)
@@ -367,6 +418,8 @@ class FixAreaChargeCalc(models.Model):
     total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
     send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
     is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
+    payment_date = models.DateField(verbose_name='', null=True, blank=True)
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
@@ -374,10 +427,32 @@ class FixAreaChargeCalc(models.Model):
     def __str__(self):
         return str(self.charge_name)
 
+    def save(self, *args, **kwargs):
+        if self.unit.area and self.amount and self.fix_charge:
+            self.final_person_amount = (self.unit.area * self.amount) + self.fix_charge
+
+        if self.final_person_amount and self.civil_charge:
+            self.total_charge_month = self.final_person_amount + self.civil_charge
+
+        super().save(*args, **kwargs)
+
 
 class ChargeByPersonArea(models.Model):
+    name = models.CharField(max_length=300, verbose_name='', null=True, blank=True)
+    area_amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True)
+    person_amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True)
+    total_area = models.PositiveIntegerField(null=True, blank=True)
+    total_people = models.PositiveIntegerField(null=True, blank=True)
+    civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', default=0, null=True, blank=True)
+    details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
+    is_active = models.BooleanField(default=True, verbose_name='')
+
+
+class ChargeByPersonAreaCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_by_person_area')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_by_person_area')
+    person_area_charge = models.ForeignKey(ChargeByPersonArea, on_delete=models.CASCADE, related_name='person_area_charge')
     charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
     person_charge = models.PositiveIntegerField(verbose_name='شارژ به ازای نفرات')
     area_charge = models.PositiveIntegerField(verbose_name='شارژ به ازای متراژ')
@@ -388,6 +463,8 @@ class ChargeByPersonArea(models.Model):
     total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
     send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
     is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
+    payment_date = models.DateField(verbose_name='', null=True, blank=True)
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
     civil_charge = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
@@ -395,6 +472,15 @@ class ChargeByPersonArea(models.Model):
 
     def __str__(self):
         return str(self.charge_name)
+
+    def save(self, *args, **kwargs):
+        if self.unit.area and self.area_charge and self.unit.people_count and self.person_charge:
+            self.final_person_amount = (self.unit.area * self.area_charge) + (self.unit.people_count * self.person_charge)
+
+        if self.final_person_amount and self.civil_charge:
+            self.total_charge_month = self.final_person_amount + self.civil_charge
+
+        super().save(*args, **kwargs)
 
 
 class ChargeByFixPersonArea(models.Model):
@@ -411,6 +497,8 @@ class ChargeByFixPersonArea(models.Model):
     total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
     send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
     is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
+    payment_date = models.DateField(verbose_name='', null=True, blank=True)
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
     civil_charge = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
@@ -462,6 +550,8 @@ class ChargeCalcFixVariable(models.Model):
     # surcharge = models.PositiveIntegerField(verbose_name='جریمه عدم پرداخت')
     send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
     is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
+    payment_date = models.DateField(verbose_name='', null=True, blank=True)
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')

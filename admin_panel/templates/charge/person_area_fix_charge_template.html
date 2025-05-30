@@ -172,7 +172,28 @@
     </div>
   </div>
 </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% if request.GET.error == 'paid' %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      Swal.fire({
+        icon: 'error',
+        text: 'امکان ویرایش وجود ندارد زیرا حداقل یک واحد شارژ خود را پرداخت کرده است. لطفا اصلاحیه شارژ ثبت کنید!',
+        confirmButtonText: 'باشه'
+      });
+    });
+  </script>
+{% elif request.GET.error == 'notify' %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      Swal.fire({
+        icon: 'error',
+        text: 'امکان ویرایش وجود ندارد، باید ابتدا اطلاعیه های ارسال را حذف کنید سپس ویرایش و مجددا ارسال نمایید!',
+        confirmButtonText: 'باشه'
+      });
+    });
+  </script>
+{% endif %}
     
     
 {% endblock %}

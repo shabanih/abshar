@@ -8,7 +8,8 @@ from jalali_date.widgets import AdminJalaliDateWidget
 
 from admin_panel.models import Announcement, Expense, ExpenseCategory, Income, IncomeCategory, ReceiveMoney, PayMoney, \
     Property, Maintenance, FixedChargeCalc, ChargeByPersonArea, AreaChargeCalc, PersonChargeCalc, FixAreaChargeCalc, \
-    FixPersonChargeCalc, ChargeByFixPersonArea, ChargeCalcFixVariable, FixCharge, AreaCharge, PersonCharge
+    FixPersonChargeCalc, ChargeByFixPersonArea, ChargeCalcFixVariable, FixCharge, AreaCharge, PersonCharge, \
+    FixPersonCharge, FixAreaCharge
 from user_app.models import Unit, Bank, MyHouse
 
 attr = {'class': 'form-control border-1 py-2 mb-4 '}
@@ -237,13 +238,13 @@ class UnitForm(forms.ModelForm):
         widget=forms.TextInput(attrs=attr)
     )
     password = forms.CharField(
-        required=True,
+        required=False,
         label='رمز عبور',
         widget=forms.PasswordInput(attrs=attr),
         help_text='رمز عبور باید شامل اعداد و حروف باشد'
     )
     confirm_password = forms.CharField(
-        required=True,
+        required=False,
         label='تایید رمز عبور',
         widget=forms.PasswordInput(attrs=attr),
         help_text='رمز عبور باید شامل اعداد و حروف باشد'
@@ -750,10 +751,10 @@ class PersonChargeForm(forms.ModelForm):
 
 
 class FixAreaChargeForm(forms.ModelForm):
-    charge_name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+    name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
                                   required=True,
                                   label='عنوان شارژ ')
-    fix_charge = forms.IntegerField(error_messages=error_message,
+    fix_charge_amount = forms.IntegerField(error_messages=error_message,
                                     widget=forms.TextInput(attrs=attr),
                                     required=True,
                                     label=' شارژ ثابت')
@@ -761,7 +762,7 @@ class FixAreaChargeForm(forms.ModelForm):
                                      widget=forms.TextInput(attrs=attr),
                                      required=True,
                                      label='مبلغ شارژ به اساس متراژ')
-    civil_charge = forms.IntegerField(error_messages=error_message,
+    civil = forms.IntegerField(error_messages=error_message,
                                       widget=forms.TextInput(attrs=attr),
                                       required=False, min_value=0,
                                       label='شارژ عمرانی')
@@ -776,15 +777,15 @@ class FixAreaChargeForm(forms.ModelForm):
         return value
 
     class Meta:
-        model = FixAreaChargeCalc
-        fields = ['charge_name', 'area_amount', 'details', 'civil_charge', 'fix_charge']
+        model = FixAreaCharge
+        fields = ['name', 'area_amount', 'details', 'civil', 'fix_charge_amount']
 
 
 class FixPersonChargeForm(forms.ModelForm):
-    charge_name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+    name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
                                   required=True,
                                   label='عنوان شارژ ')
-    fix_charge = forms.IntegerField(error_messages=error_message,
+    fix_charge_amount = forms.IntegerField(error_messages=error_message,
                                     widget=forms.TextInput(attrs=attr),
                                     required=True,
                                     label=' شارژ ثابت')
@@ -792,7 +793,7 @@ class FixPersonChargeForm(forms.ModelForm):
                                        widget=forms.TextInput(attrs=attr),
                                        required=True,
                                        label='مبلغ شارژ به ازای هر نفر')
-    civil_charge = forms.IntegerField(error_messages=error_message,
+    civil = forms.IntegerField(error_messages=error_message,
                                       widget=forms.TextInput(attrs=attr),
                                       required=False, min_value=0,
                                       label='شارژ عمرانی')
@@ -807,39 +808,39 @@ class FixPersonChargeForm(forms.ModelForm):
         return value
 
     class Meta:
-        model = FixPersonChargeCalc
-        fields = ['charge_name', 'person_amount', 'details', 'civil_charge', 'fix_charge']
+        model = FixPersonCharge
+        fields = ['name', 'person_amount', 'details', 'civil', 'fix_charge_amount']
 
 
 class PersonAreaChargeForm(forms.ModelForm):
-    charge_name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+    name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
                                   required=True,
                                   label='عنوان شارژ ')
-    person_charge = forms.IntegerField(error_messages=error_message,
+    person_amount = forms.IntegerField(error_messages=error_message,
                                        widget=forms.TextInput(attrs=attr),
                                        required=True,
                                        label='مبلغ شارژ نفر')
-    area_charge = forms.IntegerField(error_messages=error_message,
+    area_amount = forms.IntegerField(error_messages=error_message,
                                      widget=forms.TextInput(attrs=attr),
                                      required=True,
                                      label='مبلغ شارژ هر متر')
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
-    civil_charge = forms.IntegerField(error_messages=error_message,
+    civil = forms.IntegerField(error_messages=error_message,
                                       widget=forms.TextInput(attrs=attr),
-                                      required=False, min_value=0,
+                                      required=False,
                                       label='شارژ عمرانی(تومان)')
 
-    def clean_civil_charge(self):
-        value = self.cleaned_data.get('civil_charge')
-        if value in [None, '']:  # empty string or None
-            return 0
-        return value
+    # def clean_civil_charge(self):
+    #     value = self.cleaned_data.get('civil_charge')
+    #     if value in [None, '']:  # empty string or None
+    #         return 0
+    #     return value
 
     class Meta:
         model = ChargeByPersonArea
-        fields = ['charge_name', 'area_charge', 'details', 'person_charge', 'civil_charge']
+        fields = ['name', 'area_amount', 'details', 'person_amount', 'civil']
 
 
 class PersonAreaFixChargeForm(forms.ModelForm):

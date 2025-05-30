@@ -121,17 +121,38 @@ urlpatterns = [
     path('remove-send-notification-person/<int:pk>/', views.remove_send_notification_person,
          name='remove_send_notification_person'),
 
-    path('add-fix_area-charge', views.FixAreaChargeCreateView.as_view(), name='add_fix_area_charge'),
-    path('fix/area/charge/edit/<int:pk>/', views.fix_area_charge_edit, name='charge_fix_area_edit'),
-    path('fix/area/charge/delete/<int:pk>/', views.fix_area_charge_delete, name='charge-fix_area_delete'),
-
     path('add-fix_person-charge', views.FixPersonChargeCreateView.as_view(), name='add_fix_person_charge'),
     path('fix/person/charge/edit/<int:pk>/', views.fix_person_charge_edit, name='charge_fix_person_edit'),
     path('fix/person/charge/delete/<int:pk>/', views.fix_person_charge_delete, name='charge_fix_person_delete'),
+    path('charge/fix/person/notify/<int:pk>/', views.show_fix_person_charge_notification_form,
+         name='show_notification_fix_person_charge_form'),
+    path('charge/fix/person/notify/send/<int:pk>/', views.send_notification_fix_person_charge_to_user,
+         name='send_notification_fix_person_charge_to_user'),
+    path('remove-send-notification-fix-person/<int:pk>/', views.remove_send_notification_fix_person,
+         name='remove_send_notification_fix_person'),
+
+    path('add-fix_area-charge', views.FixAreaChargeCreateView.as_view(), name='add_fix_area_charge'),
+    path('fix/area/charge/edit/<int:pk>/', views.fix_area_charge_edit, name='charge_fix_area_edit'),
+    path('fix/area/charge/delete/<int:pk>/', views.fix_area_charge_delete, name='charge-fix_area_delete'),
+    path('charge/fix/area/notify/<int:pk>/', views.show_fix_area_charge_notification_form,
+         name='show_notification_fix_area_charge_form'),
+    path('charge/fix/area/notify/send/<int:pk>/', views.send_notification_fix_area_charge_to_user,
+         name='send_notification_fix_area_charge_to_user'),
+    path('remove-send-notification-fix-area/<int:pk>/', views.remove_send_notification_fix_area,
+         name='remove_send_notification_fix_area'),
+
 
     path('add-person_area-charge', views.PersonAreaChargeCreateView.as_view(), name='add_person_area_charge'),
     path('area/person/charge/edit/<int:pk>/', views.person_area_charge_edit, name='charge_area_person_edit'),
     path('area/person/charge/delete/<int:pk>/', views.person_area_charge_delete, name='charge_area_person_delete'),
+    path('charge/person/area/notify/<int:pk>/', views.show_person_area_charge_notification_form,
+         name='show_notification_person_area_charge_form'),
+    path('charge/person/area/notify/send/<int:pk>/', views.send_notification_person_area_charge_to_user,
+         name='send_notification_person_area_charge_to_user'),
+    path('remove-send-notification-person-area/<int:pk>/', views.remove_send_notification_person_area,
+         name='remove_send_notification_person_area'),
+
+
 
     path('add-person_area-fix-charge', views.PersonAreaFixChargeCreateView.as_view(),
          name='add_person_area_fix_charge'),

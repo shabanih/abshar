@@ -8,7 +8,8 @@ from django.utils import timezone
 from django.views.generic import TemplateView
 
 from user_app import helper
-from admin_panel.models import Announcement, FixedChargeCalc, AreaChargeCalc, PersonCharge, PersonChargeCalc
+from admin_panel.models import Announcement, FixedChargeCalc, AreaChargeCalc, PersonCharge, PersonChargeCalc, \
+    FixPersonChargeCalc, FixAreaChargeCalc, ChargeByPersonAreaCalc
 from user_app.forms import LoginForm, MobileLoginForm
 from user_app.models import User, Unit
 
@@ -146,25 +147,67 @@ def user_panel(request):
     return render(request, 'partials/home_template.html', context)
 
 
-@login_required
-def fetch_user_fixed_charges(request):
-    unit = Unit.objects.filter(user=request.user, is_active=True).first()
-    charges = FixedChargeCalc.objects.filter(
-        user=request.user,
-        send_notification=True
-    ).select_related('unit').order_by('-created_at')
-    area_charges = AreaChargeCalc.objects.filter(
-        user=request.user,
-        send_notification=True
-    ).select_related('unit').order_by('-created_at')
-    person_charges = PersonChargeCalc.objects.filter(
-        user=request.user,
+# ==================================
+
+# @login_required
+# def fetch_user_fixed_charges(request):
+#     unit = Unit.objects.filter(user=request.user, is_active=True).first()
+#     charges = FixedChargeCalc.objects.filter(
+#         user=request.user,
+#         send_notification=True
+#     ).select_related('unit').order_by('-created_at')
+#     area_charges = AreaChargeCalc.objects.filter(
+#         user=request.user,
+#         send_notification=True
+#     ).select_related('unit').order_by('-created_at')
+#     person_charges = PersonChargeCalc.objects.filter(
+#         user=request.user,
+#         send_notification=True
+#     ).select_related('unit').order_by('-created_at')
+#     fix_person_charges = FixPersonChargeCalc.objects.filter(
+#         user=request.user,
+#         send_notification=True
+#     ).select_related('unit').order_by('-created_at')
+#     fix_area_charges = FixAreaChargeCalc.objects.filter(
+#         user=request.user,
+#         send_notification=True
+#     ).select_related('unit').order_by('-created_at')
+#
+#     return render(request, 'manage_charges.html', {
+#         'fix_area_charges': fix_area_charges,
+#         'fix_person_charges': fix_person_charges,
+#         'person_charges': person_charges,
+#         'area_charges': area_charges,
+#         'charges': charges,
+#         'unit': unit
+#     })
+
+def get_user_charges(model, user):
+    return model.objects.filter(
+        user=user,
         send_notification=True
     ).select_related('unit').order_by('-created_at')
 
-    return render(request, 'fixed_charges.html', {
-        'person_charges': person_charges,
-        'area_charges': area_charges,
+
+@login_required
+def fetch_user_fixed_charges(request):
+    unit = Unit.objects.filter(user=request.user, is_active=True).first()
+
+    charges = get_user_charges(FixedChargeCalc, request.user)
+    area_charges = get_user_charges(AreaChargeCalc, request.user)
+    person_charges = get_user_charges(PersonChargeCalc, request.user)
+    fix_person_charges = get_user_charges(FixPersonChargeCalc, request.user)
+    fix_area_charges = get_user_charges(FixAreaChargeCalc, request.user)
+    person_area_charges = get_user_charges(ChargeByPersonAreaCalc, request.user)
+
+    context = {
+        'unit': unit,
         'charges': charges,
-        'unit': unit
-    })
+        'area_charges': area_charges,
+        'person_charges': person_charges,
+        'fix_person_charges': fix_person_charges,
+        'fix_area_charges': fix_area_charges,
+        'person_area_charges': person_area_charges,
+    }
+
+    return render(request, 'manage_charges.html', context)

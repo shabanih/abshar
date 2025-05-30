@@ -688,21 +688,9 @@ div.d-flex.justify-content-between div{
   align-items: center;
 }
 
-/*ckeditor style*/
-.circleOrangePayment {
-  background: rgb(255, 183, 0);
-  border-radius: 3em;
-  -moz-border-radius: 3em;
-  -webkit-border-radius: 3em;
-  color: #ffffff;
-  height: 1.8em;
-  width: 1.8em;
-  display: inline-block;
-  font-size: 11px;
-  line-height: 1.8em;
-  text-align: center;
 
-}
+
+
 /*clock head*/
 .top-link {
     font-size: 15px;
@@ -733,5 +721,59 @@ div.d-flex.justify-content-between div{
 }
 .card-charge-title{
     font-size: 14px;
+}
+.circleSendNotify {
+  background: rgb(252, 223, 149);
+  border-radius: 3em;
+  -moz-border-radius: 3em;
+  -webkit-border-radius: 3em;
+  color: #ffffff;
+  height: 1.8em;
+  width: 1.8em;
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1.8em;
+  text-align: center;
+
+}
+.circlePayment {
+  background: rgb(133, 218, 99);
+  border-radius: 3em;
+  -moz-border-radius: 3em;
+  -webkit-border-radius: 3em;
+  color: #ffffff;
+  height: 1.8em;
+  width: 1.8em;
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1.8em;
+  text-align: center;
+
+}
+.chargeCircle{
+      background: rgb(255, 255, 255);
+  border-radius: 3em;
+  -moz-border-radius: 3em;
+  -webkit-border-radius: 3em;
+  color: rgba(1, 3, 14, 0.98);
+  height: 1.8em;
+  width: 1.8em;
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1.9em;
+  text-align: center;
+}
+.chargeCircleText{
+          background: rgb(12, 6, 6);
+  border-radius: 3em;
+  -moz-border-radius: 3em;
+  -webkit-border-radius: 3em;
+  color: rgb(239, 237, 234);
+  height: 1.8em;
+  width: 1.8em;
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1.9em;
+  text-align: center;
 }
 

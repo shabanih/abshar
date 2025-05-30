@@ -24,11 +24,11 @@
                                         <th> عنوان شارژ </th>
                                         <th class="p-0">مبلغ شارژ هر متر(تومان)</th>
                                         <th class="p-0">مبلغ شارژ هر نفر(تومان)</th>
-                                        <th>تعداد واحدها</th>
-{#                                        <th>متراژ کل</th>#}
-                                        <th>مبلغ شارژ هر واحد(تومان)</th>
+                                        <th>تعداد نفرات</th>
+                                        <th>متراژ کل</th>
+{#                                        <th>مبلغ شارژ هر واحد(تومان)</th>#}
                                         <th> شارژ عمرانی </th>
-                                        <th>جمع کل شارژ ماه </th>
+{#                                        <th>جمع کل شارژ ماه </th>#}
                                         <th> توضیحات </th>
                                         <th>تاریخ ایجاد</th>
                                         <th>دستورات</th>
@@ -39,26 +39,23 @@
                                     <tbody class="text-center">
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
-                                            <td>{{charge.charge_name }}</td>
-                                            <td>{{charge.area_charge|three_digit_currency }}</td>
-                                            <td>{{charge.person_charge|three_digit_currency }}</td>
-                                            <td>{{charge.unit_count }}</td>
-{#                                            <td>{{charge.total_area }}</td>#}
-                                            <td class="bg-gradient-light p-0"><strong>{{charge.final_person_amount|three_digit_currency }}</strong></td>
-                                            <td>{{charge.civil_charge|three_digit_currency }}</td>
-                                          <td>{{ charge.total_charge_month|three_digit_currency }}</td>
+                                            <td>{{charge.name }}</td>
+                                            <td>{{charge.area_amount|three_digit_currency }}</td>
+                                            <td>{{charge.person_amount|three_digit_currency }}</td>
+                                            <td>{{charge.total_people }}</td>
+                                            <td>{{charge.total_area }}</td>
+                                            <td>{{charge.civil|three_digit_currency }}</td>
                                             <td>{{charge.details }}</td>
                                             <td>{{charge.created_at|show_jalali }}</td>
                                             
-                                               <td class="col-1 p-0">
+                                               <td class="p-0">
                                                       <a
                                            class="btn btn-gradient-info p-1 edit-area-person-btn"
                                            data-id="{{ charge.id }}"
-                                           data-charge_name="{{ charge.charge_name }}"
-                                           data-person_charge="{{ charge.person_charge }}"
-                                           data-area_charge="{{ charge.area_charge}}"
-                                           data-civil_charge="{{ charge.civil_charge }}"
-{#                                           data-final_area_amount="{{ charge.final_area_amount }}"#}
+                                           data-name="{{ charge.name }}"
+                                           data-person_amount="{{ charge.person_amount }}"
+                                           data-area_amount="{{ charge.area_amount}}"
+                                           data-civil="{{ charge.civil }}"
                                            data-details="{{ charge.details }}"
                                            data-bs-toggle="modal"
                                            data-bs-target="#exampleModalLong">
@@ -67,6 +64,10 @@
                                           <a href="{% url 'charge_area_person_delete' charge.id %}" class="btn btn-gradient-danger p-1"
                                        onclick="return confirmDeleteWithSweetAlert(event)">
                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                            </a>
+                                       <a href="{% url 'show_notification_person_area_charge_form' charge.id %}"
+                                       class="btn btn-gradient-success p-2">
+                                            اعلام شارژ
                                             </a>
 
                                         </td>
@@ -78,13 +79,13 @@
                                         </tr>
                                  <tbody>
                                 {% endif %}
-                            <tfoot class="text-center bg-light">
-                            <tr>
-                                <td colspan="8" class="text-end"><strong>جمع شارژ سالانه:</strong></td>
-                                <td class="text-dark"><strong>{{ total_charge_year|floatformat:0|three_digit_currency }} تومان</strong></td>
-                                <td colspan="3"></td>
-                            </tr>
-                        </tfoot>
+{#                            <tfoot class="text-center bg-light">#}
+{#                            <tr>#}
+{#                                <td colspan="8" class="text-end"><strong>جمع شارژ سالانه:</strong></td>#}
+{#                                <td class="text-dark"><strong>{{ total_charge_year|floatformat:0|three_digit_currency }} تومان</strong></td>#}
+{#                                <td colspan="3"></td>#}
+{#                            </tr>#}
+{#                        </tfoot>#}
                             </table>
        
                </div>
@@ -102,14 +103,19 @@
          <hr>
       <div class="modal-body" >
          {{ form.non_field_errors }}
-          <form id="persianAreaForm" action="" method="POST"
+          <form id="personAreaForm" action="" method="POST"
                 enctype="multipart/form-data" novalidate>
               {% csrf_token %}
                  <div class="row g-2">
-                  <div class="col-12">
-                      {{ form.charge_name.label_tag }}
-                      {{ form.charge_name }}
-                      {{ form.charge_name.errors }}
+                  <div class="col-6">
+                      {{ form.name.label_tag }}
+                      {{ form.name }}
+                      {{ form.name.errors }}
+                  </div>
+                     <div class="col-6">
+                      {{ form.civil.label_tag }}
+                      {{ form.civil }}
+                      {{ form.civil.errors }}
                   </div>
                  </div>
               <div class="row g-2">
@@ -126,21 +132,14 @@
                  </div>
                 <div class="row g-2">
                       <div class="col-6">
-                      {{ form.person_charge.label_tag }}
-                      {{ form.person_charge }}
-                      {{ form.person_charge.errors }}
+                      {{ form.person_amount.label_tag }}
+                      {{ form.person_amount }}
+                      {{ form.person_amount.errors }}
                   </div>
                      <div class="col-6">
-                         {{ form.area_charge.label_tag }}
-                      {{ form.area_charge }}
-                      {{ form.area_charge.errors }}
-                  </div>
-                     </div>
-              <div class="row g-2">
-                     <div class="col-12">
-                      {{ form.civil_charge.label_tag }}
-                      {{ form.civil_charge }}
-                      {{ form.civil_charge.errors }}
+                         {{ form.area_amount.label_tag }}
+                      {{ form.area_amount }}
+                      {{ form.area_amount.errors }}
                   </div>
                      </div>
                   <div class="row g-2">
@@ -164,7 +163,28 @@
     </div>
   </div>
 </div>
-
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% if request.GET.error == 'paid' %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      Swal.fire({
+        icon: 'error',
+        text: 'امکان ویرایش وجود ندارد زیرا حداقل یک واحد شارژ خود را پرداخت کرده است. لطفا اصلاحیه شارژ ثبت کنید!',
+        confirmButtonText: 'باشه'
+      });
+    });
+  </script>
+{% elif request.GET.error == 'notify' %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      Swal.fire({
+        icon: 'error',
+        text: 'امکان ویرایش وجود ندارد، باید ابتدا اطلاعیه های ارسال را حذف کنید سپس ویرایش و مجددا ارسال نمایید!',
+        confirmButtonText: 'باشه'
+      });
+    });
+  </script>
+{% endif %}
     
     
 {% endblock %}

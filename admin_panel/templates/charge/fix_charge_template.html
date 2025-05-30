@@ -42,16 +42,9 @@
                                             <td>{{unit_count }}</td>
                                             <td class="bg-gradient-light p-0"><strong>{{charge.fix_amount|three_digit_currency }}</strong></td>
                                             <td>{{charge.civil|three_digit_currency }}</td>
-{#                                            <td>{{ charge.total_charge_month|three_digit_currency }}</td>#}
-                                           
                                             <td>{{charge.details }}</td>
-                                                <td>
-                                                   {% if charge.send_notification == True %}
-                                                    <button class="btn btn-facebook p-1">اعلام گردید</button>
-                                                       {% else %}
-                                                       <button class="btn btn-danger p-2">---</button>
-                
-                                                   {% endif %}
+                                          <td>
+                                                <span>{{ charge.notified_count }} از {{ unit_count }} واحد</span>
                                                 </td>
 {#                                             <td>{{ charge.send_notification}}</td>#}
                                             <td>{{charge.created_at|show_jalali }}</td>
@@ -85,19 +78,19 @@
                                         </tr>
                                  <tbody>
                                 {% endif %}
-                                <tfoot class="text-center bg-light">
-                            <tr>
-                                <td colspan="6" class="text-end"><strong>جمع شارژ سالانه:</strong></td>
-                                <td class="text-dark"><strong>{{ total_charge_year|floatformat:0|three_digit_currency }} تومان</strong></td>
-                                <td colspan="3"></td>
-                            </tr>
-                        </tfoot>
+{#                                <tfoot class="text-center bg-light">#}
+{#                            <tr>#}
+{#                                <td colspan="6" class="text-end"><strong>جمع شارژ سالانه:</strong></td>#}
+{#                                <td class="text-dark"><strong>{{ total_charge_year|floatformat:0|three_digit_currency }} تومان</strong></td>#}
+{#                                <td colspan="3"></td>#}
+{#                            </tr>#}
+{#                        </tfoot>#}
                             </table>
                </div>
 
 </div>
     
-        <div class="modal fade" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+  <div class="modal fade" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header" id="exampleModalLongTitle">
@@ -155,7 +148,28 @@
   </div>
 </div>
 
-
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% if request.GET.error == 'paid' %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      Swal.fire({
+        icon: 'error',
+        text: 'امکان ویرایش وجود ندارد زیرا حداقل یک واحد شارژ خود را پرداخت کرده است. لطفا اصلاحیه شارژ ثبت کنید!',
+        confirmButtonText: 'باشه'
+      });
+    });
+  </script>
+{% elif request.GET.error == 'notify' %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      Swal.fire({
+        icon: 'error',
+        text: 'امکان ویرایش وجود ندارد، باید ابتدا اطلاعیه های ارسال را حذف کنید سپس ویرایش و مجددا ارسال نمایید!',
+        confirmButtonText: 'باشه'
+      });
+    });
+  </script>
+{% endif %}
     
 {% endblock %}
 

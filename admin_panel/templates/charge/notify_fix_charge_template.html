@@ -37,28 +37,42 @@
         {% csrf_token %}
        
         <hr>
-      <div class="row mb-2">
-            <div class="col-12 col-md-6 col-xl-6 form-check align-self-center">
+      <div class="row m-1 mb-2">
+            <div class="col-12 col-md-2 col-xl-2 form-check align-self-center">
             <button type="button" id="toggle-select-btn" class="btn btn-gradient-info shadow_style px-3">
                 انتخاب همه واحدها
             </button>
             </div>
+              <div class="col-12 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
+                    <span class="circleSendNotify"></span>
+                  ارسال موفق اطلاعیه شارژ 
+                </div>
+            <div class="col-12 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
+                    <span class="circlePayment"></span>
+                  پرداخت موفق شارژ
+                </div>
          
-            <div class="col-12 col-md-6 col-xl-6 text-start align-self-center">
-                  <button type="button" id="remove-all-btn" class="btn btn-dark px-3 shadow_style">
+            <div class="col-12 col-md-6 col-xl-6 text-start align-self-center ">
+                  <button type="button" id="remove-all-btn" class="btn btn-dark px-3 shadow_style m-1">
                     حذف اطلاعیه همه واحدها
                 </button>
-                <button type="submit" onclick="return confirmWithSweetAlert(event)" class="btn btn-gradient-success px-3 shadow_style">ارسال اطلاعیه شارژ به واحد</button>
+                <button type="submit" onclick="return confirmWithSweetAlert(event)" class="btn btn-gradient-success px-3 shadow_style m-1">ارسال اطلاعیه شارژ به واحد</button>
                 <a href="{% url 'add_fixed_charge' %}" class="btn btn-gradient-danger shadow_style"> بازگشت</a>
              </div>
         </div>
     
   
 <div class="row g-2">
-    {% for unit, active_renter in page_obj %}
+    {% for unit, active_renter, is_paid in page_obj %}
     <div class="col-6 col-lg-2 col-md-2 col-xl-2 mb-3">
-        <div class="card shadow_style fixChargeTable"
-     {% if unit.id in notified_ids %} style="background-color: #8fef88;" {% endif %}>
+   <div class="card shadow_style fixChargeTable"
+     {% if unit.id in notified_ids %}
+         {% if is_paid %}
+             style="background-color: #8fef88;"  {# Green for notified and paid #}
+         {% else %}
+             style="background-color: #fff3cd;"  {# Yellow for notified and not paid #}
+         {% endif %}
+     {% endif %}>
             <div class="card-body text-center p-0 m-0 mt-3">
                 <p class="card-charge-title shadow_style">
                     <input class="form-check-input unit-checkbox mx-2" 
@@ -80,6 +94,11 @@
                     <p class="card-charge-text">مالک: {{ unit.owner_name }}</p>
                 {% endif %}
             </div>
+{#        {% if is_paid %}#}
+{#        	پرداخت شد#}
+{#            {% else %}#}
+{#            عدم پرداخت#}
+{#        {% endif %} #}
         </div>
     </div>
     {% endfor %}
@@ -153,7 +172,7 @@ document.getElementById('remove-all-btn').addEventListener('click', function(e) 
 
     Swal.fire({
         title: 'آیا مطمئن هستید؟',
-        text: "همه اطلاعیه‌های این شارژ برای تمامی واحدها حذف خواهند شد.",
+        text: " اطلاعیه‌های این شارژ برای واحدهایی که پرداخت نکرده اند حذف خواهد شد.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#dc3545',

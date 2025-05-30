@@ -78,12 +78,30 @@ class Unit(models.Model):
     def get_active_renter(self):
         return self.renters.filter(renter_is_active=True).first()
 
-    def save(self, *args, **kwargs):
-        owner_count = int(self.owner_people_count) if self.owner_people_count else 0
-        renter_count = int(self.renter_people_count) if hasattr(self,
-                                                                'renter_people_count') and self.renter_people_count else 0
-        self.people_count = owner_count + renter_count
-        super().save(*args, **kwargs)
+    # def save(self, *args, **kwargs):
+    #     owner_count = 0
+    #     renter_count = 0
+    #
+    #     # Calculate renter count from active renters
+    #     for renter in self.renters.filter(renter_is_active=True):
+    #         if renter.renter_people_count and renter.renter_people_count.isdigit():
+    #             renter_count += int(renter.renter_people_count)
+    #
+    #     if self.is_owner is True:
+    #         # Both owner and renter live here
+    #         if self.owner_people_count and self.owner_people_count.isdigit():
+    #             owner_count = int(self.owner_people_count)
+    #         self.people_count = owner_count + renter_count
+    #
+    #     elif self.is_owner is False:
+    #         # Only renter(s) live here
+    #         self.people_count = renter_count
+    #
+    #     else:
+    #         # Unknown, default to 0
+    #         self.people_count = 0
+    #
+    #     super().save(*args, **kwargs)
 
 
 class Renter(models.Model):
