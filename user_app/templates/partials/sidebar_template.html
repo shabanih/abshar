@@ -1,0 +1,145 @@
+{% load static %}
+<nav class="sidebar sidebar-offcanvas" id="sidebar">
+
+          <ul class="nav">
+            <li class="nav-item nav-profile bg-light">
+              <a href="{% url 'manage_house' %}" class="nav-link">
+                <div class="nav-profile-image">
+                  <img src="{% static 'admin_panel/icone8/icons8-home.gif' %}" alt="profile">
+                  <span class="login-status online"></span>
+                  <!--change to offline or busy as needed-->
+                </div>
+                <div class="nav-profile-text d-flex flex-column">
+                    <h5 class="mt-2"><strong>ساختمان من</strong></h5>
+{#                    <span style="font-size: 12px;">تلفن :00000000</span>#}
+                </div>
+{#                <i class="mdi mdi-bookmark-check text-success nav-profile-badge"></i>#}
+              </a>
+            </li>
+
+            <li class="nav-item">
+               {% url 'user_panel' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title">داشبورد</i>
+                <i class="mdi mdi-home menu-icon"></i>
+              </a>
+            </li>
+
+                <li class="nav-item mt-0">
+                 {% url 'user_fixed_charges' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title"> مدیریت شارژ</i>
+                <i class="mdi mdi-bell-ring-outline menu-icon"></i>
+              </a>
+            </li>
+{#          #}
+{#           <li class="nav-item mt-0">#}
+{#                 {% url 'manage_unit' as address_url %}#}
+{#                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">#}
+{#                <i class="menu-title"> مدیریت واحدها</i>#}
+{#                <i class="mdi mdi-city menu-icon menu-icon"></i>#}
+{#              </a>#}
+{#            </li>#}
+            
+{#                <li class="nav-item border-top mt-0">#}
+{#              <a class="nav-link" data-bs-toggle="collapse" href="#general001" aria-expanded="true"#}
+{#                 aria-controls="general001">#}
+{#                <i class="menu-title"> مدیریت ساختمان </i>#}
+{#                <i class="menu-arrow"></i>#}
+{#                <i class="mdi mdi-city menu-icon"></i>#}
+{#              </a>#}
+{#              <div class="collapse" id="general001">#}
+{#                <ul class="nav flex-column sub-menu">#}
+{#                  <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="{% url 'manage_house' %}"> مدیریت ساختمان </a></li>#}
+{#                  <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="{% url 'add_unit' %}"> افزودن واحد </a></li>#}
+{#                      <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="{% url 'manage_unit' %}"> مدیریت واحدها </a></li>#}
+{#                </ul>#}
+{#              </div>#}
+{#            </li>#}
+{#            <li class="nav-item border-top mt-0">#}
+{#              <a class="nav-link" data-bs-toggle="collapse" href="#general111" aria-expanded="true"#}
+{#                 aria-controls="general111">#}
+{#                <i class="menu-title"> مدیریت شارژ </i>#}
+{#                <i class="menu-arrow"></i>#}
+{#                <i class="mdi mdi-square-inc-cash menu-icon"></i>#}
+{##}
+{#              </a>#}
+{#              <div class="collapse" id="general111">#}
+{#                <ul class="nav flex-column sub-menu">#}
+{#                  <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="{% url 'add_charge' %}"> ثبت شارژ جدید </a></li>#}
+{#                  <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="#"> اعلام شارژ </a></li>#}
+{#                </ul>#}
+{#              </div>#}
+{#            </li>#}
+{#             <li class="nav-item border-top mt-0">#}
+{#              <a class="nav-link" data-bs-toggle="collapse" href="#general23" aria-expanded="true"#}
+{#                 aria-controls="general23">#}
+{#                <i class="menu-title"> عملیات</i>#}
+{#                <i class="menu-arrow"></i>#}
+{#                <i class="mdi mdi-desktop-mac menu-icon"></i>#}
+{#              </a>#}
+{#              <div class="collapse" id="general23">#}
+{#                <ul class="nav flex-column sub-menu">#}
+{#                    <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="{% url 'add_income' %}"> ثبت درآمد  </a></li>#}
+{#                    <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="{% url 'add_expense' %}"> ثبت هزینه  </a></li>#}
+{#                  <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="{% url 'add_receive' %}">مدیریت اسناد دریافتنی </a></li>#}
+{#                    <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="{% url 'add_pay' %}"> مدیریت اسناد پرداختنی </a></li>#}
+{#                     <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="{% url 'add_property' %}"> ثبت اموال ساختمان </a></li>#}
+{#                      <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="{% url 'add_maintenance' %}"> ثبت تعمیر و نگهداری </a></li>#}
+{##}
+{#                </ul>#}
+{#              </div>#}
+{#          <li class="nav-item mt-0">#}
+{#              <a class="nav-link" data-bs-toggle="collapse" href="#general2" aria-expanded="true"#}
+{#                 aria-controls="general2">#}
+{#                <i class="menu-title"> گزارشات </i>#}
+{#                <i class="menu-arrow"></i>#}
+{#                <i class="mdi mdi-clipboard-text menu-icon"></i>#}
+{#              </a>#}
+{#              <div class="collapse" id="general2">#}
+{#                <ul class="nav flex-column sub-menu">#}
+{#                    <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="#"> گردش صندوق </a></li>#}
+{#                    <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="#"> گردش مالی اشخاص </a></li>#}
+{#                  <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="#"> واحدهای بدهکار/بستانکار </a></li>#}
+{#                    <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="#">  قبوض </a></li>#}
+{#                    <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="#"> هزینه ها </a></li>#}
+{#                    <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="#"> درآمدها </a></li>#}
+{#                     <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="#"> اموال ساختمان </a></li>#}
+{#                     <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="#"> تعمیر و نکهداری </a></li>#}
+{#                    <li class="nav-item mt-0">#}
+{#                    <a class="nav-link" href="#"> بیلان ساختمان </a></li>#}
+{#                </ul>#}
+{#              </div>#}
+{#            </li>#}
+{##}
+{#             <li class="nav-item mt-0">#}
+{#                            <a class="nav-link">#}
+{#                            <i class="menu-title"> مدیریت پیامک ها</i>#}
+{#                            <i class="fas fa-comment-dots menu-icon"></i>#}
+{#                          </a>#}
+{#                        </li>#}
+{#          #}
+             
+
+          </ul>
+
+</nav>

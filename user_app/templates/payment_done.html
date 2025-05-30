@@ -1,0 +1,45 @@
+{% extends 'partials/core_template.html' %}
+{% load poll_extras %}
+
+{% block page_title %}
+مدیریت شارژ واحد {{ unit.unit }}
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr>
+     <div class="container py-2 mt-2"   dir="rtl">
+
+     <div class="row">
+         <div class="col-12">
+
+
+    {% if info %}
+    	<div class="alert alert-info">
+            {{ info }}
+        </div>
+    {% endif %}
+
+  {% if success %}
+    	<div class="alert alert-success">
+            {{ success }}
+        </div>
+    {% endif %}
+
+  {% if error %}
+    	<div class="alert alert-danger">
+            {{ error }}
+        </div>
+    {% endif %}
+         </div>
+     <div class="col-12 text-start mt-4">
+           <a class="btn btn-gradient-danger" href="{% url 'user_panel' %}"> برگشت </a>
+     </div>
+     </div>
+     
+     
+       
+    
+    </div>
+
+
+{% endblock main_content %}

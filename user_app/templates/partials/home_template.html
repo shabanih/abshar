@@ -1,0 +1,28 @@
+{% extends 'partials/core_template.html' %}
+
+{% block page_title %}
+داشبورد
+{% endblock page_title %}
+
+{% block main_content %}
+   
+    <div class="container">
+    {% for unit in units %}
+    	 <div class="row">
+        <div class="col-2">{{ unit.unit }}</div>
+        <div class="col-2">{{ unit.area }}</div>
+       <div class="col-2">
+    {% for renter in unit.renters.all %}
+        {{ renter.renter_mobile }}{% if not forloop.last %}, {% endif %}
+    {% endfor %}
+</div>
+        <div class="col-2">{{ unit.user.mobile }}</div>
+        <div class="col-2">{{ unit.owner_name }}</div>
+    </div>
+    {% endfor %}
+    
+   
+    </div>
+
+
+{% endblock main_content %}
