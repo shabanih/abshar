@@ -41,8 +41,9 @@ from admin_panel.forms import announcementForm, UnitForm, ExpenseForm, ExpenseCa
 from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDocument, Income, IncomeDocument, \
     IncomeCategory, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, FixedChargeCalc, ChargeByPersonArea, AreaChargeCalc, PersonChargeCalc, FixAreaChargeCalc, \
-    FixPersonChargeCalc, ChargeByFixPersonArea, ChargeCalcFixVariable, FixCharge, AreaCharge, PersonCharge, \
-    FixPersonCharge, FixAreaCharge, ChargeByPersonAreaCalc
+    FixPersonChargeCalc, ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
+    FixPersonCharge, FixAreaCharge, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariable, \
+    ChargeFixVariableCalc
 from user_app.models import Unit, MyHouse, Bank, Renter, User
 
 
@@ -4479,36 +4480,24 @@ class PersonAreaFixChargeCreateView(CreateView):
     success_url = reverse_lazy('add_person_area_fix_charge')
 
     def form_valid(self, form):
-        form.instance.user = self.request.user
-        form.instance.unit = Unit.objects.filter(is_active=True, user=self.request.user).first()
-        person_charge = form.cleaned_data.get('person_charge') or 0
-        area_charge = form.cleaned_data.get('area_charge') or 0
-        fix_charge = form.cleaned_data.get('fix_charge') or 0
-        civil_charge = form.cleaned_data.get('civil_charge') or 0
-        total_people = Unit.objects.filter(is_active=True, user=self.request.user).aggregate(
-            total=Sum('people_count')
-        )['total'] or 0
-        form.instance.total_people = total_people
-        total_area = Unit.objects.filter(is_active=True, user=self.request.user).aggregate(total=Sum('area'))[
-                         'total'] or 0
-        form.instance.total_area = total_area
-        unit_count = Unit.objects.filter(is_active=True, user=self.request.user).count()
-        form.instance.unit_count = unit_count
 
-        total_person_based_charge = total_people * person_charge
-        print(total_person_based_charge)
-        total_area_based_charge = total_area * area_charge
-        print(total_area_based_charge)
-        total_persian_area_charge = (total_area_based_charge + total_person_based_charge + fix_charge) / unit_count
-        print(total_persian_area_charge)
+        fix_person_area_charge = form.save(commit=False)
 
-        form.instance.final_person_amount = total_persian_area_charge
+        charge_name = form.cleaned_data.get('name') or 0
+        fix_person_area_charge.name = charge_name
+        if fix_person_area_charge.civil is None:
+            fix_person_area_charge.civil = 0
 
-        # Total monthly charge includes civil charge per unit
-        form.instance.total_charge_month = (total_persian_area_charge + civil_charge) * unit_count
+        total_area = Unit.objects.filter(is_active=True).aggregate(total=Sum('area'))['total'] or 0
+        print(f"Total people count calculated: {total_area}")  # Debug line
+        fix_person_area_charge.total_area = total_area
+
+        total_people = Unit.objects.filter(is_active=True).aggregate(total=Sum('people_count'))['total'] or 0
+        fix_person_area_charge.total_people = total_people
 
         try:
-            self.object = form.save()
+            fix_person_area_charge.save()
+            self.object = fix_person_area_charge
             messages.success(self.request, 'محاسبه شارژ با موفقیت ثبت گردید')
             return super().form_valid(form)
         except:
@@ -4517,144 +4506,307 @@ class PersonAreaFixChargeCreateView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['charges'] = ChargeByFixPersonArea.objects.all()
-        total_people = Unit.objects.filter(is_active=True, user=self.request.user).aggregate(
-            total=Sum('people_count')
-        )['total'] or 0
-        context['total_people'] = total_people
-        total_area = Unit.objects.filter(is_active=True, user=self.request.user).aggregate(
-            total=Sum('area')
-        )['total'] or 0
-        context['total_area'] = total_area
-        total_charge_year = ChargeByFixPersonArea.objects.aggregate(
-            total_year=Sum('total_charge_month')
-        )['total_year'] or 0
-        context['total_charge_year'] = total_charge_year
+        context['unit_count'] = Unit.objects.filter(is_active=True).count()
+        context['total_area'] = Unit.objects.filter(is_active=True).aggregate(total=Sum('area'))['total'] or 0
+        context['total_people'] = Unit.objects.filter(is_active=True).aggregate(total=Sum('people_count'))['total'] or 0
+
+        charges = ChargeByFixPersonArea.objects.annotate(
+            notified_count=Count(
+                'fix_person_area',
+                filter=Q(fix_person_area__send_notification=True)
+            ),
+            total_units=Count('fix_person_area')
+        )
+        context['charges'] = charges
         return context
 
 
 def person_area_fix_charge_edit(request, pk):
     charge = get_object_or_404(ChargeByFixPersonArea, pk=pk)
 
+    any_paid = ChargeByFixPersonAreaCalc.objects.filter(fix_person_area=charge, is_paid=True).exists()
+    any_notify = ChargeByFixPersonAreaCalc.objects.filter(fix_person_area=charge, send_notification=True).exists()
+    if any_paid:
+        return redirect(f"{reverse('add_person_area_fix_charge')}?error=paid")
+
+    if any_notify:
+        return redirect(f"{reverse('add_person_area_fix_charge')}?error=notify")
+
     if request.method == 'POST':
         form = PersonAreaFixChargeForm(request.POST, request.FILES, instance=charge)
-
         if form.is_valid():
-            form.instance.user = request.user
-            form.instance.unit = Unit.objects.filter(is_active=True, user=request.user).first()
-            person_charge = form.cleaned_data.get('person_charge') or 0
-            area_charge = form.cleaned_data.get('area_charge') or 0
-            fix_charge = form.cleaned_data.get('fix_charge') or 0
-            civil_charge = form.cleaned_data.get('civil_charge') or 0
-            total_people = Unit.objects.filter(is_active=True, user=request.user).aggregate(
-                total=Sum('people_count')
-            )['total'] or 0
-            form.instance.total_people = total_people
-            total_area = Unit.objects.filter(is_active=True, user=request.user).aggregate(total=Sum('area'))[
-                             'total'] or 0
-            form.instance.total_area = total_area
-            unit_count = Unit.objects.filter(is_active=True, user=request.user).count()
-            form.instance.unit_count = unit_count
-
-            total_person_based_charge = total_people * person_charge
-            print(total_person_based_charge)
-            total_area_based_charge = total_area * area_charge
-            print(total_area_based_charge)
-            total_persian_area_charge = (total_area_based_charge + total_person_based_charge + fix_charge) / unit_count
-            print(total_persian_area_charge)
-
-            form.instance.final_person_amount = total_persian_area_charge
-
-            # Total monthly charge includes civil charge per unit
-            form.instance.total_charge_month = (total_persian_area_charge + civil_charge) * unit_count
-
-            form.save()
-
-            messages.success(request, 'شارژ با موفقیت ویرایش شد.')
+            charge = form.save(commit=False)
+            charge.save()
+            messages.success(request, f'  {charge.name} با موفقیت ویرایش شد.')
             return redirect('add_person_area_fix_charge')
-
         else:
             messages.error(request, 'خطا در ویرایش فرم. لطفا دوباره تلاش کنید.')
-            return redirect('add_person_area_fix_charge')
-
-    return redirect('add_person_area_fix_charge')
+            return render(request, 'charge/person_area_fix_charge_template.html', {'form': form, 'charge': charge})
+    else:
+        form = FixAreaChargeForm(instance=charge)
+        return render(request, 'charge/person_area_fix_charge_template.html', {'form': form, 'charge': charge})
 
 
 def person_area_fix_delete(request, pk):
     charge = get_object_or_404(ChargeByFixPersonArea, id=pk)
+
+    # بررسی اینکه هیچ رکورد FixedChargeCalc با is_paid=True وجود نداشته باشد
+    paid_calc_exists = charge.fix_person_area.filter(is_paid=True).exists()
+    if paid_calc_exists:
+        messages.error(request, "امکان حذف شارژ وجود ندارد چون پرداخت شارژ توسط واحد ثبت شده است.")
+        return redirect(reverse('add_person_area_fix_charge'))
+
+    # چک کردن وجود رکوردهایی که send_notification == True هستند
+    notification_exists = charge.fix_person_area.filter(send_notification=True).exists()
+    if notification_exists:
+        messages.error(request, "برای این شارژ اطلاعیه صادر شده است.ابتدا اطلاعیه شارژ را حذف و مجددا تلاش نمایید!")
+        return redirect(reverse('add_person_area_fix_charge'))
     try:
         charge.delete()
-        messages.success(request, ' شارژ با موفقیت حذف گردید!')
+        messages.success(request, f'{charge.name} با موفقیت حذف گردید!')
     except ProtectedError:
-        messages.error(request, " امکان حذف وجود ندارد! ")
+        messages.error(request, "امکان حذف این شارژ به دلیل وابستگی وجود ندارد!")
     return redirect(reverse('add_person_area_fix_charge'))
+
+
+def calculate_total_charge_fix_person_area(unit, charge):
+    try:
+        area = float(unit.area or 0)
+        people = float(unit.people_count or 0)
+        area_amount = float(charge.area_amount or 0)
+        fix_charge = float(charge.fix_charge_amount or 0)
+        person_amount = float(charge.person_amount or 0)
+        civil = float(charge.civil or 0)
+    except (TypeError, ValueError):
+        area = people = area_amount = person_amount = fix_charge = civil = 0.0
+
+    final_person_amount = (area_amount * area) + (person_amount * people)
+    total_charge = final_person_amount + fix_charge + civil
+    return total_charge
+
+
+def show_fix_person_area_charge_notification_form(request, pk):
+    charge = get_object_or_404(ChargeByFixPersonArea, id=pk)
+    units = Unit.objects.filter(is_active=True).order_by('unit')
+
+    notified_ids = ChargeByFixPersonAreaCalc.objects.filter(
+        fix_person_area=charge,
+        send_notification=True
+    ).values_list('unit_id', flat=True)
+
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        units = units.filter(
+            Q(unit__icontains=search_query) |
+            Q(owner_name__icontains=search_query) |
+            Q(renters__renter_name__icontains=search_query)
+        ).distinct()
+
+    calc_map = {
+        calc.unit_id: calc
+        for calc in ChargeByFixPersonAreaCalc.objects.filter(fix_person_area=charge)
+    }
+
+    units_with_details = []
+    for unit in units:
+        active_renter = unit.renters.filter(renter_is_active=True).first()
+        calc = calc_map.get(unit.id)
+        total_charge = calculate_total_charge_fix_person_area(unit, charge)
+        is_paid = calc.is_paid if calc else False
+
+        if calc:
+            if calc.total_charge_month != int(total_charge):
+                calc.total_charge_month = int(total_charge)
+                calc.save()
+        else:
+            ChargeByFixPersonAreaCalc.objects.create(
+                user=unit.user,
+                unit=unit,
+                civil_charge=charge.civil,
+                charge_name=charge.name,
+                area_charge=int(charge.area_amount or 0),
+                person_charge=int(charge.person_amount or 0),
+                fix_charge=int(charge.fix_charge_amount or 0),
+                total_area=int(charge.total_area),
+                total_people=int(charge.total_people),
+                fix_person_area=charge,
+                total_charge_month=int(total_charge),
+            )
+
+        units_with_details.append((unit, active_renter, is_paid, total_charge))
+
+    try:
+        per_page = int(request.GET.get('per_page', 30))
+    except ValueError:
+        per_page = 30
+
+    paginator = Paginator(units_with_details, per_page)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'charge': charge,
+        'pk': pk,
+        'notified_ids': list(notified_ids),
+    }
+    return render(request, 'charge/notify_fix_person_area_charge_template.html', context)
+
+
+@require_POST
+def send_notification_fix_person_area_charge_to_user(request, pk):
+    fix_person_area = get_object_or_404(ChargeByFixPersonArea, id=pk)
+    selected_units = request.POST.getlist('units')
+
+    if not selected_units:
+        messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
+        return redirect('show_notification_fix_person_area_charge_form', pk=pk)
+
+    units_qs = Unit.objects.filter(is_active=True)
+
+    if 'all' in selected_units:
+        units_to_notify = units_qs
+    else:
+        units_to_notify = units_qs.filter(id__in=selected_units)
+
+    if not units_to_notify.exists():
+        messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
+        return redirect('show_notification_person_area_charge_form', pk=pk)
+
+    notified_units = []
+
+    with transaction.atomic():
+        for unit in units_to_notify:
+            fixed_calc, created = ChargeByFixPersonAreaCalc.objects.get_or_create(
+                unit=unit,
+                fix_person_area=fix_person_area,
+                defaults={
+                    'user': unit.user,
+                    'area_charge': fix_person_area.area_amount,
+                    'person_charge': fix_person_area.person_amount,
+                    'civil_charge': fix_person_area.civil,
+                    'charge_name': fix_person_area.name,
+                    'details': fix_person_area.details,
+                    'send_notification': True,
+                }
+            )
+
+            if not created:
+                if not fixed_calc.send_notification:
+                    fixed_calc.send_notification = True
+                    fixed_calc.save()
+                    notified_units.append(str(unit))
+            else:
+                notified_units.append(str(unit))
+
+        # total_charge = fixed_calc.total_charge_month or 0
+        # helper.send_notify_user_by_sms(
+        #     unit.user.username,
+        #     fix_charge=total_charge,
+        #     name=unit.user.name,
+        #     otp=None
+        # )
+
+        fix_person_area.send_notification = True
+        fix_person_area.send_sms = True
+        fix_person_area.save()
+
+    if notified_units:
+        messages.success(request, 'اطلاعیه برای واحدهای انتخابی ارسال شد!')
+    else:
+        messages.info(request, 'اطلاعیه‌ای ارسال نشد؛ ممکن است قبلاً برای واحد انتخابی ثبت شده باشد.')
+
+    return redirect('show_notification_fix_person_area_charge_form', pk=pk)
+
+
+@login_required
+def remove_send_notification_fix_person_area(request, pk):
+    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        unit_ids = request.POST.getlist('units[]')
+        if not unit_ids:
+            return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
+
+        charge = get_object_or_404(ChargeByFixPersonArea, id=pk)
+
+        if 'all' in unit_ids:
+            deleted_count, _ = ChargeByFixPersonAreaCalc.objects.filter(
+                fix_person_area=charge,
+                is_paid=False
+            ).delete()
+            charge.send_notification = False
+            charge.save()
+
+            return JsonResponse({'success': f'{deleted_count} اطلاعیه با موفقیت حذف شد.'})
+
+        try:
+            selected_ids = [int(uid) for uid in unit_ids if uid.isdigit()]
+        except ValueError:
+            return JsonResponse({'error': 'شناسه‌های ارسال‌شده معتبر نیستند.'}, status=400)
+
+        not_send_notifications = ChargeByFixPersonAreaCalc.objects.filter(
+            fix_person_area=charge,
+            unit_id__in=selected_ids,
+            send_notification=False
+        )
+        if not_send_notifications.exists():
+            return JsonResponse({'error': 'اطلاعیه برای این واحد صادر نشده است.'}, status=400)
+
+        paid_notifications = ChargeByFixPersonAreaCalc.objects.filter(
+            fix_person_area=charge,
+            unit_id__in=selected_ids,
+            is_paid=True
+        )
+        if paid_notifications.exists():
+            return JsonResponse({'error': 'اطلاعیه به‌دلیل ثبت پرداخت توسط واحد قابل حذف نیست.'}, status=400)
+
+        notifications = ChargeByFixPersonAreaCalc.objects.filter(
+            fix_person_area=charge,
+            unit_id__in=selected_ids,
+            is_paid=False
+        )
+        deleted_count = notifications.count()
+        notifications.delete()
+
+        # اگر هیچ اطلاعیه‌ای باقی نماند، اطلاع‌رسانی غیرفعال شود
+        if not ChargeByFixPersonAreaCalc.objects.filter(fix_person_area=charge).exists():
+            charge.send_notification = False
+            charge.save()
+
+        return JsonResponse({'success': f'{deleted_count} اطلاعیه حذف شد.'})
+
+    return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
 
 
 # ==========================================================
 
 class VariableFixChargeCreateView(CreateView):
-    model = ChargeCalcFixVariable
+    model = ChargeFixVariable
     template_name = 'charge/variable_fix_charge_template.html'
     form_class = VariableFixChargeForm
     success_url = reverse_lazy('add_variable_fix_charge')
 
     def form_valid(self, form):
-        form.instance.user = self.request.user
-        form.instance.unit = Unit.objects.filter(is_active=True, user=self.request.user).first()
+        fix_variable_charge = form.save(commit=False)
 
-        salary = form.cleaned_data.get('salary') or 0
-        elevator_cost = form.cleaned_data.get('elevator_cost') or 0
-        public_electricity = form.cleaned_data.get('public_electricity') or 0
-        common_expenses = form.cleaned_data.get('common_expenses') or 0
-        facility_cost = form.cleaned_data.get('facility_cost') or 0
-        extinguished_cost = form.cleaned_data.get('extinguished_cost') or 0
-        camera_cost = form.cleaned_data.get('camera_cost') or 0
-        insurance_cost = form.cleaned_data.get('insurance_cost') or 0
-        office_cost = form.cleaned_data.get('office_cost') or 0
-        green_space_cost = form.cleaned_data.get('green_space_cost') or 0
-        public_water = form.cleaned_data.get('public_water') or 0
-        public_gas = form.cleaned_data.get('public_gas') or 0
-        civil_charge = form.cleaned_data.get('civil_charge') or 0
+        if fix_variable_charge.civil is None:
+            fix_variable_charge.civil = 0
 
-        total_people = Unit.objects.filter(is_active=True, user=self.request.user).aggregate(
-            total=Sum('people_count')
-        )['total'] or 0
-        form.instance.total_people = total_people
-        total_area = Unit.objects.filter(is_active=True, user=self.request.user).aggregate(total=Sum('area'))[
-                         'total'] or 0
-        form.instance.total_area = total_area
-        unit_count = Unit.objects.filter(is_active=True, user=self.request.user).count()
-        form.instance.unit_count = unit_count
+        if fix_variable_charge.extra_parking_amount is None:
+            fix_variable_charge.extra_parking_amount = 0
 
-        # Calculate Elevator Cost
-        elevator_fix_charge = elevator_cost * 0.6
-        print(f'elevator_fix_charge: {elevator_fix_charge}')
-        form.instance.elevator_fix_cost = elevator_fix_charge
+        if fix_variable_charge.other_cost_amount is None:
+            fix_variable_charge.other_cost_amount = 0
 
-        # Calculator Fix Cost
-        total_fix_cost = (salary + elevator_fix_charge + public_electricity + common_expenses + facility_cost
-                          + extinguished_cost + camera_cost + insurance_cost + office_cost + green_space_cost)
-        print(total_fix_cost)
-        unit_fix_amount = total_fix_cost / 187
-        print(f'unit_fix_amount: {unit_fix_amount}')
-        final_fix_amount = unit_fix_amount / 12
-        form.instance.unit_fix_amount = final_fix_amount
+        total_area = Unit.objects.filter(is_active=True).aggregate(total=Sum('area'))['total'] or 0
+        print(f"Total people count calculated: {total_area}")  # Debug line
+        fix_variable_charge.total_area = total_area
 
-        # Calculator Variable Cost
-        gas_cost_amount = public_gas / total_people
-        print(f'gas_cost_amount: {gas_cost_amount}')
-
-        elevator_variable_cost = elevator_cost * 0.4
-        print(f'elevator_v:{elevator_variable_cost}')
-
-        variable_cost_per_person = (elevator_variable_cost + public_water) / 21233
-        print(f'total_variable_cost: {variable_cost_per_person}')
-
-        form.instance.unit_variable_amount_person = variable_cost_per_person
-        form.instance.unit_variable_amount_area = gas_cost_amount
+        total_people = Unit.objects.filter(is_active=True).aggregate(total=Sum('people_count'))['total'] or 0
+        fix_variable_charge.total_people = total_people
 
         try:
-            self.object = form.save()
+            fix_variable_charge.save()
+            self.object = fix_variable_charge
             messages.success(self.request, 'محاسبه شارژ با موفقیت ثبت گردید')
             return super().form_valid(form)
         except:
@@ -4663,100 +4815,295 @@ class VariableFixChargeCreateView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['charges'] = ChargeCalcFixVariable.objects.all()
-        total_people = Unit.objects.filter(is_active=True, user=self.request.user).aggregate(
-            total=Sum('people_count')
-        )['total'] or 0
-        context['total_people'] = total_people
-        total_area = Unit.objects.filter(is_active=True, user=self.request.user).aggregate(
-            total=Sum('area')
-        )['total'] or 0
-        context['total_area'] = total_area
-        total_charge_year = ChargeCalcFixVariable.objects.aggregate(
-            total_year=Sum('total_charge_month')
-        )['total_year'] or 0
-        context['total_charge_year'] = total_charge_year
+        context['unit_count'] = Unit.objects.filter(is_active=True).count()
+        context['total_area'] = Unit.objects.filter(is_active=True).aggregate(total=Sum('area'))['total'] or 0
+        context['total_people'] = Unit.objects.filter(is_active=True).aggregate(total=Sum('people_count'))['total'] or 0
+
+        charges = ChargeFixVariable.objects.annotate(
+            notified_count=Count(
+                'fix_variable_charge',
+                filter=Q(fix_variable_charge__send_notification=True)
+            ),
+            total_units=Count('fix_variable_charge')
+        )
+        context['charges'] = charges
         return context
 
 
 def variable_fix_charge_edit(request, pk):
-    charge = get_object_or_404(ChargeCalcFixVariable, pk=pk)
+    charge = get_object_or_404(ChargeFixVariable, pk=pk)
+
+    any_paid = ChargeFixVariableCalc.objects.filter(fix_variable_charge=charge, is_paid=True).exists()
+    any_notify = ChargeFixVariableCalc.objects.filter(fix_variable_charge=charge, send_notification=True).exists()
+    if any_paid:
+        return redirect(f"{reverse('add_variable_fix_charge')}?error=paid")
+
+    if any_notify:
+        return redirect(f"{reverse('add_variable_fix_charge')}?error=notify")
 
     if request.method == 'POST':
         form = VariableFixChargeForm(request.POST, request.FILES, instance=charge)
-
         if form.is_valid():
-            form.instance.user = request.user
-            form.instance.unit = Unit.objects.filter(is_active=True, user=request.user).first()
-
-            salary = form.cleaned_data.get('salary') or 0
-            elevator_cost = form.cleaned_data.get('elevator_cost') or 0
-            public_electricity = form.cleaned_data.get('public_electricity') or 0
-            common_expenses = form.cleaned_data.get('common_expenses') or 0
-            facility_cost = form.cleaned_data.get('facility_cost') or 0
-            extinguished_cost = form.cleaned_data.get('extinguished_cost') or 0
-            camera_cost = form.cleaned_data.get('camera_cost') or 0
-            insurance_cost = form.cleaned_data.get('insurance_cost') or 0
-            office_cost = form.cleaned_data.get('office_cost') or 0
-            green_space_cost = form.cleaned_data.get('green_space_cost') or 0
-            public_water = form.cleaned_data.get('public_water') or 0
-            public_gas = form.cleaned_data.get('public_gas') or 0
-            civil_charge = form.cleaned_data.get('civil_charge') or 0
-
-            total_people = Unit.objects.filter(is_active=True, user=request.user).aggregate(
-                total=Sum('people_count')
-            )['total'] or 0
-            form.instance.total_people = total_people
-            total_area = Unit.objects.filter(is_active=True, user=request.user).aggregate(total=Sum('area'))[
-                             'total'] or 0
-            form.instance.total_area = total_area
-            unit_count = Unit.objects.filter(is_active=True, user=request.user).count()
-            form.instance.unit_count = unit_count
-
-            # Calculate Elevator Cost
-            elevator_fix_charge = elevator_cost * 0.6
-            print(f'elevator_fix_charge: {elevator_fix_charge}')
-            form.instance.elevator_fix_cost = elevator_fix_charge
-
-            # Calculator Fix Cost
-            total_fix_cost = (salary + elevator_fix_charge + public_electricity + common_expenses + facility_cost
-                              + extinguished_cost + camera_cost + insurance_cost + office_cost + green_space_cost)
-            print(total_fix_cost)
-            unit_fix_amount = total_fix_cost / 187
-            print(f'unit_fix_amount: {unit_fix_amount}')
-            final_fix_amount = unit_fix_amount / 12
-            form.instance.unit_fix_amount = final_fix_amount
-
-            # Calculator Variable Cost
-            gas_cost_amount = public_gas / total_people
-            print(f'gas_cost_amount: {gas_cost_amount}')
-
-            elevator_variable_cost = elevator_cost * 0.4
-            print(f'elevator_v:{elevator_variable_cost}')
-
-            variable_cost_per_person = (elevator_variable_cost + public_water) / 21233
-            print(f'total_variable_cost: {variable_cost_per_person}')
-
-            form.instance.unit_variable_amount_person = variable_cost_per_person
-            form.instance.unit_variable_amount_area = gas_cost_amount
-
-            form.save()
-
-            messages.success(request, 'شارژ با موفقیت ویرایش شد.')
+            charge = form.save(commit=False)
+            charge.save()
+            messages.success(request, f'  {charge.name} با موفقیت ویرایش شد.')
             return redirect('add_variable_fix_charge')
-
         else:
             messages.error(request, 'خطا در ویرایش فرم. لطفا دوباره تلاش کنید.')
-            return redirect('add_variable_fix_charge')
-
-    return redirect('add_variable_fix_charge')
+            return render(request, 'charge/variable_fix_charge_template.html', {'form': form, 'charge': charge})
+    else:
+        form = FixAreaChargeForm(instance=charge)
+        return render(request, 'charge/variable_fix_charge_template.html', {'form': form, 'charge': charge})
 
 
 def variable_fix_charge_delete(request, pk):
-    charge = get_object_or_404(ChargeCalcFixVariable, id=pk)
+    charge = get_object_or_404(ChargeFixVariable, id=pk)
+
+    # بررسی اینکه هیچ رکورد FixedChargeCalc با is_paid=True وجود نداشته باشد
+    paid_calc_exists = charge.fix_variable_charge.filter(is_paid=True).exists()
+    if paid_calc_exists:
+        messages.error(request, "امکان حذف شارژ وجود ندارد چون پرداخت شارژ توسط واحد ثبت شده است.")
+        return redirect(reverse('add_variable_fix_charge'))
+
+    # چک کردن وجود رکوردهایی که send_notification == True هستند
+    notification_exists = charge.fix_variable_charge.filter(send_notification=True).exists()
+    if notification_exists:
+        messages.error(request, "برای این شارژ اطلاعیه صادر شده است.ابتدا اطلاعیه شارژ را حذف و مجددا تلاش نمایید!")
+        return redirect(reverse('add_variable_fix_charge'))
     try:
         charge.delete()
-        messages.success(request, ' شارژ با موفقیت حذف گردید!')
+        messages.success(request, f'{charge.name} با موفقیت حذف گردید!')
     except ProtectedError:
-        messages.error(request, " امکان حذف وجود ندارد! ")
+        messages.error(request, "امکان حذف این شارژ به دلیل وابستگی وجود ندارد!")
     return redirect(reverse('add_variable_fix_charge'))
+
+
+def calculate_total_charge_fix_variable(unit, charge):
+    area = float(unit.area or 0)
+    people = float(unit.people_count or 0)
+    parking_counts = int(unit.parking_counts or 0)
+
+    unit_fix_amount = float(charge.unit_fix_amount or 0)
+    unit_variable_person_amount = float(charge.unit_variable_person_amount or 0)
+    unit_variable_area_amount = float(charge.unit_variable_area_amount or 0)
+    extra_parking_amount = float(charge.extra_parking_amount or 0)
+    other_cost_amount = float(charge.other_cost_amount or 0)
+    civil_charge = float(charge.civil or 0)
+
+    # Calculate variable charge
+    variable_charge = (unit_variable_area_amount * area) + (unit_variable_person_amount * people)
+
+    # Calculate extra parking charge (e.g., 2 parking spots × 100,000 per spot)
+    parking_charge = parking_counts * extra_parking_amount if parking_counts > 0 else 0
+
+    total_charge = variable_charge + unit_fix_amount + other_cost_amount + parking_charge + civil_charge
+
+    return round(total_charge, 2)
+
+
+def show_fix_variable_notification_form(request, pk):
+    charge = get_object_or_404(ChargeFixVariable, id=pk)
+    units = Unit.objects.filter(is_active=True).order_by('unit')
+
+    notified_ids = ChargeFixVariableCalc.objects.filter(
+        fix_variable_charge=charge,
+        send_notification=True
+    ).values_list('unit_id', flat=True)
+
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        units = units.filter(
+            Q(unit__icontains=search_query) |
+            Q(owner_name__icontains=search_query) |
+            Q(renters__renter_name__icontains=search_query)
+        ).distinct()
+
+    calc_map = {
+        calc.unit_id: calc
+        for calc in ChargeFixVariableCalc.objects.filter(fix_variable_charge=charge)
+    }
+
+    units_with_details = []
+    for unit in units:
+        active_renter = unit.renters.filter(renter_is_active=True).first()
+        calc = calc_map.get(unit.id)
+        total_charge = calculate_total_charge_fix_variable(unit, charge)
+        is_paid = calc.is_paid if calc else False
+
+        extra_parking_charge = (unit.parking_counts or 0) * (charge.extra_parking_amount or 0)
+
+        if calc:
+            # Update total charge if it has changed
+            if calc.total_charge_month != int(total_charge):
+                calc.total_charge_month = int(total_charge)
+
+            # ✅ Update the extra parking charge
+            calc.extra_parking_charges = extra_parking_charge
+
+            calc.save()
+        else:
+            ChargeFixVariableCalc.objects.create(
+                user=unit.user,
+                unit=unit,
+                civil_charge=charge.civil,
+                charge_name=charge.name,
+                unit_variable_person_charge=int(charge.unit_variable_person_amount or 0),
+                unit_variable_area_charge=int(charge.unit_variable_area_amount or 0),
+                unit_fix_charge_per_unit=int(charge.unit_fix_amount or 0),
+                total_area=int(charge.total_area),
+                total_people=int(charge.total_people),
+                fix_variable_charge=charge,
+                details=charge.details,
+                extra_parking_charges=extra_parking_charge,
+
+                other_cost=charge.other_cost_amount,
+                total_charge_month=int(total_charge),
+                final_person_amount=(
+                        int(charge.unit_variable_person_amount * unit.people_count) +
+                        int(charge.unit_variable_area_amount * unit.area) +
+                        int(charge.unit_fix_amount or 0)
+                ))
+
+        units_with_details.append((unit, active_renter, is_paid, total_charge))
+
+    try:
+        per_page = int(request.GET.get('per_page', 30))
+    except ValueError:
+        per_page = 30
+
+    paginator = Paginator(units_with_details, per_page)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'charge': charge,
+        'pk': pk,
+        'notified_ids': list(notified_ids),
+    }
+    return render(request, 'charge/notify_fix_variable_charge_template.html', context)
+
+
+@require_POST
+def send_notification_fix_variable_to_user(request, pk):
+    fix_variable = get_object_or_404(ChargeFixVariable, id=pk)
+    selected_units = request.POST.getlist('units')
+
+    if not selected_units:
+        messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
+        return redirect('show_notification_fix_variable_charge_form', pk=pk)
+
+    units_qs = Unit.objects.filter(is_active=True)
+
+    if 'all' in selected_units:
+        units_to_notify = units_qs
+    else:
+        units_to_notify = units_qs.filter(id__in=selected_units)
+
+    if not units_to_notify.exists():
+        messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
+        return redirect('show_notification_fix_variable_charge_form', pk=pk)
+
+    notified_units = []
+
+    with transaction.atomic():
+        for unit in units_to_notify:
+            fixed_calc, created = ChargeFixVariableCalc.objects.get_or_create(
+                unit=unit,
+                fix_variable_charge=fix_variable,
+                defaults={
+                    'user': unit.user,
+                    'unit_variable_area_charge': fix_variable.unit_variable_area_amount,
+                    'unit_variable_person_charge': fix_variable.unit_variable_person_amount,
+                    'unit_fix_charge_per_unit': fix_variable.unit_fix_amount,
+                    'civil_charge': fix_variable.civil,
+                    'charge_name': fix_variable.name,
+                    'details': fix_variable.details,
+                    'send_notification': True,
+                }
+            )
+
+            if not created:
+                if not fixed_calc.send_notification:
+                    fixed_calc.send_notification = True
+                    fixed_calc.save()
+                    notified_units.append(str(unit))
+            else:
+                notified_units.append(str(unit))
+
+        # total_charge = fixed_calc.total_charge_month or 0
+        # helper.send_notify_user_by_sms(
+        #     unit.user.username,
+        #     fix_charge=total_charge,
+        #     name=unit.user.name,
+        #     otp=None
+        # )
+
+        fix_variable.send_notification = True
+        fix_variable.send_sms = True
+        fix_variable.save()
+
+    if notified_units:
+        messages.success(request, 'اطلاعیه برای واحدهای انتخابی ارسال شد!')
+    else:
+        messages.info(request, 'اطلاعیه‌ای ارسال نشد؛ ممکن است قبلاً برای واحد انتخابی ثبت شده باشد.')
+
+    return redirect('show_notification_fix_variable_charge_form', pk=pk)
+
+
+@login_required
+def remove_send_notification_fix_variable(request, pk):
+    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        unit_ids = request.POST.getlist('units[]')
+        if not unit_ids:
+            return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
+
+        charge = get_object_or_404(ChargeFixVariable, id=pk)
+
+        if 'all' in unit_ids:
+            deleted_count, _ = ChargeFixVariableCalc.objects.filter(
+                fix_variable_charge=charge,
+                is_paid=False
+            ).delete()
+            charge.send_notification = False
+            charge.save()
+
+            return JsonResponse({'success': f'{deleted_count} اطلاعیه با موفقیت حذف شد.'})
+
+        try:
+            selected_ids = [int(uid) for uid in unit_ids if uid.isdigit()]
+        except ValueError:
+            return JsonResponse({'error': 'شناسه‌های ارسال‌شده معتبر نیستند.'}, status=400)
+
+        not_send_notifications = ChargeFixVariableCalc.objects.filter(
+            fix_variable_charge=charge,
+            unit_id__in=selected_ids,
+            send_notification=False
+        )
+        if not_send_notifications.exists():
+            return JsonResponse({'error': 'اطلاعیه برای این واحد صادر نشده است.'}, status=400)
+
+        paid_notifications = ChargeFixVariableCalc.objects.filter(
+            fix_variable_charge=charge,
+            unit_id__in=selected_ids,
+            is_paid=True
+        )
+        if paid_notifications.exists():
+            return JsonResponse({'error': 'اطلاعیه به‌دلیل ثبت پرداخت توسط واحد قابل حذف نیست.'}, status=400)
+
+        notifications = ChargeFixVariableCalc.objects.filter(
+            fix_variable_charge=charge,
+            unit_id__in=selected_ids,
+            is_paid=False
+        )
+        deleted_count = notifications.count()
+        notifications.delete()
+
+        # اگر هیچ اطلاعیه‌ای باقی نماند، اطلاع‌رسانی غیرفعال شود
+        if not ChargeFixVariableCalc.objects.filter(fix_variable_charge=charge).exists():
+            charge.send_notification = False
+            charge.save()
+
+        return JsonResponse({'success': f'{deleted_count} اطلاعیه حذف شد.'})
+
+    return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)

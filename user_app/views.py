@@ -9,7 +9,7 @@ from django.views.generic import TemplateView
 
 from user_app import helper
 from admin_panel.models import Announcement, FixedChargeCalc, AreaChargeCalc, PersonCharge, PersonChargeCalc, \
-    FixPersonChargeCalc, FixAreaChargeCalc, ChargeByPersonAreaCalc
+    FixPersonChargeCalc, FixAreaChargeCalc, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariableCalc
 from user_app.forms import LoginForm, MobileLoginForm
 from user_app.models import User, Unit
 
@@ -199,6 +199,8 @@ def fetch_user_fixed_charges(request):
     fix_person_charges = get_user_charges(FixPersonChargeCalc, request.user)
     fix_area_charges = get_user_charges(FixAreaChargeCalc, request.user)
     person_area_charges = get_user_charges(ChargeByPersonAreaCalc, request.user)
+    fix_person_area_charges = get_user_charges(ChargeByFixPersonAreaCalc, request.user)
+    fix_variable_charges = get_user_charges(ChargeFixVariableCalc, request.user)
 
     context = {
         'unit': unit,
@@ -208,6 +210,8 @@ def fetch_user_fixed_charges(request):
         'fix_person_charges': fix_person_charges,
         'fix_area_charges': fix_area_charges,
         'person_area_charges': person_area_charges,
+        'fix_person_area_charges': fix_person_area_charges,
+        'fix_variable_charges': fix_variable_charges,
     }
 
     return render(request, 'manage_charges.html', context)

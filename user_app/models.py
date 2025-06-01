@@ -58,7 +58,9 @@ class Unit(models.Model):
     bedrooms_count = models.IntegerField()
     parking_number = models.CharField(max_length=10, null=True, blank=True)
     parking_count = models.IntegerField()
-    parking_place = models.CharField(max_length=100, null=True, blank=True, verbose_name='موقعیت پارکینگ')
+    parking_place = models.CharField(max_length=100, null=True, blank=True, verbose_name='موقعیت پارکینگ ')
+    extra_parking_first = models.CharField(max_length=100, null=True, blank=True, verbose_name='موقعیت پارکینگ اول')
+    extra_parking_second = models.CharField(max_length=100, null=True, blank=True, verbose_name='موقعیت پارکینگ دوم')
     unit_details = models.TextField(null=True, blank=True, verbose_name='توضیحات ساختمان')
     owner_name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام مالک')
     owner_mobile = models.CharField(max_length=11, verbose_name='همراه مالک')
@@ -69,6 +71,7 @@ class Unit(models.Model):
     status_residence = models.CharField(max_length=100, null=True, blank=True, verbose_name='وضعیت سکونت')
     is_owner = models.BooleanField(default=False, verbose_name='مالک یا مستاجر', null=True, blank=True)
     people_count = models.IntegerField(null=True, blank=True, verbose_name='تعداد نفرات')
+    parking_counts = models.IntegerField(null=True, blank=True, verbose_name='تعداد پارکینگ اضافه')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='زمان ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیر فعال')
 
@@ -78,34 +81,19 @@ class Unit(models.Model):
     def get_active_renter(self):
         return self.renters.filter(renter_is_active=True).first()
 
-    # def save(self, *args, **kwargs):
-    #     owner_count = 0
-    #     renter_count = 0
-    #
-    #     # Calculate renter count from active renters
-    #     for renter in self.renters.filter(renter_is_active=True):
-    #         if renter.renter_people_count and renter.renter_people_count.isdigit():
-    #             renter_count += int(renter.renter_people_count)
-    #
-    #     if self.is_owner is True:
-    #         # Both owner and renter live here
-    #         if self.owner_people_count and self.owner_people_count.isdigit():
-    #             owner_count = int(self.owner_people_count)
-    #         self.people_count = owner_count + renter_count
-    #
-    #     elif self.is_owner is False:
-    #         # Only renter(s) live here
-    #         self.people_count = renter_count
-    #
-    #     else:
-    #         # Unknown, default to 0
-    #         self.people_count = 0
-    #
-    #     super().save(*args, **kwargs)
+    def save(self, *args, **kwargs):
+        count = 0
+        if self.extra_parking_first:
+            count += 1
+        if self.extra_parking_second:
+            count += 1
+        self.parking_counts = count
+        super().save(*args, **kwargs)
 
 
 class Renter(models.Model):
-    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, verbose_name='واحد', related_name='renters', null=True, blank=True)
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, verbose_name='واحد', related_name='renters', null=True,
+                             blank=True)
     renter_name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام مستاجر')
     renter_mobile = models.CharField(max_length=11, null=True, blank=True, verbose_name='همراه')
     renter_national_code = models.CharField(max_length=10, null=True, blank=True, verbose_name='کد ملی')

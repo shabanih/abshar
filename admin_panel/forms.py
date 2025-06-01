@@ -6,10 +6,11 @@ from jalali_date import widgets
 from jalali_date.fields import JalaliDateField
 from jalali_date.widgets import AdminJalaliDateWidget
 
-from admin_panel.models import Announcement, Expense, ExpenseCategory, Income, IncomeCategory, ReceiveMoney, PayMoney, \
-    Property, Maintenance, FixedChargeCalc, ChargeByPersonArea, AreaChargeCalc, PersonChargeCalc, FixAreaChargeCalc, \
-    FixPersonChargeCalc, ChargeByFixPersonArea, ChargeCalcFixVariable, FixCharge, AreaCharge, PersonCharge, \
-    FixPersonCharge, FixAreaCharge
+from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, IncomeCategory, ReceiveMoney, PayMoney, \
+                                Property, Maintenance, ChargeByPersonArea, ChargeByFixPersonArea, FixCharge, AreaCharge,
+                                PersonCharge,
+                                FixPersonCharge, FixAreaCharge, ChargeFixVariable)
+
 from user_app.models import Unit, Bank, MyHouse
 
 attr = {'class': 'form-control border-1 py-2 mb-4 '}
@@ -125,8 +126,6 @@ class MyHouseForm(forms.ModelForm):
                                             label="شماره حساب")
     is_active = forms.BooleanField(initial=True, required=False, label='فعال/غیرفعال')
 
-
-
     class Meta:
         model = MyHouse
         fields = ['name', 'address', 'account_number', 'is_active']
@@ -150,13 +149,19 @@ class UnitForm(forms.ModelForm):
                                        widget=forms.Select(attrs=attr),
                                        label='تعداد خواب')
 
-    parking_place = forms.ChoiceField(error_messages=error_message, choices=PARKING_PLACE_CHOICES, required=True,
+    parking_place = forms.ChoiceField(error_messages=error_message, choices=PARKING_PLACE_CHOICES, required=False,
                                       widget=forms.Select(attrs=attr),
-                                      label='موقعیت پارکینگ')
+                                      label='موقعیت پارکینگ اصلی')
+    extra_parking_first = forms.CharField(error_messages=error_message, required=False,
+                                      widget=forms.TextInput(attrs=attr),
+                                      label=' پارکینگ اضافه اول')
+    extra_parking_second = forms.CharField(error_messages=error_message, required=False,
+                                      widget=forms.TextInput(attrs=attr),
+                                      label=' پارکینگ اضافه دوم')
 
     parking_number = forms.CharField(
         error_messages=error_message,
-        required=True,
+        required=False,
         widget=forms.TextInput(attrs=attr),
         label='شماره پارکینگ'
     )
@@ -283,7 +288,7 @@ class UnitForm(forms.ModelForm):
                   'bedrooms_count', 'parking_place', 'owner_name', 'owner_mobile',
                   'owner_national_code', 'unit_phone', 'owner_details',
                   'parking_number', 'parking_count', 'status_residence', 'purchase_date', 'renter_name',
-                  'renter_national_code', 'renter_details',
+                  'renter_national_code', 'renter_details','extra_parking_first', 'extra_parking_second',
                   'renter_mobile', 'is_owner', 'owner_people_count',
                   'renter_people_count', 'start_date', 'end_date', 'first_charge', 'contract_number',
                   'estate_name', 'is_active', 'mobile', 'password', 'confirm_password']
@@ -671,16 +676,16 @@ class MaintenanceForm(forms.ModelForm):
 
 class FixChargeForm(forms.ModelForm):
     name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
-                                  required=True,
-                                  label='عنوان شارژ ')
+                           required=True,
+                           label='عنوان شارژ ')
     fix_amount = forms.IntegerField(error_messages=error_message,
-                                widget=forms.TextInput(attrs=attr),
-                                required=True,
-                                label='مبلغ شارژ به ازای هر واحد')
+                                    widget=forms.TextInput(attrs=attr),
+                                    required=True,
+                                    label='مبلغ شارژ به ازای هر واحد')
     civil = forms.IntegerField(error_messages=error_message,
-                                      widget=forms.TextInput(attrs=attr),
-                                      required=False, min_value=0,
-                                      label='شارژ عمرانی')
+                               widget=forms.TextInput(attrs=attr),
+                               required=False, min_value=0,
+                               label='شارژ عمرانی')
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
@@ -698,16 +703,16 @@ class FixChargeForm(forms.ModelForm):
 
 class AreaChargeForm(forms.ModelForm):
     name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
-                                  required=True,
-                                  label='عنوان شارژ ')
+                           required=True,
+                           label='عنوان شارژ ')
     area_amount = forms.IntegerField(error_messages=error_message,
                                      widget=forms.TextInput(attrs=attr),
                                      required=True,
                                      label='مبلغ شارژ به اساس متراژ')
     civil = forms.IntegerField(error_messages=error_message,
-                                      widget=forms.TextInput(attrs=attr),
-                                      required=False, min_value=0,
-                                      label='شارژ عمرانی')
+                               widget=forms.TextInput(attrs=attr),
+                               required=False, min_value=0,
+                               label='شارژ عمرانی')
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
@@ -725,16 +730,16 @@ class AreaChargeForm(forms.ModelForm):
 
 class PersonChargeForm(forms.ModelForm):
     name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
-                                  required=True,
-                                  label='عنوان شارژ ')
+                           required=True,
+                           label='عنوان شارژ ')
     person_amount = forms.IntegerField(error_messages=error_message,
                                        widget=forms.TextInput(attrs=attr),
                                        required=True,
                                        label='مبلغ شارژ به ازای هر نفر')
     civil = forms.IntegerField(error_messages=error_message,
-                                      widget=forms.TextInput(attrs=attr),
-                                      required=False, min_value=0,
-                                      label='شارژ عمرانی')
+                               widget=forms.TextInput(attrs=attr),
+                               required=False, min_value=0,
+                               label='شارژ عمرانی')
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
@@ -752,20 +757,20 @@ class PersonChargeForm(forms.ModelForm):
 
 class FixAreaChargeForm(forms.ModelForm):
     name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
-                                  required=True,
-                                  label='عنوان شارژ ')
+                           required=True,
+                           label='عنوان شارژ ')
     fix_charge_amount = forms.IntegerField(error_messages=error_message,
-                                    widget=forms.TextInput(attrs=attr),
-                                    required=True,
-                                    label=' شارژ ثابت')
+                                           widget=forms.TextInput(attrs=attr),
+                                           required=True,
+                                           label=' شارژ ثابت')
     area_amount = forms.IntegerField(error_messages=error_message,
                                      widget=forms.TextInput(attrs=attr),
                                      required=True,
                                      label='مبلغ شارژ به اساس متراژ')
     civil = forms.IntegerField(error_messages=error_message,
-                                      widget=forms.TextInput(attrs=attr),
-                                      required=False, min_value=0,
-                                      label='شارژ عمرانی')
+                               widget=forms.TextInput(attrs=attr),
+                               required=False, min_value=0,
+                               label='شارژ عمرانی')
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
@@ -783,20 +788,20 @@ class FixAreaChargeForm(forms.ModelForm):
 
 class FixPersonChargeForm(forms.ModelForm):
     name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
-                                  required=True,
-                                  label='عنوان شارژ ')
+                           required=True,
+                           label='عنوان شارژ ')
     fix_charge_amount = forms.IntegerField(error_messages=error_message,
-                                    widget=forms.TextInput(attrs=attr),
-                                    required=True,
-                                    label=' شارژ ثابت')
+                                           widget=forms.TextInput(attrs=attr),
+                                           required=True,
+                                           label=' شارژ ثابت')
     person_amount = forms.IntegerField(error_messages=error_message,
                                        widget=forms.TextInput(attrs=attr),
                                        required=True,
                                        label='مبلغ شارژ به ازای هر نفر')
     civil = forms.IntegerField(error_messages=error_message,
-                                      widget=forms.TextInput(attrs=attr),
-                                      required=False, min_value=0,
-                                      label='شارژ عمرانی')
+                               widget=forms.TextInput(attrs=attr),
+                               required=False, min_value=0,
+                               label='شارژ عمرانی')
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
@@ -814,8 +819,8 @@ class FixPersonChargeForm(forms.ModelForm):
 
 class PersonAreaChargeForm(forms.ModelForm):
     name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
-                                  required=True,
-                                  label='عنوان شارژ ')
+                           required=True,
+                           label='عنوان شارژ ')
     person_amount = forms.IntegerField(error_messages=error_message,
                                        widget=forms.TextInput(attrs=attr),
                                        required=True,
@@ -828,9 +833,9 @@ class PersonAreaChargeForm(forms.ModelForm):
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
     civil = forms.IntegerField(error_messages=error_message,
-                                      widget=forms.TextInput(attrs=attr),
-                                      required=False,
-                                      label='شارژ عمرانی(تومان)')
+                               widget=forms.TextInput(attrs=attr),
+                               required=False,
+                               label='شارژ عمرانی(تومان)')
 
     # def clean_civil_charge(self):
     #     value = self.cleaned_data.get('civil_charge')
@@ -844,111 +849,71 @@ class PersonAreaChargeForm(forms.ModelForm):
 
 
 class PersonAreaFixChargeForm(forms.ModelForm):
-    charge_name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
-                                  required=True,
-                                  label='عنوان شارژ ')
-    fix_charge = forms.IntegerField(error_messages=error_message,
-                                    widget=forms.TextInput(attrs=attr),
-                                    required=True,
-                                    label=' شارژ ثابت')
-    person_charge = forms.IntegerField(error_messages=error_message,
+    name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+                           required=True,
+                           label='عنوان شارژ ')
+    fix_charge_amount = forms.IntegerField(error_messages=error_message,
+                                           widget=forms.TextInput(attrs=attr),
+                                           required=True,
+                                           label=' شارژ ثابت')
+    person_amount = forms.IntegerField(error_messages=error_message,
                                        widget=forms.TextInput(attrs=attr),
                                        required=True,
                                        label='مبلغ شارژ نفر')
-    area_charge = forms.IntegerField(error_messages=error_message,
+    area_amount = forms.IntegerField(error_messages=error_message,
                                      widget=forms.TextInput(attrs=attr),
                                      required=True,
                                      label='مبلغ شارژ هر متر')
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
-    civil_charge = forms.IntegerField(error_messages=error_message,
-                                      widget=forms.TextInput(attrs=attr),
-                                      required=False, min_value=0,
-                                      label='شارژ عمرانی')
-
-    def clean_civil_charge(self):
-        value = self.cleaned_data.get('civil_charge')
-        if value in [None, '']:  # empty string or None
-            return 0
-        return value
+    civil = forms.IntegerField(error_messages=error_message,
+                               widget=forms.TextInput(attrs=attr),
+                               required=False, min_value=0,
+                               label='شارژ عمرانی')
 
     class Meta:
         model = ChargeByFixPersonArea
-        fields = ['charge_name', 'area_charge', 'details', 'person_charge', 'civil_charge', 'fix_charge']
+        fields = ['name', 'area_amount', 'details', 'person_amount', 'civil', 'fix_charge_amount']
 
 
 class VariableFixChargeForm(forms.ModelForm):
-    charge_name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
-                                  required=True,
-                                  label='عنوان شارژ ')
+    name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+                           required=True,
+                           label='عنوان شارژ ')
 
-    salary = forms.IntegerField(error_messages=error_message,
-                                widget=forms.TextInput(attrs=attr),
-                                required=True,
-                                label='هزینه حقوق و دستمزد')
-    elevator_cost = forms.IntegerField(error_messages=error_message,
-                                           widget=forms.TextInput(attrs=attr),
-                                           required=True,
-                                           label='هزینه آسانسور')
-    public_electricity = forms.IntegerField(error_messages=error_message,
-                                            widget=forms.TextInput(attrs=attr),
-                                            required=True,
-                                            label='هزینه برق')
-    common_expenses = forms.IntegerField(error_messages=error_message,
-                                         widget=forms.TextInput(attrs=attr),
-                                         required=True,
-                                         label='هزینه اقلام مصرفی')
-    facility_cost = forms.IntegerField(error_messages=error_message,
+    unit_fix_amount = forms.IntegerField(error_messages=error_message,
                                        widget=forms.TextInput(attrs=attr),
                                        required=True,
-                                       label='هزینه تاسیسات')
-
-    camera_cost = forms.IntegerField(error_messages=error_message,
-                                     widget=forms.TextInput(attrs=attr),
-                                     required=True,
-                                     label='هزینه دوربین')
-    insurance_cost = forms.IntegerField(error_messages=error_message,
-                                        widget=forms.TextInput(attrs=attr),
-                                        required=True,
-                                        label='هزینه بیمه')
-    extinguished_cost = forms.IntegerField(error_messages=error_message,
-                                        widget=forms.TextInput(attrs=attr),
-                                        required=True,
-                                        label='هزینه آتش نشانی')
-    office_cost = forms.IntegerField(error_messages=error_message,
-                                     widget=forms.TextInput(attrs=attr),
-                                     required=True,
-                                     label='هزینه عمومی')
-    green_space_cost = forms.IntegerField(error_messages=error_message,
-                                          widget=forms.TextInput(attrs=attr),
-                                          required=True,
-                                          label='هزینه فضای سبز')
-    public_water = forms.IntegerField(error_messages=error_message,
-                                      widget=forms.TextInput(attrs=attr),
-                                      required=True,
-                                      label='هزینه آب')
-    public_gas = forms.IntegerField(error_messages=error_message,
-                                    widget=forms.TextInput(attrs=attr),
-                                    required=True,
-                                    label='هزینه گاز')
+                                       label='شارژ ثابت به ازای هر واحد')
+    extra_parking_amount = forms.IntegerField(error_messages=error_message,
+                                              widget=forms.TextInput(attrs=attr),
+                                              required=False,
+                                              label='هزینه اجاره پارکینگ ')
+    unit_variable_person_amount = forms.IntegerField(error_messages=error_message,
+                                              widget=forms.TextInput(attrs=attr),
+                                              required=True,
+                                              label='شارژ متغیر به ازای هر نفر')
+    unit_variable_area_amount = forms.IntegerField(error_messages=error_message,
+                                                   widget=forms.TextInput(attrs=attr),
+                                                   required=True,
+                                                   label='شارژ متغیر به ازای هر متر')
 
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
-    civil_charge = forms.IntegerField(error_messages=error_message,
-                                      widget=forms.TextInput(attrs=attr),
-                                      required=False, min_value=0,
-                                      label='شارژ عمرانی')
+    civil = forms.IntegerField(error_messages=error_message,
+                               widget=forms.TextInput(attrs=attr),
+                               required=False, min_value=0,
+                               label='سایر هزینه ها')
 
-    def clean_civil_charge(self):
-        value = self.cleaned_data.get('civil_charge')
-        if value in [None, '']:  # empty string or None
-            return 0
-        return value
+    other_cost_amount = forms.IntegerField(error_messages=error_message,
+                               widget=forms.TextInput(attrs=attr),
+                               required=False, min_value=0,
+                               label='شارژ عمرانی')
 
     class Meta:
-        model = ChargeCalcFixVariable
-        fields = ['charge_name', 'salary', 'public_electricity', 'elevator_cost', 'office_cost','facility_cost',
-                  'green_space_cost', 'insurance_cost', 'common_expenses', 'camera_cost',
-                  'public_water', 'public_gas', 'insurance_cost', 'civil_charge', 'details', 'extinguished_cost']
+        model = ChargeFixVariable
+        fields = ['name',  'extra_parking_amount', 'unit_fix_amount', 'unit_variable_area_amount',
+                  'unit_variable_person_amount', 'civil', 'details', 'other_cost_amount']
+

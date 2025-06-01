@@ -22,6 +22,12 @@ urlpatterns = [
     path('request-pay-person-area/<int:charge_id>/', views.request_pay_person_area, name='request_pay_person_area'),
     path('verify-pay-person-area/', views.verify_pay_person_area, name='verify_pay_person_area'),
 
+    path('request-pay-fix-person-area/<int:charge_id>/', views.request_pay_fix_person_area, name='request_pay_fix_person_area'),
+    path('verify-pay-fix-person-area/', views.verify_pay_fix_person_area, name='verify_pay_fix_person_area'),
+
+    path('request-pay-fix-variable/<int:charge_id>/', views.request_pay_fix_variable, name='request_pay_fix_variable'),
+    path('verify-pay-fix-variable/', views.verify_pay_fix_variable, name='verify_pay_fix_variable'),
+
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

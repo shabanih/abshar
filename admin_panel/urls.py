@@ -152,18 +152,27 @@ urlpatterns = [
     path('remove-send-notification-person-area/<int:pk>/', views.remove_send_notification_person_area,
          name='remove_send_notification_person_area'),
 
-
-
     path('add-person_area-fix-charge', views.PersonAreaFixChargeCreateView.as_view(),
          name='add_person_area_fix_charge'),
     path('fix/area/person/charge/edit/<int:pk>/', views.person_area_fix_charge_edit,
          name='charge_area_person_fix_edit'),
     path('fix/area/person/charge/delete/<int:pk>/', views.person_area_fix_delete, name='charge_area_person_fix_delete'),
+    path('charge/fix/person/area/notify/<int:pk>/', views.show_fix_person_area_charge_notification_form,
+         name='show_notification_fix_person_area_charge_form'),
+    path('charge/fix/person/area/notify/send/<int:pk>/', views.send_notification_fix_person_area_charge_to_user,
+         name='send_notification_fix_person_area_charge_to_user'),
+    path('remove-send-notification-fix-person-area/<int:pk>/', views.remove_send_notification_fix_person_area,
+         name='remove_send_notification_fix_person_area'),
 
     path('add-variable-fix-charge', views.VariableFixChargeCreateView.as_view(), name='add_variable_fix_charge'),
     path('fix/variable/charge/edit/<int:pk>/', views.variable_fix_charge_edit, name='charge_variable_fix_edit'),
     path('variable/fix/charge/delete/<int:pk>/', views.variable_fix_charge_delete, name='charge_variable_fix_delete'),
-
+    path('charge/fix/variable/charge/notify/<int:pk>/', views.show_fix_variable_notification_form,
+         name='show_notification_fix_variable_charge_form'),
+    path('charge/fix/variable/charge/notify/send/<int:pk>/', views.send_notification_fix_variable_to_user,
+         name='send_notification_fix_variable_charge_to_user'),
+    path('remove-send-notification-fix-variable-charge/<int:pk>/', views.remove_send_notification_fix_variable,
+         name='remove_send_notification_fix_variable_charge'),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

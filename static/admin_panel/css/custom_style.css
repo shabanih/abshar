@@ -777,3 +777,16 @@ div.d-flex.justify-content-between div{
   text-align: center;
 }
 
+.chargeCircleParking{
+      background: rgba(22, 83, 238, 0.98);
+  border-radius: 3em;
+  -moz-border-radius: 3em;
+  -webkit-border-radius: 3em;
+  color: rgb(255, 255, 255);
+  height: 1.8em;
+  width: 1.8em;
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1.9em;
+  text-align: center;
+}
