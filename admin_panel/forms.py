@@ -2,6 +2,9 @@ from datetime import datetime
 
 import jdatetime
 from django import forms
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from jalali_date import widgets
 from jalali_date.fields import JalaliDateField
 from jalali_date.widgets import AdminJalaliDateWidget
@@ -11,7 +14,7 @@ from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, 
                                 PersonCharge,
                                 FixPersonCharge, FixAreaCharge, ChargeFixVariable)
 
-from user_app.models import Unit, Bank, MyHouse
+from user_app.models import Unit, Bank, User
 
 attr = {'class': 'form-control border-1 py-2 mb-4 '}
 attr1 = {'class': 'form-control border-1 py-1 mb-4 '}
@@ -89,7 +92,60 @@ BANK_CHOICES = {
 }
 
 
+class UserRegistrationForm(forms.ModelForm):
+    mobile = forms.CharField(error_messages=error_message,
+                                    required=True,
+                                    max_length=11,
+                                    min_length=11,
+                                    widget=forms.TextInput(attrs=attr),
+                                    label='شماره تلفن ')
+    full_name = forms.CharField(error_messages=error_message, required=True,
+                                widget=forms.TextInput(attrs=attr3), label='نام ')
+    username = forms.CharField(error_messages=error_message, required=True,
+                               widget=forms.TextInput(attrs=attr3), label='نام کاربری ')
+
+    password = forms.CharField(
+        required=False,
+        label='رمز عبور',
+        widget=forms.PasswordInput(attrs=attr),
+        help_text='رمز عبور باید شامل اعداد و حروف باشد'
+    )
+    confirm_password = forms.CharField(
+        required=False,
+        label='تایید رمز عبور',
+        widget=forms.PasswordInput(attrs=attr),
+        help_text='رمز عبور باید شامل اعداد و حروف باشد'
+    )
+
+    class Meta:
+        model = User
+        fields = ['full_name', 'mobile', 'username', 'password']
+
+    def clean_mobile(self):
+        mobile = self.cleaned_data.get('mobile')
+        if User.objects.filter(mobile=mobile).exists():
+            raise ValidationError('این شماره موبایل قبلا ثبت شده است.')
+        return mobile
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if User.objects.filter(username=username).exists():
+            raise ValidationError('نام کاربری قبلا ثبت شده است.')
+        return username
+
+    def clean_password2(self):
+        password1 = self.cleaned_data.get("password1")
+        password2 = self.cleaned_data.get("password2")
+
+        if password1 and password2 and password1 != password2:
+            raise ValidationError("رمزهای عبور با هم مطابقت ندارند!")
+
+        return password2
+
+
 class BankForm(forms.ModelForm):
+    house_name = forms.CharField(error_messages=error_message, required=True,
+                                  widget=forms.TextInput(attrs=attr3), label='نام ساختمان')
     bank_name = forms.ChoiceField(error_messages=error_message, required=True, choices=BANK_CHOICES,
                                   widget=forms.Select(attrs=attr3), label='نام بانک')
 
@@ -113,22 +169,22 @@ class BankForm(forms.ModelForm):
 
     class Meta:
         model = Bank
-        fields = ('bank_name', 'account_holder_name', 'account_no', 'sheba_number', 'cart_number', 'initial_fund')
+        fields = ('house_name', 'bank_name', 'account_holder_name', 'account_no', 'sheba_number', 'cart_number', 'initial_fund')
 
 
-class MyHouseForm(forms.ModelForm):
-    name = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
-                           label='نام ساختمان')
-    address = forms.CharField(error_messages=error_message, required=True,
-                              widget=forms.TextInput(attrs=attr),
-                              label='آدرس')
-    account_number = forms.ModelChoiceField(queryset=Bank.objects.all(), widget=forms.Select(attrs=attr2),
-                                            label="شماره حساب")
-    is_active = forms.BooleanField(initial=True, required=False, label='فعال/غیرفعال')
-
-    class Meta:
-        model = MyHouse
-        fields = ['name', 'address', 'account_number', 'is_active']
+# class MyHouseForm(forms.ModelForm):
+#     name = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
+#                            label='نام ساختمان')
+#     address = forms.CharField(error_messages=error_message, required=True,
+#                               widget=forms.TextInput(attrs=attr),
+#                               label='آدرس')
+#     account_number = forms.ModelChoiceField(queryset=Bank.objects.all(), widget=forms.Select(attrs=attr2),
+#                                             label="شماره حساب")
+#     is_active = forms.BooleanField(initial=True, required=False, label='فعال/غیرفعال')
+#
+#     class Meta:
+#         model = MyHouse
+#         fields = ['name', 'address', 'account_number', 'is_active']
 
 
 class UnitForm(forms.ModelForm):
@@ -153,11 +209,11 @@ class UnitForm(forms.ModelForm):
                                       widget=forms.Select(attrs=attr),
                                       label='موقعیت پارکینگ اصلی')
     extra_parking_first = forms.CharField(error_messages=error_message, required=False,
-                                      widget=forms.TextInput(attrs=attr),
-                                      label=' پارکینگ اضافه اول')
+                                          widget=forms.TextInput(attrs=attr),
+                                          label=' پارکینگ اضافه اول')
     extra_parking_second = forms.CharField(error_messages=error_message, required=False,
-                                      widget=forms.TextInput(attrs=attr),
-                                      label=' پارکینگ اضافه دوم')
+                                           widget=forms.TextInput(attrs=attr),
+                                           label=' پارکینگ اضافه دوم')
 
     parking_number = forms.CharField(
         error_messages=error_message,
@@ -288,7 +344,7 @@ class UnitForm(forms.ModelForm):
                   'bedrooms_count', 'parking_place', 'owner_name', 'owner_mobile',
                   'owner_national_code', 'unit_phone', 'owner_details',
                   'parking_number', 'parking_count', 'status_residence', 'purchase_date', 'renter_name',
-                  'renter_national_code', 'renter_details','extra_parking_first', 'extra_parking_second',
+                  'renter_national_code', 'renter_details', 'extra_parking_first', 'extra_parking_second',
                   'renter_mobile', 'is_owner', 'owner_people_count',
                   'renter_people_count', 'start_date', 'end_date', 'first_charge', 'contract_number',
                   'estate_name', 'is_active', 'mobile', 'password', 'confirm_password']
@@ -490,7 +546,7 @@ class SearchIncomeForm(forms.Form):
 
 class ReceiveMoneyForm(forms.ModelForm):
     bank = forms.ModelChoiceField(
-        queryset=MyHouse.objects.filter(is_active=True),
+        queryset=Bank.objects.filter(is_active=True),
         widget=forms.Select(attrs=attr),
         empty_label="شماره حساب را انتخاب کنید",
         error_messages=error_message,
@@ -532,12 +588,12 @@ class ReceiveMoneyForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['bank'].queryset = MyHouse.objects.filter(is_active=True)
+        self.fields['bank'].queryset = Bank.objects.filter(is_active=True)
 
 
 class PayerMoneyForm(forms.ModelForm):
     bank = forms.ModelChoiceField(
-        queryset=MyHouse.objects.filter(is_active=True),
+        queryset=Bank.objects.filter(is_active=True),
         widget=forms.Select(attrs=attr),
         empty_label="یک گروه انتخاب کنید",
         error_messages=error_message,
@@ -690,6 +746,17 @@ class FixChargeForm(forms.ModelForm):
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
 
+    payment_penalty_amount = forms.IntegerField(error_messages=error_message,
+                                                widget=forms.TextInput(attrs=attr),
+                                                required=False, min_value=0,
+                                                label='جریمه دیرکرد به درصد')
+
+    payment_deadline = JalaliDateField(
+        label='مهلت پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+
     def clean_civil_charge(self):
         value = self.cleaned_data.get('civil')
         if value in [None, '']:  # empty string or None
@@ -698,7 +765,7 @@ class FixChargeForm(forms.ModelForm):
 
     class Meta:
         model = FixCharge
-        fields = ['name', 'fix_amount', 'details', 'civil']
+        fields = ['name', 'fix_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount']
 
 
 class AreaChargeForm(forms.ModelForm):
@@ -883,17 +950,17 @@ class VariableFixChargeForm(forms.ModelForm):
                            label='عنوان شارژ ')
 
     unit_fix_amount = forms.IntegerField(error_messages=error_message,
-                                       widget=forms.TextInput(attrs=attr),
-                                       required=True,
-                                       label='شارژ ثابت به ازای هر واحد')
+                                         widget=forms.TextInput(attrs=attr),
+                                         required=True,
+                                         label='شارژ ثابت به ازای هر واحد')
     extra_parking_amount = forms.IntegerField(error_messages=error_message,
                                               widget=forms.TextInput(attrs=attr),
                                               required=False,
                                               label='هزینه اجاره پارکینگ ')
     unit_variable_person_amount = forms.IntegerField(error_messages=error_message,
-                                              widget=forms.TextInput(attrs=attr),
-                                              required=True,
-                                              label='شارژ متغیر به ازای هر نفر')
+                                                     widget=forms.TextInput(attrs=attr),
+                                                     required=True,
+                                                     label='شارژ متغیر به ازای هر نفر')
     unit_variable_area_amount = forms.IntegerField(error_messages=error_message,
                                                    widget=forms.TextInput(attrs=attr),
                                                    required=True,
@@ -908,12 +975,11 @@ class VariableFixChargeForm(forms.ModelForm):
                                label='سایر هزینه ها')
 
     other_cost_amount = forms.IntegerField(error_messages=error_message,
-                               widget=forms.TextInput(attrs=attr),
-                               required=False, min_value=0,
-                               label='شارژ عمرانی')
+                                           widget=forms.TextInput(attrs=attr),
+                                           required=False, min_value=0,
+                                           label='شارژ عمرانی')
 
     class Meta:
         model = ChargeFixVariable
-        fields = ['name',  'extra_parking_amount', 'unit_fix_amount', 'unit_variable_area_amount',
+        fields = ['name', 'extra_parking_amount', 'unit_fix_amount', 'unit_variable_area_amount',
                   'unit_variable_person_amount', 'civil', 'details', 'other_cost_amount']
-

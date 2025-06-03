@@ -396,9 +396,10 @@ $(document).on('click', '.edit-bank-btn', function () {
 
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
-    $('#bankForm').attr('action', '/admin-panel/bank/edit/' + id + '/');
+    $('#bankForm').attr('action', '/middle-admin-panel/bank/middle/edit/' + id + '/');
 
     // Populate the form with the expense data
+    $('#id_house_name').val($(this).data('house_name'));
     $('#id_bank_name').val($(this).data('bank_name'));
     $('#id_account_holder_name').val($(this).data('account_holder_name'));
     $('#id_account_no').val($(this).data('account_no'));
@@ -407,8 +408,36 @@ $(document).on('click', '.edit-bank-btn', function () {
     $('#id_initial_fund').val($(this).data('initial_fund').toString().replace(/,/g, ''));
 
     // Update the modal title and submit button text for editing
-    $('#exampleModalLongTitle3').text('ویرایش حساب بانکی');
-    $('#btn-submit-bank').text('ویرایش حساب بانکی');
+    $('#exampleModalLongTitle3').text('ویرایش اطلاعات ساختمان');
+    $('#btn-submit-bank').text('ویرایش اطلاعات ساختمان');
+});
+ document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('exampleModalLong');
+    const form = document.getElementById('personForm');
+
+    modal.addEventListener('hidden.bs.modal', function () {
+      form.reset();
+    });
+  });
+
+ // ==================================================
+$(document).on('click', '.edit-middle-btn', function () {
+    console.log('ویرایش کلیک شد2');
+
+    // Get the expense ID from the clicked button's data attributes
+    var id = $(this).data('id');
+    $('#middleForm').attr('action', '/admin-panel/middle/edit/' + id + '/');
+
+    // Populate the form with the expense data
+    $('#id_full_name').val($(this).data('full_name'));
+    $('#id_mobile').val($(this).data('mobile'));
+    $('#id_username').val($(this).data('username'));
+    $('#id_password').val($(this).data('password'));
+
+
+    // Update the modal title and submit button text for editing
+    $('#exampleModalLongTitle3').text('ویرایش اطلاعات مدیر ساختمان');
+    $('#btn-submit-bank').text('ویرایش اطلاعات ');
 });
  document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('exampleModalLong');
@@ -906,6 +935,8 @@ $(document).on('click', '.edit-charge-btn', function () {
     $('#id_name').val($(this).data('name'));
     $('#id_fix_amount').val($(this).data('fix_amount'));
     $('#id_civil').val($(this).data('civil'));
+    $('#id_payment_penalty_amount').val($(this).data('payment_penalty_amount'));
+    $('#id_payment_deadline').val($(this).data('payment_deadline'));
     $('#id_details').val($(this).data('details'));
 
     // Update the modal title and submit button text for editing

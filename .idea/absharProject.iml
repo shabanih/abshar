@@ -44,8 +44,11 @@
         <option value="$MODULE_DIR$/admin_panel/templates/property" />
         <option value="$MODULE_DIR$/admin_panel/templates/maintenance" />
         <option value="$MODULE_DIR$/admin_panel/templates/charge" />
-        <option value="$MODULE_DIR$/templates" />
         <option value="$MODULE_DIR$/user_app/templates" />
+        <option value="$MODULE_DIR$/reports/templates" />
+        <option value="$MODULE_DIR$/middleAdmin_panel/templates/charge" />
+        <option value="$MODULE_DIR$/middleAdmin_panel/templates/middle_admin" />
+        <option value="$MODULE_DIR$/middleAdmin_panel/templates/middle_unit_templates" />
       </list>
     </option>
   </component>

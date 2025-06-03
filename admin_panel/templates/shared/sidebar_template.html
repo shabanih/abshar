@@ -32,6 +32,13 @@
                 <i class="mdi mdi-bell-ring-outline menu-icon"></i>
               </a>
             </li>
+             <li class="nav-item border-top mt-0">
+                 {% url 'create_middle_admin' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title"> مدیریت کاربران</i>
+                <i class="mdi mdi-city menu-icon menu-icon"></i>
+              </a>
+            </li>
           
            <li class="nav-item border-top mt-0">
                  {% url 'manage_unit' as address_url %}
@@ -101,9 +108,9 @@
               <div class="collapse" id="general2">
                 <ul class="nav flex-column sub-menu">
                     <li class="nav-item mt-0">
-                    <a class="nav-link" href="#"> گردش صندوق </a></li>
+                    <a class="nav-link" href="{% url 'fund_turn_over' %}"> گردش صندوق </a></li>
                     <li class="nav-item mt-0">
-                    <a class="nav-link" href="#"> گردش مالی اشخاص </a></li>
+                    <a class="nav-link" href="{% url 'unit_reports' %}"> گردش مالی اشخاص </a></li>
                   <li class="nav-item mt-0">
                     <a class="nav-link" href="#"> واحدهای بدهکار/بستانکار </a></li>
                     <li class="nav-item mt-0">

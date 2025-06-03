@@ -86,6 +86,7 @@
                     <thead class="text-center">
                         <tr>
                             <th>#</th>
+                            <th>ایجاد کننده</th>
                             <th> واحد</th>
                             <th>نام مالک</th>
                             <th>موبایل مالک</th>
@@ -106,14 +107,15 @@
                       {% for unit in object_list  %}
                             <tr>
                           <td>{{ forloop.counter }}</td>
+                              
+                           <td>{{ unit.user.id }}</td>
+                          
                             <td>{{ unit.unit }}</td>
+                          
                             <td>{{ unit.owner_name }}</td>
                             <td>{{ unit.owner_mobile }}</td>
                             <td>{{ unit.area }}</td>
                             <td>{{ unit.bedrooms_count }}</td>
-{#                            <td>{{ unit.owner_people_count }}</td>#}
-                            
-                            <!-- Display Renters (multiple possible) -->
                             <td>
                                 {% if unit.renters.all %}
                                     {% for renter in unit.renters.all %}

@@ -6,8 +6,10 @@ from admin_panel import views
 
 urlpatterns = [
     path('', views.admin_dashboard, name='admin_dashboard'),
-    # path('login-admin/', views.admin_login_view, name='login_admin'),
+    path('login-admin/', views.admin_login_view, name='login_admin'),
     path('log-out-admin/', views.logout_admin, name='logout_admin'),
+    path('create-middle-admin/', views.MiddleAdminCreateView.as_view(), name='create_middle_admin'),
+    path('middle/edit//<int:pk>/', views.MiddleAdminUpdateView.as_view(), name='edit_middle_admin'),
 
     # Announce urls
     path('announcement/', views.AnnouncementView.as_view(), name='announcement'),
@@ -16,10 +18,10 @@ urlpatterns = [
 
     # House Urls
     path('manage-house', views.AddMyHouseView.as_view(), name='manage_house'),
+    path('bank/edit/<int:pk>/', views.MyBankUpdateView.as_view(), name='edit_bank'),
     path('delete/bank/<int:pk>/', views.bank_delete, name='delete_bank'),
-    path('delete/house/<int:pk>/', views.house_delete, name='delete_house'),
-    path('bank/edit/<int:pk>/', views.edit_bank, name='edit_bank'),
-    path('house/edit/<int:pk>/', views.edit_house, name='edit_house'),
+
+
 
     # Unit Urls
     path('add-unit', views.UnitRegisterView.as_view(), name='add_unit'),
@@ -29,7 +31,6 @@ urlpatterns = [
     path('manage-unit', views.UnitListView.as_view(), name='manage_unit'),
     path('units/export/excel/', views.export_units_excel, name='export_units_excel'),
     path('units/export/pdf/', views.export_units_pdf, name='export_units_pdf'),
-    path('expense/export/excel/', views.export_expense_excel, name='export_expense_excel'),
 
     # Expense_category Urls
     path('add-category-expense', views.ExpenseCategoryView.as_view(), name='add_category_expense'),

@@ -4,7 +4,9 @@ from datetime import timezone
 
 import sweetify
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 import arabic_reshaper
 import jdatetime
@@ -20,6 +22,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import get_template, render_to_string
 from django.urls import reverse_lazy, reverse
+from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -35,56 +38,106 @@ from xhtml2pdf import pisa
 from admin_panel import helper
 from admin_panel.filters import ExpenseFilter
 from admin_panel.forms import announcementForm, UnitForm, ExpenseForm, ExpenseCategoryForm, SearchExpenseForm, \
-    IncomeForm, IncomeCategoryForm, MyHouseForm, BankForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, \
+    IncomeForm, IncomeCategoryForm, BankForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, \
     MaintenanceForm, FixChargeForm, PersonAreaChargeForm, AreaChargeForm, PersonChargeForm, FixAreaChargeForm, \
-    FixPersonChargeForm, PersonAreaFixChargeForm, VariableFixChargeForm
+    FixPersonChargeForm, PersonAreaFixChargeForm, VariableFixChargeForm, UserRegistrationForm
 from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDocument, Income, IncomeDocument, \
     IncomeCategory, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, FixedChargeCalc, ChargeByPersonArea, AreaChargeCalc, PersonChargeCalc, FixAreaChargeCalc, \
     FixPersonChargeCalc, ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
     FixPersonCharge, FixAreaCharge, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariable, \
-    ChargeFixVariableCalc
-from user_app.models import Unit, MyHouse, Bank, Renter, User
+    ChargeFixVariableCalc, Fund
+from user_app.models import Unit, Bank, Renter, User
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
+# Helper decorator to check superuser (admin)
+def admin_required(view_func):
+    return user_passes_test(lambda u: u.is_superuser, login_url=settings.LOGIN_URL_ADMIN)(view_func)
+
+
+@method_decorator(login_required(), name='dispatch')
+class MiddleAdminCreateView(CreateView):
+    model = User
+    template_name = 'admin_panel/add_middleAdmin.html'
+    form_class = UserRegistrationForm  # یا فرم سفارشی اگر تعریف کرده‌اید
+    success_url = reverse_lazy('create_middle_admin')
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        raw_password = form.cleaned_data.get(
+            'password')  # Assuming you're using UserCreationForm or a custom form with 'password1'
+        self.object.set_password(raw_password)  # Hash the password properly
+        self.object.is_middle_admin = True
+        self.object.save()
+        messages.success(self.request, 'مدیر ساختمان با موفقیت ثبت گردید!')
+        return redirect(self.success_url)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['middleAdmins'] = User.objects.filter(is_active=True, is_middle_admin=True).order_by('-created_time')
+        context['users'] = User.objects.filter(is_active=True).order_by('-created_time')
+        return context
+
+
+class MiddleAdminUpdateView(UpdateView):
+    model = User
+    template_name = 'admin_panel/add_middleAdmin.html'
+    form_class = UserRegistrationForm  # یا فرم سفارشی اگر تعریف کرده‌اید
+    success_url = reverse_lazy('create_middle_admin')
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.user = self.request.user
+        messages.success(self.request, 'اطلاعات مدیر ساختمان با موفقیت ویرایش گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['middleAdmins'] = Bank.objects.filter(is_active=True)
+        return context
+
+
+@login_required
+@admin_required
 def admin_dashboard(request):
-    announcements = Announcement.objects.filter(is_active=True)
-
+    announcements = Announcement.objects.filter(is_active=True, user=request.user)
     context = {
+
         'announcements': announcements
     }
     return render(request, 'shared/home_template.html', context)
 
 
-# def admin_login_view(request):
-#     if request.method == 'POST':
-#         mobile = request.POST.get('mobile')
-#         password = request.POST.get('password1')
-#
-#         user = authenticate(request, mobile=mobile, password=password)
-#         if user is not None:
-#             if user.is_superuser:
-#                 login(request, user)
-#                 sweetify.success(request, f"{user.username} عزیز، با موفقیت وارد بخش ادمین شدید!")
-#                 return redirect(reverse('admin_dashboard'))
-#             else:
-#                 logout(request)  # Log out any non-superuser who authenticated successfully
-#                 messages.error(request, 'شما مجوز دسترسی به بخش ادمین را ندارید!')
-#                 return redirect(reverse('login_admin'))
-#         else:
-#             messages.error(request, 'نام کاربری و یا رمز عبور اشتباه است!')
-#             return redirect(reverse('login_admin'))
-#
-#     return render(request, 'partials/login.html')
+def admin_login_view(request):
+    if request.method == 'POST':
+        mobile = request.POST.get('mobile')
+        password = request.POST.get('password1')
+
+        user = authenticate(request, mobile=mobile, password=password)
+        if user is not None:
+            if user.is_superuser:
+                login(request, user)
+                sweetify.success(request, f"{user.username} عزیز، با موفقیت وارد بخش ادمین شدید!")
+                return redirect(reverse('admin_dashboard'))
+            else:
+                logout(request)  # Log out any non-superuser who authenticated successfully
+                messages.error(request, 'شما مجوز دسترسی به بخش ادمین را ندارید!')
+                return redirect(reverse('login_admin'))
+        else:
+            messages.error(request, 'نام کاربری و یا رمز عبور اشتباه است!')
+            return redirect(reverse('login_admin'))
+
+    return render(request, 'shared/login.html')
 
 
 def logout_admin(request):
     logout(request)
-    return redirect('index')
+    return redirect('login_admin')
 
 
-#
-#
 def site_header_component(request):
     context = {
         'user': request.user,
@@ -94,6 +147,7 @@ def site_header_component(request):
     return render(request, 'shared/notification_template.html', context)
 
 
+@method_decorator(admin_required, name='dispatch')
 class AnnouncementView(CreateView):
     model = Announcement
     template_name = 'admin_panel/announcement.html'
@@ -112,6 +166,7 @@ class AnnouncementView(CreateView):
         return context
 
 
+@method_decorator(admin_required, name='dispatch')
 class AnnouncementUpdateView(UpdateView):
     model = Announcement
     template_name = 'admin_panel/announcement.html'
@@ -130,6 +185,7 @@ class AnnouncementUpdateView(UpdateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def announcement_delete(request, pk):
     announce = get_object_or_404(Announcement, id=pk)
     print(announce.id)
@@ -143,103 +199,45 @@ def announcement_delete(request, pk):
 
 
 # ========================== My House Views ========================
-
-class AddMyHouseView(LoginRequiredMixin, View):
+@method_decorator(admin_required, name='dispatch')
+class AddMyHouseView(CreateView):
+    model = Bank
     template_name = 'admin_panel/add_my_house.html'
+    form_class = BankForm
+    success_url = reverse_lazy('manage_house')
 
-    def get(self, request, *args, **kwargs):
-        context = {
-            'bank_form': BankForm(),
-            'house_form': MyHouseForm(),
-            'banks': Bank.objects.all(),
-            'houses': MyHouse.objects.all()
-        }
-        return render(request, self.template_name, context)
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.user = self.request.user
+        messages.success(self.request, 'اطلاعات ساختمان با موفقیت ثبت گردید!')
+        return super().form_valid(form)
 
-    def post(self, request, *args, **kwargs):
-        bank_form = BankForm()  # پیش‌فرض خالی
-        house_form = MyHouseForm()  # پیش‌فرض خالی
-
-        if 'submit_bank' in request.POST:
-            bank_form = BankForm(request.POST)
-            if bank_form.is_valid():
-                bank = bank_form.save(commit=False)
-                bank.user = request.user
-                bank.save()
-                messages.success(request, 'حساب بانکی با موفقیت ثبت شد.')
-                return redirect('manage_house')
-            else:
-                messages.error(request, 'خطا در ثبت اطلاعات بانکی.')
-
-        elif 'submit_house' in request.POST:
-            house_form = MyHouseForm(request.POST)
-            if house_form.is_valid():
-                house = house_form.save(commit=False)
-                house.user = request.user
-                bank_id = request.POST.get('account_no')
-                if bank_id:
-                    try:
-                        bank = Bank.objects.get(id=bank_id)
-                        house.account_no = bank  # اختصاص Bank object به فیلد ForeignKey
-                    except Bank.DoesNotExist:
-                        messages.error(request, 'حساب بانکی انتخاب‌شده یافت نشد.')
-                        return render(request, self.template_name, {
-                            'bank_form': bank_form,
-                            'house_form': house_form,
-                            'banks': Bank.objects.all(),
-                            'houses': MyHouse.objects.all()
-                        })
-                house.save()
-                messages.success(request, 'اطلاعات ساختمان با موفقیت ثبت شد.')
-                return redirect('manage_house')
-            else:
-                messages.error(request, 'خطا در ثبت اطلاعات خانه.')
-        return render(request, self.template_name, {
-            'bank_form': bank_form,
-            'house_form': house_form,
-            'banks': Bank.objects.all(),
-            'houses': MyHouse.objects.all()
-        })
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['banks'] = Bank.objects.filter(is_active=True)
+        return context
 
 
-def edit_bank(request, pk):
-    bank = get_object_or_404(Bank, pk=pk)
-    if request.method == 'POST':
-        form = BankForm(request.POST, instance=bank)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'حساب بانکی با موفقیت ویرایش شد.')
-            return redirect('manage_house')  # Adjust redirect as necessary
-        else:
-            messages.error(request, 'خطا در ویرایش فرم! لطفا دوباره تلاش کنید.')
-            return redirect('manage_house')
-    else:
-        # If the request is not POST, redirect to the appropriate page
-        return redirect('manage_house')
+@method_decorator(admin_required, name='dispatch')
+class MyBankUpdateView(UpdateView):
+    model = Bank
+    template_name = 'admin_panel/add_my_house.html'
+    form_class = BankForm
+    success_url = reverse_lazy('manage_house')
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.user = self.request.user
+        messages.success(self.request, 'اطلاعات ساختمان با موفقیت ویرایش گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['banks'] = Bank.objects.filter(is_active=True)
+        return context
 
 
-def edit_house(request, pk):
-    house = get_object_or_404(MyHouse, pk=pk)
-
-    if request.method == 'POST':
-        house_form = MyHouseForm(request.POST, instance=house)
-        if house_form.is_valid():
-            house_form.save()
-            messages.success(request, 'اطلاعات ساختمان با موفقیت ویرایش شد.')
-            return redirect('manage_house')
-        else:
-            messages.error(request, 'خطا در ویرایش فرم! لطفا دوباره تلاش کنید.')
-    else:
-        house_form = MyHouseForm(instance=house)
-
-    return render(request, 'admin_panel/add_my_house.html', {
-        'house_form': house_form,
-        'banks': Bank.objects.all(),
-        'houses': MyHouse.objects.all(),
-        'house': house
-    })
-
-
+@login_required()
 def bank_delete(request, pk):
     bank = get_object_or_404(Bank, id=pk)
     try:
@@ -251,18 +249,8 @@ def bank_delete(request, pk):
         return redirect(reverse('manage_house'))
 
 
-def house_delete(request, pk):
-    house = get_object_or_404(MyHouse, id=pk)
-    try:
-        house.delete()
-        messages.success(request, 'ساختمان با موفقیت حذف گردید!')
-        return redirect(reverse('manage_house'))
-    except Bank.DoesNotExist:
-        messages.info(request, 'خطا در ثبت حساب بانکی')
-        return redirect(reverse('manage_house'))
-
-
 # =========================== unit Views ================================
+@method_decorator(admin_required, name='dispatch')
 class UnitRegisterView(LoginRequiredMixin, CreateView):
     model = Unit
     form_class = UnitForm
@@ -319,6 +307,7 @@ class UnitRegisterView(LoginRequiredMixin, CreateView):
             return self.form_invalid(form)
 
 
+@method_decorator(admin_required, name='dispatch')
 class UnitUpdateView(LoginRequiredMixin, UpdateView):
     model = Unit
     form_class = UnitForm
@@ -444,6 +433,7 @@ class UnitUpdateView(LoginRequiredMixin, UpdateView):
         return initial
 
 
+@method_decorator(admin_required, name='dispatch')
 class UnitInfoView(DetailView):
     model = Unit
     template_name = 'unit_templates/unit_info.html'
@@ -466,6 +456,7 @@ def unit_delete(request, pk):
     return redirect(reverse('manage_unit'))
 
 
+@method_decorator(admin_required, name='dispatch')
 class UnitListView(ListView):
     model = Unit
     template_name = 'unit_templates/unit_management.html'
@@ -675,6 +666,7 @@ def export_units_pdf(request):
 
 
 # ================================= Expense Views ==============================
+@method_decorator(admin_required, name='dispatch')
 class ExpenseCategoryView(CreateView):
     model = ExpenseCategory
     template_name = 'expense_templates/add_category_expense.html'
@@ -697,6 +689,7 @@ class ExpenseCategoryView(CreateView):
         return context
 
 
+@method_decorator(admin_required, name='dispatch')
 class ExpenseCategoryUpdate(UpdateView):
     model = ExpenseCategory
     template_name = 'expense_templates/add_category_expense.html'
@@ -730,6 +723,7 @@ def expense_category_delete(request, pk):
     return redirect(reverse('add_category_expense'))
 
 
+@method_decorator(admin_required, name='dispatch')
 class ExpenseView(CreateView):
     model = Expense
     template_name = 'expense_templates/expense_register.html'
@@ -740,6 +734,16 @@ class ExpenseView(CreateView):
         form.instance.user = self.request.user
         try:
             self.object = form.save()
+            content_type = ContentType.objects.get_for_model(self.object)
+
+            Fund.objects.create(
+                content_type=content_type,
+                object_id=self.object.id,
+                debtor_amount=0,
+                creditor_amount=self.object.amount or 0,
+                payment_date=self.object.date,
+                payment_description=f"هزینه: {self.object.description[:50]}",
+            )
             files = self.request.FILES.getlist('document')
 
             # ذخیره فایل‌ها در مدل ExpenseDocument
@@ -1084,6 +1088,16 @@ class IncomeView(CreateView):
         form.instance.user = self.request.user
         try:
             self.object = form.save()
+            content_type = ContentType.objects.get_for_model(self.object)
+
+            Fund.objects.create(
+                content_type=content_type,
+                object_id=self.object.id,
+                debtor_amount=self.object.amount or 0,
+                creditor_amount=0,
+                payment_date=self.object.doc_date,
+                payment_description=f"درآمد: {self.object.description[:50]}",
+            )
             files = self.request.FILES.getlist('document')
 
             # ذخیره فایل‌ها در مدل ExpenseDocument
@@ -1442,7 +1456,6 @@ class ReceiveMoneyCreateView(CreateView):
         context['page_obj'] = page_obj
         context['total_receives'] = ReceiveMoney.objects.count()
         context['receives'] = ReceiveMoney.objects.all()
-        context['banks'] = MyHouse.objects.all()
         return context
 
 
@@ -1743,7 +1756,6 @@ class PaymentMoneyCreateView(CreateView):
         context['page_obj'] = page_obj
         context['total_payments'] = PayMoney.objects.count()
         context['payments'] = PayMoney.objects.all()
-        context['banks'] = MyHouse.objects.all()
         return context
 
 
@@ -2580,6 +2592,8 @@ class FixChargeCreateView(CreateView):
         fix_charge.name = charge_name
         if fix_charge.civil is None:
             fix_charge.civil = 0
+        if fix_charge.payment_penalty_amount is None:
+            fix_charge.civil = 0
         fix_charge.save()
 
         messages.success(self.request, 'شارژ با موفقیت ثبت گردید.')
@@ -2615,69 +2629,17 @@ def fix_charge_edit(request, pk):
 
     if request.method == 'POST':
         form = FixChargeForm(request.POST, request.FILES, instance=charge)
-
         if form.is_valid():
-            form.instance.user = request.user
-            form.instance.unit = Unit.objects.filter(is_active=True, user=request.user.id).first()
-
-            fix_amount = form.cleaned_data.get('fix_amount') or 0
-            civil = form.cleaned_data.get('civil') or 0
-            name = form.cleaned_data.get('name') or 'شارژ ثابت'
-            details = form.cleaned_data.get('details')
-
-            units = Unit.objects.filter(is_active=True)
-            if not units.exists():
-                messages.warning(request, 'هیچ واحد فعالی یافت نشد.')
-                return redirect(reverse('add_fixed_charge'))
-                # بازگرداندن فرم با پیام خطا
-
-            fix_charge = form.save(commit=False)
-            fix_charge.name = name
-            fix_charge.save()
-
-            total = fix_amount + civil
-            fixed_charge_calcs = []
-            for unit in units:
-                fixed_charge_calc = FixedChargeCalc.objects.filter(
-                    user=unit.user,
-                    unit=unit,
-                    fix_charge=fix_charge,
-                ).first()
-
-                if fixed_charge_calc:
-                    fixed_charge_calc.charge_name = name
-                    fixed_charge_calc.amount = fix_amount
-                    fixed_charge_calc.details = details
-                    fixed_charge_calc.civil_charge = civil or 0
-                    fixed_charge_calc.unit_count = 1
-                    fixed_charge_calc.total_charge_month = total
-                    fixed_charge_calc.send_notification = False
-                    fixed_charge_calc.save()
-
-                else:
-                    FixedChargeCalc.objects.create(
-                        user=unit.user,
-                        unit=unit,
-                        fix_charge=fix_charge,
-                        charge_name=name,
-                        amount=fix_amount,
-                        details=details,
-                        civil_charge=civil or 0,
-                        unit_count=1,
-                        total_charge_month=total,
-                        send_notification=False
-                    )
-
-            FixedChargeCalc.objects.bulk_create(fixed_charge_calcs)
-
+            charge = form.save(commit=False)
+            charge.save()
             messages.success(request, 'شارژ با موفقیت ویرایش شد.')
-            return redirect('add_fixed_charge')  # Adjust redirect as necessary
-
-        else:
-            messages.error(request, 'خطا در ویرایش فرم . لطفا دوباره تلاش کنید.')
             return redirect('add_fixed_charge')
+        else:
+            messages.error(request, 'خطا در ویرایش فرم. لطفا دوباره تلاش کنید.')
+            return render(request, 'charge/fix_charge_template.html', {'form': form, 'charge': charge})
     else:
-        return redirect('add_fixed_charge')
+        form = FixAreaChargeForm(instance=charge)
+        return render(request, 'charge/fix_charge_template.html', {'form': form, 'charge': charge})
 
 
 def fix_charge_delete(request, pk):
@@ -2783,9 +2745,11 @@ def send_notification_fix_charge_to_user(request, pk):
                     'user': unit.user,
                     'amount': fix_charge.fix_amount,
                     'civil_charge': fix_charge.civil,
+                    'payment_deadline_date': fix_charge.payment_deadline,
                     'charge_name': fix_charge.name,
                     'details': fix_charge.details,
                     'send_notification': True,
+                    'send_notification_date': timezone.now()
                 }
             )
 
@@ -3171,11 +3135,11 @@ def remove_send_notification_ajax(request, pk):
         if not unit_ids:
             return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
 
-        charge = get_object_or_404(AreaCharge, id=pk)
+        charge = get_object_or_404(FixCharge, id=pk)
 
         if 'all' in unit_ids:
-            deleted_count, _ = AreaChargeCalc.objects.filter(
-                area_charge=charge,
+            deleted_count, _ = FixedChargeCalc.objects.filter(
+                fix_charge=charge,
                 is_paid=False
             ).delete()
             charge.send_notification = False
@@ -3188,24 +3152,24 @@ def remove_send_notification_ajax(request, pk):
         except ValueError:
             return JsonResponse({'error': 'شناسه‌های ارسال‌شده معتبر نیستند.'}, status=400)
 
-        not_send_notifications = AreaChargeCalc.objects.filter(
-            area_charge=charge,
+        not_send_notifications = FixedChargeCalc.objects.filter(
+            fix_charge=charge,
             unit_id__in=selected_ids,
             send_notification=False
         )
         if not_send_notifications.exists():
             return JsonResponse({'error': 'اطلاعیه برای این واحد صادر نشده است.'}, status=400)
 
-        paid_notifications = AreaChargeCalc.objects.filter(
-            area_charge=charge,
+        paid_notifications = FixedChargeCalc.objects.filter(
+            fix_charge=charge,
             unit_id__in=selected_ids,
             is_paid=True
         )
         if paid_notifications.exists():
             return JsonResponse({'error': 'اطلاعیه به‌دلیل ثبت پرداخت توسط واحد قابل حذف نیست.'}, status=400)
 
-        notifications = AreaChargeCalc.objects.filter(
-            area_charge=charge,
+        notifications = FixedChargeCalc.objects.filter(
+            fix_charge=charge,
             unit_id__in=selected_ids,
             is_paid=False
         )
@@ -3213,7 +3177,7 @@ def remove_send_notification_ajax(request, pk):
         notifications.delete()
 
         # اگر هیچ اطلاعیه‌ای باقی نماند، اطلاع‌رسانی غیرفعال شود
-        if not AreaChargeCalc.objects.filter(area_charge=charge).exists():
+        if not FixedChargeCalc.objects.filter(fix_charge=charge).exists():
             charge.send_notification = False
             charge.save()
 

@@ -5,25 +5,42 @@ from django.db import models
 # Create your models here.
 
 class User(AbstractUser):
-    name = models.CharField(max_length=200, verbose_name='نام')
+    full_name = models.CharField(max_length=200, verbose_name='نام')
     mobile = models.CharField(max_length=11, unique=True, verbose_name='موبایل')
-    username = models.CharField(max_length=11, verbose_name='نام کاربری')
+    username = models.CharField(max_length=150, unique=True, verbose_name='نام کاربری')
+
     otp = models.PositiveIntegerField(null=True, blank=True, verbose_name='کد فعالسازی')
-    otp_create_time = models.DateTimeField(auto_now_add=True, verbose_name='زمان')
+    otp_create_time = models.DateTimeField(null=True, blank=True, verbose_name='زمان ارسال کد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
     created_time = models.DateTimeField(auto_now_add=True, verbose_name='زمان ثبت')
+
+    # This is the key field for user hierarchy:
+    manager = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='managed_users',
+        verbose_name='مدیر سطح میانی'
+    )
+
+    is_middle_admin = models.BooleanField(default=False, verbose_name='مدیر سطح میانی')
+
     objects = UserManager()
 
     USERNAME_FIELD = 'mobile'
     REQUIRED_FIELDS = ['username']
 
-    # backend = 'account_app.mybackend.MobileBackend'
+    def __str__(self):
+        return f"{self.full_name} - {self.mobile}"
 
-    def get_username(self):
-        return self.name
+    def get_full_name(self):
+        return self.full_name
 
 
 class Bank(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    house_name = models.CharField(max_length=100, verbose_name='نام ساختمان', null=True, blank=True)
     bank_name = models.CharField(max_length=100, verbose_name='نام بانک')
     account_no = models.CharField(max_length=100, verbose_name='شماره حساب ')
     account_holder_name = models.CharField(max_length=100, verbose_name='نام صاحب حساب')
@@ -37,16 +54,16 @@ class Bank(models.Model):
         return f"{self.bank_name} - {self.cart_number}"
 
 
-class MyHouse(models.Model):
-    name = models.CharField(max_length=100, verbose_name='نام ساختمان')
-    address = models.CharField(max_length=100, verbose_name='آدرس')
-    account_number = models.ForeignKey(Bank, on_delete=models.SET_NULL, null=True, blank=True,
-                                       verbose_name='شماره حساب')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
-    is_active = models.BooleanField(default=True, verbose_name='')
-
-    def __str__(self):
-        return str(self.account_number)
+# class MyHouse(models.Model):
+#     name = models.CharField(max_length=100, verbose_name='نام ساختمان')
+#     address = models.CharField(max_length=100, verbose_name='آدرس')
+#     account_number = models.ForeignKey(Bank, on_delete=models.SET_NULL, null=True, blank=True,
+#                                        verbose_name='شماره حساب')
+#     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
+#     is_active = models.BooleanField(default=True, verbose_name='')
+#
+#     def __str__(self):
+#         return str(self.account_number)
 
 
 class Unit(models.Model):

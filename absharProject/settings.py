@@ -39,10 +39,14 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # main_app
-    'admin_panel',
     'user_app',
+    'admin_panel',
+    'middleAdmin_panel',
+
     'polls',
     'payment_app',
+    'reports',
+
 
     # other_app
     'django_render_partial',
@@ -62,6 +66,10 @@ MIDDLEWARE = [
 AUTH_USER_MODEL = 'user_app.User'
 
 ROOT_URLCONF = 'absharProject.urls'
+
+LOGIN_URL_ADMIN = '/admin-panel/login-admin/'
+LOGIN_URL_MIDDLE_ADMIN = '/middle-admin-panel/login-middleAdmin/'
+
 
 TEMPLATES = [
     {

@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, redirect
 from django.urls import reverse
@@ -23,20 +23,22 @@ def index(request):
             mobile = form.cleaned_data['mobile']
             password = form.cleaned_data['password']
             user = authenticate(request, username=mobile, password=password)
-            if user is not None:
+            if user is not None and user.is_active:
                 login(request, user)
                 if user.is_superuser:
-                    return redirect(reverse('admin_dashboard'))  # Superuser route
+                    return redirect(reverse('admin_dashboard'))
+                elif user.is_middle_admin:
+                    return redirect(reverse('middle_admin_dashboard'))
                 else:
-                    return redirect(reverse('user_panel'))  # Regular user route (change as needed)
+                    return redirect(reverse('user_panel'))
 
-        messages.error(request, 'شماره موبایل یا کلمه عبور نادرست است!')
-        return redirect(reverse('index'))
+            messages.error(request, 'ورود ناموفق: شماره موبایل یا کلمه عبور نادرست است.')
 
     return render(request, 'index.html', {
         'announcements': announcements,
         'form': form,
     })
+
 
 
 def mobile_login(request):

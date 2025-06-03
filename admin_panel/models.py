@@ -1,12 +1,16 @@
 import json
 
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.utils.safestring import mark_safe
+from datetime import date
 
-from user_app.models import MyHouse, Unit, User
+from user_app.models import Unit, User, Bank
 
 
 class Announcement(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=270, verbose_name='عنوان')
     slug = models.SlugField(db_index=True, default='', null=True, max_length=200, verbose_name='عنوان در url')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
@@ -94,7 +98,7 @@ class IncomeDocument(models.Model):
 
 # ======================= Receive & Pay Modals ==========================
 class ReceiveMoney(models.Model):
-    bank = models.ForeignKey(MyHouse, on_delete=models.CASCADE, verbose_name='شماره حساب')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
     payer_name = models.CharField(max_length=200, verbose_name='پرداخت کننده')
     doc_date = models.DateField(verbose_name='تاریخ سند')
     doc_number = models.IntegerField(verbose_name='شماره سند')
@@ -124,7 +128,7 @@ class ReceiveDocument(models.Model):
 
 
 class PayMoney(models.Model):
-    bank = models.ForeignKey(MyHouse, on_delete=models.CASCADE, verbose_name='شماره حساب')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
     receiver_name = models.CharField(max_length=200, verbose_name='دریافت کننده')
     document_date = models.DateField(verbose_name='تاریخ سند')
     document_number = models.IntegerField(verbose_name='شماره سند')
@@ -221,6 +225,8 @@ class FixCharge(models.Model):
     name = models.CharField(max_length=300, verbose_name='', null=True, blank=True)
     fix_amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True)
     civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
+    payment_deadline = models.DateField()
+    payment_penalty_amount = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
@@ -240,9 +246,12 @@ class FixedChargeCalc(models.Model):
     total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
     send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
+    send_notification_date = models.DateTimeField(verbose_name='اعلام شارژ به کاربر')
     send_sms = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر با پیامک')
     is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
     payment_date = models.DateField(verbose_name='', null=True, blank=True)
+    payment_deadline_date = models.DateField()
+    payment_penalty = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
     transaction_reference = models.CharField(max_length=20, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
@@ -250,9 +259,26 @@ class FixedChargeCalc(models.Model):
     def __str__(self):
         return f"{self.charge_name or 'شارژ'} - {self.amount} تومان"
 
+    def calculate_penalty(self):
+
+        if not self.is_paid and self.payment_deadline_date and self.fix_charge:
+            today = date.today()
+            deadline = self.payment_deadline_date  # This is a date object
+
+            # Days late (0 if not late)
+            days_late = (today - deadline).days
+            if days_late > 0 and self.amount and self.fix_charge.payment_penalty_amount:
+                daily_penalty_percent = self.fix_charge.payment_penalty_amount / 100
+                penalty_per_day = daily_penalty_percent * self.amount
+                total_penalty = int(penalty_per_day * days_late)
+                return total_penalty
+
+        return 0
+
     def save(self, *args, **kwargs):
+        self.payment_penalty = self.calculate_penalty()  # اول جریمه رو حساب کن
         base = max(self.amount or 0, 0) * max(self.unit_count or 1, 1)
-        self.total_charge_month = base + (self.civil_charge or 0)
+        self.total_charge_month = base + (self.civil_charge or 0) + (self.payment_penalty or 0)
         super().save(*args, **kwargs)
 
 
@@ -619,5 +645,39 @@ class ChargeFixVariableCalc(models.Model):
         super().save(*args, **kwargs)
 
 
+class Fund(models.Model):
+    doc_number = models.PositiveIntegerField(unique=True, editable=False, null=True, blank=True)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
 
+    debtor_amount = models.DecimalField(max_digits=12, decimal_places=0)
+    creditor_amount = models.DecimalField(max_digits=12, decimal_places=0)
+    final_amount = models.PositiveIntegerField(default=0)
 
+    payment_date = models.DateField()
+    payment_description = models.CharField(max_length=500, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Fund: {self.payment_description} for {self.content_object}"
+
+    def save(self, *args, **kwargs):
+        if not self.doc_number:
+            last_doc_number = Fund.objects.aggregate(models.Max('doc_number'))['doc_number__max']
+            self.doc_number = (last_doc_number or 0) + 1
+
+        # Get the last fund record (the most recent)
+        last_fund = Fund.objects.order_by('-doc_number').first()
+
+        if last_fund:
+            previous_final = last_fund.final_amount
+        else:
+            # No fund records yet — sum all banks' initial funds
+            from user_app.models import Bank  # import your Bank model
+            total_initial = Bank.objects.aggregate(total=models.Sum('initial_fund'))['total'] or 0
+            previous_final = total_initial
+
+        self.final_amount = previous_final + (self.debtor_amount or 0) - (self.creditor_amount or 0)
+
+        super().save(*args, **kwargs)

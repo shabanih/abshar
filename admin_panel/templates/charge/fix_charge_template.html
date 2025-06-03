@@ -26,10 +26,11 @@
                                         <th>تعداد واحدها</th>
                                         <th class="p-0">مبلغ شارژ به ازای هر واحد</th>
                                         <th> شارژ عمرانی </th>
-{#                                        <th>جمع کل شارژ ماه </th>#}
                                         <th> توضیحات </th>
                                         <th> اعلام شارژ </th>
-                                        <th>تاریخ ایجاد</th>
+                                        <th>تاریخ ثبت</th>
+                                        <th>جریمه دیرکرد</th>
+                                            <th>مهلت پرداخت </th>
                                         <th>دستورات</th>
                                     </tr>
                                 </thead>
@@ -43,12 +44,15 @@
                                             <td>{{unit_count }}</td>
                                             <td class="bg-gradient-light p-0"><strong>{{charge.fix_amount|three_digit_currency }}</strong></td>
                                             <td>{{charge.civil|three_digit_currency }}</td>
+                                           
                                             <td>{{charge.details }}</td>
                                           <td>
                                                 <span>{{ charge.notified_count }} از {{ unit_count }} واحد</span>
                                                 </td>
 {#                                             <td>{{ charge.send_notification}}</td>#}
                                             <td>{{charge.created_at|show_jalali }}</td>
+                                            <td>% {{charge.payment_penalty_amount }}</td>
+                                             <td>{{charge.payment_deadline|show_jalali }}</td>
                                                <td class="p-0">
                                                       <a
                                            class="btn btn-gradient-info p-1 edit-charge-btn"
@@ -56,6 +60,8 @@
                                            data-name="{{ charge.name }}"
                                            data-fix_amount="{{ charge.fix_amount}}"
                                            data-civil="{{ charge.civil }}"
+                                           data-payment_penalty_amount="{{ charge.payment_penalty_amount }}"
+                                           data-payment_deadline="{{ charge.payment_deadline|show_jalali }}"
                                            data-details="{{ charge.details }}"
                                            data-bs-toggle="modal"
                                            data-bs-target="#exampleModalLong">
@@ -75,17 +81,10 @@
                                     {% endfor %}
                                         {% else %}
                                         <tr>
-                                            <td colspan="10" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                            <td colspan="11" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
                                         </tr>
                                  <tbody>
                                 {% endif %}
-{#                                <tfoot class="text-center bg-light">#}
-{#                            <tr>#}
-{#                                <td colspan="6" class="text-end"><strong>جمع شارژ سالانه:</strong></td>#}
-{#                                <td class="text-dark"><strong>{{ total_charge_year|floatformat:0|three_digit_currency }} تومان</strong></td>#}
-{#                                <td colspan="3"></td>#}
-{#                            </tr>#}
-{#                        </tfoot>#}
                             </table>
                </div>
 
@@ -125,6 +124,18 @@
                        {{ form.civil.label_tag }}
                       {{ form.civil }}
                       {{ form.civil.errors }}
+                  </div>
+                     </div>
+                  <div class="row">
+                      <div class="col-6">
+                       {{ form.payment_deadline.label_tag }}
+                      {{ form.payment_deadline }}
+                      {{ form.payment_deadline.errors }}
+                  </div>
+                     <div class="col-6">
+                       {{ form.payment_penalty_amount.label_tag }}
+                      {{ form.payment_penalty_amount }}
+                      {{ form.payment_penalty_amount.errors }}
                   </div>
                      </div>
                   <div class="row g-2">
