@@ -1,0 +1,280 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% block page_title %}
+مدیریت تعمیر و نگهداری( تعداد کل سندهای ثبت شده:{{ total_maintenances }} )
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container p-0">
+ 
+      <div class="row align-self-center mb-2">
+                <div class="col-12 col-md-3 col-xl-3 align-self-center">
+                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">
+                    <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
+                    ثبت سند جدید
+                </button>
+                 </div>
+          <div class="col-12 col-md-5 col-xl-5">
+              <input type="text" id="searchInput" placeholder="جستجوی سریع در جدول..." onkeyup="searchTable()" class="form-control mb-2 mt-2 p-1">
+          </div>
+        <div class=" col-12 col-md-5 col-xl-4 text-center align-self-center">
+            <button onclick="openQuery()" class="btn btn-gradient-info px-2 py-2">جستجوی پیشرفته</button>
+            <a href="{% url 'export_maintenance_excel' %}?{{ request.GET.urlencode }}"
+                class="btn btn-gradient-success px-2 py-2">خروجی Excel</a>
+            <a href="{% url 'export_maintenance_pdf' %}?{{ request.GET.urlencode }}"
+                   class="btn btn-gradient-danger px-2 py-2">
+                   خروجی PDF
+                </a>
+            </div>
+          </div>
+       <div id="query-form" style="display: none;" class="row mt-2">
+            <form method="get">
+               <div class="row mt-2">
+                     <div class="col-md-4">
+                   <input type="text" name="maintenance_description" class="form-control" placeholder="شرح کار"
+                               value="{{ request.GET.maintenance_description }}">
+                    </div>
+                     <div class="col-md-2">
+                        <input type="text" name="maintenance_price" class="form-control" placeholder="اجرت/دستمزد"
+                               value="{{ request.GET.maintenance_price }}">
+                    </div>
+                     <div class="col-md-2">
+                        <input type="text" name="maintenance_status" class="form-control" placeholder=" آخرین وضعیت"
+                               value="{{ request.GET.maintenance_status }}">
+                    </div>
+                 <div class="col-md-2">
+                        <input type="text" id="from_date" name="maintenance_start_date" class="form-control" placeholder=" تاریخ شروع" value="{{ request.GET.maintenance_start_date }}">
+                      </div>
+                 <div class="col-md-2">
+                    <input type="text" id="to_date" name="maintenance_end_date" class="form-control" placeholder=" تاریخ پایان" value="{{ request.GET.maintenance_end_date }}">
+                    </div>
+               </div>
+                <div class="row mt-2 mb-2">
+                     <div class="col-md-4">
+                       <input type="text" name="service_company" class="form-control" placeholder="نام شرکت خدماتی"
+                       value="{{ request.GET.service_company }}">
+                      </div>
+                      <div class="col-md-2">
+                <input type="text" name="maintenance_document_no" class="form-control" placeholder=" شماره فاکتور"
+                       value="{{ request.GET.maintenance_document_no }}">
+                  </div>
+                      <div class="col-md-4">
+                       <input type="text" name="details" class="form-control" placeholder="توضیحات سند"
+                       value="{{ request.GET.details }}">
+                      </div>
+                      <div class="col-md-2 align-self-center text-center">
+                            <button type="submit" class="btn btn-facebook px-4 py-2">جستجوی پیشرفته</button>
+                        </div>
+                    </div>
+               </form>
+         </div>
+
+
+            <div class="table-responsive">
+                <table class="table table-bordered " id="expenseTable">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th>شرح کار</th>
+                             <th>تاریخ شروع</th>
+                             <th>تاریخ پایان</th>
+                            <th>اجرت/دستمزد</th>
+                              <th>شرکت خدماتی</th>
+                            <th>شماره فاکتور</th>
+                             <th>توضیحات </th>
+                             <th>آخرین وضعیت</th>
+                            <th>تصویر سند</th>
+                            <th>دستورات</th>
+                        </tr>
+                    </thead>
+                {% if maintenances %}
+               {% for maintenance in maintenances %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                               <td>{{maintenance.maintenance_description }}</td>
+                             <td class="col-12 col-lg-1 col-xl-1">{{maintenance.maintenance_start_date|show_jalali }}</td>
+                                 <td class="col-12 col-lg-1 col-xl-1">{{maintenance.maintenance_end_date|show_jalali }}</td>
+                              <td>{{maintenance.maintenance_price|three_digit_currency }}</td>
+                                <td>{{maintenance.service_company }}</td>
+                                <td>{{maintenance.maintenance_document_no }}</td>
+                               <td>{{maintenance.details }}</td>
+                            <td class="col-12 col-lg-1 col-xl-1 p-0">
+                                {% if maintenance.maintenance_status == 'در حال انجام' %}
+                                	<button class="btn btn-gradient-warning px-1 py-2">درحال انجام</button>
+                                    {% elif maintenance.maintenance_status == 'تکمیل شده' %}
+                                    <button class="btn btn-gradient-success px-1 py-2">تکمیل شده</button>
+                                    {% else %}
+                                    <button class="btn btn-gradient-danger px-1 py-2">تکمیل نشده</button>
+                                {% endif %} 
+                              
+                            </td>
+                            
+                            
+                                <td class=" justify-content-center align-self-center">
+                                  {% for doc in maintenance.documents.all %}
+                                        <a href="{{ doc.document.url }}" target="_blank" 
+                                           > 
+                                            <i class="fas fa-image fa-2x me-2"></i></a>
+                                    {% empty %}
+                                     !No File
+                                    {% endfor %}
+                                </td>
+                                   <td class="col-lg-1 col-xl-1 p-0">
+                                      <a
+                                           class="btn btn-gradient-warning p-1 edit-maintenance-btn"
+                                           data-id="{{ maintenance.id }}"
+                                           data-maintenance_description="{{ maintenance.maintenance_description }}"
+                                           data-maintenance_start_date="{{ maintenance.maintenance_start_date|show_jalali  }}"
+                                           data-maintenance_end_date="{{ maintenance.maintenance_end_date|show_jalali }}"
+                                           data-maintenance_price="{{ maintenance.maintenance_price}}"
+                                           data-maintenance_status="{{ maintenance.maintenance_status }}"
+                                           data-service_company="{{ maintenance.service_company }}"
+                                           data-maintenance_document_no="{{ maintenance.maintenance_document_no }}"
+                                           data-details="{{ maintenance.details }}"
+                                           data-images='{{ maintenance.get_documents_urls_json|default:"[]" }}'
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#exampleModalLong">
+                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
+                                        </a>
+
+                                              <a href="{% url 'maintenance_delete' maintenance.id %}" class="btn btn-danger p-1"
+                                           onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                                  <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                                </a>
+
+                            </td>
+                            </tr>
+                        {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ سندی برای نمایش وجود ندارد.</td>
+                            </tr>
+                     <tbody>
+                    {% endif %}
+                </table>
+                   <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+{#      ============================= Moda Form ==================#}
+    
+    <div class="modal fade" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header" id="exampleModalLongTitle">
+        <h5 class="modal-title">ثبت سند جدید</h5>
+      </div>
+         <hr>
+      <div class="modal-body" >
+         {{ form.non_field_errors }}
+          <form id="maintenanceForm" action="" method="POST"
+                enctype="multipart/form-data" novalidate>
+              {% csrf_token %}
+              <div class="row align-items-center p-0">
+                  <div class="col-12 col-lg-12 col-xl-12">
+                      {{ form.maintenance_description.label_tag }}
+                      {{ form.maintenance_description }}
+                      {{ form.maintenance_description.errors }}
+                  </div>
+                     </div>
+               <div class="row m-0 g-2">
+                      <div class="col-12 col-lg-4 col-xl-4 p-1">
+                       {{ form.maintenance_start_date.label_tag }}
+                      {{ form.maintenance_start_date }}
+                      {{ form.maintenance_start_date.errors }}
+                  </div>
+                      <div class="col-6 col-lg-4 col-xl-4 p-1">
+                       {{ form.maintenance_end_date.label_tag }}
+                      {{ form.maintenance_end_date }}
+                      {{ form.maintenance_end_date.errors }}
+                  </div>
+                     <div class="col-6 col-lg-4 col-xl-4 p-1">
+                       {{ form.maintenance_price.label_tag }}
+                      {{ form.maintenance_price }}
+                      {{ form.maintenance_price.errors }}
+                  </div>
+                     </div>
+               <div class="row m-0 g-2">
+                  <div class="col-12 col-lg-4 col-xl-4">
+                      {{ form.service_company.label_tag }}
+                      {{ form.service_company }}
+                      {{ form.service_company.errors }}
+                  </div>
+                      <div class="col-6 col-lg-4 col-xl-4">
+                       {{ form.maintenance_document_no.label_tag }}
+                      {{ form.maintenance_document_no }}
+                      {{ form.maintenance_document_no.errors }}
+                  </div>
+                     <div class="col-6 col-lg-4 col-xl-4">
+                       {{ form.maintenance_status.label_tag }}
+                      {{ form.maintenance_status }}
+                      {{ form.maintenance_status.errors }}
+                  </div>
+                     </div>
+               <div class="row">
+                  <div class="form-group col-12">
+                    {{ form.details.label_tag }}
+                    {{ form.details }}
+                    {{ form.details.errors }}
+                  </div>
+                </div>
+              
+              
+             <div class="row">
+                  <div class="image-item form-group col-12">
+                    <label>تصاویر سند:</label>
+                      <input type="file" name="document" multiple class="form-control" accept="image/*">
+                      <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}" id="{{ maintenance.id }}">
+                       <div id="preview" class="mt-3"></div>
+                  </div>
+                </div>
+              
+                   <hr class="mt-2" style="color: #0f1531">
+                <div class="d-flex justify-content-between">
+                        <button type="submit" id="btn-submit-receive" class="btn btn-gradient-success px-4 py-2">ثبت هزینه</button>
+                           <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
+                     </div>
+        
+
+          </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+
+  
+{% endblock %}
+
+
+
+
+
+
+
+

@@ -1,0 +1,230 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+ اعلام   {{ charge.name }}   به واحدها 
+{% endblock page_title %}
+
+{% block main_content %}
+<div class="container mt-4 p-0">
+      <div class="row mb-4 ">
+              <div class="col-12 col-md-10 col-xl-10 align-self-center ">
+         <form method="get" action="">
+    <input type="text" class="p-2" name="search" id="searchInput" autocomplete="off"
+           value="{{ request.GET.search|default_if_none:'' }}"
+           placeholder="جستجوی واحد مسکونی..." dir="rtl"
+           oninput="if(this.value === '') this.form.submit();">
+    <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
+</form>        
+          </div>
+             <div class="col-6 col-md-2 col-xl-2 text-start ">
+                  <label for="cardsPerPage" class="form-label">تعداد نمایش :</label>
+                 <select id="cardsPerPage" class="form-select" style="width: auto;height: auto; display: inline-block;">
+                  <option value="20" selected>20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                  <option value="1000">همه</option>
+                </select>
+                </div>
+        
+        </div>
+    
+     
+
+<form method="post" id="remove-notification-form" action="{% url 'send_notification_fix_person_charge_to_user' pk=charge.id %}">
+        {% csrf_token %}
+       
+        <hr>
+      <div class="row mb-2">
+            <div class="col-12 col-md-2 col-xl-2 form-check align-self-center">
+            <button type="button" id="toggle-select-btn" class="btn btn-gradient-info shadow_style px-3">
+                انتخاب همه واحدها
+            </button>
+            </div>
+                   <div class="col-12 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
+                    <span class="circleSendNotify"></span>
+                  ارسال موفق اطلاعیه شارژ 
+                </div>
+            <div class="col-12 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
+                    <span class="circlePayment"></span>
+                  پرداخت موفق شارژ
+                </div>
+         
+            <div class="col-12 col-md-6 col-xl-6 text-start align-self-center">
+                <button type="button" id="remove-all-btn" class="btn btn-dark px-3 shadow_style">
+                    حذف اطلاعیه واحدها
+                </button>
+                <button type="submit" onclick="return confirmWithSweetAlert(event)" class="btn btn-gradient-success px-3 shadow_style">ارسال اطلاعیه شارژ به واحد</button>
+                <a href="{% url 'add_fix_person_charge' %}" class="btn btn-danger px-3 shadow_style"> بازگشت</a>
+             </div>
+        </div>
+    
+  
+<div class="row g-2">
+   {% for unit, renter, is_paid, total_charge in page_obj %}
+    <div class="col-6 col-lg-2 col-md-2 col-xl-2 mb-3">
+       <div class="card shadow_style fixChargeTable p-0 m-0"
+            {% if unit.id in notified_ids %}
+                {% if is_paid %}
+                    style="background-color: #8fef88; "  {# سبز برای اطلاع داده شده و پرداخت شده #}
+                {% else %}
+                    style="background-color: #fff3cd;"  {# زرد برای اطلاع داده شده و پرداخت نشده #}
+                {% endif %}
+            {% endif %}>
+            <div class="card-body text-center px-0 py-0 mt-3">
+                 <p class="card-charge-title shadow_style"
+                   tabindex="0" 
+                   role="button"
+                   data-bs-toggle="popover"
+                   data-bs-trigger="hover focus"
+                   data-bs-placement="top"
+                   data-bs-html="true"
+                   data-bs-content="{% if unit.is_owner %}
+                                      {% if renter %}مستاجر: {{ renter.renter_name }}{% else %}بدون مستاجر{% endif %}
+                                    {% else %}
+                                      مالک: {{ unit.owner_name }}
+                                    {% endif %}<br>مبلغ شارژ: {{ total_charge|three_digit_currency }} تومان">
+                    <input class="form-check-input unit-checkbox mx-2" 
+                           type="checkbox" name="units" 
+                           value="{{ unit.id }}" id="unit{{ unit.id }}">
+{#                           {% if unit.id in notified_ids %}disabled{% endif %}>#}
+                    واحد شماره {{ unit.unit }}
+                </p>
+
+            </div>
+        </div>
+    </div>
+   {% endfor %}
+</div>
+                    
+
+        <hr>
+      
+  
+    </form>
+</div>
+     <div class="col-12">
+    <div class="pagination d-flex justify-content-center mt-5">
+
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="rounded">قبلی</a>
+        {% endif %}
+
+        {% for pageNumber in page_obj.paginator.page_range %}
+            <a href="?page={{ pageNumber }}" class="{% if page_obj.number == pageNumber %}active{% endif %}">{{ pageNumber }}</a>
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="rounded">بعدی</a>
+        {% endif %}
+
+    </div>
+</div>
+
+<script>
+  const select = document.getElementById('cardsPerPage');
+  // Set the current selection from URL on page load:
+  const urlParams = new URLSearchParams(window.location.search);
+  const currentPerPage = urlParams.get('per_page');
+  if (currentPerPage) {
+    select.value = currentPerPage;
+  }
+
+  select.addEventListener('change', () => {
+    const perPage = select.value;
+    // Preserve existing query params except 'per_page':
+    urlParams.set('per_page', perPage);
+    urlParams.set('page', 1); // reset page to 1 when changing per_page
+    window.location.search = urlParams.toString();
+  });
+  
+  
+function confirmWithSweetAlert(event) {
+    event.preventDefault(); // جلوگیری از ارسال فرم
+
+    Swal.fire({
+        title: 'آیا مطمئن هستید؟',
+        text: "اطلاعیه برای واحدهای انتخابی ارسال خواهد شد.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'بله، ارسال کن!',
+        cancelButtonText: 'لغو'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            event.target.closest('form').submit(); // ارسال فرم
+        }
+    });
+
+    return false; // جلوگیری از رفتار پیش‌فرض
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const removeSelectedBtn = document.getElementById('remove-all-btn');
+
+    if (removeSelectedBtn) {
+        removeSelectedBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const checkedBoxes = document.querySelectorAll('.unit-checkbox:checked:not(:disabled)');
+            const selectedUnitIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+            if (selectedUnitIds.length === 0) {
+                Swal.fire('هشدار', 'هیچ واحدی انتخاب نشده است.', 'warning');
+                return;
+            }
+
+            Swal.fire({
+                title: 'آیا مطمئن هستید؟',
+                text: 'اطلاعیه شارژ این واحدها حذف خواهد شد.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'بله، حذف کن!',
+                cancelButtonText: 'لغو'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const params = new URLSearchParams();
+                    selectedUnitIds.forEach(id => params.append('units[]', id));
+
+                    fetch("{% url 'remove_send_notification_fix_person' pk=charge.id %}", {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                              'X-Requested-With': 'XMLHttpRequest',  // ← حتما این خط باشد
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: params
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('حذف شد!', data.success, 'success').then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('خطا', data.error || 'مشکلی پیش آمده است.', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('خطا', 'درخواست با خطا مواجه شد.', 'error');
+                        console.error(error);
+                    });
+                }
+            });
+        });
+    }
+});
+  
+document.addEventListener('DOMContentLoaded', function () {
+  const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+  const popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+    return new bootstrap.Popover(popoverTriggerEl);
+  });
+});
+</script>
+{% endblock %}

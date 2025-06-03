@@ -1,0 +1,188 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+محاسبه  بر اساس شارژ ثابت
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container mt-3">
+ <div class="col-12 mb-2">
+                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">
+                      <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
+                    افزودن شارژ جدید 
+                </button>
+                 </div>
+
+               <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="text-center">
+                                    <tr>
+                                        <th>#</th>
+                                        <th> عنوان شارژ </th>
+                                        <th>تعداد واحدها</th>
+                                        <th class="p-0">مبلغ شارژ به ازای هر واحد</th>
+                                        <th> شارژ عمرانی </th>
+                                        <th> توضیحات </th>
+                                        <th> اعلام شارژ </th>
+                                        <th>تاریخ ثبت</th>
+                                        <th>جریمه دیرکرد</th>
+                                            <th>مهلت پرداخت </th>
+                                        <th>دستورات</th>
+                                    </tr>
+                                </thead>
+                            {% if charges %}
+                           {% for charge in charges %}
+                                    <tbody class="text-center">
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                         
+                                            <td>{{charge.name }}</td>
+                                            <td>{{unit_count }}</td>
+                                            <td class="bg-gradient-light p-0"><strong>{{charge.fix_amount|three_digit_currency }}</strong></td>
+                                            <td>{{charge.civil|three_digit_currency }}</td>
+                                           
+                                            <td>{{charge.details }}</td>
+                                          <td>
+                                                <span>{{ charge.notified_count }} از {{ unit_count }} واحد</span>
+                                                </td>
+{#                                             <td>{{ charge.send_notification}}</td>#}
+                                            <td>{{charge.created_at|show_jalali }}</td>
+                                            <td>% {{charge.payment_penalty_amount }}</td>
+                                             <td>{{charge.payment_deadline|show_jalali }}</td>
+                                               <td class="p-0">
+                                                      <a
+                                           class="btn btn-gradient-info p-1 edit-charge-btn"
+                                           data-id="{{ charge.id }}"
+                                           data-name="{{ charge.name }}"
+                                           data-fix_amount="{{ charge.fix_amount}}"
+                                           data-civil="{{ charge.civil }}"
+                                           data-payment_penalty_amount="{{ charge.payment_penalty_amount }}"
+                                           data-payment_deadline="{{ charge.payment_deadline|show_jalali }}"
+                                           data-details="{{ charge.details }}"
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#exampleModalLong">
+                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
+                                        </a>
+                                                          <a href="{% url 'fix_charge_delete' charge.id %}" class="btn btn-gradient-danger p-1"
+                                                       onclick="return confirmDeleteWithSweetAlert(event)">
+                                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                                            </a>
+                                                  <a href="{% url 'show_notification_fix_charge_form' charge.id %}"
+                                                       class="btn btn-gradient-success p-2">
+                                                       اعلان شارژ
+                                                    </a>
+
+                                        </td>
+                                        </tr>
+                                    {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="11" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                        </tr>
+                                 <tbody>
+                                {% endif %}
+                            </table>
+               </div>
+
+</div>
+    
+  <div class="modal fade" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header" id="exampleModalLongTitle">
+        <h5 class="modal-title">افزودن شارژ ماهانه جدید</h5>
+      </div>
+         <hr>
+      <div class="modal-body" >
+         {{ form.non_field_errors }}
+          <form id="chargeForm" action="" method="POST"
+                enctype="multipart/form-data" novalidate>
+              {% csrf_token %}
+                 <div class="row g-2">
+                  <div class="col-6">
+                      {{ form.name.label_tag }}
+                      {{ form.name }}
+                      {{ form.name.errors }}
+                  </div>
+                     <div class="col-6">
+                         <label for="">تعداد واحدهای ساختمان:</label>
+                         <input type="text" class="form-control" placeholder="مبلغ"
+                               value="{{ unit_count }}" readonly>
+                     </div>
+                 </div>
+              <div class="row">
+                      <div class="col-6">
+                       {{ form.fix_amount.label_tag }}
+                      {{ form.fix_amount }}
+                      {{ form.fix_amount.errors }}
+                  </div>
+                     <div class="col-6">
+                       {{ form.civil.label_tag }}
+                      {{ form.civil }}
+                      {{ form.civil.errors }}
+                  </div>
+                     </div>
+                  <div class="row">
+                      <div class="col-6">
+                       {{ form.payment_deadline.label_tag }}
+                      {{ form.payment_deadline }}
+                      {{ form.payment_deadline.errors }}
+                  </div>
+                     <div class="col-6">
+                       {{ form.payment_penalty_amount.label_tag }}
+                      {{ form.payment_penalty_amount }}
+                      {{ form.payment_penalty_amount.errors }}
+                  </div>
+                     </div>
+                  <div class="row g-2">
+                      <div class="col-12 ">
+                       {{ form.details.label_tag }}
+                      {{ form.details }}
+                      {{ form.details.errors }}
+                  </div>
+                     </div>
+              
+                   <hr class="mt-2" style="color: #0f1531">
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" name="submit_bank" id="btn-submit-receive" class="btn btn-gradient-success px-4 py-2">ثبت شارژ</button>
+                           <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
+                     </div>
+        
+
+          </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% if request.GET.error == 'paid' %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      Swal.fire({
+        icon: 'error',
+        text: 'امکان ویرایش وجود ندارد زیرا حداقل یک واحد شارژ خود را پرداخت کرده است. لطفا اصلاحیه شارژ ثبت کنید!',
+        confirmButtonText: 'باشه'
+      });
+    });
+  </script>
+{% elif request.GET.error == 'notify' %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      Swal.fire({
+        icon: 'error',
+        text: 'امکان ویرایش وجود ندارد، باید ابتدا اطلاعیه های ارسال را حذف کنید سپس ویرایش و مجددا ارسال نمایید!',
+        confirmButtonText: 'باشه'
+      });
+    });
+  </script>
+{% endif %}
+    
+{% endblock %}
+
+

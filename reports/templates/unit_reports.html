@@ -1,0 +1,90 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+گردش مالی واحدها
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container mt-3">
+ <div class="col-12 mb-2">
+                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong3">
+                        <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">>
+                    افزودن حساب بانکی
+                </button>
+                 </div>
+               <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="text-center">
+                                    <tr>
+                                        <th>#</th>
+                                        <th> نام بانک</th>
+                                        <th>نام صاحب حساب</th>
+                                        <th>شماره حساب</th>
+                                        <th>شماره شبا</th>
+                                        <th>شماره کارت</th>
+                                        <th>موجودی اولیه</th>
+{#                                        <th>فعال/غیرفعال</th>#}
+                                        <th>دستورات</th>
+                                    </tr>
+                                </thead>
+                            {% if banks %}
+                           {% for bank in banks %}
+                                    <tbody class="text-center">
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{bank.bank_name }}</td>
+                                            <td>{{bank.account_holder_name }}</td>
+                                            <td>{{bank.account_no }}</td>
+                                            <td>{{bank.sheba_number }}</td>
+                                            <td>{{bank.cart_number|four_digit_cart }}</td>
+                                            <td>{{bank.initial_fund|three_digit_currency }}</td>
+{#                                              <td>#}
+{#                                               {% if bank.is_active == True %}#}
+{#                                                <button class="btn btn-primary bg-gradient-success p-1">فعال</button>#}
+{#                                                   {% else %}#}
+{#                                                   <button class="btn btn-gradient-danger p-1">غیر فعال</button>#}
+{##}
+{#                                               {% endif %}#}
+{#                                            </td>#}
+
+                                               <td>
+                                                      <a
+                                           class="btn btn-gradient-info p-1 edit-bank-btn"
+                                           data-id="{{ bank.id }}"
+                                           data-bank_name="{{ bank.bank_name }}"
+                                           data-account_holder_name="{{ bank.account_holder_name}}"
+                                           data-account_no="{{ bank.account_no }}"
+                                           data-sheba_number="{{ bank.sheba_number }}"
+                                           data-cart_number="{{ bank.cart_number }}"
+                                           data-initial_fund="{{ bank.initial_fund|three_digit_currency }}"
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#exampleModalLong3">
+                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
+                                        </a>
+                                                          <a href="{% url 'delete_bank' bank.id %}" class="btn btn-gradient-danger p-1"
+                                                       onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                                            </a>
+
+                                        </td>
+                                        </tr>
+                                    {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="9" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                        </tr>
+                                 <tbody>
+                                {% endif %}
+                            </table>
+               </div>
+
+    <hr>
+</div>
+
+{% endblock %}
+
+

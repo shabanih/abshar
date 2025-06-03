@@ -1,0 +1,64 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+گردش صندوق
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container mt-3">
+{#     <div class="col-12 mb-2">#}
+{#                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong3">#}
+{#                        <img src="/static/middle_admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">>#}
+{#                    افزودن حساب بانکی#}
+{#                </button>#}
+{#                 </div>#}
+      <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="text-center">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>شماره سند</th>
+                                        <th>تاریخ سند</th>
+                                        <th>شرح سند</th>
+                                        <th>بدهکار</th>
+                                        <th>بستانکار</th>
+                                        <th>موجودی نهایی</th>
+{#                                        <th>فعال/غیرفعال</th>#}
+{#                                        <th>دستورات</th>#}
+                                    </tr>
+                                </thead>
+                            {% if funds %}
+                           {% for fund in funds %}
+                                    <tbody class="text-center">
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{ fund.doc_number }}</td>
+                                               <td>{{fund.payment_date|show_jalali }}</td>
+                                            <td>{{fund.payment_description }}</td>
+                                            <td>{{fund.debtor_amount|three_digit_currency}}</td>
+                                            <td>{{fund.creditor_amount|three_digit_currency }}</td>
+                                            <td class="btn-gradient-light">{{fund.final_amount|three_digit_currency }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="9" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                        </tr>
+                                 <tbody>
+                                {% endif %}
+                            </table>
+               </div>
+
+    <hr>
+</div>
+
+
+
+
+{% endblock %}
+
+

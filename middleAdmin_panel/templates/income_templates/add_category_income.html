@@ -1,0 +1,101 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+مدیریت موضوع درآمد
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container mt-3">
+
+         {{ form.non_field_errors }}
+              <form class="row gy-2 gx-5 justify-content-md-center" action="" method="POST"
+                    enctype="multipart/form-data" novalidate>
+                  {% csrf_token %}
+                  <div class="container-fluid">
+                     <div class="row">
+                      <div class="form-group col-6 align-self-center">
+                        {{ form.subject.label_tag }}
+                        {{ form.subject }}
+                        {{ form.subject.errors }}
+                      </div>
+                         <div class="form-group col-2 align-self-center">
+                        {{ form.is_active.label_tag }}
+                        {{ form.is_active }}
+                        {{ form.is_active.errors }}
+                      </div>
+                                {% if form.instance.id %}
+                        <div class="col-4 align-self-center">
+                          <button type="submit" class="btn btn-gradient-success btn-md mb-3">ذخیره </button>
+                         </div>
+                              {% else %}
+                          <div class="col-4 align-self-center">
+                          <button type="submit" class="btn btn-gradient-success btn-md mb-3">ثبت </button>
+                           <a class="btn btn-danger mb-3" type="button"
+                               href="{% url 'add_income' %}">
+                                برگشت به صفحه ثبت درآمد
+                            </a>
+                         </div>
+                        {% endif %}
+                    </div>
+                  </div>
+              </form>
+
+
+           <div class="container mt-4">
+               <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="text-center">
+                                    <tr>
+                                        <th>#</th>
+                                        <th> موضوع</th>
+                                        <th>تاریخ ایجاد</th>
+                                        <th>فعال/غیرفعال</th>
+                                        <th>دستورات</th>
+                                    </tr>
+                                </thead>
+                            {% if income_categories %}
+                           {% for income_category in income_categories %}
+                                    <tbody class="text-center">
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{income_category.subject }}</td>
+                                            <td>{{income_category.created_at|show_jalali_date_only }}</td>
+                                              <td>
+                                               {% if income_category.is_active == True %}
+                                                <button class="btn btn-primary bg-gradient-success p-1">فعال</button>
+                                                   {% else %}
+                                                   <button class="btn btn-gradient-danger p-1">غیر فعال</button>
+
+                                               {% endif %}
+                                            </td>
+
+                                               <td class="col-lg-1 col-xl-1 p-0">
+                                                     <a href="{% url 'edit_category_income' income_category.id %}" class="btn btn-gradient-info p-1">
+                                                          <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
+                                                        </a>
+                                                          <a href="{% url 'delete_category_income' income_category.id %}" class="btn btn-gradient-danger p-1"
+                                                       onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                                            </a>
+
+                                        </td>
+                                        </tr>
+                                    {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="9" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                        </tr>
+                                 <tbody>
+                                {% endif %}
+                            </table>
+               </div>
+           </div>
+
+</div>
+{% endblock %}
+
+

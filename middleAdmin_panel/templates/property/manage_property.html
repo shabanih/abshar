@@ -1,0 +1,270 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% block page_title %}
+مدیریت اموال( تعداد کل اموال ثبت شده:{{ total_properties }} )
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container p-0">
+ 
+      <div class="row align-self-center mb-2">
+                <div class="col-12 col-md-3 col-xl-3 align-self-center">
+                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">
+                          <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
+
+                    ثبت اموال جدید
+                </button>
+                 </div>
+          <div class="col-12 col-md-5 col-xl-5">
+              <input type="text" id="searchInput" placeholder="جستجوی سریع در جدول..." onkeyup="searchTable()" class="form-control mb-2 mt-2 p-1">
+          </div>
+        <div class=" col-12 col-md-5 col-xl-4 text-center align-self-center">
+            <button onclick="openQuery()" class="btn btn-gradient-info px-2 py-2">جستجوی پیشرفته</button>
+            <a href="{% url 'export_property_excel' %}?{{ request.GET.urlencode }}"
+                class="btn btn-gradient-success px-2 py-2">خروجی Excel</a>
+            <a href="{% url 'export_property_pdf' %}?{{ request.GET.urlencode }}"
+                   class="btn btn-gradient-danger px-2 py-2">
+                   خروجی PDF
+                </a>
+            </div>
+          </div>
+       <div id="query-form" style="display: none;" class="row mt-2">
+            <form method="get">
+               <div class="row mt-2">
+                     <div class="col-md-3">
+                 <input type="text" name="property_name" class="form-control" placeholder="نام اموال"
+                               value="{{ request.GET.property_name }}">
+                    </div>
+                     <div class="col-md-3">
+                        <input type="text" name="property_unit" class="form-control" placeholder="واحد شمارش"
+                               value="{{ request.GET.property_unit }}">
+                    </div>
+                     <div class="col-md-2">
+                        <input type="text" name="property_location" class="form-control" placeholder="موقعیت اموال"
+                               value="{{ request.GET.property_location }}">
+                    </div>
+                 <div class="col-md-2">
+                        <input type="text" id="from_date" name="from_date" class="form-control" placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
+                      </div>
+                 <div class="col-md-2">
+                    <input type="text" id="to_date" name="to_date" class="form-control" placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
+                    </div>
+               </div>
+                <div class="row mt-2 mb-2">
+                     <div class="col-md-2">
+                       <input type="text" name="property_code" class="form-control" placeholder=" شماره اموال"
+                       value="{{ request.GET.property_code }}">
+                      </div>
+                      <div class="col-md-4">
+                <input type="text" name="property_price" class="form-control" placeholder="ارزش "
+                       value="{{ request.GET.property_price }}">
+                  </div>
+                      <div class="col-md-4">
+                       <input type="text" name="details" class="form-control" placeholder="توضیحات "
+                       value="{{ request.GET.details }}">
+                      </div>
+                      <div class="col-md-2 align-self-center text-center">
+                            <button type="submit" class="btn btn-facebook px-4 py-2">جستجوی پیشرفته</button>
+                        </div>
+                    </div>
+               </form>
+         </div>
+
+
+            <div class="table-responsive">
+                <table class="table table-bordered " id="expenseTable">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th>نام اموال</th>
+                            <th>واحد</th>
+                             <th>کد </th>
+                             <th>موقعیت</th>
+                            <th>ارزش(ریال)</th>
+                              <th>تایخ خرید</th>
+                             <th>توضیحات </th>
+                            <th>تصویر </th>
+                            <th>دستورات</th>
+                        </tr>
+                    </thead>
+                {% if page_obj %}
+               {% for property in page_obj %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                              <td>{{property.property_name }}</td>
+                                 <td>{{property.property_unit }}</td>
+                                <td>{{property.property_code }}</td>
+                                <td>{{property.property_location }}</td>
+                                <td>{{property.property_price|three_digit_currency }}</td>
+                                 <td>{{property.property_purchase_date|show_jalali }}</td>
+                               <td>{{property.details }}</td>
+                                <td class="d-flex justify-content-center align-self-center">
+                                  {% for doc in property.documents.all %}
+                                        <a href="{{ doc.document.url }}" target="_blank" 
+                                           > 
+                                            <i class="fas fa-image fa-2x me-2"></i></a>
+                                    {% empty %}
+                                     !No File
+                                    {% endfor %}
+                                </td>
+                                   <td class="col-lg-1 col-xl-1 p-0">
+                                      <a
+                                           class="btn btn-gradient-warning p-1 edit-property-btn"
+                                           data-id="{{ property.id }}"
+                                           data-property_name="{{ property.property_name }}"
+                                           data-property_unit="{{ property.property_unit }}"
+                                           data-property_price="{{ property.property_price }}"
+                                           data-property_purchase_date="{{ property.property_purchase_date|show_jalali }}"
+                                           data-property_location="{{ property.property_location}}"
+                                           data-property_code="{{ property.property_code }}"
+                                           data-details="{{ property.details }}"
+                                           data-images='{{ property.get_urls_json|default:"[]" }}'
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#exampleModalLong">
+                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
+                                        </a>
+
+                                              <a href="{% url 'property_delete' property.id %}" class="btn btn-danger p-1"
+                                           onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                                  <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                                </a>
+
+                            </td>
+                            </tr>
+                        {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="10" class="text-center">هیچ اموالی برای نمایش وجود ندارد.</td>
+                            </tr>
+                     <tbody>
+                    {% endif %}
+                </table>
+                   <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+{#      ============================= Moda Form ==================#}
+    
+    <div class="modal fade" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header" id="exampleModalLongTitle">
+        <h5 class="modal-title">ثبت اموال جدید</h5>
+      </div>
+         <hr>
+      <div class="modal-body" >
+         {{ form.non_field_errors }}
+          <form id="propertyForm" action="" method="POST"
+                enctype="multipart/form-data" novalidate>
+              {% csrf_token %}
+              <div class="row">
+                  <div class="col-12 col-lg-6 col-xl-6">
+                      {{ form.property_name.label_tag }}
+                      {{ form.property_name }}
+                      {{ form.property_name.errors }}
+                  </div>
+                     <div class="col-12 col-lg-6 col-xl-6">
+                       {{ form.property_unit.label_tag }}
+                      {{ form.property_unit }}
+                      {{ form.property_unit.errors }}
+                  </div>
+                     </div>
+               <div class="row ">
+                      <div class="col-12 col-lg-6 col-xl-6">
+                       {{ form.property_location.label_tag }}
+                      {{ form.property_location }}
+                      {{ form.property_location.errors }}
+                  </div>
+                      <div class="col-6 col-lg-6 col-xl-6">
+                       {{ form.property_code.label_tag }}
+                      {{ form.property_code }}
+                      {{ form.property_code.errors }}
+                  </div>
+                   
+                     </div>
+              <div class="row">
+                <div class="col-6 col-lg-6 col-xl-6">
+                       {{ form.property_price.label_tag }}
+                      {{ form.property_price }}
+                      {{ form.property_price.errors }}
+                  </div>
+                   <div class="col-6 col-lg-6 col-xl-6">
+                       {{ form.property_purchase_date.label_tag }}
+                      {{ form.property_purchase_date }}
+                      {{ form.property_purchase_date.errors }}
+                  </div>
+                     </div>
+               <div class="row">
+                  <div class="col-12 col-lg-12 col-xl-12">
+                      {{ form.description.label_tag }}
+                      {{ form.description }}
+                      {{ form.description.errors }}
+                  </div>
+                     </div>
+               <div class="row">
+                  <div class="form-group col-12">
+                    {{ form.details.label_tag }}
+                    {{ form.details }}
+                    {{ form.details.errors }}
+                  </div>
+                </div>
+              
+              
+             <div class="row">
+                  <div class="image-item form-group col-12">
+                    <label>تصاویر سند:</label>
+                      <input type="file" name="document" multiple class="form-control" accept="image/*">
+                      <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}" id="{{ property.id }}">
+                       <div id="preview" class="mt-3"></div>
+                  </div>
+                </div>
+              
+                   <hr class="mt-2" style="color: #0f1531">
+                <div class="d-flex justify-content-between">
+                        <button type="submit" id="btn-submit-receive" class="btn btn-gradient-success px-4 py-2">ثبت اموال</button>
+                           <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
+                     </div>
+        
+
+          </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+
+  
+{% endblock %}
+
+
+
+
+
+
+
+

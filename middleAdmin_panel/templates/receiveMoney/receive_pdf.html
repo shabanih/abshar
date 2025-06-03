@@ -1,0 +1,133 @@
+{% load poll_extras %}
+<!DOCTYPE html >
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta charset="UTF-8">
+
+
+   <style>
+   @font-face {
+    font-family: 'BYekan';
+    src: url('{{ font_path }}') format('truetype');
+}
+body {
+    font-family: 'BYekan';
+    direction: rtl;
+    text-align: right;
+    font-size: 14px;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead tr {
+        background-color: #9b9797; /* طلایی */
+        color: #000000; /* مشکی */
+    }
+th{
+      border: 1px solid #ccc;
+        padding:10px 2px;
+        text-align: center;
+    }
+    
+
+     td {
+        border: 1px solid #ccc;
+        padding:10px 5px;
+        text-align: center;
+    }
+h1{
+    text-align: center;
+}
+.logo-style-pdf{
+    width: 200px;
+    height: 80px;
+    justify-content: center;
+}
+
+    </style>
+    <title>لیست اسناد </title>
+
+
+</head>
+<body>
+<div class="container">
+  <div class="row">
+    <div class="col">
+        <img src="/img/logo_core.png" class="logo-style-pdf" alt="">
+    </div>
+  </div>
+</div>
+ <h1 class="text-center">لیست اسناد دریافتنی {{ receive.bank.name }}   </h1>
+  <div class="table-responsive">
+                <table class="table table-bordered " id="expenseTable">
+                    <thead class="text-center">
+                        <tr>
+                              <th>#</th>
+                            <th>شماره حساب</th>
+                             <th>مبلغ</th>
+                             <th>پرداخت کننده</th>
+                            <th>شرح سند</th>
+                              <th>شماره سند</th>
+                            <th>تاریخ سند</th>
+                             <th>توضیحات سند</th>
+                            <th>تصویر سند</th>
+                         
+                        </tr>
+                    </thead>
+                 {% if receives %}
+               {% for receive in receives %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                               <td>{{ receive.bank.account_number.bank_name }}-{{ receive.bank.account_number.cart_number }}</td>
+                              <td>{{receive.amount|three_digit_currency }}</td>
+                                 <td>{{receive.payer_name }}</td>
+                                <td>{{receive.description }}</td>
+                                <td>{{receive.doc_number }}</td>
+                                 <td>{{receive.doc_date|show_jalali }}</td>
+                               <td>{{receive.details }}</td>
+                                  <td class="d-flex justify-content-center align-self-center">
+                                {% if receive.documents.exists %}
+                                   <span class="text-danger"> دارد</span>
+                                {% else %}
+                                    <span class="text-danger"> ندارد</span>
+                                {% endif %}
+                            </td>
+                            </tr>
+                        {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="10" class="text-center">هیچ هزینه ای برای نمایش وجود ندارد.</td>
+                            </tr>
+                     <tbody>
+                    {% endif %}
+                </table>
+                   <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+</body>
+</html>

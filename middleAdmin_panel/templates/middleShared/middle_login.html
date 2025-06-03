@@ -1,0 +1,81 @@
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>ورود به پنل مدیر ساختمان</title>
+     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"/>
+    <link rel="stylesheet" href="/static/css/all.css">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/bootstrap-rtl.min.css">
+    <link rel="stylesheet" href="/static/css/login_style.css">
+    <link rel="stylesheet" href="/static/css/core.css">
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/Bootstrap.min.js"></script>
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/popper.min.js"></script>
+    <script src="/static/js/sweetalert2@11.js"></script>
+    <script src="/static/js/jquery-3.5.1.slim.min.js"></script>
+    <script src="/static/js/custom.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+
+
+
+</head>
+<body>
+
+<div class="global-container">
+	<div class="card">
+	<div class="card-body">
+<div class="container-fluid">
+  <div class="row text-center">
+    <div class="col">
+        <img src="/static/img/logo_login.png" width="120" alt="">
+        <h4>ورود به پنل مدیر ساختمان</h4>
+        <p class="font-weight-light m-3">جهت ورود لطفا نام کاربری و رمز عبور خود را وارد کنید</p>
+               {% if messages %}
+                            <div class="alert alert-danger px-5 py-2">
+                                {% for message in messages %}
+                                    {{ message }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+        <form action="" method="post" novalidate>
+            {% csrf_token %}
+            <div class="row g-2 justify-content-center">
+               <div class="col-8 form-group">
+                    <input type="text" class="form-control" id="exampleInputEmail"
+                           placeholder="نام کاربری" name="mobile">
+
+                  </div>
+                  <div class="col-8 form-group ">
+                    <input type="password" class="form-control" id="exampleInputPassword1"
+                           placeholder="رمز عبور" name="password1">
+                  </div>
+            </div>
+          <div class="d-flex justify-content-center">
+                <button type="submit" class="btn btn-info btn-lg w-50">ورود</button>
+            </div>
+        </form>
+    </div>
+  </div>
+</div>
+
+
+
+
+	</div>
+</div>
+</div>
+
+
+
+</body>
+</html>

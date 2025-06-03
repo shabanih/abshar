@@ -1,0 +1,265 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% block page_title %}
+مدیریت اسناد دریافتی( تعداد کل سندهای ثبت شده:{{ total_receives }} )
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container p-0">
+ 
+      <div class="row align-self-center">
+                <div class="col-12 col-md-3 col-xl-3 align-self-center">
+                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">
+                    <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
+                    ثبت سند جدید
+                </button>
+                 </div>
+          <div class="col-12 col-md-5 col-xl-5">
+              <input type="text" id="searchInput" placeholder="جستجوی سریع در جدول..." onkeyup="searchTable()" class="form-control p-2 mb-2 mt-1">
+          </div>
+        <div class="col-12 col-md-5 col-xl-4 text-center align-self-center">
+            <button onclick="openQuery()" class="btn btn-gradient-info px-2 py-2">جستجوی پیشرفته</button>
+            <a href="{% url 'export_receive_excel' %}?{{ request.GET.urlencode }}"
+               class="btn btn-gradient-success px-2 py-2">خروجی Excel</a>
+             <a href="{% url 'export_receive_pdf' %}?{{ request.GET.urlencode }}"
+               class="btn btn-gradient-danger px-2 py-2">
+               خروجی PDF
+            </a>
+            </div>
+          </div>
+       <div id="query-form" style="display: none;" class="row mt-2">
+            <form method="get">
+               <div class="row mt-2">
+                     <div class="col-md-3">
+                         <select name="bank" class="form-control form-control-sm">
+                            <option value="">انتخاب کنید</option>
+                            {% for bank in banks %}
+                                <option value="{{ bank.id }}" {% if request.GET.category == bank.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ bank.account_number.bank_name }}- {{ bank.account_number.account_no }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                     <div class="col-md-3">
+                        <input type="text" name="amount" class="form-control" placeholder="مبلغ"
+                               value="{{ request.GET.amount }}">
+                    </div>
+                     <div class="col-md-2">
+                        <input type="text" name="doc_no" class="form-control" placeholder="شماره سند"
+                               value="{{ request.GET.doc_no }}">
+                    </div>
+                     <div class="col-md-2">
+                            <input type="text" id="from_date" name="from_date" class="form-control" placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
+                          </div>
+                     <div class="col-md-2">
+                        <input type="text" id="to_date" name="to_date" class="form-control" placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
+                        </div>
+               </div>
+                <div class="row mt-2 mb-2">
+                     <div class="col-md-2">
+                       <input type="text" name="payer_name" class="form-control" placeholder="دریافت کننده"
+                       value="{{ request.GET.payer_name }}">
+                      </div>
+                      <div class="col-md-4">
+                <input type="text" name="description" class="form-control" placeholder="شرح سند"
+                       value="{{ request.GET.description }}">
+                  </div>
+                      <div class="col-md-4">
+                       <input type="text" name="details" class="form-control" placeholder="توضیحات سند"
+                       value="{{ request.GET.details }}">
+                      </div>
+                      <div class="col-md-2 align-self-center text-center">
+                            <button type="submit" class="btn btn-facebook px-4 py-2">جستجوی پیشرفته</button>
+                        </div>
+                    </div>
+               </form>
+         </div>
+
+
+            <div class="table-responsive">
+                <table class="table table-bordered " id="expenseTable">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th>شماره حساب</th>
+                             <th>مبلغ</th>
+                             <th>پرداخت کننده</th>
+                            <th>شرح سند</th>
+                              <th>شماره سند</th>
+                            <th>تاریخ سند</th>
+                             <th>توضیحات سند</th>
+                            <th>تصویر سند</th>
+                            <th>دستورات</th>
+                        </tr>
+                    </thead>
+                {% if page_obj %}
+               {% for receive in page_obj %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                               <td>{{ receive.bank.account_number.bank_name }}-{{ receive.bank.account_number.cart_number }}</td>
+                              <td>{{receive.amount|three_digit_currency }}</td>
+                                 <td>{{receive.payer_name }}</td>
+                                <td>{{receive.description }}</td>
+                                <td>{{receive.doc_number }}</td>
+                                 <td>{{receive.doc_date|show_jalali }}</td>
+                               <td>{{receive.details }}</td>
+                                <td class="d-flex justify-content-center align-self-center">
+                                  {% for doc in receive.documents.all %}
+                                        <a href="{{ doc.document.url }}" target="_blank" 
+                                           > 
+                                            <i class="fas fa-image fa-2x me-2"></i></a>
+                                    {% empty %}
+                                     !No File
+                                    {% endfor %}
+                                </td>
+                                   <td class="col-lg-1 col-xl-1 p-0">
+                                      <a
+                                           class="btn btn-gradient-warning p-1 edit-receive-btn"
+                                           data-id="{{ receive.id }}"
+                                           data-bank="{{ receive.bank.id}}"
+                                           data-amount="{{ receive.amount }}"
+                                           data-payer_name="{{ receive.payer_name }}"
+                                           data-doc_date="{{ receive.doc_date|show_jalali }}"
+                                           data-doc_number="{{ receive.doc_number}}"
+                                           data-description="{{ receive.description }}"
+                                           data-details="{{ receive.details }}"
+                                           data-images='{{ receive.get_document_json|default:"[]" }}'
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#exampleModalLong">
+                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
+                                        </a>
+
+                                              <a href="{% url 'receive_delete' receive.id %}" class="btn btn-danger p-1"
+                                           onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                                  <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                                </a>
+
+                            </td>
+                            </tr>
+                        {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="10" class="text-center">هیچ سندی برای نمایش وجود ندارد.</td>
+                            </tr>
+                     <tbody>
+                    {% endif %}
+                </table>
+                   <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+{#      ============================= Moda Form ==================#}
+    
+    <div class="modal fade" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header" id="exampleModalLongTitle">
+        <h5 class="modal-title">ثبت سند جدید</h5>
+      </div>
+         <hr>
+      <div class="modal-body" >
+         {{ form.non_field_errors }}
+          <form id="receiveForm" action="" method="POST"
+                enctype="multipart/form-data" novalidate>
+              {% csrf_token %}
+              <div class="row align-items-center p-0">
+                  <div class="col-12 col-lg-6 col-xl-6">
+                      {{ form.bank.label_tag }}
+                      {{ form.bank }}
+                      {{ form.bank.errors }}
+                  </div>
+                     <div class="col-12 col-lg-6 col-xl-6">
+                       {{ form.amount.label_tag }}
+                      {{ form.amount }}
+                      {{ form.amount.errors }}
+                  </div>
+                     </div>
+               <div class="row m-0 g-2">
+                      <div class="col-12 col-lg-4 col-xl-4 p-1">
+                       {{ form.payer_name.label_tag }}
+                      {{ form.payer_name }}
+                      {{ form.payer_name.errors }}
+                  </div>
+                      <div class="col-6 col-lg-4 col-xl-4 p-1">
+                       {{ form.doc_date.label_tag }}
+                      {{ form.doc_date }}
+                      {{ form.doc_date.errors }}
+                  </div>
+                     <div class="col-6 col-lg-4 col-xl-4 p-1">
+                       {{ form.doc_number.label_tag }}
+                      {{ form.doc_number }}
+                      {{ form.doc_number.errors }}
+                  </div>
+                     </div>
+               <div class="row">
+                  <div class="col-12 col-lg-12 col-xl-12">
+                      {{ form.description.label_tag }}
+                      {{ form.description }}
+                      {{ form.description.errors }}
+                  </div>
+                     </div>
+               <div class="row">
+                  <div class="form-group col-12">
+                    {{ form.details.label_tag }}
+                    {{ form.details }}
+                    {{ form.details.errors }}
+                  </div>
+                </div>
+              
+              
+             <div class="row">
+                  <div class="image-item form-group col-12">
+                    <label>تصاویر سند:</label>
+                      <input type="file" name="document" multiple class="form-control" accept="image/*">
+                      <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}" id="{{ receive.id }}">
+                       <div id="preview" class="mt-3"></div>
+                  </div>
+                </div>
+              
+                   <hr class="mt-2" style="color: #0f1531">
+                <div class="d-flex justify-content-between">
+                        <button type="submit" id="btn-submit-receive" class="btn btn-gradient-success px-4 py-2">ثبت سند</button>
+                           <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
+                     </div>
+        
+
+          </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
