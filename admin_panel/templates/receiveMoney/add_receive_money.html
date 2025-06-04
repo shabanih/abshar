@@ -83,6 +83,7 @@
                     <thead class="text-center">
                         <tr>
                             <th>#</th>
+                            <th>ایجاد کننده</th>
                             <th>شماره حساب</th>
                              <th>مبلغ</th>
                              <th>پرداخت کننده</th>
@@ -99,7 +100,8 @@
                         <tbody class="text-center">
                             <tr>
                                 <td>{{ forloop.counter }}</td>
-                               <td>{{ receive.bank.account_number.bank_name }}-{{ receive.bank.account_number.cart_number }}</td>
+                                <td>{{ receive.user.full_name }}</td>
+                            <td>{{ receive.bank.account_no }}-{{ receive.bank.bank_name }}</td>
                               <td>{{receive.amount|three_digit_currency }}</td>
                                  <td>{{receive.payer_name }}</td>
                                 <td>{{receive.description }}</td>

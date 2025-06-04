@@ -144,8 +144,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='maintenancedocument',
-            name='maintenance',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='admin_panel.maintenance'),
+            name='middleMaintenance',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='admin_panel.middleMaintenance'),
         ),
         migrations.AddField(
             model_name='paymoney',
@@ -174,8 +174,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='propertydocument',
-            name='property',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='admin_panel.property'),
+            name='middleProperty',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='documents', to='admin_panel.middleProperty'),
         ),
         migrations.AddField(
             model_name='receivemoney',

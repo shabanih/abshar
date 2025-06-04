@@ -52,13 +52,14 @@
                                            data-full_name="{{ middle.full_name }}"
                                            data-mobile="{{ middle.mobile}}"
                                            data-username="{{ middle.username }}"
-                                           data-password="{{ middle.password }}"
-                                           data-confirm_password="{{ middle.confirm_password }}"
+                                           data-is_active="{{ middle.is_active }}"
+{#                                           data-password="{{ middle.password }}"#}
+{#                                           data-confirm_password="{{ middle.confirm_password }}"#}
                                            data-bs-toggle="modal"
                                            data-bs-target="#exampleModalLong3">
                                            <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
                                         </a>
-                                                          <a href="" class="btn btn-gradient-danger p-1"
+                                                          <a href="{% url 'delete_middle_admin' middle.id %}" class="btn btn-gradient-danger p-1"
                                                        onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
                                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                             </a>
@@ -89,7 +90,7 @@
          <hr>
       <div class="modal-body" >
          {{ form.non_field_errors }}
-          <form id="middleForm" action="" method="POST"
+          <form id="middleForm" action="" method="POST" autocomplete="off"
                 enctype="multipart/form-data" novalidate>
               {% csrf_token %}
                  <div class="row g-2">
@@ -122,6 +123,13 @@
                       {{ form.confirm_password.label_tag }}
                       {{ form.confirm_password }}
                       {{ form.confirm_password.errors }}
+                  </div>
+                     </div>
+                  <div class="row g-2">
+                      <div class="col-6">
+                       {{ form.is_active.label_tag }}
+                      {{ form.is_active }}
+                      {{ form.is_active.errors }}
                   </div>
                      </div>
           

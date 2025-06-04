@@ -21,6 +21,7 @@ class Announcement(models.Model):
 
 
 class ExpenseCategory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=100, verbose_name='نام')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
@@ -30,6 +31,7 @@ class ExpenseCategory(models.Model):
 
 
 class Expense(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     category = models.ForeignKey(ExpenseCategory, on_delete=models.CASCADE, verbose_name='گروه',
                                  related_name='expenses')
     date = models.DateField(verbose_name='تاریخ سند')
@@ -59,6 +61,7 @@ class ExpenseDocument(models.Model):
 
 # Income Modals ==============================================================
 class IncomeCategory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     subject = models.CharField(max_length=100, verbose_name='نام')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
@@ -68,6 +71,7 @@ class IncomeCategory(models.Model):
 
 
 class Income(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     category = models.ForeignKey(IncomeCategory, on_delete=models.CASCADE, verbose_name='گروه', related_name='incomes')
     doc_date = models.DateField(verbose_name='تاریخ سند')
     doc_number = models.IntegerField(verbose_name='شماره سند')
@@ -98,6 +102,7 @@ class IncomeDocument(models.Model):
 
 # ======================= Receive & Pay Modals ==========================
 class ReceiveMoney(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
     payer_name = models.CharField(max_length=200, verbose_name='پرداخت کننده')
     doc_date = models.DateField(verbose_name='تاریخ سند')
@@ -128,6 +133,7 @@ class ReceiveDocument(models.Model):
 
 
 class PayMoney(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
     receiver_name = models.CharField(max_length=200, verbose_name='دریافت کننده')
     document_date = models.DateField(verbose_name='تاریخ سند')
@@ -157,8 +163,9 @@ class PayDocument(models.Model):
         return str(self.payment.receiver_name)
 
 
-# =========================== property Views ====================
+# =========================== middleProperty Views ====================
 class Property(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     property_name = models.CharField(max_length=400, verbose_name='نام')
     property_unit = models.CharField(max_length=3000, verbose_name='واحد')
     property_location = models.CharField(max_length=400, verbose_name='آدرس')
@@ -181,7 +188,7 @@ class Property(models.Model):
 
 class PropertyDocument(models.Model):
     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='documents')
-    document = models.FileField(upload_to='images/property/')
+    document = models.FileField(upload_to='images/middleProperty/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -190,6 +197,7 @@ class PropertyDocument(models.Model):
 
 # ======================== Maintenance =============================
 class Maintenance(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     maintenance_description = models.CharField(max_length=1000, verbose_name='')
     maintenance_start_date = models.DateField(verbose_name='')
     maintenance_end_date = models.DateField(verbose_name='')
@@ -213,7 +221,7 @@ class Maintenance(models.Model):
 
 class MaintenanceDocument(models.Model):
     maintenance = models.ForeignKey(Maintenance, on_delete=models.CASCADE, related_name='documents')
-    document = models.FileField(upload_to='images/maintenance/')
+    document = models.FileField(upload_to='images/middleMaintenance/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

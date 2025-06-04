@@ -78,6 +78,7 @@
                     <thead class="text-center">
                         <tr>
                             <th>#</th>
+                            <th>ایجاد کننده</th>
                             <th>نام اموال</th>
                             <th>واحد</th>
                              <th>کد </th>
@@ -94,6 +95,7 @@
                         <tbody class="text-center">
                             <tr>
                                 <td>{{ forloop.counter }}</td>
+                                <td>{{ property.user.full_name }}</td>
                               <td>{{property.property_name }}</td>
                                  <td>{{property.property_unit }}</td>
                                 <td>{{property.property_code }}</td>
@@ -112,7 +114,7 @@
                                 </td>
                                    <td class="col-lg-1 col-xl-1 p-0">
                                       <a
-                                           class="btn btn-gradient-warning p-1 edit-property-btn"
+                                           class="btn btn-gradient-warning p-1 edit-productProperty-btn"
                                            data-id="{{ property.id }}"
                                            data-property_name="{{ property.property_name }}"
                                            data-property_unit="{{ property.property_unit }}"
@@ -127,7 +129,7 @@
                                            <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
                                         </a>
 
-                                              <a href="{% url 'property_delete' property.id %}" class="btn btn-danger p-1"
+                                              <a href="{% url 'middle_property_delete' property.id %}" class="btn btn-danger p-1"
                                            onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
                                                   <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                 </a>

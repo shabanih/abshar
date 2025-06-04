@@ -396,7 +396,7 @@ $(document).on('click', '.edit-bank-btn', function () {
 
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
-    $('#bankForm').attr('action', '/middle-admin-panel/bank/middle/edit/' + id + '/');
+    $('#bankForm').attr('action', '/admin-panel/bank/edit/' + id + '/');
 
     // Populate the form with the expense data
     $('#id_house_name').val($(this).data('house_name'));
@@ -432,7 +432,13 @@ $(document).on('click', '.edit-middle-btn', function () {
     $('#id_full_name').val($(this).data('full_name'));
     $('#id_mobile').val($(this).data('mobile'));
     $('#id_username').val($(this).data('username'));
-    $('#id_password').val($(this).data('password'));
+
+    $('#middleForm input[name="password"]').val('');
+    $('#middleForm input[name="confirm_password"]').val('');
+
+     // تعیین مقدار is_active
+    let isActive = $(this).data('is_active');
+    $('#editForm select[name="is_active"]').val(isActive.toString());
 
 
     // Update the modal title and submit button text for editing
@@ -690,7 +696,7 @@ $(document).on('click', '.edit-pay-btn', function () {
   });
 
 // =============================== Property ==================
-$(document).on('click', '.edit-property-btn', function (e) {
+$(document).on('click', '.edit-productProperty-btn', function (e) {
     e.preventDefault();
 
     var images = $(this).data('images');
@@ -750,7 +756,7 @@ $(document).on('click', '.delete-image2-btn', function () {
         if (result.isConfirmed) {
             $.ajax({
                 type: 'POST',
-                url: '/admin-panel/property/delete-document/',
+                url: '/admin-panel/productProperty/delete-document/',
                 data: {
                     url: imageUrl,
                     property_id: propertyId
@@ -770,13 +776,13 @@ $(document).on('click', '.delete-image2-btn', function () {
         }
     });
 });
-$(document).on('click', '.edit-property-btn', function () {
+$(document).on('click', '.edit-productProperty-btn', function () {
     console.log('ویرایش کلیک شد');
 
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     // Set the form action URL dynamically
-    $('#propertyForm').attr('action', '/admin-panel/property/edit/' + id + '/');
+    $('#propertyForm').attr('action', '/admin-panel/productProperty/edit/' + id + '/');
 
     $('#id_property_name').val($(this).data('property_name'));
     $('#id_property_unit').val($(this).data('property_unit'));
@@ -806,7 +812,7 @@ $(document).on('click', '.edit-property-btn', function () {
   });
 
 // =============================== Maintenance ==================
-$(document).on('click', '.edit-maintenance-btn', function (e) {
+$(document).on('click', '.edit-middleMaintenance-btn', function (e) {
     e.preventDefault();
 
     var images = $(this).data('images');
@@ -846,7 +852,7 @@ $(document).on('click', '.edit-maintenance-btn', function (e) {
 
 $(document).on('click', '.delete-image-btn', function () {
     const imageUrl = $(this).data('url');
-    const maintenanceId = $(this).data('maintenance-id');
+    const maintenanceId = $(this).data('middleMaintenance-id');
     const button = $(this);  // Save reference for removal later
 
     if (!imageUrl || !maintenanceId) {
@@ -886,13 +892,13 @@ $(document).on('click', '.delete-image-btn', function () {
         }
     });
 });
-$(document).on('click', '.edit-maintenance-btn', function () {
+$(document).on('click', '.edit-middleMaintenance-btn', function () {
     console.log('ویرایش کلیک شد');
 
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     // Set the form action URL dynamically
-    $('#maintenanceForm').attr('action', '/admin-panel/maintenance/edit/' + id + '/');
+    $('#maintenanceForm').attr('action', '/admin-panel/middleMaintenance/edit/' + id + '/');
 
     $('#id_maintenance_description').val($(this).data('maintenance_description'));
     // Ensure date is in YYYY-MM-DD format before setting it

@@ -359,7 +359,7 @@ class Migration(migrations.Migration):
             name='MaintenanceDocument',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('document', models.FileField(upload_to='images/maintenance/')),
+                ('document', models.FileField(upload_to='images/middleMaintenance/')),
                 ('uploaded_at', models.DateTimeField(auto_now_add=True)),
             ],
         ),
@@ -439,7 +439,7 @@ class Migration(migrations.Migration):
             name='PropertyDocument',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('document', models.FileField(upload_to='images/property/')),
+                ('document', models.FileField(upload_to='images/middleProperty/')),
                 ('uploaded_at', models.DateTimeField(auto_now_add=True)),
             ],
         ),

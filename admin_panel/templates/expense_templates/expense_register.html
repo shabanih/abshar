@@ -79,6 +79,7 @@
                     <thead class="text-center">
                         <tr>
                             <th>#</th>
+                            <th>ایجاد کننده</th>
                             <th> موضوع هزینه</th>
                             <th>شرح سند</th>
                             <th>مبلغ</th>
@@ -95,7 +96,8 @@
                         <tbody class="text-center">
                             <tr>
                                 <td>{{ forloop.counter }}</td>
-                                <td>{{expense.category }}</td>
+                                <td>{{expense.user.full_name }}</td>
+                                 <td>{{expense.category }}</td>
                                 <td>{{expense.description }}</td>
                                 <td>{{expense.amount|three_digit_currency }}</td>
                                 <td>{{expense.doc_no }}</td>

@@ -116,31 +116,46 @@ class UserRegistrationForm(forms.ModelForm):
         widget=forms.PasswordInput(attrs=attr),
         help_text='رمز عبور باید شامل اعداد و حروف باشد'
     )
+    is_active = forms.BooleanField(required=False, label='فعال/غیرفعال')
 
     class Meta:
         model = User
-        fields = ['full_name', 'mobile', 'username', 'password']
+        fields = ['full_name', 'mobile', 'username', 'password', 'is_active']
 
     def clean_mobile(self):
         mobile = self.cleaned_data.get('mobile')
-        if User.objects.filter(mobile=mobile).exists():
-            raise ValidationError('این شماره موبایل قبلا ثبت شده است.')
+        if User.objects.filter(mobile=mobile).exclude(pk=self.instance.pk).exists():
+            raise ValidationError("شماره موبایل قبلاً ثبت شده است.")
         return mobile
 
     def clean_username(self):
         username = self.cleaned_data.get('username')
-        if User.objects.filter(username=username).exists():
-            raise ValidationError('نام کاربری قبلا ثبت شده است.')
+        if User.objects.filter(username=username).exclude(pk=self.instance.pk).exists():
+            raise ValidationError("نام کاربری قبلاً ثبت شده است.")
         return username
 
     def clean_password2(self):
-        password1 = self.cleaned_data.get("password1")
-        password2 = self.cleaned_data.get("password2")
+        password = self.cleaned_data.get("password")
+        confirm_password = self.cleaned_data.get("password")
 
-        if password1 and password2 and password1 != password2:
+        if password and confirm_password and password != confirm_password:
             raise ValidationError("رمزهای عبور با هم مطابقت ندارند!")
 
-        return password2
+        return confirm_password
+
+    def clean_is_active(self):
+        return self.cleaned_data.get('is_active', False)
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        password = self.cleaned_data.get('password')
+        if password:
+            user.set_password(password)  # sets hashed password
+        else:
+            user.password = self.instance.password  # keep existing hashed password
+        if commit:
+            user.save()
+        return user
 
 
 class BankForm(forms.ModelForm):
@@ -388,15 +403,13 @@ class UnitForm(forms.ModelForm):
 
 class ExpenseForm(forms.ModelForm):
     category = forms.ModelChoiceField(
-        queryset=ExpenseCategory.objects.filter(is_active=True),
+        queryset=ExpenseCategory.objects.none(),
         widget=forms.Select(attrs=attr),
         empty_label="یک گروه انتخاب کنید",
         error_messages=error_message,
         required=True,
         label='موضوع هزینه'
     )
-    # category = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
-    #                            label='موضوع هزینه')
     amount = forms.CharField(error_messages=error_message, max_length=20, required=True,
                              widget=forms.TextInput(attrs=attr),
                              label='مبلغ')
@@ -423,6 +436,12 @@ class ExpenseForm(forms.ModelForm):
     class Meta:
         model = Expense
         fields = ['category', 'amount', 'date', 'description', 'doc_no', 'details', 'document']
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['category'].queryset = ExpenseCategory.objects.filter(is_active=True, user=user)
 
 
 class ExpenseCategoryForm(forms.ModelForm):
@@ -451,7 +470,7 @@ class SearchExpenseForm(forms.Form):
     date_from = JalaliDateField(
         label='از تاریخ',
         widget=AdminJalaliDateWidget(),
-        error_messages=error_message, required=False
+        error_messages=error_message, required=True
     )
     date_to = JalaliDateField(
         required=False,
@@ -467,7 +486,7 @@ class SearchExpenseForm(forms.Form):
 
 class IncomeForm(forms.ModelForm):
     category = forms.ModelChoiceField(
-        queryset=IncomeCategory.objects.filter(is_active=True),
+        queryset=IncomeCategory.objects.none(),
         widget=forms.Select(attrs=attr),
         empty_label="یک گروه انتخاب کنید",
         error_messages=error_message,
@@ -484,7 +503,7 @@ class IncomeForm(forms.ModelForm):
     doc_date = JalaliDateField(
         label='تاریخ ثبت سند',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
-        error_messages=error_message, required=False
+        error_messages=error_message, required=True
     )
     doc_number = forms.CharField(error_messages=error_message, max_length=10, widget=forms.TextInput(attrs=attr),
                                  required=True,
@@ -502,6 +521,12 @@ class IncomeForm(forms.ModelForm):
     class Meta:
         model = Income
         fields = ['category', 'amount', 'doc_date', 'description', 'doc_number', 'details', 'document']
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['category'].queryset = IncomeCategory.objects.filter(is_active=True, user=user)
 
 
 class IncomeCategoryForm(forms.ModelForm):
@@ -546,7 +571,7 @@ class SearchIncomeForm(forms.Form):
 
 class ReceiveMoneyForm(forms.ModelForm):
     bank = forms.ModelChoiceField(
-        queryset=Bank.objects.filter(is_active=True),
+        queryset=Bank.objects.none(),
         widget=forms.Select(attrs=attr),
         empty_label="شماره حساب را انتخاب کنید",
         error_messages=error_message,
@@ -579,21 +604,23 @@ class ReceiveMoneyForm(forms.ModelForm):
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
-    is_active = forms.BooleanField(required=False)
+    # is_active = forms.BooleanField(required=False)
 
     class Meta:
         model = ReceiveMoney
         fields = ['bank', 'amount', 'doc_date', 'description', 'doc_number',
-                  'details', 'document', 'is_active', 'payer_name']
+                  'details', 'document', 'payer_name']
 
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        self.fields['bank'].queryset = Bank.objects.filter(is_active=True)
+        if user:
+            self.fields['bank'].queryset = Bank.objects.filter(is_active=True, user=user)
 
 
 class PayerMoneyForm(forms.ModelForm):
     bank = forms.ModelChoiceField(
-        queryset=Bank.objects.filter(is_active=True),
+        queryset=Bank.objects.none(),
         widget=forms.Select(attrs=attr),
         empty_label="یک گروه انتخاب کنید",
         error_messages=error_message,
@@ -633,6 +660,12 @@ class PayerMoneyForm(forms.ModelForm):
         model = PayMoney
         fields = ['bank', 'amount', 'document_date', 'description', 'document_number',
                   'details', 'document', 'is_active', 'receiver_name']
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['bank'].queryset = Bank.objects.filter(is_active=True, user=user)
 
 
 PROPERTY_CHOICES = {

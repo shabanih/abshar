@@ -8,8 +8,10 @@ urlpatterns = [
     path('', views.admin_dashboard, name='admin_dashboard'),
     path('login-admin/', views.admin_login_view, name='login_admin'),
     path('log-out-admin/', views.logout_admin, name='logout_admin'),
+
     path('create-middle-admin/', views.MiddleAdminCreateView.as_view(), name='create_middle_admin'),
-    path('middle/edit//<int:pk>/', views.MiddleAdminUpdateView.as_view(), name='edit_middle_admin'),
+    path('middle/edit/<int:pk>/', views.MiddleAdminUpdateView.as_view(), name='edit_middle_admin'),
+    path('middle/delete/<int:pk>/', views.middleAdmin_delete, name='delete_middle_admin'),
 
     # Announce urls
     path('announcement/', views.AnnouncementView.as_view(), name='announcement'),
@@ -75,20 +77,20 @@ urlpatterns = [
     path('pay/export/pdf/', views.export_pay_pdf, name='export_pay_pdf'),
 
     # Property Urls
-    path('add-property', views.PropertyCreateView.as_view(), name='add_property'),
-    path('property/edit/<int:pk>/', views.property_edit, name='property_edit'),
-    path('property/delete/<int:pk>/', views.property_delete, name='property_delete'),
-    path('property/delete-document/', views.delete_property_document, name='delete_property_document'),
-    path('property/export/excel/', views.export_property_excel, name='export_property_excel'),
-    path('property/export/pdf/', views.export_property_pdf, name='export_property_pdf'),
+    path('add-productProperty', views.PropertyCreateView.as_view(), name='add_property'),
+    path('productProperty/edit/<int:pk>/', views.property_edit, name='property_edit'),
+    path('productProperty/delete/<int:pk>/', views.property_delete, name='property_delete'),
+    path('productProperty/delete-document/', views.delete_property_document, name='delete_property_document'),
+    path('productProperty/export/excel/', views.export_property_excel, name='export_property_excel'),
+    path('productProperty/export/pdf/', views.export_property_pdf, name='export_property_pdf'),
 
-    # Property Urls
-    path('add-maintenance', views.MaintenanceCreateView.as_view(), name='add_maintenance'),
-    path('maintenance/edit/<int:pk>/', views.maintenance_edit, name='maintenance_edit'),
-    path('maintenance/delete/<int:pk>/', views.maintenance_delete, name='maintenance_delete'),
-    path('maintenance/delete-document/', views.delete_maintenance_document, name='delete_maintenance_document'),
-    path('maintenance/export/excel/', views.export_maintenance_excel, name='export_maintenance_excel'),
-    path('maintenance/export/pdf/', views.export_maintenance_pdf, name='export_maintenance_pdf'),
+    # Maintenance Urls
+    path('add-middleMaintenance', views.MaintenanceCreateView.as_view(), name='add_maintenance'),
+    path('middleMaintenance/edit/<int:pk>/', views.maintenance_edit, name='maintenance_edit'),
+    path('middleMaintenance/delete/<int:pk>/', views.maintenance_delete, name='maintenance_delete'),
+    path('middleMaintenance/delete-document/', views.delete_maintenance_document, name='delete_maintenance_document'),
+    path('middleMaintenance/export/excel/', views.export_maintenance_excel, name='export_maintenance_excel'),
+    path('middleMaintenance/export/pdf/', views.export_maintenance_pdf, name='export_maintenance_pdf'),
 
     # Charge Urls
     path('add-charge', views.charge_view, name='add_charge'),

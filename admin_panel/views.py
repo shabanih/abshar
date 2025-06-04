@@ -77,7 +77,7 @@ class MiddleAdminCreateView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['middleAdmins'] = User.objects.filter(is_active=True, is_middle_admin=True).order_by('-created_time')
+        context['middleAdmins'] = User.objects.filter(is_middle_admin=True).order_by('-created_time')
         context['users'] = User.objects.filter(is_active=True).order_by('-created_time')
         return context
 
@@ -90,14 +90,30 @@ class MiddleAdminUpdateView(UpdateView):
 
     def form_valid(self, form):
         self.object = form.save(commit=False)
+        raw_password = form.cleaned_data.get(
+            'password')  # Assuming you're using UserCreationForm or a custom form with 'password1'
+        self.object.set_password(raw_password)  # Hash the password properly
         self.object.user = self.request.user
         messages.success(self.request, 'اطلاعات مدیر ساختمان با موفقیت ویرایش گردید!')
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['middleAdmins'] = Bank.objects.filter(is_active=True)
+        context['middleAdmins'] = User.objects.filter(is_middle_admin=True).order_by('-created_time')
+        context['users'] = User.objects.filter(is_active=True).order_by('-created_time')
         return context
+
+
+def middleAdmin_delete(request, pk):
+    middleAdmin = get_object_or_404(User, id=pk)
+    print(middleAdmin.id)
+
+    try:
+        middleAdmin.delete()
+        messages.success(request, 'مدیر ساختمان با موفقیت حذف گردید!')
+    except ProtectedError:
+        messages.error(request, " امکان حذف وجود ندارد! ")
+    return redirect(reverse('create_middle_admin'))
 
 
 @login_required
@@ -214,7 +230,7 @@ class AddMyHouseView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['banks'] = Bank.objects.filter(is_active=True)
+        context['banks'] = Bank.objects.all()
         return context
 
 
@@ -237,7 +253,7 @@ class MyBankUpdateView(UpdateView):
         return context
 
 
-@login_required()
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def bank_delete(request, pk):
     bank = get_object_or_404(Bank, id=pk)
     try:
@@ -446,6 +462,7 @@ class UnitInfoView(DetailView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def unit_delete(request, pk):
     unit = get_object_or_404(Unit, id=pk)
     try:
@@ -521,6 +538,7 @@ def to_jalali(date_obj):
     return jalali_date.strftime('%Y/%m/%d')
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_units_excel(request):
     units = Unit.objects.all().order_by('unit')
 
@@ -608,6 +626,7 @@ def export_units_excel(request):
     return response
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_units_pdf(request):
     units = Unit.objects.all().order_by('unit')
 
@@ -713,6 +732,7 @@ class ExpenseCategoryUpdate(UpdateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def expense_category_delete(request, pk):
     category = get_object_or_404(ExpenseCategory, id=pk)
     try:
@@ -811,6 +831,7 @@ class ExpenseView(CreateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def expense_edit(request, pk):
     expense = get_object_or_404(Expense, pk=pk)
     if request.method == 'POST':
@@ -832,6 +853,7 @@ def expense_edit(request, pk):
         return redirect('add_expense')
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def expense_delete(request, pk):
     expense = get_object_or_404(Expense, id=pk)
     try:
@@ -877,6 +899,7 @@ def delete_expense_document(request):
     return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_expense_pdf(request):
     expenses = Expense.objects.all()
 
@@ -947,6 +970,7 @@ def export_expense_pdf(request):
     return response
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_expense_excel(request):
     expenses = Expense.objects.all()
 
@@ -1023,6 +1047,7 @@ def export_expense_excel(request):
 
 
 # =========================== Income Views =========================
+@method_decorator(admin_required, name='dispatch')
 class IncomeCategoryView(CreateView):
     model = IncomeCategory
     template_name = 'income_templates/add_category_income.html'
@@ -1045,6 +1070,7 @@ class IncomeCategoryView(CreateView):
         return context
 
 
+@method_decorator(admin_required, name='dispatch')
 class IncomeCategoryUpdate(UpdateView):
     model = IncomeCategory
     template_name = 'income_templates/add_category_income.html'
@@ -1068,6 +1094,7 @@ class IncomeCategoryUpdate(UpdateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def income_category_delete(request, pk):
     income_category = get_object_or_404(IncomeCategory, id=pk)
     try:
@@ -1078,6 +1105,7 @@ def income_category_delete(request, pk):
     return redirect(reverse('add_category_income'))
 
 
+@method_decorator(admin_required, name='dispatch')
 class IncomeView(CreateView):
     model = Income
     template_name = 'income_templates/income_register.html'
@@ -1165,6 +1193,7 @@ class IncomeView(CreateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def income_edit(request, pk):
     income = get_object_or_404(Income, pk=pk)
 
@@ -1191,6 +1220,7 @@ def income_edit(request, pk):
         return redirect('add_income')
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def income_delete(request, pk):
     income = get_object_or_404(Income, id=pk)
     try:
@@ -1236,6 +1266,7 @@ def delete_income_document(request):
     return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_income_pdf(request):
     incomes = Income.objects.all()
 
@@ -1303,6 +1334,7 @@ def export_income_pdf(request):
     return response
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_income_excel(request):
     incomes = Income.objects.all()
 
@@ -1379,7 +1411,7 @@ def export_income_excel(request):
 
 
 # ============================ ReceiveMoneyView ==========================
-
+@method_decorator(admin_required, name='dispatch')
 class ReceiveMoneyCreateView(CreateView):
     model = ReceiveMoney
     form_class = ReceiveMoneyForm
@@ -1447,6 +1479,11 @@ class ReceiveMoneyCreateView(CreateView):
             messages.warning(self.request, 'فرمت تاریخ وارد شده صحیح نیست.')
         return queryset
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         receives = self.get_queryset()
@@ -1459,11 +1496,12 @@ class ReceiveMoneyCreateView(CreateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def receive_edit(request, pk):
     receive = get_object_or_404(ReceiveMoney, pk=pk)
 
     if request.method == 'POST':
-        form = ReceiveMoneyForm(request.POST, request.FILES, instance=receive)
+        form = ReceiveMoneyForm(request.POST, request.FILES, instance=receive, user=request.user)
 
         if form.is_valid():
             receive = form.save()  # Save the form (updates or creates expense)
@@ -1477,14 +1515,19 @@ def receive_edit(request, pk):
             messages.success(request, 'سند با موفقیت ویرایش شد.')
             return redirect('add_receive')  # Adjust redirect as necessary
 
+
         else:
+
             messages.error(request, 'خطا در ویرایش فرم درآمد. لطفا دوباره تلاش کنید.')
-            return redirect('add_receive')
+            return render(request, 'receiveMoney/add_receive_money.html', {'form': form, 'receive': receive})
+
     else:
-        # If the request is not POST, redirect to the appropriate page
-        return redirect('add_receive')
+
+        form = ReceiveMoneyForm(instance=receive, user=request.user)
+        return render(request, 'receiveMoney/add_receive_money.html', {'form': form, 'receive': receive})
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def receive_delete(request, pk):
     receive = get_object_or_404(ReceiveMoney, id=pk)
     try:
@@ -1530,6 +1573,7 @@ def delete_receive_document(request):
     return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_receive_pdf(request):
     receives = ReceiveMoney.objects.all()
 
@@ -1598,6 +1642,7 @@ def export_receive_pdf(request):
     return response
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_receive_excel(request):
     receives = ReceiveMoney.objects.all()
 
@@ -1679,12 +1724,12 @@ def export_receive_excel(request):
 
 
 # ============================ PaymentMoneyView ==========================
-
+@method_decorator(admin_required, name='dispatch')
 class PaymentMoneyCreateView(CreateView):
     model = PayMoney
     form_class = PayerMoneyForm
     template_name = 'payMoney/add_pay_money.html'
-    success_url = reverse_lazy('add_receive')
+    success_url = reverse_lazy('add_pay')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -1747,6 +1792,11 @@ class PaymentMoneyCreateView(CreateView):
             messages.warning(self.request, 'فرمت تاریخ وارد شده صحیح نیست.')
         return queryset
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         receives = self.get_queryset()
@@ -1759,6 +1809,7 @@ class PaymentMoneyCreateView(CreateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def pay_edit(request, pk):
     payment = get_object_or_404(PayMoney, pk=pk)
 
@@ -1785,6 +1836,7 @@ def pay_edit(request, pk):
         return redirect('add_pay')
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def pay_delete(request, pk):
     payment = get_object_or_404(PayMoney, id=pk)
     try:
@@ -1830,6 +1882,7 @@ def delete_pay_document(request):
     return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_pay_pdf(request):
     payments = PayMoney.objects.all()
 
@@ -1898,6 +1951,7 @@ def export_pay_pdf(request):
     return response
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_pay_excel(request):
     payments = PayMoney.objects.all()
 
@@ -1979,7 +2033,7 @@ def export_pay_excel(request):
 
 
 # ============================ PropertyView ==========================
-
+@method_decorator(admin_required, name='dispatch')
 class PropertyCreateView(CreateView):
     model = Property
     template_name = 'property/manage_property.html'
@@ -1994,7 +2048,7 @@ class PropertyCreateView(CreateView):
 
             for f in files:
                 PropertyDocument.objects.create(property=self.object, document=f)
-            messages.success(self.request, 'سند پرداخت با موفقیت ثبت گردید!')
+            messages.success(self.request, 'اموال با موفقیت ثبت گردید!')
             return super().form_valid(form)
         except:
             messages.error(self.request, 'خطا در ثبت!')
@@ -2058,6 +2112,7 @@ class PropertyCreateView(CreateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def property_edit(request, pk):
     property_d = get_object_or_404(Property, pk=pk)
 
@@ -2084,6 +2139,7 @@ def property_edit(request, pk):
         return redirect('add_property')
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def property_delete(request, pk):
     property_d = get_object_or_404(Property, id=pk)
     try:
@@ -2131,6 +2187,7 @@ def delete_property_document(request):
     return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_property_pdf(request):
     properties = Property.objects.all()
 
@@ -2200,6 +2257,7 @@ def export_property_pdf(request):
     return response
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_property_excel(request):
     properties = Property.objects.all()
 
