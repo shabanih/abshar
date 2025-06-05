@@ -339,7 +339,21 @@ class AreaChargeCalc(models.Model):
     def __str__(self):
         return f"{self.charge_name or 'شارژ'} - {self.amount} تومان"
 
+    def calculate_area_penalty(self):
 
+        if not self.is_paid and self.payment_deadline_date and self.area_charge :
+            today = timezone.now().date()
+            deadline = self.payment_deadline_date  # This is a date object
+
+            # Days late (0 if not late)
+            days_late = (today - deadline).days
+            if days_late > 0 and self.amount and self.area_charge.payment_penalty_amount:
+                daily_penalty_percent = self.area_charge.payment_penalty_amount / 100
+                penalty_per_day = daily_penalty_percent * self.amount
+                total_penalty = int(penalty_per_day * days_late)
+                return total_penalty
+
+        return 0
 
     def save(self, *args, **kwargs):
         self.payment_penalty = self.calculate_area_penalty()  # اول جریمه رو حساب کن
