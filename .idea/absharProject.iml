@@ -46,7 +46,6 @@
         <option value="$MODULE_DIR$/admin_panel/templates/charge" />
         <option value="$MODULE_DIR$/user_app/templates" />
         <option value="$MODULE_DIR$/reports/templates" />
-        <option value="$MODULE_DIR$/middleAdmin_panel/templates/charge" />
         <option value="$MODULE_DIR$/middleAdmin_panel/templates/middle_admin" />
         <option value="$MODULE_DIR$/middleAdmin_panel/templates/middle_unit_templates" />
         <option value="$MODULE_DIR$/middleAdmin_panel/templates/middle_expense_templates" />
@@ -55,6 +54,7 @@
         <option value="$MODULE_DIR$/middleAdmin_panel/templates/MiddlePayMoney" />
         <option value="$MODULE_DIR$/middleAdmin_panel/templates/middleProperty" />
         <option value="$MODULE_DIR$/middleAdmin_panel/templates/middleMaintenance" />
+        <option value="$MODULE_DIR$/middleAdmin_panel/templates/middleCharge" />
       </list>
     </option>
   </component>

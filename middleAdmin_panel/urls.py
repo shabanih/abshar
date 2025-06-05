@@ -90,4 +90,27 @@ urlpatterns = [
     path('maintenance/export/excel/', views.export_maintenance_excel, name='export_maintenance_excel'),
     path('maintenance/export/pdf/', views.export_maintenance_pdf, name='export_maintenance_pdf'),
 
+    # Charge Urls
+    path('middle-add-charge', views.middle_charge_view, name='middle_add_charge'),
+
+    path('middle-add-fixed-Charge', views.MiddleFixChargeCreateView.as_view(), name='middle_add_fixed_charge'),
+    path('charge/middle/edit/<int:pk>/', views.middle_fix_charge_edit, name='middle_charge_edit'),
+    path('charge/middle/delete/<int:pk>/', views.middle_fix_charge_delete, name='middle_fix_charge_delete'),
+    path('charge/middle/notify/<int:pk>/', views.middle_show_fix_charge_notification_form,
+         name='middle_show_notification_fix_charge_form'),
+    path('charge/middle/notify/send/<int:pk>/', views.middle_send_notification_fix_charge_to_user,
+         name='middle_send_notification_fix_charge_to_user'),
+    path('charge/middle/notify/remove/<int:pk>/', views.middle_remove_send_notification_fix,
+         name='middle_remove_send_notification_ajax'),
+
+    path('middle-add-area-charge', views.MiddleAreaChargeCreateView.as_view(), name='middle_add_area_charge'),
+    path('area/middle/charge/edit/<int:pk>/', views.middle_area_charge_edit, name='middle_charge_area_edit'),
+    path('area/middle/charge/delete/<int:pk>/', views.middle_area_charge_delete, name='middle_charge-area_delete'),
+    path('charge/middle/area/notify/<int:pk>/', views.middle_show_area_charge_notification_form,
+         name='middle_show_notification_area_charge_form'),
+    path('charge/area/notify/send/<int:pk>/', views.middle_send_notification_area_charge_to_user,
+         name='send_notification_area_charge_to_user'),
+    path('remove-send-notification-ajax/<int:pk>/', views.middle_remove_send_notification_area,
+         name='remove_send_notification_ajax'),
+
 ]

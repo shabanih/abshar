@@ -790,12 +790,6 @@ class FixChargeForm(forms.ModelForm):
         error_messages=error_message, required=False
     )
 
-    def clean_civil_charge(self):
-        value = self.cleaned_data.get('civil')
-        if value in [None, '']:  # empty string or None
-            return 0
-        return value
-
     class Meta:
         model = FixCharge
         fields = ['name', 'fix_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount']
@@ -816,6 +810,16 @@ class AreaChargeForm(forms.ModelForm):
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
+    payment_penalty_amount = forms.IntegerField(error_messages=error_message,
+                                                widget=forms.TextInput(attrs=attr),
+                                                required=False, min_value=0,
+                                                label='جریمه دیرکرد به درصد')
+
+    payment_deadline = JalaliDateField(
+        label='مهلت پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
 
     def clean_civil_charge(self):
         value = self.cleaned_data.get('civil')
@@ -825,7 +829,7 @@ class AreaChargeForm(forms.ModelForm):
 
     class Meta:
         model = AreaCharge
-        fields = ['name', 'area_amount', 'details', 'civil']
+        fields = ['name', 'area_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount']
 
 
 class PersonChargeForm(forms.ModelForm):

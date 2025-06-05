@@ -292,6 +292,7 @@ class UnitRegisterView(LoginRequiredMixin, CreateView):
                 user.otp_create_time = timezone.now()
                 user.is_staff = True
                 user.name = form.cleaned_data.get('renter_name') if is_owner else form.cleaned_data.get('owner_name')
+                user.manager = self.request.user  # ثبت مدیر سطح میانی
                 user.save()
 
                 # ساخت واحد و اتصال به کاربر جدید
@@ -2336,7 +2337,7 @@ def export_property_excel(request):
 
 
 # ============================ MaintenanceView ==========================
-
+@method_decorator(admin_required, name='dispatch')
 class MaintenanceCreateView(CreateView):
     model = Maintenance
     template_name = 'maintenance/add_maintenance.html'
@@ -2414,6 +2415,7 @@ class MaintenanceCreateView(CreateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def maintenance_edit(request, pk):
     maintenance = get_object_or_404(Maintenance, pk=pk)
 
@@ -2440,6 +2442,7 @@ def maintenance_edit(request, pk):
         return redirect('add_maintenance')
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def maintenance_delete(request, pk):
     maintenance = get_object_or_404(Maintenance, id=pk)
     try:
@@ -2487,6 +2490,7 @@ def delete_maintenance_document(request):
     return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def parse_jalali_to_gregorian(date_str):
     try:
         return jdatetime.date.fromisoformat(date_str.strip()).togregorian()
@@ -2494,6 +2498,7 @@ def parse_jalali_to_gregorian(date_str):
         return None
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_maintenance_pdf(request):
     maintenances = Maintenance.objects.all()
 
@@ -2555,6 +2560,7 @@ def export_maintenance_pdf(request):
     return response
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_maintenance_excel(request):
     maintenances = Maintenance.objects.all()
 
@@ -2627,16 +2633,18 @@ def export_maintenance_excel(request):
 
 
 # ======================== Charge Views ======================================
-
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def charge_view(request):
     return render(request, 'charge/add_charge.html')
 
 
+@method_decorator(admin_required, name='dispatch')
 class FixChargeCreateView(CreateView):
     model = FixCharge
     template_name = 'charge/fix_charge_template.html'
     form_class = FixChargeForm
     success_url = reverse_lazy('add_fixed_charge')
+    paginate_by = 50  # تعداد آیتم‌ها در هر صفحه
 
     def form_valid(self, form):
         charge_name = form.cleaned_data.get('name') or 'شارژ ثابت'
@@ -2648,10 +2656,11 @@ class FixChargeCreateView(CreateView):
 
         fix_charge = form.save(commit=False)
         fix_charge.name = charge_name
+        fix_charge.user = self.request.user
         if fix_charge.civil is None:
             fix_charge.civil = 0
         if fix_charge.payment_penalty_amount is None:
-            fix_charge.civil = 0
+            fix_charge.payment_penalty_amount = 0
         fix_charge.save()
 
         messages.success(self.request, 'شارژ با موفقیت ثبت گردید.')
@@ -2670,10 +2679,16 @@ class FixChargeCreateView(CreateView):
             ),
             total_units=Count('fix_charge_amount')
         )
-        context['charges'] = charges
+        paginator = Paginator(charges, self.paginate_by)
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context['page_obj'] = page_obj
+        context['charges'] = page_obj.object_list
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def fix_charge_edit(request, pk):
     charge = get_object_or_404(FixCharge, pk=pk)
 
@@ -2700,6 +2715,7 @@ def fix_charge_edit(request, pk):
         return render(request, 'charge/fix_charge_template.html', {'form': form, 'charge': charge})
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def fix_charge_delete(request, pk):
     charge = get_object_or_404(FixCharge, id=pk)
 
@@ -2722,13 +2738,14 @@ def fix_charge_delete(request, pk):
     return redirect(reverse('add_fixed_charge'))
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def show_fix_charge_notification_form(request, pk):
     charge = get_object_or_404(FixCharge, id=pk)  # شیء اصلی شارژ ثابت
     units = Unit.objects.filter(is_active=True).order_by('unit')
 
     notified_ids = FixedChargeCalc.objects.filter(
         fix_charge=charge,
-        send_notification=True
+        send_notification=True,
     ).values_list('unit_id', flat=True)
 
     search_query = request.GET.get('search', '').strip()
@@ -2743,7 +2760,7 @@ def show_fix_charge_notification_form(request, pk):
 
     calc_map = {
         (calc.unit_id): calc
-        for calc in FixedChargeCalc.objects.filter(fix_charge=charge)
+        for calc in FixedChargeCalc.objects.filter(fix_charge=charge, user__manager=request.user)
     }
     for unit in units:
         active_renter = unit.renters.filter(renter_is_active=True).first()
@@ -2772,6 +2789,7 @@ def show_fix_charge_notification_form(request, pk):
     return render(request, 'charge/notify_fix_charge_template.html', context)
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 @require_POST
 def send_notification_fix_charge_to_user(request, pk):
     fix_charge = get_object_or_404(FixCharge, id=pk)
@@ -2820,12 +2838,12 @@ def send_notification_fix_charge_to_user(request, pk):
                 notified_units.append(str(unit))
 
         total_charge = fixed_calc.total_charge_month or 0
-        helper.send_notify_user_by_sms(
-            unit.user.username,
-            fix_charge=total_charge,
-            name=unit.user.name,
-            otp=None
-        )
+        # helper.send_notify_user_by_sms(
+        #     unit.user.username,
+        #     fix_charge=total_charge,
+        #     full_name=unit.user.full_name,
+        #     otp=None
+        # )
 
         fix_charge.send_notification = True
         fix_charge.send_sms = True
@@ -2839,7 +2857,7 @@ def send_notification_fix_charge_to_user(request, pk):
     return redirect('show_notification_fix_charge_form', pk=pk)
 
 
-@login_required
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def remove_send_notification_fix(request, pk):
     if request.method != 'POST':
         return JsonResponse({'error': 'فقط درخواست‌های POST مجاز است.'}, status=400)
@@ -2896,6 +2914,7 @@ def remove_send_notification_fix(request, pk):
 
 
 # ===============================================
+@method_decorator(admin_required, name='dispatch')
 class AreaChargeCreateView(CreateView):
     model = AreaCharge
     template_name = 'charge/area_charge_template.html'
@@ -2941,6 +2960,7 @@ class AreaChargeCreateView(CreateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def area_charge_edit(request, pk):
     charge = get_object_or_404(AreaCharge, pk=pk)
 
@@ -3020,6 +3040,7 @@ def area_charge_edit(request, pk):
         return redirect('add_area_charge')
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def area_charge_delete(request, pk):
     charge = get_object_or_404(AreaCharge, id=pk)
 
@@ -3042,6 +3063,7 @@ def area_charge_delete(request, pk):
     return redirect(reverse('add_area_charge'))
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def calculate_total_charge(unit, charge):
     try:
         area = float(unit.area or 0)
@@ -3055,6 +3077,7 @@ def calculate_total_charge(unit, charge):
     return total_charge
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def show_area_charge_notification_form(request, pk):
     charge = get_object_or_404(AreaCharge, id=pk)
     units = Unit.objects.filter(is_active=True).order_by('unit')
@@ -3114,13 +3137,14 @@ def show_area_charge_notification_form(request, pk):
 
     context = {
         'page_obj': page_obj,
-        'charge': charge,
+        'middleCharge': charge,
         'pk': pk,
         'notified_ids': list(notified_ids),
     }
     return render(request, 'charge/notify_area_charge_template.html', context)
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 @require_POST
 def send_notification_area_charge_to_user(request, pk):
     area_charge = get_object_or_404(AreaCharge, id=pk)
@@ -3186,7 +3210,7 @@ def send_notification_area_charge_to_user(request, pk):
     return redirect('show_notification_area_charge_form', pk=pk)
 
 
-@login_required
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def remove_send_notification_ajax(request, pk):
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
         unit_ids = request.POST.getlist('units[]')
@@ -3465,7 +3489,7 @@ def show_person_charge_notification_form(request, pk):
 
     context = {
         'page_obj': page_obj,
-        'charge': charge,
+        'middleCharge': charge,
         'pk': pk,
         'notified_ids': list(notified_ids),
     }
@@ -3659,10 +3683,10 @@ def fix_person_charge_edit(request, pk):
             return redirect('add_fix_person_charge')
         else:
             messages.error(request, 'خطا در ویرایش فرم. لطفا دوباره تلاش کنید.')
-            return render(request, 'charge/fix_person_charge_template.html', {'form': form, 'charge': charge})
+            return render(request, 'charge/fix_person_charge_template.html', {'form': form, 'middleCharge': charge})
     else:
         form = FixAreaChargeForm(instance=charge)
-        return render(request, 'charge/fix_person_charge_template.html', {'form': form, 'charge': charge})
+        return render(request, 'charge/fix_person_charge_template.html', {'form': form, 'middleCharge': charge})
 
 
 def fix_person_charge_delete(request, pk):
@@ -3762,7 +3786,7 @@ def show_fix_person_charge_notification_form(request, pk):
 
     context = {
         'page_obj': page_obj,
-        'charge': charge,
+        'middleCharge': charge,
         'pk': pk,
         'notified_ids': list(notified_ids),
     }
@@ -3957,10 +3981,10 @@ def fix_area_charge_edit(request, pk):
             return redirect('add_fix_area_charge')
         else:
             messages.error(request, 'خطا در ویرایش فرم. لطفا دوباره تلاش کنید.')
-            return render(request, 'charge/fix_area_charge_template.html', {'form': form, 'charge': charge})
+            return render(request, 'charge/fix_area_charge_template.html', {'form': form, 'middleCharge': charge})
     else:
         form = FixAreaChargeForm(instance=charge)
-        return render(request, 'charge/fix_area_charge_template.html', {'form': form, 'charge': charge})
+        return render(request, 'charge/fix_area_charge_template.html', {'form': form, 'middleCharge': charge})
 
 
 def fix_area_charge_delete(request, pk):
@@ -4060,7 +4084,7 @@ def show_fix_area_charge_notification_form(request, pk):
 
     context = {
         'page_obj': page_obj,
-        'charge': charge,
+        'middleCharge': charge,
         'pk': pk,
         'notified_ids': list(notified_ids),
     }
@@ -4260,10 +4284,10 @@ def person_area_charge_edit(request, pk):
             return redirect('add_person_area_charge')
         else:
             messages.error(request, 'خطا در ویرایش فرم. لطفا دوباره تلاش کنید.')
-            return render(request, 'charge/person_area_charge_template.html', {'form': form, 'charge': charge})
+            return render(request, 'charge/person_area_charge_template.html', {'form': form, 'middleCharge': charge})
     else:
         form = FixAreaChargeForm(instance=charge)
-        return render(request, 'charge/person_area_charge_template.html', {'form': form, 'charge': charge})
+        return render(request, 'charge/person_area_charge_template.html', {'form': form, 'middleCharge': charge})
 
 
 def person_area_charge_delete(request, pk):
@@ -4362,7 +4386,7 @@ def show_person_area_charge_notification_form(request, pk):
 
     context = {
         'page_obj': page_obj,
-        'charge': charge,
+        'middleCharge': charge,
         'pk': pk,
         'notified_ids': list(notified_ids),
     }
@@ -4563,10 +4587,11 @@ def person_area_fix_charge_edit(request, pk):
             return redirect('add_person_area_fix_charge')
         else:
             messages.error(request, 'خطا در ویرایش فرم. لطفا دوباره تلاش کنید.')
-            return render(request, 'charge/person_area_fix_charge_template.html', {'form': form, 'charge': charge})
+            return render(request, 'charge/person_area_fix_charge_template.html',
+                          {'form': form, 'middleCharge': charge})
     else:
         form = FixAreaChargeForm(instance=charge)
-        return render(request, 'charge/person_area_fix_charge_template.html', {'form': form, 'charge': charge})
+        return render(request, 'charge/person_area_fix_charge_template.html', {'form': form, 'middleCharge': charge})
 
 
 def person_area_fix_delete(request, pk):
@@ -4668,7 +4693,7 @@ def show_fix_person_area_charge_notification_form(request, pk):
 
     context = {
         'page_obj': page_obj,
-        'charge': charge,
+        'middleCharge': charge,
         'pk': pk,
         'notified_ids': list(notified_ids),
     }
@@ -4872,10 +4897,10 @@ def variable_fix_charge_edit(request, pk):
             return redirect('add_variable_fix_charge')
         else:
             messages.error(request, 'خطا در ویرایش فرم. لطفا دوباره تلاش کنید.')
-            return render(request, 'charge/variable_fix_charge_template.html', {'form': form, 'charge': charge})
+            return render(request, 'charge/variable_fix_charge_template.html', {'form': form, 'middleCharge': charge})
     else:
         form = FixAreaChargeForm(instance=charge)
-        return render(request, 'charge/variable_fix_charge_template.html', {'form': form, 'charge': charge})
+        return render(request, 'charge/variable_fix_charge_template.html', {'form': form, 'middleCharge': charge})
 
 
 def variable_fix_charge_delete(request, pk):
@@ -4912,10 +4937,10 @@ def calculate_total_charge_fix_variable(unit, charge):
     other_cost_amount = float(charge.other_cost_amount or 0)
     civil_charge = float(charge.civil or 0)
 
-    # Calculate variable charge
+    # Calculate variable middleCharge
     variable_charge = (unit_variable_area_amount * area) + (unit_variable_person_amount * people)
 
-    # Calculate extra parking charge (e.g., 2 parking spots × 100,000 per spot)
+    # Calculate extra parking middleCharge (e.g., 2 parking spots × 100,000 per spot)
     parking_charge = parking_counts * extra_parking_amount if parking_counts > 0 else 0
 
     total_charge = variable_charge + unit_fix_amount + other_cost_amount + parking_charge + civil_charge
@@ -4955,11 +4980,11 @@ def show_fix_variable_notification_form(request, pk):
         extra_parking_charge = (unit.parking_counts or 0) * (charge.extra_parking_amount or 0)
 
         if calc:
-            # Update total charge if it has changed
+            # Update total middleCharge if it has changed
             if calc.total_charge_month != int(total_charge):
                 calc.total_charge_month = int(total_charge)
 
-            # ✅ Update the extra parking charge
+            # ✅ Update the extra parking middleCharge
             calc.extra_parking_charges = extra_parking_charge
 
             calc.save()
@@ -4999,7 +5024,7 @@ def show_fix_variable_notification_form(request, pk):
 
     context = {
         'page_obj': page_obj,
-        'charge': charge,
+        'middleCharge': charge,
         'pk': pk,
         'notified_ids': list(notified_ids),
     }

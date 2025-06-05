@@ -85,17 +85,17 @@ urlpatterns = [
     path('productProperty/export/pdf/', views.export_property_pdf, name='export_property_pdf'),
 
     # Maintenance Urls
-    path('add-middleMaintenance', views.MaintenanceCreateView.as_view(), name='add_maintenance'),
-    path('middleMaintenance/edit/<int:pk>/', views.maintenance_edit, name='maintenance_edit'),
-    path('middleMaintenance/delete/<int:pk>/', views.maintenance_delete, name='maintenance_delete'),
-    path('middleMaintenance/delete-document/', views.delete_maintenance_document, name='delete_maintenance_document'),
-    path('middleMaintenance/export/excel/', views.export_maintenance_excel, name='export_maintenance_excel'),
-    path('middleMaintenance/export/pdf/', views.export_maintenance_pdf, name='export_maintenance_pdf'),
+    path('add-maintenance', views.MaintenanceCreateView.as_view(), name='add_maintenance'),
+    path('maintenance/edit/<int:pk>/', views.maintenance_edit, name='maintenance_edit'),
+    path('maintenance/delete/<int:pk>/', views.maintenance_delete, name='maintenance_delete'),
+    path('maintenance/delete-document/', views.delete_maintenance_document, name='delete_maintenance_document'),
+    path('maintenance/export/excel/', views.export_maintenance_excel, name='export_maintenance_excel'),
+    path('maintenance/export/pdf/', views.export_maintenance_pdf, name='export_maintenance_pdf'),
 
     # Charge Urls
     path('add-charge', views.charge_view, name='add_charge'),
 
-    path('add-fixed-charge', views.FixChargeCreateView.as_view(), name='add_fixed_charge'),
+    path('add-fixed-Charge', views.FixChargeCreateView.as_view(), name='add_fixed_charge'),
     path('charge/edit/<int:pk>/', views.fix_charge_edit, name='charge_edit'),
     path('charge/delete/<int:pk>/', views.fix_charge_delete, name='fix_charge_delete'),
     path('charge/notify/<int:pk>/', views.show_fix_charge_notification_form, name='show_notification_fix_charge_form'),
@@ -136,7 +136,7 @@ urlpatterns = [
 
     path('add-fix_area-charge', views.FixAreaChargeCreateView.as_view(), name='add_fix_area_charge'),
     path('fix/area/charge/edit/<int:pk>/', views.fix_area_charge_edit, name='charge_fix_area_edit'),
-    path('fix/area/charge/delete/<int:pk>/', views.fix_area_charge_delete, name='charge-fix_area_delete'),
+    path('fix/area/charge/delete/<int:pk>/', views.fix_area_charge_delete, name='middleCharge-fix_area_delete'),
     path('charge/fix/area/notify/<int:pk>/', views.show_fix_area_charge_notification_form,
          name='show_notification_fix_area_charge_form'),
     path('charge/fix/area/notify/send/<int:pk>/', views.send_notification_fix_area_charge_to_user,
@@ -170,11 +170,11 @@ urlpatterns = [
     path('add-variable-fix-charge', views.VariableFixChargeCreateView.as_view(), name='add_variable_fix_charge'),
     path('fix/variable/charge/edit/<int:pk>/', views.variable_fix_charge_edit, name='charge_variable_fix_edit'),
     path('variable/fix/charge/delete/<int:pk>/', views.variable_fix_charge_delete, name='charge_variable_fix_delete'),
-    path('charge/fix/variable/charge/notify/<int:pk>/', views.show_fix_variable_notification_form,
+    path('charge/fix/variable/middleCharge/notify/<int:pk>/', views.show_fix_variable_notification_form,
          name='show_notification_fix_variable_charge_form'),
-    path('charge/fix/variable/charge/notify/send/<int:pk>/', views.send_notification_fix_variable_to_user,
+    path('charge/fix/variable/middleCharge/notify/send/<int:pk>/', views.send_notification_fix_variable_to_user,
          name='send_notification_fix_variable_charge_to_user'),
-    path('remove-send-notification-fix-variable-charge/<int:pk>/', views.remove_send_notification_fix_variable,
+    path('remove-send-notification-fix-variable-middleCharge/<int:pk>/', views.remove_send_notification_fix_variable,
          name='remove_send_notification_fix_variable_charge'),
 ]
 if settings.DEBUG:

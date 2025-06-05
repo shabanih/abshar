@@ -898,7 +898,7 @@ $(document).on('click', '.edit-middleMaintenance-btn', function () {
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     // Set the form action URL dynamically
-    $('#maintenanceForm').attr('action', '/admin-panel/middleMaintenance/edit/' + id + '/');
+    $('#maintenanceForm').attr('action', '/admin-panel/maintenance/edit/' + id + '/');
 
     $('#id_maintenance_description').val($(this).data('maintenance_description'));
     // Ensure date is in YYYY-MM-DD format before setting it
@@ -959,7 +959,7 @@ $(document).on('click', '.edit-charge-btn', function () {
     });
   });
  // ==============================================
-$(document).on('click', '.edit-charge-area-btn', function () {
+$(document).on('click', '.edit-middleCharge-area-btn', function () {
     console.log('ویرایش کلیک شد');
 
     // Get the expense ID from the clicked button's data attributes
@@ -994,7 +994,7 @@ $(document).on('click', '.edit-charge-person-btn', function () {
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     // Set the form action URL dynamically
-    $('#personForm').attr('action', '/admin-panel/person/charge/edit/' + id + '/');
+    $('#personForm').attr('action', '/admin-panel/person/middleCharge/edit/' + id + '/');
 
     $('#id_name').val($(this).data('name'));
     $('#id_person_amount').val($(this).data('person_amount'));
@@ -1023,7 +1023,7 @@ $(document).on('click', '.edit-fix-area-btn', function () {
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     // Set the form action URL dynamically
-    $('#fixAreaForm').attr('action', '/admin-panel/fix/area/charge/edit/' + id + '/');
+    $('#fixAreaForm').attr('action', '/admin-panel/fix/area/middleCharge/edit/' + id + '/');
 
     // Set the form values based on the clicked button's data attributes
     $('#id_name').val($(this).data('name'));
@@ -1057,7 +1057,7 @@ $(document).on('click', '.edit-fix-person-btn', function () {
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     // Set the form action URL dynamically
-    $('#fixPersonForm').attr('action', '/admin-panel/fix/person/charge/edit/' + id + '/');
+    $('#fixPersonForm').attr('action', '/admin-panel/fix/person/middleCharge/edit/' + id + '/');
 
     // Set the form values based on the clicked button's data attributes
     $('#id_name').val($(this).data('name'));
@@ -1088,7 +1088,7 @@ $(document).on('click', '.edit-area-person-btn', function () {
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     // Set the form action URL dynamically
-    $('#personAreaForm').attr('action', '/admin-panel/area/person/charge/edit/' + id + '/');
+    $('#personAreaForm').attr('action', '/admin-panel/area/person/middleCharge/edit/' + id + '/');
 
     // Set the form values based on the clicked button's data attributes
     $('#id_name').val($(this).data('name'));
@@ -1120,7 +1120,7 @@ $(document).on('click', '.edit-area-person-fix-btn', function () {
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     // Set the form action URL dynamically
-    $('#FixPersonAreaForm').attr('action', '/admin-panel/fix/area/person/charge/edit/' + id + '/');
+    $('#FixPersonAreaForm').attr('action', '/admin-panel/fix/area/person/middleCharge/edit/' + id + '/');
 
     // Set the form values based on the clicked button's data attributes
     $('#id_name').val($(this).data('name'));
@@ -1152,7 +1152,7 @@ $(document).on('click', '.edit-variable-fix-btn', function () {
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     // Set the form action URL dynamically
-    $('#variableFixForm').attr('action', '/admin-panel/fix/variable/charge/edit/' + id + '/');
+    $('#variableFixForm').attr('action', '/admin-panel/fix/variable/middleCharge/edit/' + id + '/');
 
     // Set the form values based on the clicked button's data attributes
     $('#id_name').val($(this).data('name'));

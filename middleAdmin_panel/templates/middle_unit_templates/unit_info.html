@@ -8,7 +8,7 @@
 
 {% block main_content %}
       <div class="row mb-3">
-        <div class="col text-start"><a class="btn btn-gradient-info" href="{% url 'manage_unit' %}">بازگشت </a>
+        <div class="col text-start"><a class="btn btn-gradient-info" href="{% url 'middle_manage_unit' %}">بازگشت </a>
        </div>
      </div>
     <hr/>
@@ -127,7 +127,7 @@
         {% endfor %}
     {% else %}
         <tr>
-            <td colspan="11">اطلاعاتی وجود ندارد</td>
+            <td colspan="11">اطلاعات مستاجر ثبت نشده است!</td>
         </tr>
     {% endif %}
 </tbody>

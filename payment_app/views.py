@@ -69,7 +69,7 @@ def request_pay_fix(request: HttpRequest, charge_id):
             return HttpResponse(f"Error code: {e_code}, Error Message: {e_message}")
 
     except FixedChargeCalc.DoesNotExist:
-        return HttpResponse("charge not found.", status=404)
+        return HttpResponse("middleCharge not found.", status=404)
     except requests.RequestException as e:
         return HttpResponse(f"Payment request failed: {str(e)}", status=500)
 
@@ -120,7 +120,7 @@ def verify_pay_fix(request: HttpRequest):
                         debtor_amount=payment_charge.total_charge_month,
                         creditor_amount=0,
                         payment_date=payment_charge.payment_date,
-                        payment_description=f"{payment_charge.charge_name} - {payment_charge.user.name}",
+                        payment_description=f"{payment_charge.charge_name} - {payment_charge.user.full_name}",
                     )
 
                     return render(request, 'payment_done.html', {

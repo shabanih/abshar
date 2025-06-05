@@ -137,8 +137,8 @@ function searchTableUnit() {
     const cards = document.querySelectorAll('.fixChargeTable');
 
     cards.forEach(card => {
-        const unitTitle = card.querySelector('.card-charge-title').innerText.toLowerCase();
-        const cardText = card.querySelector('.card-charge-text').innerText.toLowerCase();
+        const unitTitle = card.querySelector('.card-middleCharge-title').innerText.toLowerCase();
+        const cardText = card.querySelector('.card-middleCharge-text').innerText.toLowerCase();
 
         if (unitTitle.includes(filter) || cardText.includes(filter)) {
             card.parentElement.style.display = '';  // کارت اصلی که col است را نشان بده

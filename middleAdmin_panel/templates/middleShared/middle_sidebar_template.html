@@ -42,7 +42,7 @@
             </li>
           
                <li class="nav-item border-top mt-0">
-                 {% url 'add_charge' as address_url %}
+                 {% url 'middle_add_charge' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
                 <i class="menu-title"> مدیریت شارژ</i>
                 <i class="mdi mdi-square-inc-cash menu-icon"></i>

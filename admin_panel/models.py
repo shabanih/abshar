@@ -3,6 +3,7 @@ import json
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 from datetime import date
 
@@ -188,7 +189,7 @@ class Property(models.Model):
 
 class PropertyDocument(models.Model):
     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='documents')
-    document = models.FileField(upload_to='images/middleProperty/')
+    document = models.FileField(upload_to='images/property/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -221,7 +222,7 @@ class Maintenance(models.Model):
 
 class MaintenanceDocument(models.Model):
     maintenance = models.ForeignKey(Maintenance, on_delete=models.CASCADE, related_name='documents')
-    document = models.FileField(upload_to='images/middleMaintenance/')
+    document = models.FileField(upload_to='images/maintenance/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -230,10 +231,12 @@ class MaintenanceDocument(models.Model):
 
 # =========================== Charge Modals =============================
 class FixCharge(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fixCharge')
     name = models.CharField(max_length=300, verbose_name='', null=True, blank=True)
     fix_amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True)
     civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
     payment_deadline = models.DateField()
+    unit_count = models.IntegerField(null=True, blank=True)
     payment_penalty_amount = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
@@ -291,12 +294,20 @@ class FixedChargeCalc(models.Model):
 
 
 class AreaCharge(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='areaCharge')
     name = models.CharField(max_length=300, verbose_name='', null=True, blank=True)
     area_amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True)
     civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
+    payment_deadline = models.DateField()
+    unit_count = models.IntegerField(null=True, blank=True)
+    total_area = models.IntegerField(null=True, blank=True)
+    payment_penalty_amount = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
+
+    def __str__(self):
+        return str(self.name)
 
 
 class AreaChargeCalc(models.Model):
@@ -307,29 +318,44 @@ class AreaChargeCalc(models.Model):
     amount = models.PositiveIntegerField(verbose_name='مبلغ')
     unit_count = models.PositiveIntegerField(verbose_name='تعداد واحدها', null=True, blank=True)
     total_area = models.PositiveIntegerField(verbose_name='متراژ کل', null=True, blank=True)
-    final_area_amount = models.PositiveIntegerField(verbose_name='مبلغ شارژ نهایی', null=True, blank=True)
+    final_area_amount = models.PositiveIntegerField(verbose_name='مبلغ شارژ هر واحئ', null=True, blank=True)
+
     civil_charge = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
+    payment_deadline_date = models.DateField()
+    payment_penalty = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
+
     total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه هر واحد')
     send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
+    send_notification_date = models.DateTimeField(null=True, blank=True, verbose_name='اعلام شارژ به کاربر')
     send_sms = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر با پیامک')
     is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
     payment_date = models.DateField(verbose_name='', null=True, blank=True)
+
     transaction_reference = models.CharField(max_length=20, null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
 
     def __str__(self):
-        return str(self.charge_name)
+        return f"{self.charge_name or 'شارژ'} - {self.amount} تومان"
+
+
 
     def save(self, *args, **kwargs):
-        if self.total_area and self.amount:
-            self.final_area_amount = self.total_area * self.amount
-
-        if self.final_area_amount and self.civil_charge:
-            self.total_charge_month = self.final_area_amount + self.civil_charge
-
+        self.payment_penalty = self.calculate_area_penalty()  # اول جریمه رو حساب کن
+        base = max(self.amount or 0, 0) * max(self.total_area or 1, 1)
+        self.total_charge_month = base + (self.civil_charge or 0) + (self.payment_penalty or 0)
         super().save(*args, **kwargs)
+
+    # def save(self, *args, **kwargs):
+    #     if self.total_area and self.amount:
+    #         self.final_area_amount = self.total_area * self.amount
+    #
+    #     if self.final_area_amount and self.civil_charge:
+    #         self.total_charge_month = self.final_area_amount + self.civil_charge
+    #
+    #     super().save(*args, **kwargs
+
 
 
 class PersonCharge(models.Model):
@@ -639,7 +665,7 @@ class ChargeFixVariableCalc(models.Model):
         civil_charge = float(self.civil_charge or 0)
         other_cost = float(self.other_cost)
 
-        # Calculate extra parking charge only if unit.parking_counts > 0
+        # Calculate extra parking middleCharge only if unit.parking_counts > 0
         parking_counts = int(self.unit.parking_counts or 0)
         extra_parking_amount = float(self.extra_parking_charges or 0)
         parking_charge = parking_counts * extra_parking_amount if parking_counts > 0 else 0
@@ -647,7 +673,7 @@ class ChargeFixVariableCalc(models.Model):
         # Calculate final person-based amount
         self.final_person_amount = (area * variable_area_charge) + (people * variable_person_charge) + fix_charge
 
-        # Total monthly charge = person/area + parking + civil
+        # Total monthly middleCharge = person/area + parking + civil
         self.total_charge_month = self.final_person_amount + civil_charge + parking_charge + other_cost
 
         super().save(*args, **kwargs)
