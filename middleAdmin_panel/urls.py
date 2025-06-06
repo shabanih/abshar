@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import path
 
 from middleAdmin_panel import views
@@ -77,7 +79,8 @@ urlpatterns = [
     path('middle-add-Property', views.MiddlePropertyCreateView.as_view(), name='middle_add_property'),
     path('Property/middle/edit/<int:pk>/', views.middle_property_edit, name='middle_property_edit'),
     path('Property/middle/delete/<int:pk>/', views.middle_property_delete, name='middle_property_delete'),
-    path('middleProperty/delete-document/', views.middle_delete_property_document, name='middle_delete_property_document'),
+    path('middleProperty/delete-document/', views.middle_delete_property_document,
+         name='middle_delete_property_document'),
     path('Property/export/excel/', views.export_property_excel, name='export_property_excel'),
     path('Property/export/pdf/', views.export_property_pdf, name='export_property_pdf'),
 
@@ -93,6 +96,7 @@ urlpatterns = [
     # Charge Urls
     path('middle-add-charge', views.middle_charge_view, name='middle_add_charge'),
 
+    # Fix Charge
     path('middle-add-fixed-Charge', views.MiddleFixChargeCreateView.as_view(), name='middle_add_fixed_charge'),
     path('charge/middle/edit/<int:pk>/', views.middle_fix_charge_edit, name='middle_charge_edit'),
     path('charge/middle/delete/<int:pk>/', views.middle_fix_charge_delete, name='middle_fix_charge_delete'),
@@ -103,14 +107,103 @@ urlpatterns = [
     path('charge/middle/notify/remove/<int:pk>/', views.middle_remove_send_notification_fix,
          name='middle_remove_send_notification_ajax'),
 
+    # Area charge
     path('middle-add-area-charge', views.MiddleAreaChargeCreateView.as_view(), name='middle_add_area_charge'),
     path('area/middle/charge/edit/<int:pk>/', views.middle_area_charge_edit, name='middle_charge_area_edit'),
     path('area/middle/charge/delete/<int:pk>/', views.middle_area_charge_delete, name='middle_charge-area_delete'),
     path('charge/middle/area/notify/<int:pk>/', views.middle_show_area_charge_notification_form,
          name='middle_show_notification_area_charge_form'),
     path('charge/area/notify/send/<int:pk>/', views.middle_send_notification_area_charge_to_user,
-         name='send_notification_area_charge_to_user'),
-    path('remove-send-notification-ajax/<int:pk>/', views.middle_remove_send_notification_area,
-         name='remove_send_notification_ajax'),
+         name='middle_send_notification_area_charge_to_user'),
+    path('middle-remove-send-notification-area/<int:pk>/', views.middle_remove_send_notification_area,
+         name='middle_remove_send_notification_area'),
 
+    # Person charge
+    path('middle_add-person-charge', views.MiddlePersonChargeCreateView.as_view(), name='middle_add_person_charge'),
+    path('person/middle/charge/edit/<int:pk>/', views.middle_person_charge_edit, name='middle_charge_person_edit'),
+    path('person/middle/charge/delete/<int:pk>/', views.middle_person_charge_delete,
+         name='middle_charge-person_delete'),
+    path('charge/middle/person/notify/<int:pk>/', views.middle_show_person_charge_notification_form,
+         name='middle_show_notification_person_charge_form'),
+    path('charge/middle/person/notify/send/<int:pk>/', views.middle_send_notification_person_charge_to_user,
+         name='middle_send_notification_person_charge_to_user'),
+    path('middle-remove-send-notification-person/<int:pk>/', views.middle_remove_send_notification_person,
+         name='middle_remove_send_notification_person'),
+
+    # Fix Area Charge
+    path('middle_add-fix_area-charge', views.MiddleFixAreaChargeCreateView.as_view(),
+         name='middle_add_fix_area_charge'),
+    path('fix/area/middle/charge/edit/<int:pk>/', views.middle_fix_area_charge_edit,
+         name='middle_charge_fix_area_edit'),
+    path('fix/area/middle/charge/delete/<int:pk>/', views.middle_fix_area_charge_delete,
+         name='middle_charge-fix_area_delete'),
+    path('fix/area/middle/charge/notify/<int:pk>/', views.middle_show_fix_area_charge_notification_form,
+         name='middle_show_notification_fix_area_charge_form'),
+    path('fix/area/middle/charge/notify/send/<int:pk>/', views.middle_send_notification_fix_area_charge_to_user,
+         name='middle_send_notification_fix_area_charge_to_user'),
+    path('middle-remove-send-notification-fix-area/<int:pk>/', views.middle_remove_send_notification_fix_area,
+         name='middle_remove_send_notification_fix_area'),
+
+    # Fix Person charge
+    path('middle-add-fix_person-charge', views.MiddleFixPersonChargeCreateView.as_view(),
+         name='middle_add_fix_person_charge'),
+    path('fix/person/middle/charge/edit/<int:pk>/', views.middle_fix_person_charge_edit,
+         name='middle_charge_fix_person_edit'),
+    path('fix/person/middle/charge/delete/<int:pk>/', views.middle_fix_person_charge_delete,
+         name='middle_charge_fix_person_delete'),
+    path('charge/middle/fix/person/notify/<int:pk>/', views.middle_show_fix_person_charge_notification_form,
+         name='middle_show_notification_fix_person_charge_form'),
+    path('charge/middle/fix/person/notify/send/<int:pk>/', views.middle_send_notification_fix_person_charge_to_user,
+         name='middle_send_notification_fix_person_charge_to_user'),
+    path('middle-remove-send-notification-fix-person/<int:pk>/', views.middle_remove_send_notification_fix_person,
+         name='middle_remove_send_notification_fix_person'),
+
+    # Person Area Charge
+    path('middle-add-person_area-charge', views.MiddlePersonAreaChargeCreateView.as_view(),
+         name='middle_add_person_area_charge'),
+    path('area/person/middle/charge/edit/<int:pk>/', views.middle_person_area_charge_edit,
+         name='middle_charge_area_person_edit'),
+    path('area/person/middle/charge/delete/<int:pk>/', views.middle_person_area_charge_delete,
+         name='middle_charge_area_person_delete'),
+    path('area/person/middle/notify/<int:pk>/', views.middle_show_person_area_charge_notification_form,
+         name='middle_show_notification_person_area_charge_form'),
+    path('area/person/middle/charge/notify/send/<int:pk>/', views.middle_send_notification_person_area_charge_to_user,
+         name='middle_send_notification_person_area_charge_to_user'),
+    path('middle-remove-send-notification-person-area/<int:pk>/', views.middle_remove_send_notification_person_area,
+         name='middle_remove_send_notification_person_area'),
+
+    # Fix Person Area
+    path('middle-add-person_area-fix-charge', views.MiddlePersonAreaFixChargeCreateView.as_view(),
+         name='middle_add_person_area_fix_charge'),
+    path('fix/area/person/middle/charge/edit/<int:pk>/', views.middle_person_area_fix_charge_edit,
+         name='middle_charge_area_person_fix_edit'),
+    path('fix/area/person/charge/delete/<int:pk>/', views.middle_person_area_fix_delete,
+         name='middle_charge_area_person_fix_delete'),
+    path('charge/middle/fix/person/area/notify/<int:pk>/', views.middle_show_fix_person_area_charge_notification_form,
+         name='middle_show_notification_fix_person_area_charge_form'),
+    path('charge/middle/fix/person/area/notify/send/<int:pk>/',
+         views.middle_send_notification_fix_person_area_charge_to_user,
+         name='middle_send_notification_fix_person_area_charge_to_user'),
+    path('middle-remove-send-notification-fix-person-area/<int:pk>/',
+         views.middle_remove_send_notification_fix_person_area,
+         name='middle_remove_send_notification_fix_person_area'),
+
+    path('middle-add-variable-fix-charge', views.MiddleVariableFixChargeCreateView.as_view(),
+         name='middle_add_variable_fix_charge'),
+    path('fix/variable/middle/charge/edit/<int:pk>/', views.middle_variable_fix_charge_edit,
+         name='middle_charge_variable_fix_edit'),
+    path('variable/fix/middle/charge/delete/<int:pk>/', views.middle_variable_fix_charge_delete,
+         name='middle_charge_variable_fix_delete'),
+    path('charge/fix/variable/middle/charge/notify/<int:pk>/', views.middle_show_fix_variable_notification_form,
+         name='middle_show_notification_fix_variable_charge_form'),
+    path('charge/fix/variable/middle/charge/notify/send/<int:pk>/', views.middle_send_notification_fix_variable_to_user,
+         name='middle_send_notification_fix_variable_charge_to_user'),
+    path('middle-remove-send-notification-fix-variable-charge/<int:pk>/',
+         views.middle_remove_send_notification_fix_variable,
+         name='middle_remove_send_notification_fix_variable_charge'),
 ]
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+

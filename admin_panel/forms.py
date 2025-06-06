@@ -94,11 +94,11 @@ BANK_CHOICES = {
 
 class UserRegistrationForm(forms.ModelForm):
     mobile = forms.CharField(error_messages=error_message,
-                                    required=True,
-                                    max_length=11,
-                                    min_length=11,
-                                    widget=forms.TextInput(attrs=attr),
-                                    label='شماره تلفن ')
+                             required=True,
+                             max_length=11,
+                             min_length=11,
+                             widget=forms.TextInput(attrs=attr),
+                             label='شماره تلفن ')
     full_name = forms.CharField(error_messages=error_message, required=True,
                                 widget=forms.TextInput(attrs=attr3), label='نام ')
     username = forms.CharField(error_messages=error_message, required=True,
@@ -160,7 +160,7 @@ class UserRegistrationForm(forms.ModelForm):
 
 class BankForm(forms.ModelForm):
     house_name = forms.CharField(error_messages=error_message, required=True,
-                                  widget=forms.TextInput(attrs=attr3), label='نام ساختمان')
+                                 widget=forms.TextInput(attrs=attr3), label='نام ساختمان')
     bank_name = forms.ChoiceField(error_messages=error_message, required=True, choices=BANK_CHOICES,
                                   widget=forms.Select(attrs=attr3), label='نام بانک')
 
@@ -184,7 +184,8 @@ class BankForm(forms.ModelForm):
 
     class Meta:
         model = Bank
-        fields = ('house_name', 'bank_name', 'account_holder_name', 'account_no', 'sheba_number', 'cart_number', 'initial_fund')
+        fields = (
+        'house_name', 'bank_name', 'account_holder_name', 'account_no', 'sheba_number', 'cart_number', 'initial_fund')
 
 
 # class MyHouseForm(forms.ModelForm):
@@ -604,6 +605,7 @@ class ReceiveMoneyForm(forms.ModelForm):
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
+
     # is_active = forms.BooleanField(required=False)
 
     class Meta:
@@ -789,10 +791,15 @@ class FixChargeForm(forms.ModelForm):
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
         error_messages=error_message, required=False
     )
+    other_cost_amount = forms.IntegerField(error_messages=error_message,
+                                           widget=forms.TextInput(attrs=attr),
+                                           required=False, min_value=0,
+                                           label='سایر هزینه ها')
 
     class Meta:
         model = FixCharge
-        fields = ['name', 'fix_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount']
+        fields = ['name', 'fix_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount',
+                  'other_cost_amount']
 
 
 class AreaChargeForm(forms.ModelForm):
@@ -820,6 +827,10 @@ class AreaChargeForm(forms.ModelForm):
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
         error_messages=error_message, required=False
     )
+    other_cost_amount = forms.IntegerField(error_messages=error_message,
+                                           widget=forms.TextInput(attrs=attr),
+                                           required=False, min_value=0,
+                                           label='سایر هزینه ها')
 
     def clean_civil_charge(self):
         value = self.cleaned_data.get('civil')
@@ -829,7 +840,8 @@ class AreaChargeForm(forms.ModelForm):
 
     class Meta:
         model = AreaCharge
-        fields = ['name', 'area_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount']
+        fields = ['name', 'area_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount',
+                  'other_cost_amount']
 
 
 class PersonChargeForm(forms.ModelForm):
@@ -847,16 +859,25 @@ class PersonChargeForm(forms.ModelForm):
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
+    payment_penalty_amount = forms.IntegerField(error_messages=error_message,
+                                                widget=forms.TextInput(attrs=attr),
+                                                required=False, min_value=0,
+                                                label='جریمه دیرکرد به درصد')
 
-    def clean_civil_charge(self):
-        value = self.cleaned_data.get('civil')
-        if value in [None, '']:  # empty string or None
-            return 0
-        return value
+    payment_deadline = JalaliDateField(
+        label='مهلت پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    other_cost_amount = forms.IntegerField(error_messages=error_message,
+                                           widget=forms.TextInput(attrs=attr),
+                                           required=False, min_value=0,
+                                           label='سایر هزینه ها')
 
     class Meta:
         model = PersonCharge
-        fields = ['name', 'person_amount', 'details', 'civil']
+        fields = ['name', 'person_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount',
+                  'other_cost_amount']
 
 
 class FixAreaChargeForm(forms.ModelForm):
@@ -878,16 +899,26 @@ class FixAreaChargeForm(forms.ModelForm):
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
+    payment_penalty_amount = forms.IntegerField(error_messages=error_message,
+                                                widget=forms.TextInput(attrs=attr),
+                                                required=False, min_value=0,
+                                                label='جریمه دیرکرد به درصد')
 
-    def clean_civil_charge(self):
-        value = self.cleaned_data.get('civil_charge')
-        if value in [None, '']:  # empty string or None
-            return 0
-        return value
+    payment_deadline = JalaliDateField(
+        label='مهلت پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    other_cost_amount = forms.IntegerField(error_messages=error_message,
+                                           widget=forms.TextInput(attrs=attr),
+                                           required=False, min_value=0,
+                                           label='سایر هزینه ها')
 
     class Meta:
         model = FixAreaCharge
-        fields = ['name', 'area_amount', 'details', 'civil', 'fix_charge_amount']
+        fields = ['name', 'area_amount', 'details', 'civil', 'fix_charge_amount', 'payment_deadline',
+                  'payment_penalty_amount',
+                  'other_cost_amount']
 
 
 class FixPersonChargeForm(forms.ModelForm):
@@ -910,15 +941,26 @@ class FixPersonChargeForm(forms.ModelForm):
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
 
-    def clean_civil_charge(self):
-        value = self.cleaned_data.get('civil_charge')
-        if value in [None, '']:  # empty string or None
-            return 0
-        return value
+    payment_penalty_amount = forms.IntegerField(error_messages=error_message,
+                                                widget=forms.TextInput(attrs=attr),
+                                                required=False, min_value=0,
+                                                label='جریمه دیرکرد به درصد')
+
+    payment_deadline = JalaliDateField(
+        label='مهلت پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    other_cost_amount = forms.IntegerField(error_messages=error_message,
+                                           widget=forms.TextInput(attrs=attr),
+                                           required=False, min_value=0,
+                                           label='سایر هزینه ها')
 
     class Meta:
         model = FixPersonCharge
-        fields = ['name', 'person_amount', 'details', 'civil', 'fix_charge_amount']
+        fields = ['name', 'person_amount', 'details', 'civil', 'fix_charge_amount', 'payment_deadline'
+            , 'payment_penalty_amount',
+                  'other_cost_amount']
 
 
 class PersonAreaChargeForm(forms.ModelForm):
@@ -940,16 +982,25 @@ class PersonAreaChargeForm(forms.ModelForm):
                                widget=forms.TextInput(attrs=attr),
                                required=False,
                                label='شارژ عمرانی(تومان)')
+    payment_penalty_amount = forms.IntegerField(error_messages=error_message,
+                                                widget=forms.TextInput(attrs=attr),
+                                                required=False, min_value=0,
+                                                label='جریمه دیرکرد به درصد')
 
-    # def clean_civil_charge(self):
-    #     value = self.cleaned_data.get('civil_charge')
-    #     if value in [None, '']:  # empty string or None
-    #         return 0
-    #     return value
+    payment_deadline = JalaliDateField(
+        label='مهلت پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    other_cost_amount = forms.IntegerField(error_messages=error_message,
+                                           widget=forms.TextInput(attrs=attr),
+                                           required=False, min_value=0,
+                                           label='سایر هزینه ها')
 
     class Meta:
         model = ChargeByPersonArea
-        fields = ['name', 'area_amount', 'details', 'person_amount', 'civil']
+        fields = ['name', 'area_amount', 'details', 'person_amount', 'civil', 'payment_deadline',
+                  'payment_penalty_amount', 'other_cost_amount']
 
 
 class PersonAreaFixChargeForm(forms.ModelForm):
@@ -975,10 +1026,25 @@ class PersonAreaFixChargeForm(forms.ModelForm):
                                widget=forms.TextInput(attrs=attr),
                                required=False, min_value=0,
                                label='شارژ عمرانی')
+    payment_penalty_amount = forms.IntegerField(error_messages=error_message,
+                                                widget=forms.TextInput(attrs=attr),
+                                                required=False, min_value=0,
+                                                label='جریمه دیرکرد به درصد')
+
+    payment_deadline = JalaliDateField(
+        label='مهلت پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    other_cost_amount = forms.IntegerField(error_messages=error_message,
+                                           widget=forms.TextInput(attrs=attr),
+                                           required=False, min_value=0,
+                                           label='سایر هزینه ها')
 
     class Meta:
         model = ChargeByFixPersonArea
-        fields = ['name', 'area_amount', 'details', 'person_amount', 'civil', 'fix_charge_amount']
+        fields = ['name', 'area_amount', 'details', 'person_amount', 'civil', 'fix_charge_amount', 'payment_deadline',
+                  'payment_penalty_amount', 'other_cost_amount']
 
 
 class VariableFixChargeForm(forms.ModelForm):
@@ -1015,8 +1081,19 @@ class VariableFixChargeForm(forms.ModelForm):
                                            widget=forms.TextInput(attrs=attr),
                                            required=False, min_value=0,
                                            label='شارژ عمرانی')
+    payment_penalty_amount = forms.IntegerField(error_messages=error_message,
+                                                widget=forms.TextInput(attrs=attr),
+                                                required=False, min_value=0,
+                                                label='جریمه دیرکرد به درصد')
+
+    payment_deadline = JalaliDateField(
+        label='مهلت پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
 
     class Meta:
         model = ChargeFixVariable
         fields = ['name', 'extra_parking_amount', 'unit_fix_amount', 'unit_variable_area_amount',
-                  'unit_variable_person_amount', 'civil', 'details', 'other_cost_amount']
+                  'unit_variable_person_amount', 'civil', 'details', 'other_cost_amount',
+                  'payment_penalty_amount', 'payment_deadline']

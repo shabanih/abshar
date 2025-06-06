@@ -2837,7 +2837,7 @@ def send_notification_fix_charge_to_user(request, pk):
             else:
                 notified_units.append(str(unit))
 
-        total_charge = fixed_calc.total_charge_month or 0
+        # total_charge = fixed_calc.total_charge_month or 0
         # helper.send_notify_user_by_sms(
         #     unit.user.username,
         #     fix_charge=total_charge,
@@ -2854,7 +2854,7 @@ def send_notification_fix_charge_to_user(request, pk):
     else:
         messages.info(request, 'اطلاعیه‌ای ارسال نشد؛ ممکن است قبلاً برای واحد انتخابی ثبت شده باشد.')
 
-    return redirect('show_notification_fix_charge_form', pk=pk)
+    return redirect('middle_show_notification_fix_charge_form', pk=pk)
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
@@ -3217,11 +3217,11 @@ def remove_send_notification_ajax(request, pk):
         if not unit_ids:
             return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
 
-        charge = get_object_or_404(FixCharge, id=pk)
+        charge = get_object_or_404(AreaCharge, id=pk)
 
         if 'all' in unit_ids:
-            deleted_count, _ = FixedChargeCalc.objects.filter(
-                fix_charge=charge,
+            deleted_count, _ = AreaChargeCalc.objects.filter(
+                area_charge=charge,
                 is_paid=False
             ).delete()
             charge.send_notification = False
@@ -3234,24 +3234,24 @@ def remove_send_notification_ajax(request, pk):
         except ValueError:
             return JsonResponse({'error': 'شناسه‌های ارسال‌شده معتبر نیستند.'}, status=400)
 
-        not_send_notifications = FixedChargeCalc.objects.filter(
-            fix_charge=charge,
+        not_send_notifications = AreaChargeCalc.objects.filter(
+            area_charge=charge,
             unit_id__in=selected_ids,
             send_notification=False
         )
         if not_send_notifications.exists():
             return JsonResponse({'error': 'اطلاعیه برای این واحد صادر نشده است.'}, status=400)
 
-        paid_notifications = FixedChargeCalc.objects.filter(
-            fix_charge=charge,
+        paid_notifications = AreaChargeCalc.objects.filter(
+            area_charge=charge,
             unit_id__in=selected_ids,
             is_paid=True
         )
         if paid_notifications.exists():
             return JsonResponse({'error': 'اطلاعیه به‌دلیل ثبت پرداخت توسط واحد قابل حذف نیست.'}, status=400)
 
-        notifications = FixedChargeCalc.objects.filter(
-            fix_charge=charge,
+        notifications = AreaChargeCalc.objects.filter(
+            area_charge=charge,
             unit_id__in=selected_ids,
             is_paid=False
         )
@@ -3259,7 +3259,7 @@ def remove_send_notification_ajax(request, pk):
         notifications.delete()
 
         # اگر هیچ اطلاعیه‌ای باقی نماند، اطلاع‌رسانی غیرفعال شود
-        if not FixedChargeCalc.objects.filter(fix_charge=charge).exists():
+        if not AreaChargeCalc.objects.filter(area_charge=charge).exists():
             charge.send_notification = False
             charge.save()
 
@@ -3269,7 +3269,7 @@ def remove_send_notification_ajax(request, pk):
 
 
 # ===============================================
-
+@method_decorator(admin_required, name='dispatch')
 class PersonChargeCreateView(CreateView):
     model = PersonCharge
     template_name = 'charge/person_charge_template.html'
@@ -3320,6 +3320,7 @@ class PersonChargeCreateView(CreateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def person_charge_edit(request, pk):
     charge = get_object_or_404(PersonCharge, pk=pk)
 
@@ -3396,6 +3397,7 @@ def person_charge_edit(request, pk):
         return redirect('add_person_charge')
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def person_charge_delete(request, pk):
     charge = get_object_or_404(PersonCharge, id=pk)
 
@@ -3418,6 +3420,7 @@ def person_charge_delete(request, pk):
     return redirect(reverse('add_person_charge'))
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def calculate_total_charge_person(unit, charge):
     try:
         people_count = float(unit.people_count or 0)
@@ -3431,6 +3434,7 @@ def calculate_total_charge_person(unit, charge):
     return total_charge
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def show_person_charge_notification_form(request, pk):
     charge = get_object_or_404(PersonCharge, id=pk)
     units = Unit.objects.filter(is_active=True).order_by('unit')
@@ -3496,6 +3500,7 @@ def show_person_charge_notification_form(request, pk):
     return render(request, 'charge/notify_person_charge_template.html', context)
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 @require_POST
 def send_notification_person_charge_to_user(request, pk):
     person_charge = get_object_or_404(PersonCharge, id=pk)
@@ -3561,7 +3566,7 @@ def send_notification_person_charge_to_user(request, pk):
     return redirect('show_notification_person_charge_form', pk=pk)
 
 
-@login_required
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def remove_send_notification_person(request, pk):
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
         unit_ids = request.POST.getlist('units[]')
@@ -3620,6 +3625,7 @@ def remove_send_notification_person(request, pk):
 
 
 # ======================= Fix Person Charge  ==========================
+@method_decorator(admin_required, name='dispatch')
 class FixPersonChargeCreateView(CreateView):
     model = FixPersonCharge
     template_name = 'charge/fix_person_charge_template.html'
@@ -3664,6 +3670,7 @@ class FixPersonChargeCreateView(CreateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def fix_person_charge_edit(request, pk):
     charge = get_object_or_404(FixPersonCharge, pk=pk)
     any_paid = FixPersonChargeCalc.objects.filter(fix_person=charge, is_paid=True).exists()
@@ -3689,6 +3696,7 @@ def fix_person_charge_edit(request, pk):
         return render(request, 'charge/fix_person_charge_template.html', {'form': form, 'middleCharge': charge})
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def fix_person_charge_delete(request, pk):
     charge = get_object_or_404(FixPersonCharge, id=pk)
 
@@ -3711,6 +3719,7 @@ def fix_person_charge_delete(request, pk):
     return redirect(reverse('add_fix_person_charge'))
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def calculate_total_charge_fix_person(unit, charge):
     try:
         people_count = float(unit.people_count or 0)
@@ -3725,6 +3734,7 @@ def calculate_total_charge_fix_person(unit, charge):
     return total_charge
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def show_fix_person_charge_notification_form(request, pk):
     charge = get_object_or_404(FixPersonCharge, id=pk)
     units = Unit.objects.filter(is_active=True).order_by('unit')
@@ -3793,6 +3803,7 @@ def show_fix_person_charge_notification_form(request, pk):
     return render(request, 'charge/notify_person_fix_charge_template.html', context)
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 @require_POST
 def send_notification_fix_person_charge_to_user(request, pk):
     fix_person_charge = get_object_or_404(FixPersonCharge, id=pk)
@@ -3858,7 +3869,7 @@ def send_notification_fix_person_charge_to_user(request, pk):
     return redirect('show_notification_fix_person_charge_form', pk=pk)
 
 
-@login_required
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def remove_send_notification_fix_person(request, pk):
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
         unit_ids = request.POST.getlist('units[]')
@@ -3917,6 +3928,7 @@ def remove_send_notification_fix_person(request, pk):
 
 
 # ==================== Fix Area Charge    =============================
+@method_decorator(admin_required, name='dispatch')
 class FixAreaChargeCreateView(CreateView):
     model = FixAreaCharge
     template_name = 'charge/fix_area_charge_template.html'
@@ -3961,6 +3973,7 @@ class FixAreaChargeCreateView(CreateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def fix_area_charge_edit(request, pk):
     charge = get_object_or_404(FixAreaCharge, pk=pk)
 
@@ -3987,6 +4000,7 @@ def fix_area_charge_edit(request, pk):
         return render(request, 'charge/fix_area_charge_template.html', {'form': form, 'middleCharge': charge})
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def fix_area_charge_delete(request, pk):
     charge = get_object_or_404(FixAreaCharge, id=pk)
 
@@ -4009,6 +4023,7 @@ def fix_area_charge_delete(request, pk):
     return redirect(reverse('add_fix_area_charge'))
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def calculate_total_charge_fix_area(unit, charge):
     try:
         area = float(unit.area or 0)
@@ -4023,6 +4038,7 @@ def calculate_total_charge_fix_area(unit, charge):
     return total_charge
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def show_fix_area_charge_notification_form(request, pk):
     charge = get_object_or_404(FixAreaCharge, id=pk)
     units = Unit.objects.filter(is_active=True).order_by('unit')
@@ -4091,6 +4107,7 @@ def show_fix_area_charge_notification_form(request, pk):
     return render(request, 'charge/notify_area_fix_charge_template.html', context)
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 @require_POST
 def send_notification_fix_area_charge_to_user(request, pk):
     fix_area_charge = get_object_or_404(FixAreaCharge, id=pk)
@@ -4156,7 +4173,7 @@ def send_notification_fix_area_charge_to_user(request, pk):
     return redirect('show_notification_fix_area_charge_form', pk=pk)
 
 
-@login_required
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def remove_send_notification_fix_area(request, pk):
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
         unit_ids = request.POST.getlist('units[]')
@@ -4214,8 +4231,8 @@ def remove_send_notification_fix_area(request, pk):
     return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
 
 
-# ==========================================================
-
+# ================================= Person Area Charge =========================
+@method_decorator(admin_required, name='dispatch')
 class PersonAreaChargeCreateView(CreateView):
     model = ChargeByPersonArea
     template_name = 'charge/person_area_charge_template.html'
@@ -4264,6 +4281,7 @@ class PersonAreaChargeCreateView(CreateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def person_area_charge_edit(request, pk):
     charge = get_object_or_404(ChargeByPersonArea, pk=pk)
 
@@ -4290,6 +4308,7 @@ def person_area_charge_edit(request, pk):
         return render(request, 'charge/person_area_charge_template.html', {'form': form, 'middleCharge': charge})
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def person_area_charge_delete(request, pk):
     charge = get_object_or_404(ChargeByPersonArea, id=pk)
 
@@ -4312,6 +4331,7 @@ def person_area_charge_delete(request, pk):
     return redirect(reverse('add_person_area_charge'))
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def calculate_total_charge_person_area(unit, charge):
     try:
         area = float(unit.area or 0)
@@ -4327,6 +4347,7 @@ def calculate_total_charge_person_area(unit, charge):
     return total_charge
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def show_person_area_charge_notification_form(request, pk):
     charge = get_object_or_404(ChargeByPersonArea, id=pk)
     units = Unit.objects.filter(is_active=True).order_by('unit')
@@ -4393,6 +4414,7 @@ def show_person_area_charge_notification_form(request, pk):
     return render(request, 'charge/notify_person_area_charge_template.html', context)
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 @require_POST
 def send_notification_person_area_charge_to_user(request, pk):
     person_area = get_object_or_404(ChargeByPersonArea, id=pk)
@@ -4459,7 +4481,7 @@ def send_notification_person_area_charge_to_user(request, pk):
     return redirect('show_notification_person_area_charge_form', pk=pk)
 
 
-@login_required
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def remove_send_notification_person_area(request, pk):
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
         unit_ids = request.POST.getlist('units[]')
@@ -4517,8 +4539,8 @@ def remove_send_notification_person_area(request, pk):
     return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
 
 
-# ==========================================================
-
+# ==========================Fix Person Area Charge ================================
+@method_decorator(admin_required, name='dispatch')
 class PersonAreaFixChargeCreateView(CreateView):
     model = ChargeByFixPersonArea
     template_name = 'charge/person_area_fix_charge_template.html'
@@ -4567,6 +4589,7 @@ class PersonAreaFixChargeCreateView(CreateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def person_area_fix_charge_edit(request, pk):
     charge = get_object_or_404(ChargeByFixPersonArea, pk=pk)
 
@@ -4594,6 +4617,7 @@ def person_area_fix_charge_edit(request, pk):
         return render(request, 'charge/person_area_fix_charge_template.html', {'form': form, 'middleCharge': charge})
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def person_area_fix_delete(request, pk):
     charge = get_object_or_404(ChargeByFixPersonArea, id=pk)
 
@@ -4616,6 +4640,7 @@ def person_area_fix_delete(request, pk):
     return redirect(reverse('add_person_area_fix_charge'))
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def calculate_total_charge_fix_person_area(unit, charge):
     try:
         area = float(unit.area or 0)
@@ -4632,6 +4657,7 @@ def calculate_total_charge_fix_person_area(unit, charge):
     return total_charge
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def show_fix_person_area_charge_notification_form(request, pk):
     charge = get_object_or_404(ChargeByFixPersonArea, id=pk)
     units = Unit.objects.filter(is_active=True).order_by('unit')
@@ -4700,6 +4726,7 @@ def show_fix_person_area_charge_notification_form(request, pk):
     return render(request, 'charge/notify_fix_person_area_charge_template.html', context)
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 @require_POST
 def send_notification_fix_person_area_charge_to_user(request, pk):
     fix_person_area = get_object_or_404(ChargeByFixPersonArea, id=pk)
@@ -4766,7 +4793,7 @@ def send_notification_fix_person_area_charge_to_user(request, pk):
     return redirect('show_notification_fix_person_area_charge_form', pk=pk)
 
 
-@login_required
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def remove_send_notification_fix_person_area(request, pk):
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
         unit_ids = request.POST.getlist('units[]')
@@ -4824,8 +4851,8 @@ def remove_send_notification_fix_person_area(request, pk):
     return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
 
 
-# ==========================================================
-
+# =========================ّFix Variable Charge =================================
+@method_decorator(admin_required, name='dispatch')
 class VariableFixChargeCreateView(CreateView):
     model = ChargeFixVariable
     template_name = 'charge/variable_fix_charge_template.html'
@@ -4877,6 +4904,7 @@ class VariableFixChargeCreateView(CreateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def variable_fix_charge_edit(request, pk):
     charge = get_object_or_404(ChargeFixVariable, pk=pk)
 
@@ -4903,6 +4931,7 @@ def variable_fix_charge_edit(request, pk):
         return render(request, 'charge/variable_fix_charge_template.html', {'form': form, 'middleCharge': charge})
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def variable_fix_charge_delete(request, pk):
     charge = get_object_or_404(ChargeFixVariable, id=pk)
 
@@ -4925,6 +4954,7 @@ def variable_fix_charge_delete(request, pk):
     return redirect(reverse('add_variable_fix_charge'))
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def calculate_total_charge_fix_variable(unit, charge):
     area = float(unit.area or 0)
     people = float(unit.people_count or 0)
@@ -4948,6 +4978,7 @@ def calculate_total_charge_fix_variable(unit, charge):
     return round(total_charge, 2)
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def show_fix_variable_notification_form(request, pk):
     charge = get_object_or_404(ChargeFixVariable, id=pk)
     units = Unit.objects.filter(is_active=True).order_by('unit')
@@ -5031,6 +5062,7 @@ def show_fix_variable_notification_form(request, pk):
     return render(request, 'charge/notify_fix_variable_charge_template.html', context)
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 @require_POST
 def send_notification_fix_variable_to_user(request, pk):
     fix_variable = get_object_or_404(ChargeFixVariable, id=pk)
@@ -5098,7 +5130,7 @@ def send_notification_fix_variable_to_user(request, pk):
     return redirect('show_notification_fix_variable_charge_form', pk=pk)
 
 
-@login_required
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def remove_send_notification_fix_variable(request, pk):
     if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
         unit_ids = request.POST.getlist('units[]')

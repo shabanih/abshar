@@ -24,13 +24,10 @@
                                         <th>#</th>
                                         <th> عنوان شارژ </th>
                                         <th>تعداد واحدها</th>
-                                        <th class="p-0">مبلغ شارژ به ازای هر واحد</th>
-                                        <th> شارژ عمرانی </th>
-                                        <th> توضیحات </th>
-                                        <th> اعلام شارژ </th>
-                                        <th>تاریخ ثبت</th>
+                                        <th class="p-0">مبلغ شارژ به ازای هر واحد(تومان)</th>
                                         <th>جریمه دیرکرد</th>
                                             <th>مهلت پرداخت </th>
+                                           <th> اعلام شارژ </th>
                                         <th>دستورات</th>
                                     </tr>
                                 </thead>
@@ -43,17 +40,30 @@
                                             <td class="p-0">{{charge.name }}</td>
                                             <td>{{unit_count }}</td>
                                             <td class="bg-gradient-light p-0"><strong>{{charge.fix_amount|three_digit_currency }}</strong></td>
-                                            <td>{{charge.civil|three_digit_currency }}</td>
-                                           
-                                            <td class="col-2">{{charge.details }}</td>
-                                          <td>
-                                                <span>{{ charge.notified_count }} از {{ unit_count }} واحد</span>
+                                            	  <td>
+                                                   {% if charge.payment_penalty_amount %}
+                                                      % {{charge.payment_penalty_amount }}
+                                                {% else %}
+                                                ثبت نشده است
+                                            {% endif %} 
+                                          </td>
+                                             <td>
+                                                 {% if charge.payment_deadline %}
+                                                 	  {{charge.payment_deadline|show_jalali }}
+                                                   {% else %}
+                                                ثبت نشده است
+                                            {% endif %} 
+                                               
+                                             </td>
+                                          <td class="bg-gradient-light">
+                                                <span>{{ charge.notified_count }} از {{ charge.unit_count }} واحد</span>
                                                 </td>
-{#                                             <td>{{ middleCharge.send_notification}}</td>#}
-                                            <td>{{charge.created_at|show_jalali }}</td>
-                                            <td>% {{charge.payment_penalty_amount }}</td>
-                                             <td>{{charge.payment_deadline|show_jalali }}</td>
+                                 
+                                              
                                                <td class="p-0">
+                                                   <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ charge.id }}"
+                                                        class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
+                                                </button>
                                                       <a
                                            class="btn btn-gradient-info p-1 edit-middleCharge-btn"
                                            data-id="{{ charge.id }}"
@@ -63,20 +73,54 @@
                                            data-payment_penalty_amount="{{ charge.payment_penalty_amount }}"
                                            data-payment_deadline="{{ charge.payment_deadline|show_jalali }}"
                                            data-details="{{ charge.details }}"
+                                           data-other_cost_amount="{{ charge.other_cost_amount }}"
                                            data-bs-toggle="modal"
                                            data-bs-target="#exampleModalLong">
                                            <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
                                         </a>
-                                                          <a href="{% url 'middle_fix_charge_delete' charge.id %}" class="btn btn-gradient-danger p-1"
-                                                       onclick="return confirmDeleteWithSweetAlert(event)">
-                                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
-                                                            </a>
-                                                  <a href="{% url 'middle_show_notification_fix_charge_form' charge.id %}"
-                                                       class="btn btn-gradient-success p-2">
-                                                       اعلان شارژ
-                                                    </a>
+                                              <a href="{% url 'middle_fix_charge_delete' charge.id %}" class="btn btn-gradient-danger p-1"
+                                           onclick="return confirmDeleteWithSweetAlert(event)">
+                                                  <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                                </a>
+                                      <a href="{% url 'middle_show_notification_fix_charge_form' charge.id %}"
+                                           class="btn btn-gradient-success p-2">
+                                           اعلان شارژ
+                                        </a>
 
                                         </td>
+                    <div class="modal fade"  id="exampleModalLong2{{ charge.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ charge.id }}" aria-hidden="true">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalLabel{{ charge.id }}">مشاهده جزئیات </h5>
+                            </div>
+                          <hr/>
+                            <div class="modal-body text-end">
+                                <p><strong>عنوان:</strong> {{ charge.name }}</p>
+                                 <p><strong>مبلغ شارژ هر واحد:</strong> {{ charge.fix_amount|three_digit_currency }} تومان</p>
+                                <p><strong>شارژ عمرانی:</strong> {{ charge.civil|three_digit_currency }} تومان</p>
+                                <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost_amount|three_digit_currency }} تومان</p>
+                                <p><strong>تاریخ ثبت :</strong> {{ charge.created_at|show_jalali_date_only }} </p>
+                                <p><strong>مهلت پرداخت :</strong> {{ charge.payment_deadline|show_jalali_date_only }} </p>
+                                <p><strong>جریمه دیرکرد:</strong> {{ charge.payment_penalty_amount|three_digit_currency }} تومان</p>
+                                <p><strong>توضیحات:</strong> 
+                                    {% if charge.details %}
+                                        <span class="badge bg-warning">{{ charge.details }} </span>
+                                        {% else %}
+                                        توضیحات ثبت نشده است
+                                    {% endif %} 
+                                    
+                                </p>
+                                    
+                            </div>
+                            <hr/>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                                         </tr>
                                     {% endfor %}
                                         {% else %}
@@ -138,6 +182,13 @@
                       {{ form.payment_penalty_amount.errors }}
                   </div>
                       <p class="text-danger">توجه:جریمه دیرکرد براساس درصدی از مبلغ شارژ محاسبه میشود.</p>
+                     </div>
+                    <div class="row g-2">
+                      <div class="col-12 ">
+                       {{ form.other_cost_amount.label_tag }}
+                      {{ form.other_cost_amount }}
+                      {{ form.other_cost_amount.errors }}
+                  </div>
                      </div>
                   <div class="row g-2">
                       <div class="col-12 ">

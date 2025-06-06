@@ -1,4 +1,4 @@
-{% extends 'shared/base_template.html' %}
+{% extends 'middleShared/base_template.html' %}
 {% load static %}
 {% load poll_extras %}
 {% load jalali_tags %}
@@ -33,7 +33,7 @@
     
      
 
-<form method="post" id="remove-notification-form" action="{% url 'send_notification_person_area_charge_to_user' pk=charge.id %}">
+<form method="post" id="remove-notification-form" action="{% url 'middle_send_notification_person_area_charge_to_user' pk=charge.id %}">
         {% csrf_token %}
        
         <hr>
@@ -57,7 +57,7 @@
                     حذف اطلاعیه واحدها
                 </button>
                 <button type="submit" onclick="return confirmWithSweetAlert(event)" class="btn btn-gradient-success px-3 shadow_style">ارسال اطلاعیه شارژ به واحد</button>
-                <a href="{% url 'add_person_area_charge' %}" class="btn btn-danger px-3 shadow_style"> بازگشت</a>
+                <a href="{% url 'middle_add_person_area_charge' %}" class="btn btn-danger px-3 shadow_style"> بازگشت</a>
              </div>
         </div>
     
@@ -191,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const params = new URLSearchParams();
                     selectedUnitIds.forEach(id => params.append('units[]', id));
 
-                    fetch("{% url 'remove_send_notification_person_area' pk=charge.id %}", {
+                    fetch("{% url 'middle_remove_send_notification_person_area' pk=charge.id %}", {
                         method: 'POST',
                         headers: {
                             'X-CSRFToken': '{{ csrf_token }}',

@@ -155,6 +155,7 @@ urlpatterns = [
     path('remove-send-notification-person-area/<int:pk>/', views.remove_send_notification_person_area,
          name='remove_send_notification_person_area'),
 
+
     path('add-person_area-fix-charge', views.PersonAreaFixChargeCreateView.as_view(),
          name='add_person_area_fix_charge'),
     path('fix/area/person/charge/edit/<int:pk>/', views.person_area_fix_charge_edit,
