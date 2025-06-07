@@ -18,32 +18,25 @@
                     <table class="table table-bordered " id="expenseTable">
                         <thead class="text-center">
                            <tr>
-    {#                            <th>واحد</th>#}
-                                <th>عنوان</th>
-                                <th>مبلغ شارژ ماهانه</th>
-                                <th>شارژ عمرانی</th>
-                                <th>سایر هزینه ها</th>
-                                <th>شارژ پرداختی</th>
-                                <th>توضیحات</th>
-                                <th>تاریخ ارسال اطلاعیه</th>
-                                <th>وضعیت پرداخت</th>
-                                <th>تاریخ پرداخت</th>
-{#                                <th>کد پیگیری</th>#}
-                                <th>دستورات/کد پیگیری</th>
-                            </tr>
+                            <th>عنوان</th>
+                            <th> جمع کل قابل پرداخت(تومان)</th>
+                            <th> توضیحات</th>
+                            <th>تاریخ ارسال اطلاعیه</th>
+                            <th>مهلت پرداخت</th>
+                            <th>وضعیت پرداخت</th>
+                            <th>تاریخ پرداخت</th>
+                            <th>مشاهده/دستورات</th>
+                        </tr>
                         </thead>
                            {% if charges %}
                         {% for charge in charges %}
                         <tbody class="text-center">
                            <tr>
-    {#                        <td>{{ middleCharge.unit.unit }}</td>#}
                             <td>{{ charge.charge_name }}</td>
-                            <td>{{ charge.amount|three_digit_currency }} </td>
-                            <td>{{ charge.civil_charge|three_digit_currency }} </td>
-                            <td>{{ charge.other_cost|three_digit_currency }} </td>
                             <td>{{ charge.total_charge_month|three_digit_currency }} </td>
-                            <td>{{ charge.details }} </td>
-                            <td>{{ charge.created_at|show_jalali_date_only }}</td>
+                            <td class="col-3">{{ charge.details }} </td>
+                            <td>{{ charge.send_notification_date|show_jalali }}</td>
+                            <td>{{ charge.payment_deadline_date|show_jalali }}</td>
                             <td>
                                 {% if charge.is_paid %}
                                     <span class="badge badge-success p-2">پرداخت شده</span>
@@ -53,27 +46,75 @@
                             </td>
                              <td>{{ charge.payment_date|show_jalali_date_only }}</td>
 {#                             <td>{{ charge.tr }}</td>#}
-                            <td>
-                            {% if charge.is_paid %}
-                            
-                             <button
-                             class="btn btn-warning text-dark p-2">
-                           {{ charge.transaction_reference }}
-                        </button>
-                                {% else %}
-                                 <a href="{% url 'request_pay_fix' charge.id %}"
-                             class="btn btn-gradient-primary p-2">
-                           پرداخت شارژ
-                        </a>
-                            {% endif %} 
-                       
-                        </td>
-                        </tr>
-                            {% endfor %}
-                                {% else %}
-                                <tr>
-                                    <td colspan="10" class="text-center">هیچ اطلاعیه ای برای نمایش وجود ندارد.</td>
-                                </tr>
+                              <td class="shadow_style p-0">
+                                 <a  href="{% url 'export_fix_charge_pdf' charge.id %}">
+                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
+                               style="width: 35px; height: 33px">
+                      </a>|
+                      {% if charge.is_paid %}
+                                   <button data-bs-toggle="modal" data-bs-target="#exampleModalLong11{{ charge.id }}"
+                        class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
+                </button> 
+                            {% else %}
+                                   <button data-bs-toggle="modal" data-bs-target="#exampleModalLong11{{ charge.id }}"
+                        class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
+                </button> | 
+                        	 <a href="{% url 'request_pay_fix' charge.id %}"
+                          class="btn btn-gradient-primary p-2">
+                       پرداخت شارژ
+                    </a>
+                        {% endif %} 
+
+                    </td>
+                                   <!-- Modal -->
+                <div class="modal fade"  id="exampleModalLong11{{ charge.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ charge.id }}" aria-hidden="true">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalLabel{{ charge.id }}">مشاهده جزئیات </h5>
+                            </div>
+                          <hr/>
+                            <div class="modal-body text-end">
+                                <p><strong>عنوان:</strong> {{ charge.charge_name }}</p>
+                                <p><strong>تعداد نفرات:</strong> {{ charge.unit.people_count}}</p>
+                                <p><strong>متراژ واحد:</strong> {{ charge.unit.area}}</p>
+                                <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.amount|three_digit_currency }} تومان</p>
+                            <hr/>
+                                <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
+                                <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                                <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
+                            <hr/>
+                                <p class=" bg-warning text-wrap"><strong>توضیحات:</strong> 
+                                    {% if charge.details %}
+                                       {{ charge.details }}
+                                        {% else %}
+                                        توضیحات ثبت نشده است
+                                    {% endif %} 
+                                    
+                                </p>
+                                <p><strong>تاریخ ارسال اطلاعیه:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>
+                                <p><strong>تاریخ پرداخت:</strong> {{ charge.payment_date|show_jalali_date_only }}</p>
+                                <p><strong> کد پیگیری:</strong> {{ charge.transaction_reference }}</p>
+                                    <p><strong>وضعیت:</strong> 
+                                    {% if charge.is_paid %}
+                                    	<span class="badge bg-success">پرداخت شده</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span></p>
+                                    {% endif %} 
+                                    
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </tr>
+                               {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ اطلاعیه ای برای نمایش وجود ندارد.</td>
+                            </tr>
                          <tbody>
                         {% endif %}
                     </table>
@@ -94,6 +135,7 @@
                             <th> جمع کل قابل پرداخت(تومان)</th>
                             <th> توضیحات</th>
                             <th>تاریخ ارسال اطلاعیه</th>
+                            <th>مهلت پرداخت</th>
                             <th>وضعیت پرداخت</th>
                             <th>تاریخ پرداخت</th>
                             <th>مشاهده/دستورات</th>
@@ -112,7 +154,8 @@
                                         توضیحات ثبت نشده است
                                     {% endif %} 
                     </td>
-                    <td>{{ charge.created_at|show_jalali_date_only }}</td>
+                    <td>{{ charge.send_notification_date|show_jalali }}</td>
+                    <td>{{ charge.payment_deadline_date|show_jalali }}</td>
                        <td>
                             {% if charge.is_paid %}
                                 <span class="badge badge-success p-2">پرداخت شده</span>
@@ -129,6 +172,10 @@
                 </td>
 
                      <td class="shadow_style p-0">
+                        <a  href="{% url 'export_area_charge_pdf' charge.id %}">
+                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
+                               style="width: 35px; height: 33px">
+                      </a>|
                       {% if charge.is_paid %}
                                    <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ charge.id }}"
                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
@@ -157,12 +204,13 @@
                                 <p><strong>تعداد نفرات:</strong> {{ charge.unit.people_count}}</p>
                                 <p><strong>متراژ واحد:</strong> {{ charge.unit.area}}</p>
                                  <p><strong>مبلغ شارژ به ازای هر متر:</strong> {{ charge.amount|three_digit_currency }} تومان</p>
-                                <p><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_area_amount|three_digit_currency }} تومان</p>
+                                <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_area_amount|three_digit_currency }} تومان</p>
+                            <hr/>
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
                                 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
-                                <p class="text-dark shadow_style"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
+                                <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                             <hr/>
-                                <p class="badge bg-warning text-wrap"><strong>توضیحات:</strong> 
+                                <p class="bg-warning text-wrap"><strong>توضیحات:</strong> 
                                     {% if charge.details %}
                                        {{ charge.details }}
                                         {% else %}
@@ -212,6 +260,7 @@
                             <th> جمع کل قابل پرداخت(تومان)</th>
                             <th> توضیحات</th>
                             <th>تاریخ ارسال اطلاعیه</th>
+                            <th>مهلت پرداخت</th>
                             <th>وضعیت پرداخت</th>
                             <th>تاریخ پرداخت</th>
                             <th>مشاهده/دستورات</th>
@@ -230,7 +279,8 @@
                                         توضیحات ثبت نشده است
                                     {% endif %} 
                     </td>
-                    <td>{{ charge.send_notification_date|show_jalali_date_only }}</td>
+                    <td>{{ charge.send_notification_date|show_jalali }}</td>
+                    <td>{{ charge.payment_deadline_date|show_jalali }}</td>
                        <td>
                             {% if charge.is_paid %}
                                 <span class="badge badge-success p-2">پرداخت شده</span>
@@ -247,6 +297,10 @@
                 </td>
 
                      <td class="shadow_style p-0">
+                        <a  href="{% url 'export_person_charge_pdf' charge.id %}">
+                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
+                               style="width: 35px; height: 33px">
+                      </a>|
                       {% if charge.is_paid %}
                                    <button data-bs-toggle="modal" data-bs-target="#exampleModalLong22{{ charge.id }}"
                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
@@ -275,10 +329,11 @@
                                 <p><strong>تعداد نفرات:</strong> {{ charge.unit.people_count}}</p>
                                 <p><strong>متراژ واحد:</strong> {{ charge.unit.area}}</p>
                                  <p><strong>مبلغ شارژ به ازای هر نفر:</strong> {{ charge.amount|three_digit_currency }} تومان</p>
-                                <p><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_area_amount|three_digit_currency }} تومان</p>
+                                <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
+                            <hr/>
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
                                 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
-                                <p class="text-dark shadow_style"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
+                                <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                             <hr/>
                                 <p class="badge bg-warning"><strong>توضیحات:</strong> 
                                     {% if charge.details %}
@@ -330,6 +385,7 @@
                             <th> جمع کل قابل پرداخت(تومان)</th>
                             <th> توضیحات</th>
                             <th>تاریخ ارسال اطلاعیه</th>
+                            <th>مهلت پرداخت</th>
                             <th>وضعیت پرداخت</th>
                             <th>تاریخ پرداخت</th>
                             <th>مشاهده/دستورات</th>
@@ -348,7 +404,8 @@
                                         توضیحات ثبت نشده است
                                     {% endif %} 
                     </td>
-                    <td>{{ charge.send_notification_date|show_jalali_date_only }}</td>
+                    <td>{{ charge.send_notification_date|show_jalali }}</td>
+                    <td>{{ charge.payment_deadline_date|show_jalali }}</td>
                        <td>
                             {% if charge.is_paid %}
                                 <span class="badge badge-success p-2">پرداخت شده</span>
@@ -365,6 +422,10 @@
                 </td>
            
                   <td class="shadow_style p-0">
+                       <a  href="{% url 'export_fix_person_charge_pdf' charge.id %}">
+                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
+                               style="width: 35px; height: 33px">
+                      </a>|
                       {% if charge.is_paid %}
                                    <button data-bs-toggle="modal" data-bs-target="#exampleModalLong33{{ charge.id }}"
                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
@@ -393,10 +454,11 @@
                                 <p><strong>شارژ ثابت:</strong> {{ charge.fix_charge|three_digit_currency }}تومان</p>
                                 <p><strong>تعداد نفرات:</strong> {{ charge.unit.people_count}}نفر</p>
                                  <p><strong>مبلغ شارژ به ازای هر نفر:</strong> {{ charge.amount|three_digit_currency }} تومان</p>
-                                <p><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
+                                <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
+                            <hr/>
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
                                 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
-                                <p class="text-dark shadow_style"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
+                                <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                             <hr>
                                 <p class="bg-warning"><strong>توضیحات:</strong> 
                                     {% if charge.details %}
@@ -448,6 +510,7 @@
                             <th> جمع کل قابل پرداخت(تومان)</th>
                             <th> توضیحات</th>
                             <th>تاریخ ارسال اطلاعیه</th>
+                            <th>مهلت پرداخت</th>
                             <th>وضعیت پرداخت</th>
                             <th>تاریخ پرداخت</th>
                             <th>مشاهده/دستورات</th>
@@ -466,7 +529,8 @@
                                         توضیحات ثبت نشده است
                                     {% endif %} 
                     </td>
-                    <td>{{ charge.send_notification_date|show_jalali_date_only }}</td>
+                    <td>{{ charge.send_notification_date|show_jalali }}</td>
+                 <td>{{ charge.payment_deadline_date|show_jalali }}</td>
                        <td>
                             {% if charge.is_paid %}
                                 <span class="badge badge-success p-2">پرداخت شده</span>
@@ -483,6 +547,10 @@
                 </td>
            
                   <td class="shadow_style p-0">
+                       <a  href="{% url 'export_fix_area_charge_pdf' charge.id %}">
+                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
+                               style="width: 35px; height: 33px">
+                      </a>|
                       {% if charge.is_paid %}
                                    <button data-bs-toggle="modal" data-bs-target="#exampleModalLong44{{ charge.id }}"
                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
@@ -511,10 +579,11 @@
                                 <p><strong>شارژ ثابت:</strong> {{ charge.fix_charge|three_digit_currency }}تومان</p>
                                 <p><strong>متراژ:</strong> {{ charge.unit.area}}متر</p>
                                  <p><strong>مبلغ شارژ به ازای هر متر:</strong> {{ charge.amount|three_digit_currency }} تومان</p>
-                                <p><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
+                                <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
+                               <hr/>
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
                                 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
-                                <p class="text-dark shadow_style"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
+                                <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                             <hr>
                                 <p class="badge bg-warning"><strong>توضیحات:</strong> 
                                     {% if charge.details %}
@@ -566,6 +635,7 @@
                             <th> جمع کل قابل پرداخت(تومان)</th>
                             <th> توضیحات</th>
                             <th>تاریخ ارسال اطلاعیه</th>
+                            <th>مهلت پرداخت</th>
                             <th>وضعیت پرداخت</th>
                             <th>تاریخ پرداخت</th>
                             <th>مشاهده/دستورات</th>
@@ -584,7 +654,8 @@
                                         توضیحات ثبت نشده است
                                     {% endif %} 
                     </td>
-                    <td>{{ charge.send_notification_date|show_jalali_date_only }}</td>
+                    <td>{{ charge.send_notification_date|show_jalali }}</td>
+                  <td>{{ charge.payment_deadline_date|show_jalali }}</td>
                        <td>
                             {% if charge.is_paid %}
                                 <span class="badge badge-success p-2">پرداخت شده</span>
@@ -601,6 +672,10 @@
                 </td>
            
                   <td class="shadow_style p-0">
+                       <a  href="{% url 'export_person_area_charge_pdf' charge.id %}">
+                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
+                               style="width: 35px; height: 33px">
+                      </a>|
                       {% if charge.is_paid %}
                        <button data-bs-toggle="modal" data-bs-target="#exampleModalLong55{{ charge.id }}"
                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
@@ -630,10 +705,11 @@
                                 <p><strong>متراژ واحد:</strong> {{ charge.unit.area}}</p>
                                  <p><strong>مبلغ شارژ به ازای هر نفر:</strong> {{ charge.person_charge|three_digit_currency }} تومان</p>
                                  <p><strong>مبلغ شارژ به ازای هر متر:</strong> {{ charge.area_charge|three_digit_currency }} تومان</p>
-                                <p><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
+                                <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
+                            <hr/>
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
                                 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
-                                <p class="text-dark shadow_style"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
+                                <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                                 <hr>
                                 <p class="bg-warning"><strong>توضیحات:</strong> 
                                     {% if charge.details %}
@@ -684,6 +760,7 @@
                             <th> جمع کل قابل پرداخت(تومان)</th>
                             <th> توضیحات</th>
                             <th>تاریخ ارسال اطلاعیه</th>
+                               <th>مهلت پرداخت</th>
                             <th>وضعیت پرداخت</th>
                             <th>تاریخ پرداخت</th>
                             <th>مشاهده/دستورات</th>
@@ -702,7 +779,8 @@
                                         توضیحات ثبت نشده است
                                     {% endif %} 
                     </td>
-                    <td>{{ charge.send_notification_date|show_jalali_date_only }}</td>
+                    <td>{{ charge.send_notification_date|show_jalali }}</td>
+               <td>{{ charge.payment_deadline_date|show_jalali }}</td>
                        <td>
                             {% if charge.is_paid %}
                                 <span class="badge badge-success p-2">پرداخت شده</span>
@@ -719,6 +797,10 @@
                 </td>
            
                   <td class="shadow_style p-0">
+                       <a  href="{% url 'export_fix_person_area_charge_pdf' charge.id %}">
+                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
+                               style="width: 35px; height: 33px">
+                      </a>|
                       {% if charge.is_paid %}
                        <button data-bs-toggle="modal" data-bs-target="#exampleModalLong66{{ charge.id }}"
                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
@@ -749,8 +831,10 @@
                                 <p><strong>شارژ ثابت:</strong> {{ charge.fix_charge|three_digit_currency}}تومان</p>
                                  <p><strong>مبلغ شارژ به ازای هر نفر:</strong> {{ charge.person_charge|three_digit_currency }} تومان</p>
                                  <p><strong>مبلغ شارژ به ازای هر متر:</strong> {{ charge.area_charge|three_digit_currency }} تومان</p>
-                                <p><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
+                                <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
+                            <hr/>
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
+                                <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
                                 <p class="text-dark shadow_style"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                             <hr/>
                                 <p class="bg-warning"><strong>توضیحات:</strong> 
@@ -797,76 +881,72 @@
                <div class="table-responsive p-0">
                 <table class="table table-bordered" >
                       <thead>
-                        <tr>
-{#                            <th>واحد</th>#}
+                               <tr>
                             <th>عنوان</th>
-{#                            <th>شارژ ثابت</th>#}
-{#                            <th>تعداد نفرات</th>#}
-{#                            <th>مبلغ شارژ به ازای هر متر </th>#}
-                            <th>مبلغ شارژ ماهانه</th>
-                            <th> شارژ عمرانی</th>
-                            <th> اجاره پارکینگ</th>
-                            <th> سایر هزینه ها</th>
-                            <th> جمع کل</th>
+                            <th> جمع کل قابل پرداخت(تومان)</th>
+                            <th> توضیحات</th>
                             <th>تاریخ ارسال اطلاعیه</th>
+                            <th>مهلت پرداخت</th>
                             <th>وضعیت پرداخت</th>
                             <th>تاریخ پرداخت</th>
-                            <th>مشاهده </th>
-                            <th>دستورات</th>
+                            <th>مشاهده/دستورات</th>
                         </tr>
                     </thead>
                   {% if fix_variable_charges %}
             {% for charge in fix_variable_charges %}
                 <tbody>
                 <tr>
-{#                    <td>{{ middleCharge.unit.unit }}</td>#}
-                    <td>{{ charge.charge_name}}</td>
-{#                    <td>{{ middleCharge.fix_charge|three_digit_currency}}</td>#}
-{#                    <td>{{ middleCharge.unit.people_count}}</td>#}
-{#                    <td>{{ middleCharge.amount|three_digit_currency}}</td>#}
-                    <td>{{ charge.final_person_amount|three_digit_currency }} </td>
-                    <td>{{ charge.civil_charge|three_digit_currency }} </td>
-                    <td>{{ charge.extra_parking_charges|three_digit_currency }} </td>
-                    <td>{{ charge.other_cost|three_digit_currency }} </td>
+                 <td>{{ charge.charge_name}}</td>
                     <td>{{ charge.total_charge_month|three_digit_currency }} </td>
-                    <td>{{ charge.created_at|show_jalali }}</td>
-                         <td>
+                    <td class="col-3">
+                             {% if charge.details %}
+                                        {{ charge.details }} 
+                                        {% else %}
+                                        توضیحات ثبت نشده است
+                                    {% endif %} 
+                    </td>
+               
+                    <td>{{ charge.send_notification_date|show_jalali }}</td>
+                <td>{{ charge.payment_deadline_date|show_jalali }}</td>
+                       <td>
                             {% if charge.is_paid %}
                                 <span class="badge badge-success p-2">پرداخت شده</span>
                             {% else %}
                                 <span class="badge badge-danger p-2">پرداخت نشده</span>
                             {% endif %}
                         </td>
-                   
-                         <td>
+                 
+                                     <td>
                     {% if charge.payment_date %}
                     	{{ charge.payment_date|show_jalali }}
                     {% else %} 
                     ----
                    {% endif %} 
                 </td>
-                <td class="p-0">
-                       <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ charge.id }}"
+           
+                  <td class="shadow_style p-0">
+                      <a  href="{% url 'export_fix_variable_charge_pdf' charge.id %}">
+                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
+                               style="width: 35px; height: 33px">
+                      </a>|
+                      {% if charge.is_paid %}
+                       <button data-bs-toggle="modal" data-bs-target="#exampleModalLong77{{ charge.id }}"
                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
-                </button>
-                </td>
-                         <td class="p-0">
-                    
-                        {% if charge.is_paid %}
-                     <a  class="btn btn-gradient-dark p-2" disabled="">
-                    پرداخت/ غیرفعال
-                </a>
+                </button> 
                             {% else %}
-                    <a href="{% url 'request_pay_fix_variable' charge.id %}" 
-                       class="btn btn-gradient-primary align-self-center justify-content-center p-2">
-                    پرداخت شارژ
-                </a>
-            {% endif %}
-        
-                   
+                                   <button data-bs-toggle="modal" data-bs-target="#exampleModalLong77{{ charge.id }}"
+                        class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
+                </button> | 
+                        	 <a href="{% url 'request_pay_fix_variable' charge.id %}"
+                          class="btn btn-gradient-primary p-2">
+                       پرداخت شارژ
+                    </a>
+                        {% endif %} 
+
+                 
                     </td>
                 <!-- Modal -->
-                <div class="modal fade"  id="exampleModalLong2{{ charge.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ charge.id }}" aria-hidden="true">
+                <div class="modal fade"  id="exampleModalLong77{{ charge.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ charge.id }}" aria-hidden="true">
                       <div class="modal-dialog" role="document">
                         <div class="modal-content">
                             <div class="modal-header">
@@ -875,18 +955,19 @@
                           <hr/>
                             <div class="modal-body text-end">
                                 <p><strong>عنوان:</strong> {{ charge.charge_name }}</p>
-                                <p><strong>تعداد نفرات:</strong> {{ charge.unit.people_count}}</p>
-                                <p><strong>متراژ واحد:</strong> {{ charge.unit.area}}</p>
-                                <p><strong> شارژ ثابت:</strong> {{ charge.unit_fix_charge_per_unit}}</p>
+                                <p><strong>تعداد نفرات:</strong> {{ charge.unit.people_count}}نفر</p>
+                                <p><strong>متراژ واحد:</strong> {{ charge.unit.area}}متر</p>
+                                <p><strong> شارژ ثابت به ازای هر واحد:</strong> {{ charge.unit_fix_charge_per_unit|three_digit_currency}}تومان</p>
                                  <p><strong>مبلغ شارژ به ازای هر نفر:</strong> {{ charge.unit_variable_person_charge|three_digit_currency }} تومان</p>
                                  <p><strong>مبلغ شارژ به ازای هر متر:</strong> {{ charge.unit_variable_area_charge|three_digit_currency }} تومان</p>
-                                <p><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
+                                <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
+                            <hr/>
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
-                                <p><strong>اجاره پارکینگ:</strong> 
+                                <p><strong>اجاره پارکینگ اضافه({{ charge.unit.parking_count }} ):</strong> 
                                     {{ charge.extra_parking_charges|three_digit_currency }} تومان
                                 </p>
                                 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
-                                <p><strong>جمع کل:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
+                                <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                               <hr>
                                 <p class="bg-warning"><strong>توضیحات:</strong> 
                                     {% if charge.details %}

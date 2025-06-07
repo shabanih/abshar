@@ -4991,8 +4991,8 @@ def middle_show_fix_variable_notification_form(request, pk):
                 other_cost=charge.other_cost_amount,
                 total_charge_month=int(total_charge),
                 final_person_amount=(
-                        int(charge.unit_variable_person_amount * unit.people_count) +
-                        int(charge.unit_variable_area_amount * unit.area) +
+                        int((charge.unit_variable_person_amount or 0) * (unit.people_count or 0)) +
+                        int((charge.unit_variable_area_amount or 0) * (unit.area or 0)) +
                         int(charge.unit_fix_amount or 0)
                 ))
 

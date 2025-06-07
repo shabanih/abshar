@@ -950,6 +950,15 @@ def verify_pay_fix_variable(request: HttpRequest):
                     ref_str = req_data['data']['ref_id']
                     payment_charge.transaction_reference = req_data['data']['ref_id']
                     payment_charge.save()
+                    content_type = ContentType.objects.get_for_model(payment_charge)
+                    Fund.objects.create(
+                        content_type=content_type,
+                        object_id=payment_charge.id,
+                        debtor_amount=payment_charge.total_charge_month,
+                        creditor_amount=0,
+                        payment_date=payment_charge.payment_date,
+                        payment_description=f"{payment_charge.charge_name} - {payment_charge.user.full_name}",
+                    )
                     return render(request, 'payment_done.html', {
                         'success': f'تراکنش شما با کد پیگیری {ref_str} با موفقیت انجام و پرداخت شارژ شما ثبت گردید. سپاس از شما'
                     })

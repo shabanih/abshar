@@ -274,11 +274,10 @@ class FixedChargeCalc(models.Model):
 
     def save(self, *args, **kwargs):
         amount = max(self.amount or 0, 0)
-        units = max(self.unit_count or 1, 1)
         civil = self.civil_charge or 0
         other_cost = max(self.other_cost or 0, 0)
 
-        self.total_charge_month = (amount * units) + civil + other_cost
+        self.total_charge_month = amount + civil + other_cost
 
         super().save(*args, **kwargs)
 
@@ -704,27 +703,14 @@ class ChargeFixVariableCalc(models.Model):
         return str(self.charge_name)
 
     def save(self, *args, **kwargs):
-        area = float(self.unit.area or 0)
-        people = float(self.unit.people_count or 0)
-        variable_area_charge = float(self.unit_variable_area_charge or 0)
-        variable_person_charge = float(self.unit_variable_person_charge or 0)
-        fix_charge = float(self.unit_fix_charge_per_unit or 0)
-        civil_charge = float(self.civil_charge or 0)
-        other_cost = float(self.other_cost)
-
-        # Calculate extra parking middleCharge only if unit.parking_counts > 0
-        parking_counts = float(self.unit.parking_counts or 0)
-        extra_parking_amount = float(self.extra_parking_charges or 0)
-        parking_charge = parking_counts * extra_parking_amount if parking_counts > 0 else 0
-
-        # Calculate final person-based amount
-        self.final_person_amount = (area * variable_area_charge) + (people * variable_person_charge)
-
-        # Total monthly middleCharge = person/area + parking + civil
-        self.total_charge_month = self.final_person_amount + fix_charge + civil_charge + parking_charge + other_cost
-
-        print(f'self.final_person_amount', self.final_person_amount)
-
+        self.total_charge_month = (
+                (self.unit_variable_person_charge or 0) * self.unit.people_count +
+                (self.unit_variable_area_charge or 0) * self.unit.area +
+                (self.unit_fix_charge_per_unit or 0) +
+                (self.extra_parking_charges or 0) +
+                (self.other_cost or 0) +
+                (self.civil_charge or 0)
+        )
         super().save(*args, **kwargs)
 
 

@@ -4649,11 +4649,12 @@ def calculate_total_charge_fix_person_area(unit, charge):
         fix_charge = float(charge.fix_charge_amount or 0)
         person_amount = float(charge.person_amount or 0)
         civil = float(charge.civil or 0)
+        other_cost = float(charge.other_cost_amount or 0)
     except (TypeError, ValueError):
-        area = people = area_amount = person_amount = fix_charge = civil = 0.0
+        area = people = area_amount = person_amount = other_cost = fix_charge = civil = 0.0
 
     final_person_amount = (area_amount * area) + (person_amount * people)
-    total_charge = final_person_amount + fix_charge + civil
+    total_charge = final_person_amount + fix_charge + civil + other_cost
     return total_charge
 
 

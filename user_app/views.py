@@ -1,11 +1,17 @@
+import io
+
+from django.apps import apps
 from django.contrib import messages
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.http import HttpResponseRedirect
-from django.shortcuts import render, redirect
+from django.http import HttpResponseRedirect, HttpResponse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.template.loader import get_template
 from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import TemplateView
+from pypdf import PdfWriter
+from weasyprint import CSS, HTML
 
 from user_app import helper
 from admin_panel.models import Announcement, FixedChargeCalc, AreaChargeCalc, PersonCharge, PersonChargeCalc, \
@@ -38,7 +44,6 @@ def index(request):
         'announcements': announcements,
         'form': form,
     })
-
 
 
 def mobile_login(request):
@@ -151,39 +156,6 @@ def user_panel(request):
 
 # ==================================
 
-# @login_required
-# def fetch_user_fixed_charges(request):
-#     unit = Unit.objects.filter(user=request.user, is_active=True).first()
-#     charges = FixedChargeCalc.objects.filter(
-#         user=request.user,
-#         send_notification=True
-#     ).select_related('unit').order_by('-created_at')
-#     area_charges = AreaChargeCalc.objects.filter(
-#         user=request.user,
-#         send_notification=True
-#     ).select_related('unit').order_by('-created_at')
-#     person_charges = PersonChargeCalc.objects.filter(
-#         user=request.user,
-#         send_notification=True
-#     ).select_related('unit').order_by('-created_at')
-#     fix_person_charges = FixPersonChargeCalc.objects.filter(
-#         user=request.user,
-#         send_notification=True
-#     ).select_related('unit').order_by('-created_at')
-#     fix_area_charges = FixAreaChargeCalc.objects.filter(
-#         user=request.user,
-#         send_notification=True
-#     ).select_related('unit').order_by('-created_at')
-#
-#     return render(request, 'manage_charges.html', {
-#         'fix_area_charges': fix_area_charges,
-#         'fix_person_charges': fix_person_charges,
-#         'person_charges': person_charges,
-#         'area_charges': area_charges,
-#         'charges': charges,
-#         'unit': unit
-#     })
-
 def get_user_charges(model, user):
     return model.objects.filter(
         user=user,
@@ -217,3 +189,204 @@ def fetch_user_fixed_charges(request):
     }
 
     return render(request, 'manage_charges.html', context)
+
+
+# ========================= Pdf Charges ===================
+def export_fix_variable_charge_pdf(request, pk, charge_type=None):
+    charge = get_object_or_404(ChargeFixVariableCalc, pk=pk)
+    template = get_template('pdf/fix_variable_pdf.html')
+    html_string = template.render({'charge': charge})
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+        @page {{ size: A5 portrait; margin: 1cm; }}
+        body {{
+            font-family: 'BYekan', sans-serif;
+        }}
+        @font-face {{
+            font-family: 'BYekan';
+            src: url('{font_url}');
+        }}
+    """)
+
+    pdf_file = io.BytesIO()
+    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
+    pdf_file.seek(0)
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
+    return response
+
+
+def export_person_charge_pdf(request, pk, charge_type=None):
+    charge = get_object_or_404(PersonChargeCalc, pk=pk)
+    template = get_template('pdf/person_charge_pdf.html')
+    html_string = template.render({'charge': charge})
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+        @page {{ size: A5 portrait; margin: 1cm; }}
+        body {{
+            font-family: 'BYekan', sans-serif;
+        }}
+        @font-face {{
+            font-family: 'BYekan';
+            src: url('{font_url}');
+        }}
+    """)
+
+    pdf_file = io.BytesIO()
+    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
+    pdf_file.seek(0)
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
+    return response
+
+
+def export_area_charge_pdf(request, pk, charge_type=None):
+    charge = get_object_or_404(AreaChargeCalc, pk=pk)
+    template = get_template('pdf/area_charge_pdf.html')
+    html_string = template.render({'charge': charge})
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+        @page {{ size: A5 portrait; margin: 1cm; }}
+        body {{
+            font-family: 'BYekan', sans-serif;
+        }}
+        @font-face {{
+            font-family: 'BYekan';
+            src: url('{font_url}');
+        }}
+    """)
+
+    pdf_file = io.BytesIO()
+    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
+    pdf_file.seek(0)
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
+    return response
+
+
+def export_fix_person_area_charge_pdf(request, pk, charge_type=None):
+    charge = get_object_or_404(ChargeByFixPersonAreaCalc, pk=pk)
+    template = get_template('pdf/fix_person_area_pdf.html')
+    html_string = template.render({'charge': charge})
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+        @page {{ size: A5 portrait; margin: 1cm; }}
+        body {{
+            font-family: 'BYekan', sans-serif;
+        }}
+        @font-face {{
+            font-family: 'BYekan';
+            src: url('{font_url}');
+        }}
+    """)
+
+    pdf_file = io.BytesIO()
+    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
+    pdf_file.seek(0)
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
+    return response
+
+
+def export_fix_area_charge_pdf(request, pk, charge_type=None):
+    charge = get_object_or_404(FixAreaChargeCalc, pk=pk)
+    template = get_template('pdf/fix_area_pdf.html')
+    html_string = template.render({'charge': charge})
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+        @page {{ size: A5 portrait; margin: 1cm; }}
+        body {{
+            font-family: 'BYekan', sans-serif;
+        }}
+        @font-face {{
+            font-family: 'BYekan';
+            src: url('{font_url}');
+        }}
+    """)
+
+    pdf_file = io.BytesIO()
+    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
+    pdf_file.seek(0)
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
+    return response
+
+
+def export_fix_person_charge_pdf(request, pk, charge_type=None):
+    charge = get_object_or_404(FixPersonChargeCalc, pk=pk)
+    template = get_template('pdf/fix_person_pdf.html')
+    html_string = template.render({'charge': charge})
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+        @page {{ size: A5 portrait; margin: 1cm; }}
+        body {{
+            font-family: 'BYekan', sans-serif;
+        }}
+        @font-face {{
+            font-family: 'BYekan';
+            src: url('{font_url}');
+        }}
+    """)
+
+    pdf_file = io.BytesIO()
+    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
+    pdf_file.seek(0)
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
+    return response
+
+
+def export_fix_charge_pdf(request, pk, charge_type=None):
+    charge = get_object_or_404(FixedChargeCalc, pk=pk)
+    template = get_template('pdf/fix_charge_pdf.html')
+    html_string = template.render({'charge': charge})
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+        @page {{ size: A5 portrait; margin: 1cm; }}
+        body {{
+            font-family: 'BYekan', sans-serif;
+        }}
+        @font-face {{
+            font-family: 'BYekan';
+            src: url('{font_url}');
+        }}
+    """)
+
+    pdf_file = io.BytesIO()
+    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
+    pdf_file.seek(0)
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
+    return response
+
+
+def export_person_area_charge_pdf(request, pk, charge_type=None):
+    charge = get_object_or_404(ChargeByPersonAreaCalc, pk=pk)
+    template = get_template('pdf/person_area_pdf.html')
+    html_string = template.render({'charge': charge})
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+        @page {{ size: A5 portrait; margin: 1cm; }}
+        body {{
+            font-family: 'BYekan', sans-serif;
+        }}
+        @font-face {{
+            font-family: 'BYekan';
+            src: url('{font_url}');
+        }}
+    """)
+
+    pdf_file = io.BytesIO()
+    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
+    pdf_file.seek(0)
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
+    return response
