@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+{% load poll_extras %}
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>فاکتور {{ charge.charge_name }} </title>
+    <style>
+
+        body {
+            font-family: 'BYekan', sans-serif;
+            direction: rtl;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .invoice-box {
+            padding: 30px;
+            border: 1px solid #eee;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 8px;
+            border: 1px solid #ccc;
+        }
+        th {
+            background-color: #eee;
+        }
+        .total {
+            background-color: #f9f9f9;
+            font-weight: bold;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .badge {
+            padding: 5px 10px;
+            color: white;
+            border-radius: 4px;
+        }
+        .paid {
+            background-color: green;
+        }
+        .unpaid {
+            background-color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-box">
+        <h2 class="text-center">صورت‌حساب شارژ ماهانه</h2>
+
+{#        <p><strong>عنوان شارژ:</strong> {{ charge.charge_name }}</p>#}
+        <p><strong>تاریخ صدور اطلاعیه:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>
+        <p><strong>مهلت پرداخت:</strong>{{ charge.payment_deadline }}</p>
+      
+       
+
+        <table>
+            <tr>
+                <th>توضیحات</th>
+                <th>مقدار</th>
+                <th>مبلغ (تومان)</th>
+            </tr>
+            <tr>
+                <td>تعداد نفرات</td>
+                <td>{{ charge.unit.people_count }}</td>
+                <td>{{ charge.unit_variable_person_charge|three_digit_currency }}</td>
+            </tr>
+            <tr>
+                <td>متراژ واحد</td>
+                <td>{{ charge.unit.area }} متر</td>
+                <td>{{ charge.unit_variable_area_charge|three_digit_currency }}</td>
+            </tr>
+            <tr>
+                <td>شارژ ثابت هر واحد</td>
+                <td>1 واحد</td>
+                <td>{{ charge.unit_fix_charge_per_unit|three_digit_currency }}</td>
+            </tr>
+            <tr>
+                <td>شارژ عمرانی</td>
+                <td>---</td>
+                <td>{{ charge.civil_charge|three_digit_currency }}</td>
+            </tr>
+            <tr>
+                <td>اجاره پارکینگ اضافه ({{ charge.unit.parking_count }})</td>
+                <td>---</td>
+                <td>{{ charge.extra_parking_charges|three_digit_currency }}</td>
+            </tr>
+            <tr>
+                <td>سایر هزینه‌ها</td>
+                <td>---</td>
+                <td>{{ charge.other_cost|three_digit_currency }}</td>
+            </tr>
+            <tr class="total">
+                <td colspan="2">جمع کل قابل پرداخت</td>
+                <td>{{ charge.total_charge_month|three_digit_currency }}</td>
+            </tr>
+        </table>
+
+        <p><strong>توضیحات:</strong><br>
+            {% if charge.details %}
+                {{ charge.details }}
+            {% else %}
+                توضیحی ثبت نشده است.
+            {% endif %}
+        </p>
+
+        {% if charge.is_paid %}
+            <p><strong>تاریخ پرداخت:</strong> {{ charge.payment_date|show_jalali_date_only }}</p>
+            <p><strong>کد پیگیری:</strong> {{ charge.transaction_reference }}</p>
+        {% endif %}
+    </div>
+</body>
+</html>
