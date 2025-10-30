@@ -1,43 +1,31 @@
 import io
 import os
-from datetime import timezone
 
 import sweetify
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
-import arabic_reshaper
 import jdatetime
 import openpyxl
-from bidi.algorithm import get_display
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError, Q, Sum, Count
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
-from django.template.loader import get_template, render_to_string
+from django.template.loader import get_template
 from django.urls import reverse_lazy, reverse
 from django.utils.decorators import method_decorator
-from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, UpdateView, DetailView, ListView, FormView
-from django_filters.views import FilterView
-
+from django.views.generic import CreateView, UpdateView, DetailView, ListView
 from openpyxl.styles import PatternFill, Font, Alignment
-from pypdf import PdfMerger, PdfWriter
+from pypdf import PdfWriter
 from weasyprint import HTML, CSS
-
-from xhtml2pdf import pisa
-
-from admin_panel import helper
-from admin_panel.filters import ExpenseFilter
-from admin_panel.forms import announcementForm, UnitForm, ExpenseForm, ExpenseCategoryForm, SearchExpenseForm, \
+from admin_panel.forms import announcementForm, UnitForm, ExpenseForm, ExpenseCategoryForm, \
     IncomeForm, IncomeCategoryForm, BankForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, \
     MaintenanceForm, FixChargeForm, PersonAreaChargeForm, AreaChargeForm, PersonChargeForm, FixAreaChargeForm, \
     FixPersonChargeForm, PersonAreaFixChargeForm, VariableFixChargeForm, UserRegistrationForm
@@ -50,10 +38,9 @@ from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDo
 from user_app.models import Unit, Bank, Renter, User
 from django.contrib.auth import get_user_model
 
-User = get_user_model()
+# User = get_user_model()
 
 
-# Helper decorator to check superuser (admin)
 def admin_required(view_func):
     return user_passes_test(lambda u: u.is_superuser, login_url=settings.LOGIN_URL_ADMIN)(view_func)
 
@@ -78,7 +65,7 @@ class MiddleAdminCreateView(CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['middleAdmins'] = User.objects.filter(is_middle_admin=True).order_by('-created_time')
-        context['users'] = User.objects.filter(is_active=True).order_by('-created_time')
+        context['users'] = User.objects.filter(is_active=True).order_by('created_time')
         return context
 
 
@@ -157,8 +144,6 @@ def logout_admin(request):
 def site_header_component(request):
     context = {
         'user': request.user,
-        # اگر اعلان داری می‌توانی اعلان‌ها را هم اضافه کنی مثلا:
-        # 'notifications': Notification.objects.filter(user=request.user, is_read=False),
     }
     return render(request, 'shared/notification_template.html', context)
 
@@ -2644,10 +2629,10 @@ class FixChargeCreateView(CreateView):
     template_name = 'charge/fix_charge_template.html'
     form_class = FixChargeForm
     success_url = reverse_lazy('add_fixed_charge')
-    paginate_by = 50  # تعداد آیتم‌ها در هر صفحه
+    paginate_by = 50
 
     def form_valid(self, form):
-        charge_name = form.cleaned_data.get('name') or 'شارژ ثابت'
+        form.instance.name = form.cleaned_data.get('name') or 'شارژ ثابت'
         units = Unit.objects.filter(is_active=True)
 
         if not units.exists():
@@ -2655,20 +2640,17 @@ class FixChargeCreateView(CreateView):
             return self.form_invalid(form)
 
         fix_charge = form.save(commit=False)
-        fix_charge.name = charge_name
         fix_charge.user = self.request.user
-        if fix_charge.civil is None:
-            fix_charge.civil = 0
-        if fix_charge.payment_penalty_amount is None:
-            fix_charge.payment_penalty_amount = 0
+        fix_charge.unit_count = units.count()
+        fix_charge.civil = fix_charge.civil or 0
+        fix_charge.payment_penalty_amount = fix_charge.payment_penalty_amount or 0
         fix_charge.save()
 
         messages.success(self.request, 'شارژ با موفقیت ثبت گردید.')
-        return super().form_valid(form)
+        return redirect(self.success_url)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['charges'] = FixCharge.objects.all().prefetch_related('fix_charge_amount')
         unit_count = Unit.objects.filter(is_active=True).count()
         context['unit_count'] = unit_count
 
@@ -2678,7 +2660,8 @@ class FixChargeCreateView(CreateView):
                 filter=Q(fix_charge_amount__send_notification=True)
             ),
             total_units=Count('fix_charge_amount')
-        )
+        ).order_by('-id')
+
         paginator = Paginator(charges, self.paginate_by)
         page_number = self.request.GET.get('page')
         page_obj = paginator.get_page(page_number)
@@ -2686,6 +2669,7 @@ class FixChargeCreateView(CreateView):
         context['page_obj'] = page_obj
         context['charges'] = page_obj.object_list
         return context
+
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
@@ -2705,7 +2689,7 @@ def fix_charge_edit(request, pk):
         if form.is_valid():
             charge = form.save(commit=False)
             charge.save()
-            messages.success(request, 'شارژ با موفقیت ویرایش شد.')
+            messages.success(request, f'  {charge.name} با موفقیت ویرایش شد.')
             return redirect('add_fixed_charge')
         else:
             messages.error(request, 'خطا در ویرایش فرم. لطفا دوباره تلاش کنید.')
@@ -2798,20 +2782,16 @@ def send_notification_fix_charge_to_user(request, pk):
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
         return redirect('show_notification_fix_charge_form', pk=pk)
-
     units_qs = Unit.objects.filter(is_active=True)
 
     if 'all' in selected_units:
         units_to_notify = units_qs
     else:
         units_to_notify = units_qs.filter(id__in=selected_units)
-
     if not units_to_notify.exists():
         messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
         return redirect('show_notification_fix_charge_form', pk=pk)
-
     notified_units = []
-
     with transaction.atomic():
         for unit in units_to_notify:
             fixed_calc, created = FixedChargeCalc.objects.get_or_create(
@@ -2821,6 +2801,7 @@ def send_notification_fix_charge_to_user(request, pk):
                     'user': unit.user,
                     'amount': fix_charge.fix_amount,
                     'civil_charge': fix_charge.civil,
+                    'other_cost': fix_charge.other_cost_amount,
                     'payment_deadline_date': fix_charge.payment_deadline,
                     'charge_name': fix_charge.name,
                     'details': fix_charge.details,
@@ -2828,7 +2809,6 @@ def send_notification_fix_charge_to_user(request, pk):
                     'send_notification_date': timezone.now()
                 }
             )
-
             if not created:
                 if not fixed_calc.send_notification:
                     fixed_calc.send_notification = True
@@ -2844,7 +2824,6 @@ def send_notification_fix_charge_to_user(request, pk):
         #     full_name=unit.user.full_name,
         #     otp=None
         # )
-
         fix_charge.send_notification = True
         fix_charge.send_sms = True
         fix_charge.save()
@@ -2853,8 +2832,7 @@ def send_notification_fix_charge_to_user(request, pk):
         messages.success(request, 'اطلاعیه برای واحدهای انتخابی ارسال شد!')
     else:
         messages.info(request, 'اطلاعیه‌ای ارسال نشد؛ ممکن است قبلاً برای واحد انتخابی ثبت شده باشد.')
-
-    return redirect('middle_show_notification_fix_charge_form', pk=pk)
+    return redirect('show_notification_fix_charge_form', pk=pk)
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
@@ -2922,19 +2900,20 @@ class AreaChargeCreateView(CreateView):
     success_url = reverse_lazy('add_area_charge')
 
     def form_valid(self, form):
-        charge_name = form.cleaned_data.get('name') or 0
-
+        charge_name = form.cleaned_data.get('name') or 'شارژ متراژ'
         area_charge = form.save(commit=False)
         area_charge.name = charge_name
+        area_charge.user = self.request.user
+
         if area_charge.civil is None:
             area_charge.civil = 0
 
         try:
-            self.object = form.save()
+            area_charge.save()
             messages.success(self.request, 'محاسبه شارژ با موفقیت ثبت گردید')
-            return super().form_valid(form)
-        except:
-            messages.error(self.request, 'خطا در ثبت!')
+            return redirect(self.success_url)
+        except Exception as e:
+            messages.error(self.request, f'خطا در ثبت! ({e})')
             return self.form_invalid(form)
 
     def get_context_data(self, **kwargs):
@@ -2945,6 +2924,7 @@ class AreaChargeCreateView(CreateView):
         total_area = Unit.objects.filter(is_active=True).aggregate(total=Sum('area'))[
                          'total'] or 0
         context['total_area'] = total_area
+
         total_people = Unit.objects.filter(is_active=True, user=self.request.user.id).aggregate(
             total=Sum('people_count'))['total'] or 0
         context['total_people'] = total_people
@@ -2955,7 +2935,7 @@ class AreaChargeCreateView(CreateView):
                 filter=Q(area_charge_amount__send_notification=True)
             ),
             total_units=Count('area_charge_amount')
-        )
+        ).order_by('-created_at')
         context['charges'] = charges
         return context
 
@@ -3069,11 +3049,12 @@ def calculate_total_charge(unit, charge):
         area = float(unit.area or 0)
         amount = float(charge.area_amount or 0)
         civil = float(charge.civil or 0)
+        other_cost = float(charge.other_cost_amount or 0)
     except (TypeError, ValueError):
-        area = amount = civil = 0.0
+        area = amount = civil = other_cost = 0.0
 
     final_area_amount = amount * area
-    total_charge = final_area_amount + civil
+    total_charge = final_area_amount + civil + other_cost
     return total_charge
 
 
@@ -3116,7 +3097,10 @@ def show_area_charge_notification_form(request, pk):
             AreaChargeCalc.objects.create(
                 user=unit.user,
                 unit=unit,
-                civil_charge=charge.civil,
+                civil_charge=int(charge.civil or 0),
+                payment_deadline_date=charge.payment_deadline,
+                payment_penalty=int(charge.payment_penalty_amount or 0),
+                other_cost=charge.other_cost_amount or 0,
                 charge_name=charge.name,
                 amount=int(charge.area_amount or 0),
                 area_charge=charge,
@@ -3137,7 +3121,7 @@ def show_area_charge_notification_form(request, pk):
 
     context = {
         'page_obj': page_obj,
-        'middleCharge': charge,
+        'charge': charge,
         'pk': pk,
         'notified_ids': list(notified_ids),
     }
@@ -3176,15 +3160,18 @@ def send_notification_area_charge_to_user(request, pk):
                     'user': unit.user,
                     'amount': area_charge.area_amount,
                     'civil_charge': area_charge.civil,
+                    'other_cost': area_charge.other_cost_amount,
                     'charge_name': area_charge.name,
                     'details': area_charge.details,
                     'send_notification': True,
+                    'send_notification_date': timezone.now(),
                 }
             )
 
             if not created:
                 if not fixed_calc.send_notification:
                     fixed_calc.send_notification = True
+                    fixed_calc.send_notification_date=timezone.now()
                     fixed_calc.save()
                     notified_units.append(str(unit))
             else:
@@ -4653,8 +4640,8 @@ def calculate_total_charge_fix_person_area(unit, charge):
     except (TypeError, ValueError):
         area = people = area_amount = person_amount = other_cost = fix_charge = civil = 0.0
 
-    final_person_amount = (area_amount * area) + (person_amount * people)
-    total_charge = final_person_amount + fix_charge + civil + other_cost
+    final_person_amount = (area_amount * area) + (person_amount * people) + fix_charge
+    total_charge = final_person_amount + civil + other_cost
     return total_charge
 
 

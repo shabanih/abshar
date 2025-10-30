@@ -3972,6 +3972,7 @@ def middle_show_fix_person_charge_notification_form(request, pk):
             FixPersonChargeCalc.objects.create(
                 user=unit.user,
                 unit=unit,
+
                 unit_count=charge.unit_count,
                 details=charge.details,
                 other_cost=charge.other_cost_amount,
@@ -4693,6 +4694,7 @@ def middle_send_notification_fix_person_area_charge_to_user(request, pk):
                 fix_person_area=fix_person_area,
                 defaults={
                     'user': unit.user,
+                    'fix_charge': fix_person_area.fix_charge_amount,
                     'area_charge': fix_person_area.area_amount,
                     'person_charge': fix_person_area.person_amount,
                     'civil_charge': fix_person_area.civil,

@@ -10,7 +10,7 @@
 {% block main_content %}
 <div class="container mt-4 p-0">
       <div class="row mb-4 ">
-              <div class="col-12 col-md-10 col-xl-10 align-self-center ">
+              <div class="col-9 col-md-10 col-xl-10 align-self-center ">
          <form method="get" action="">
     <input type="text" class="p-2" name="search" id="searchInput" autocomplete="off"
            value="{{ request.GET.search|default_if_none:'' }}"
@@ -19,8 +19,8 @@
     <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
 </form>        
           </div>
-             <div class="col-6 col-md-2 col-xl-2 text-start ">
-                  <label for="cardsPerPage" class="form-label">تعداد نمایش :</label>
+             <div class="col-3 col-md-2 col-xl-2 text-start ">
+                  <label for="cardsPerPage" class="form-label d-none d-md-inline">تعداد نمایش :</label>
                  <select id="cardsPerPage" class="form-select" style="width: auto;height: auto; display: inline-block;">
                   <option value="20" selected>20</option>
                   <option value="50">50</option>
@@ -35,18 +35,18 @@
 
 <form method="post" id="remove-notification-form" action="{% url 'send_notification_area_charge_to_user' pk=charge.id %}">
         {% csrf_token %}
-      <div class="row mb-2">
+      <div class="row mb-2 d-flex align-items-center">
             <div class="col-12 col-md-2 col-xl-2 form-check align-self-center">
             <button type="button" id="toggle-select-btn" class="btn btn-gradient-info shadow_style px-3">
                 انتخاب همه واحدها
             </button>
             </div>
-             <div class="col-12 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
+             <div class="col-6 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
                     <span class="circleSendNotify"></span>
                   ارسال موفق اطلاعیه شارژ 
                 </div>
-            <div class="col-12 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
-                    <span class="circlePayment"></span>
+            <div class="col-6 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
+                    <span class="circlePayment align-items-center"></span>
                   پرداخت موفق شارژ
                 </div>
          
@@ -61,6 +61,7 @@
     <hr/>
   
 <div class="row g-2">
+<p class="text-danger">توجه: جهت مشاهده اطلاعات شارژ بر روی آن کلیک نمایید.</p>
    {% for unit, renter, is_paid, total_charge in page_obj %}
     <div class="col-6 col-lg-2 col-md-2 col-xl-2 mb-3">
        <div class="card shadow_style fixChargeTable p-0 m-0"

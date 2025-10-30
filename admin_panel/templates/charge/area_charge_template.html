@@ -28,9 +28,12 @@
                                         <th class="p-0">تعداد واحدها</th>
 {#                                        <th>متراژ کل</th>#}
                                         <th> شارژ عمرانی </th>
+                                        <th> سایر هزینه ها </th>
                                         <th> توضیحات </th>
                                         <th> اعلام شارژ </th>
                                         <th>تاریخ ایجاد</th>
+                                         <th> دیرکرد</th>
+                                            <th>مهلت پرداخت </th>
                                         <th>دستورات</th>
                                     </tr>
                                 </thead>
@@ -45,11 +48,14 @@
 {#                                            <td>{{total_area }}</td>#}
 {#                                            <td class="bg-gradient-light p-0"><strong>{{middleCharge.final_area_amount|three_digit_currency }}</strong></td>#}
                                             <td>{{charge.civil|three_digit_currency }}</td>
+                                            <td>{{charge.other_cost_amount|three_digit_currency }}</td>
                                             <td>{{charge.details }}</td>
                                                <td>
                                                 <span>{{ charge.notified_count }} از {{ unit_count }} واحد</span>
                                                 </td>
                                             <td>{{charge.created_at|show_jalali }}</td>
+                                            <td>% {{charge.payment_penalty_amount }}</td>
+                                             <td>{{charge.payment_deadline|show_jalali }}</td>
                                             
                                                <td class="p-0">
                                                       <a
@@ -58,7 +64,10 @@
                                            data-name="{{ charge.name }}"
                                            data-area_amount="{{ charge.area_amount}}"
                                            data-civil="{{ charge.civil }}"
+                                           data-other_cost_amount="{{ charge.other_cost_amount }}"
                                            data-details="{{ charge.details }}"
+                                           data-payment_penalty_amount="{{ charge.payment_penalty_amount }}"
+                                           data-payment_deadline="{{ charge.payment_deadline|show_jalali }}"
                                            data-bs-toggle="modal"
                                            data-bs-target="#exampleModalLong">
                                            <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
@@ -77,7 +86,7 @@
                                     {% endfor %}
                                         {% else %}
                                         <tr>
-                                            <td colspan="11" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
+                                            <td colspan="12" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
                                         </tr>
                                  <tbody>
                                 {% endif %}
@@ -114,7 +123,7 @@
                                value="{{ total_area }}" readonly>
                      </div>
                  </div>
-              <div class="row">
+              <div class="row g-2">
                       <div class="col-6">
                        {{ form.area_amount.label_tag }}
                       {{ form.area_amount }}
@@ -124,6 +133,25 @@
                        {{ form.civil.label_tag }}
                       {{ form.civil }}
                       {{ form.civil.errors }}
+                  </div>
+                     </div>
+               <div class="row">
+                      <div class="col-6">
+                       {{ form.payment_deadline.label_tag }}
+                      {{ form.payment_deadline }}
+                      {{ form.payment_deadline.errors }}
+                  </div>
+                     <div class="col-6">
+                       {{ form.payment_penalty_amount.label_tag }}
+                      {{ form.payment_penalty_amount }}
+                      {{ form.payment_penalty_amount.errors }}
+                  </div>
+                     </div>
+                  <div class="row g-2">
+                      <div class="col-6 ">
+                       {{ form.other_cost_amount.label_tag }}
+                      {{ form.other_cost_amount }}
+                      {{ form.other_cost_amount.errors }}
                   </div>
                      </div>
                   <div class="row g-2">
@@ -136,7 +164,7 @@
               
                    <hr class="mt-2" style="color: #0f1531">
                     <div class="d-flex justify-content-between">
-                        <button type="submit" name="submit_bank" id="btn-submit-receive" class="btn btn-gradient-success px-4 py-2">ثبت شارژ</button>
+                        <button type="submit" name="submit_bank" id="btn-submit-receive" class="btn btn-gradient-success px-3">ثبت شارژ</button>
                            <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
                      </div>
         

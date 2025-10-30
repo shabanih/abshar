@@ -9,12 +9,17 @@
         body {
             font-family: 'BYekan', sans-serif;
             direction: rtl;
-            font-size: 14px;
-            line-height: 1.8;
+            font-size: 13px;
+            line-height: 2;
         }
         .invoice-box {
-            padding: 30px;
-            border: 1px solid #eee;
+            padding: 10px;
+            border: 2px solid #0c0c0c;
+        }
+        .invoice-box h2{
+            
+            font-weight: bold;
+            
         }
         table {
             width: 100%;
@@ -22,8 +27,11 @@
             margin-top: 20px;
             text-align: center;
         }
+        p{
+            font-size: 12px;
+        }
         th, td {
-            padding: 8px;
+            padding: 2px;
             border: 1px solid #ccc;
         }
         th {
@@ -41,77 +49,81 @@
             color: white;
             border-radius: 4px;
         }
-        .paid {
-            background-color: green;
-        }
-        .unpaid {
-            background-color: red;
-        }
     </style>
 </head>
 <body>
     <div class="invoice-box">
-        <h2 class="text-center">صورت‌حساب {{ charge.charge_name }}</h2>
-
-        <p><strong>تاریخ صدور اطلاعیه:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>
-        <p><strong>مهلت پرداخت:</strong>{{ charge.payment_deadline_date|show_jalali_date_only }}</p>
-      
-       
+        <h2 class="text-center font-weight-bold">صورت‌حساب {{ charge.charge_name }}</h2>
+    <table>
+                  <tr>
+                <th>واحد</th>
+                <th>نام مالک/مستاجر</th>
+                <th>متِراژ</th>
+                <th>تعداد نفرات</th>
+            </tr>
+            <tr>
+                <td>{{ charge.unit.unit }} </td>
+                <td>{{ charge.user.full_name }}</td>
+                <td>{{ charge.unit.area }}</td>
+                <td>{{ charge.unit.people_count }}</td>
+            </tr>
+    </table>
+                    <table>
+                  <tr>
+                <th>تاریخ صدور</th>
+                <th>مهلت پرداخت</th>
+            </tr>
+            <tr>
+                <td class="shadow-lg"> {{ charge.send_notification_date|show_jalali_date_only }} </td>
+                <td>{{ charge.payment_deadline_date|show_jalali_date_only }}</td>
+            </tr>
+    </table>
 
         <table>
             <tr>
-                <th>توضیحات</th>
-                <th>مقدار</th>
+                <th>شرح</th>
                 <th>مبلغ (تومان)</th>
             </tr>
             <tr>
-                <td>تعداد نفرات</td>
-                <td>{{ charge.unit.people_count }}</td>
-                <td>---</td>
-            </tr>
+
             <tr>
-                <td>متراژ واحد</td>
-                <td>{{ charge.unit.area }} متر</td>
-                <td>{{ charge.amount|three_digit_currency }}</td>
-            </tr>
-            <tr>
-                <td>شارژ ماهیانه</td>
-                <td>-</td>
-                <td>{{ charge.total_charge_month|three_digit_currency }}</td>
+                <td>شارژ ماهیانه واحد</td>
+                <td>{{ charge.final_area_amount|three_digit_currency }}</td>
             </tr>
             <tr>
                 <td>شارژ عمرانی</td>
-                <td>---</td>
                 <td>{{ charge.civil_charge|three_digit_currency }}</td>
             </tr>
             <tr>
                 <td>اجاره پارکینگ اضافه ({{ charge.unit.parking_count }})</td>
-                <td>---</td>
                 <td>{{ charge.extra_parking_charges|three_digit_currency }}</td>
             </tr>
             <tr>
                 <td>سایر هزینه‌ها</td>
-                <td>---</td>
                 <td>{{ charge.other_cost|three_digit_currency }}</td>
             </tr>
             <tr class="total">
-                <td colspan="2">جمع کل قابل پرداخت</td>
+                <td colspan="1">جمع کل قابل پرداخت</td>
                 <td>{{ charge.total_charge_month|three_digit_currency }}</td>
             </tr>
         </table>
 
-        <p><strong>توضیحات:</strong><br>
-            {% if charge.details %}
-                {{ charge.details }}
-            {% else %}
-                توضیحی ثبت نشده است.
-            {% endif %}
-        </p>
+{#            <p><strong>تاریخ صدور:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>#}
+{#        <p><strong>مهلت پرداخت:</strong>{{ charge.payment_deadline_date|show_jalali_date_only }}</p>#}
 
-        {% if charge.is_paid %}
-            <p><strong>تاریخ پرداخت:</strong> {{ charge.payment_date|show_jalali_date_only }}</p>
-            <p><strong>کد پیگیری:</strong> {{ charge.transaction_reference }}</p>
-        {% endif %}
+
+        <table>
+            <tr>
+                <td>
+                    <p>
+                        خواهشمند است مبلغ شارژ را به شماره حساب {{ charge.bank.account_no }} نزد بانک  {{ charge.bank.bank_name }} بنام آقایان
+                        {{ charge.bank.account_holder_name}} واریز نمایید.
+                    </p>
+                    <p>شبای حساب بانکی: {{ charge.bank.sheba_number }}</p>
+                    <p>شماره کارت: {{ charge.bank.cart_number }}</p>
+                </td>
+            </tr>
+        </table>
     </div>
 </body>
 </html>

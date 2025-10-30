@@ -17,7 +17,7 @@ from user_app import helper
 from admin_panel.models import Announcement, FixedChargeCalc, AreaChargeCalc, PersonCharge, PersonChargeCalc, \
     FixPersonChargeCalc, FixAreaChargeCalc, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariableCalc
 from user_app.forms import LoginForm, MobileLoginForm
-from user_app.models import User, Unit
+from user_app.models import User, Unit, Bank
 
 
 def index(request):

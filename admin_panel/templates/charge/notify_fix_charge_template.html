@@ -9,18 +9,18 @@
 
 {% block main_content %}
 <div class="container mt-4 p-0">
-      <div class="row mb-4 ">
-              <div class="col-12 col-md-10 col-xl-10 align-self-center ">
+      <div class="row mb-4">
+              <div class="col-9 col-md-10 col-xl-10 align-self-center ">
          <form method="get" action="">
     <input type="text" class="p-2" name="search" id="searchInput" autocomplete="off"
            value="{{ request.GET.search|default_if_none:'' }}"
            placeholder="جستجوی واحد مسکونی..." dir="rtl"
            oninput="if(this.value === '') this.form.submit();">
-    <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
+    <button type="submit" class="btn btn-info px-2 py-2">جستجو</button>
 </form>        
           </div>
-             <div class="col-6 col-md-2 col-xl-2 text-start ">
-                  <label for="cardsPerPage" class="form-label">تعداد نمایش :</label>
+             <div class="col-3 col-md-2 col-xl-2 text-start align-self-start ">
+                  <label for="cardsPerPage" class="form-label d-none d-md-inline">تعداد نمایش :</label>
                  <select id="cardsPerPage" class="form-select" style="width: auto;height: auto; display: inline-block;">
                   <option value="20" selected>20</option>
                   <option value="50">50</option>
@@ -37,29 +37,40 @@
         {% csrf_token %}
        
         <hr>
-      <div class="row m-1 mb-2">
-            <div class="col-12 col-md-2 col-xl-2 form-check align-self-center">
-            <button type="button" id="toggle-select-btn" class="btn btn-gradient-info shadow_style px-3">
-                انتخاب همه واحدها
-            </button>
-            </div>
-              <div class="col-12 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
-                    <span class="circleSendNotify"></span>
-                  ارسال موفق اطلاعیه شارژ 
-                </div>
-            <div class="col-12 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
-                    <span class="circlePayment"></span>
-                  پرداخت موفق شارژ
-                </div>
-         
-            <div class="col-12 col-md-6 col-xl-6 text-start align-self-center ">
-                  <button type="button" id="remove-all-btn" class="btn btn-dark px-3 shadow_style m-1">
-                    حذف اطلاعیه واحدها
-                </button>
-                <button type="submit" onclick="return confirmWithSweetAlert(event)" class="btn btn-gradient-success px-3 shadow_style m-1">ارسال اطلاعیه شارژ به واحد</button>
-                <a href="{% url 'add_fixed_charge' %}" class="btn btn-gradient-danger shadow_style"> بازگشت</a>
-             </div>
-        </div>
+      <div class="row g-2 mb-2">
+    <!-- دکمه انتخاب همه واحدها -->
+    <div class="col-12 col-md-2 col-xl-2 form-check align-self-start">
+        <button type="button" id="toggle-select-btn" class="btn btn-gradient-info shadow_style px-3">
+            انتخاب همه واحدها
+        </button>
+    </div>
+
+    <!-- وضعیت: ارسال موفق اطلاعیه شارژ -->
+    <div class="col-6 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
+        <span class="circleSendNotify"></span>
+        ارسال موفق اطلاعیه شارژ 
+    </div>
+
+    <!-- وضعیت: پرداخت موفق شارژ -->
+    <div class="col-6 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
+        <span class="circlePayment"></span>
+        پرداخت موفق شارژ
+    </div>
+
+    <!-- دکمه‌های عملیات -->
+    <div class="col-12 col-md-6 col-xl-6 text-start align-self-center">
+        <button type="button" id="remove-all-btn" class="btn btn-dark px-3 shadow_style m-1">
+            حذف اطلاعیه واحدها
+        </button>
+        <button type="submit" onclick="return confirmWithSweetAlert(event)" class="btn btn-gradient-success px-3 shadow_style m-1">
+            ارسال اطلاعیه شارژ به واحد
+        </button>
+        <a href="{% url 'add_fixed_charge' %}" class="btn btn-gradient-danger shadow_style">
+            بازگشت
+        </a>
+    </div>
+</div>
+
     
   
 <div class="row g-2">
@@ -197,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const params = new URLSearchParams();
                     selectedUnitIds.forEach(id => params.append('units[]', id));
 
-                    fetch("{% url 'remove_send_notification_ajax' pk=charge.id %}", {
+                    fetch("{% url 'remove_send_notification_fix' pk=charge.id %}", {
                         method: 'POST',
                         headers: {
                             'X-CSRFToken': '{{ csrf_token }}',

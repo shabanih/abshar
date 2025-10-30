@@ -9,13 +9,13 @@
 
 {% block main_content %}
     <hr/>
-<div class="container mt-3">
-{# <div class="col-12 mb-2">#}
-{#                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">#}
-{#                      <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">#}
-{#                    افزودن شارژ جدید #}
-{#                </button>#}
-{#                 </div>#}
+<div class="container mt-3 p-0">
+ <div class="col-12 mb-2">
+                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">
+                      <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
+                    افزودن شارژ جدید 
+                </button>
+                 </div>
 
                <div class="table-responsive">
                             <table class="table table-bordered">
@@ -24,15 +24,18 @@
                                         <th>#</th>
                                         <th>ثبت کننده</th>
                                         <th> عنوان شارژ </th>
-                                        <th>تعداد واحدها</th>
-                                        <th class="p-0">مبلغ شارژ به ازای هر واحد</th>
+                                        <th> واحدها</th>
+                                        <th class="p-0"> شارژ به ازای هر واحد</th>
                                         <th> شارژ عمرانی </th>
+                                        <th> سایر هزینه ها </th>
+                                        <th> شارژ کل ماهانه </th>
                                         <th> توضیحات </th>
-                                        <th> اعلام شارژ </th>
+                                        
                                         <th>تاریخ ثبت</th>
-                                        <th>جریمه دیرکرد</th>
+                                        <th> دیرکرد</th>
                                             <th>مهلت پرداخت </th>
-                                        <th>دستورات</th>
+                                        <th> اعلام شارژ </th>
+                                        <th> + دستورات</th>
                                     </tr>
                                 </thead>
                             {% if charges %}
@@ -45,37 +48,42 @@
                                             <td>{{charge.unit_count }}</td>
                                             <td class="bg-gradient-light p-0"><strong>{{charge.fix_amount|three_digit_currency }}</strong></td>
                                             <td>{{charge.civil|three_digit_currency }}</td>
+                                            <td>{{charge.other_cost_amount|three_digit_currency }}</td>
+                                            <td>{{charge.total_charge_month|three_digit_currency }}</td>
                                            
                                             <td class="col-2">{{charge.details }}</td>
-                                          <td>
-                                                <span>{{ charge.notified_count }} از {{ unit_count }} واحد</span>
-                                                </td>
+                                         
 {#                                             <td>{{ middleCharge.send_notification}}</td>#}
                                             <td>{{charge.created_at|show_jalali }}</td>
                                             <td>% {{charge.payment_penalty_amount }}</td>
                                              <td>{{charge.payment_deadline|show_jalali }}</td>
+                                             <td>
+                                                <span>{{ charge.notified_count }} از {{ unit_count }} واحد</span>
+                                                </td>
                                                <td class="p-0">
                                                       <a
-                                           class="btn btn-gradient-info p-1 edit-charge-btn"
-                                           data-id="{{ charge.id }}"
-                                           data-name="{{ charge.name }}"
-                                           data-fix_amount="{{ charge.fix_amount}}"
-                                           data-civil="{{ charge.civil }}"
-                                           data-payment_penalty_amount="{{ charge.payment_penalty_amount }}"
-                                           data-payment_deadline="{{ charge.payment_deadline|show_jalali }}"
-                                           data-details="{{ charge.details }}"
-                                           data-bs-toggle="modal"
-                                           data-bs-target="#exampleModalLong">
-                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
-                                        </a>
+                                                           class="btn btn-gradient-info p-1 edit-charge-btn" 
+                                                           data-id="{{ charge.id }}"
+                                                           data-name="{{ charge.name }}"
+                                                           data-other_cost_amount="{{ charge.other_cost_amount}}"
+                                                           data-fix_amount="{{ charge.fix_amount}}"
+                                                           data-civil="{{ charge.civil }}"
+                                                           data-payment_penalty_amount="{{ charge.payment_penalty_amount }}"
+                                                           data-payment_deadline="{{ charge.payment_deadline|show_jalali }}"
+                                                           data-details="{{ charge.details }}"
+                                                           data-bs-toggle="modal"
+                                                           data-bs-target="#exampleModalLong">
+                                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
+                                                        </a>
                                                           <a href="{% url 'fix_charge_delete' charge.id %}" class="btn btn-gradient-danger p-1"
-                                                       onclick="return confirmDeleteWithSweetAlert(event)">
+                                                       onclick="return confirmDeleteWithSweetAlert(event)" >
+                                                              
                                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                             </a>
-{#                                                  <a href="{% url 'show_notification_fix_charge_form' charge.id %}"#}
-{#                                                       class="btn btn-gradient-success p-2">#}
-{#                                                       اعلان شارژ#}
-{#                                                    </a>#}
+                                                  <a href="{% url 'show_notification_fix_charge_form' charge.id %}"
+                                                       class="btn btn-gradient-success p-1 m-1">
+                                                       اعلان شارژ 
+                                                    </a>
 
                                         </td>
                                         </tr>
@@ -139,7 +147,14 @@
                       {{ form.payment_penalty_amount.errors }}
                   </div>
                      </div>
-                  <div class="row g-2">
+                 <div class="row g-1">
+                      <div class="col-6 ">
+                       {{ form.other_cost_amount.label_tag }}
+                      {{ form.other_cost_amount }}
+                      {{ form.other_cost_amount.errors }}
+                  </div>
+                     </div>
+                  <div class="row g-1">
                       <div class="col-12 ">
                        {{ form.details.label_tag }}
                       {{ form.details }}

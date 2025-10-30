@@ -83,7 +83,7 @@ class Income(models.Model):
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 
     def __str__(self):
-        return str(self.doc_no)
+        return str(self.doc_number)
 
     def get_document_urls_json(self):
         # Use the correct attribute to access the file URL in the related `ExpenseDocument` model
@@ -240,16 +240,27 @@ class FixCharge(models.Model):
     payment_deadline = models.DateField(null=True, blank=True)
     payment_penalty_amount = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
+    total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
 
     def __str__(self):
         return str(self.name)
 
+    def save(self, *args, **kwargs):
+        amount = max(self.fix_amount or 0, 0)
+        civil = self.civil or 0
+        other_cost = max(self.other_cost_amount or 0, 0)
+
+        self.total_charge_month = amount + civil + other_cost
+
+        super().save(*args, **kwargs)
+
 
 class FixedChargeCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_fix')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_fix')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب',null=True, blank=True)
     fix_charge = models.ForeignKey(FixCharge, on_delete=models.CASCADE, related_name='fix_charge_amount')
     charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
     amount = models.PositiveIntegerField(verbose_name='مبلغ')
@@ -303,6 +314,7 @@ class AreaCharge(models.Model):
 class AreaChargeCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_area')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_area')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب',null=True, blank=True)
     area_charge = models.ForeignKey(AreaCharge, on_delete=models.CASCADE, related_name='area_charge_amount')
     charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
     amount = models.PositiveIntegerField(verbose_name='مبلغ')
@@ -362,6 +374,7 @@ class PersonCharge(models.Model):
 class PersonChargeCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_person')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_person')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب',null=True, blank=True)
     person_charge = models.ForeignKey(PersonCharge, on_delete=models.CASCADE, related_name='person_charge_amount')
     charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
     amount = models.PositiveIntegerField(verbose_name='مبلغ')
@@ -424,6 +437,7 @@ class FixPersonCharge(models.Model):
 class FixPersonChargeCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_fix_person')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_fix_person')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     fix_person = models.ForeignKey(FixPersonCharge, on_delete=models.CASCADE, related_name='fix_person_charge')
     charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
     fix_charge = models.PositiveIntegerField(verbose_name='شارژ ثابت', null=True, blank=True)
@@ -455,8 +469,8 @@ class FixPersonChargeCalc(models.Model):
         if self.unit.people_count and self.amount and self.fix_charge:
             self.final_person_amount = (self.unit.people_count * self.amount) + self.fix_charge
 
-        if self.final_person_amount and self.civil_charge:
-            self.total_charge_month = self.final_person_amount + self.civil_charge
+        if self.final_person_amount and self.civil_charge and self.other_cost:
+            self.total_charge_month = self.final_person_amount + self.civil_charge + self.other_cost
 
         super().save(*args, **kwargs)
 
@@ -483,6 +497,7 @@ class FixAreaCharge(models.Model):
 class FixAreaChargeCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_fix_area')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_fix_area')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     fix_area = models.ForeignKey(FixAreaCharge, on_delete=models.CASCADE, related_name='fix_area_charge')
     charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
     fix_charge = models.PositiveIntegerField(verbose_name='شارژ ثابت', null=True, blank=True)
@@ -540,6 +555,7 @@ class ChargeByPersonArea(models.Model):
 class ChargeByPersonAreaCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_by_person_area')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_by_person_area')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     person_area_charge = models.ForeignKey(ChargeByPersonArea, on_delete=models.CASCADE,
                                            related_name='person_area_charge', null=True, blank=True)
     charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
@@ -603,6 +619,7 @@ class ChargeByFixPersonArea(models.Model):
 class ChargeByFixPersonAreaCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_by_fix_person_area')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_by_fix_person_area')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     fix_person_area = models.ForeignKey(ChargeByFixPersonArea, on_delete=models.CASCADE,
                                         related_name='fix_person_area', null=True, blank=True)
     charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
@@ -634,10 +651,10 @@ class ChargeByFixPersonAreaCalc(models.Model):
     def save(self, *args, **kwargs):
         if self.unit.area and self.area_charge and self.unit.people_count and self.person_charge and self.fix_charge:
             self.final_person_amount = (self.unit.area * self.area_charge) + (
-                    self.unit.people_count * self.person_charge)
+                    self.unit.people_count * self.person_charge) + self.fix_charge
 
         if self.final_person_amount and self.civil_charge and self.other_cost:
-            self.total_charge_month = self.final_person_amount + self.civil_charge + self.fix_charge + self.other_cost
+            self.total_charge_month = self.final_person_amount + self.civil_charge + self.other_cost
 
         super().save(*args, **kwargs)
 
@@ -667,6 +684,7 @@ class ChargeFixVariable(models.Model):
 class ChargeFixVariableCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_calc', null=True, blank=True)
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_calc_fix', null=True, blank=True)
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     fix_variable_charge = models.ForeignKey(ChargeFixVariable, on_delete=models.CASCADE,
                                             related_name='fix_variable_charge', null=True, blank=True)
 

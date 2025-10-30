@@ -347,7 +347,7 @@ $(document).on('click', '.edit-income-btn', function (e) {
 
 $(document).on('click', '.delete-image21-btn', function () {
     var imageUrl = $(this).data('url');  // Image URL
-    var incomeId = $(this).data('income-id');  // Expense ID
+    var incomeId = $(this).data('income-id');  //
 
 
     if (!imageUrl || !incomeId) {
@@ -940,6 +940,7 @@ $(document).on('click', '.edit-charge-btn', function () {
 
     $('#id_name').val($(this).data('name'));
     $('#id_fix_amount').val($(this).data('fix_amount'));
+    $('#id_other_cost_amount').val($(this).data('other_cost_amount'));
     $('#id_civil').val($(this).data('civil'));
     $('#id_payment_penalty_amount').val($(this).data('payment_penalty_amount'));
     $('#id_payment_deadline').val($(this).data('payment_deadline'));
@@ -959,7 +960,7 @@ $(document).on('click', '.edit-charge-btn', function () {
     });
   });
  // ==============================================
-$(document).on('click', '.edit-middleCharge-area-btn', function () {
+$(document).on('click', '.edit-charge-area-btn', function () {
     console.log('ویرایش کلیک شد');
 
     // Get the expense ID from the clicked button's data attributes
@@ -970,6 +971,9 @@ $(document).on('click', '.edit-middleCharge-area-btn', function () {
     $('#id_name').val($(this).data('name'));
     $('#id_area_amount').val($(this).data('area_amount'));
     $('#id_civil').val($(this).data('civil'));
+    $('#id_other_cost_amount').val($(this).data('other_cost_amount'));
+    $('#id_payment_penalty_amount').val($(this).data('payment_penalty_amount'));
+    $('#id_payment_deadline').val($(this).data('payment_deadline'));
     $('#id_details').val($(this).data('details'));
 
     // Update the modal title and submit button text for editing
