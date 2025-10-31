@@ -18,7 +18,7 @@
                  </div>
 
                <div class="table-responsive">
-                            <table class="table table-bordered">
+                            <table class="table table-bordered border-primary">
                                 <thead class="text-center">
                                     <tr>
                                         <th>#</th>
@@ -31,7 +31,7 @@
                                         <th> شارژ کل ماهانه </th>
                                         <th> توضیحات </th>
                                         
-                                        <th>تاریخ ثبت</th>
+                                        <th>تاریخ ثبت شارژ</th>
                                         <th> دیرکرد</th>
                                             <th>مهلت پرداخت </th>
                                         <th> اعلام شارژ </th>
@@ -60,7 +60,7 @@
                                              <td>
                                                 <span>{{ charge.notified_count }} از {{ unit_count }} واحد</span>
                                                 </td>
-                                               <td class="p-0">
+                                               <td class="p-0 col-1">
                                                       <a
                                                            class="btn btn-gradient-info p-1 edit-charge-btn" 
                                                            data-id="{{ charge.id }}"
@@ -81,9 +81,10 @@
                                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                             </a>
                                                   <a href="{% url 'show_notification_fix_charge_form' charge.id %}"
-                                                       class="btn btn-gradient-success p-1 m-1">
-                                                       اعلان شارژ 
-                                                    </a>
+                                                        class="btn btn-gradient-success p-1" 
+                                          data-bs-toggle="tooltip"  title="اعلان شارژ">
+                                         <i class="fas fa-bullhorn fa-flip-horizontal"></i>
+                                            </a>
 
                                         </td>
                                         </tr>

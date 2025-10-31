@@ -112,7 +112,8 @@
             </li>
 
              <li class="nav-item mt-0">
-                            <a class="nav-link">
+                                {% url 'sms_management' as address_url %}
+                            <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
                             <i class="menu-title"> مدیریت پیامک ها</i>
                             <i class="fas fa-comment-dots menu-icon"></i>
                           </a>

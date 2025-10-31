@@ -18,20 +18,20 @@
                 </button>
                  </div>
                <div class="table-responsive">
-                            <table class="table table-bordered">
+                             <table class="table table-bordered border-primary">
                                 <thead class="text-center">
                                     <tr>
                                         <th>#</th>
                                         <th> عنوان شارژ </th>
                                         <th>  شارژ ثابت</th>
                                         <th class="p-0">مبلغ شارژ به ازای هر نفر(تومان)</th>
-{#                                        <th>تعداد واحدها</th>#}
-                                        <th>تعداد نفرات</th>
-{#                                        <th>مبلغ شارژ هر واحد(تومان)</th>#}
+{#                                        <th>تعداد نفرات</th>#}
                                         <th> شارژ عمرانی </th>
-{#                                        <th>جمع کل شارژ ماه </th>#}
+                                          <th> سایر هزینه ها </th>
                                         <th> توضیحات </th>
-                                        <th>تاریخ ایجاد</th>
+                                        <th>تاریخ ثبت شارژ</th>
+                                        <th> دیرکرد</th>
+                                            <th>مهلت پرداخت </th>
                                         <th>اعلام شارژ</th>
                                         <th>دستورات</th>
                                     </tr>
@@ -44,18 +44,20 @@
                                             <td>{{charge.name }}</td>
                                             <td>{{charge.fix_charge_amount|three_digit_currency  }}</td>
                                             <td>{{charge.person_amount|three_digit_currency }}</td>
-{#                                            <td>{{unit_count }}</td>#}
-                                            <td>{{charge.total_people }}</td>
-{#                                            <td class="bg-gradient-light p-0"><strong>{{middleCharge.final_person_amount|three_digit_currency }}</strong></td>#}
+{#                                            <td>{{charge.total_people }}</td>#}
                                             <td>{{charge.civil|three_digit_currency }}</td>
-{#                                          <td>{{ middleCharge.total_charge_month|three_digit_currency }}</td>#}
-                                            <td>{{charge.details }}</td>
+                                            <td>{{charge.other_cost_amount|three_digit_currency }}</td>
+                                               <td>{{charge.details }}</td>
                                             <td>{{charge.created_at|show_jalali }}</td>
+                                         
+                                                 <td>% {{charge.payment_penalty_amount }}</td>
+                                             <td>{{charge.payment_deadline|show_jalali }}</td>
+                                            
                                                <td class="bg-light">
                                                 <span>{{ charge.notified_count }} از {{ unit_count }} واحد</span>
                                                 </td>
                                             
-                                               <td class="p-0">
+                                               <td class="p-0 col-1">
                                                       <a
                                            class="btn btn-gradient-info p-1 edit-fix-person-btn"
                                            data-id="{{ charge.id }}"
@@ -63,7 +65,10 @@
                                            data-fix_charge_amount="{{ charge.fix_charge_amount }}"
                                            data-person_amount="{{ charge.person_amount}}"
                                            data-civil="{{ charge.civil }}"
+                                            data-other_cost_amount="{{ charge.other_cost_amount }}"
                                            data-details="{{ charge.details }}"
+                                            data-payment_penalty_amount="{{ charge.payment_penalty_amount }}"
+                                           data-payment_deadline="{{ charge.payment_deadline|show_jalali }}"
                                            data-bs-toggle="modal"
                                            data-bs-target="#exampleModalLong">
                                            <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
@@ -72,9 +77,10 @@
                                        onclick="return confirmDeleteWithSweetAlert(event)">
                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
                                             </a>
-                                                   <a href="{% url 'show_notification_fix_person_charge_form' charge.id %}"
-                                       class="btn btn-gradient-success p-2">
-                                            اعلان شارژ
+                                       <a href="{% url 'show_notification_fix_person_charge_form' charge.id %}"
+                                         class="btn btn-gradient-success p-1" 
+                                          data-bs-toggle="tooltip"  title="اعلان شارژ">
+                                         <i class="fas fa-bullhorn fa-flip-horizontal"></i>
                                             </a>
                                                    
 
@@ -83,7 +89,7 @@
                                     {% endfor %}
                                         {% else %}
                                         <tr>
-                                            <td colspan="12" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
+                                            <td colspan="13" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
                                         </tr>
                                  <tbody>
                                 {% endif %}
@@ -132,20 +138,38 @@
                       {{ form.fix_charge_amount }}
                       {{ form.fix_charge_amount.errors }}
                   </div>
-                     <div class="col-6">
-                         {{ form.civil.label_tag }}
-                      {{ form.civil }}
-                      {{ form.civil.errors }}
-                  </div>
-                     </div>
-               <div class="row g-2">
-                      <div class="col-12 ">
+                           <div class="col-6 ">
                        {{ form.person_amount.label_tag }}
                       {{ form.person_amount }}
                       {{ form.person_amount.errors }}
                       
                   </div>
+              
                      </div>
+               <div class="row g-2">
+                    <div class="col-6">
+                         {{ form.civil.label_tag }}
+                      {{ form.civil }}
+                      {{ form.civil.errors }}
+                  </div>
+                          <div class="col-6 ">
+                       {{ form.other_cost_amount.label_tag }}
+                      {{ form.other_cost_amount }}
+                      {{ form.other_cost_amount.errors }}
+                  </div>
+                     </div>
+                   <div class="row g-2">
+                           <div class="col-6">
+                       {{ form.payment_deadline.label_tag }}
+                      {{ form.payment_deadline }}
+                      {{ form.payment_deadline.errors }}
+                  </div>
+                     <div class="col-6">
+                       {{ form.payment_penalty_amount.label_tag }}
+                      {{ form.payment_penalty_amount }}
+                      {{ form.payment_penalty_amount.errors }}
+                  </div>
+              </div>
                   <div class="row g-2">
                       <div class="col-12 ">
                        {{ form.details.label_tag }}

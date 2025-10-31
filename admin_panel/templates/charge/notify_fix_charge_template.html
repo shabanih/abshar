@@ -37,7 +37,7 @@
         {% csrf_token %}
        
         <hr>
-      <div class="row g-2 mb-2">
+      <div class="row g-3">
     <!-- دکمه انتخاب همه واحدها -->
     <div class="col-12 col-md-2 col-xl-2 form-check align-self-start">
         <button type="button" id="toggle-select-btn" class="btn btn-gradient-info shadow_style px-3">
@@ -62,10 +62,10 @@
         <button type="button" id="remove-all-btn" class="btn btn-dark px-3 shadow_style m-1">
             حذف اطلاعیه واحدها
         </button>
-        <button type="submit" onclick="return confirmWithSweetAlert(event)" class="btn btn-gradient-success px-3 shadow_style m-1">
-            ارسال اطلاعیه شارژ به واحد
+        <button type="submit" onclick="return confirmWithSweetAlert(event)" class="btn btn-gradient-success px-3 shadow_style">
+            ارسال اطلاعیه شارژ 
         </button>
-        <a href="{% url 'add_fixed_charge' %}" class="btn btn-gradient-danger shadow_style">
+        <a href="{% url 'add_fixed_charge' %}" class="btn btn-gradient-danger shadow_style px-3">
             بازگشت
         </a>
     </div>
@@ -73,7 +73,7 @@
 
     
   
-<div class="row g-2">
+<div class="row g-2 mt-3">
     {% for unit, active_renter, is_paid in page_obj %}
     <div class="col-6 col-lg-2 col-md-2 col-xl-2 mb-3">
    <div class="card shadow_style fixChargeTable"

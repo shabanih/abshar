@@ -998,11 +998,14 @@ $(document).on('click', '.edit-charge-person-btn', function () {
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     // Set the form action URL dynamically
-    $('#personForm').attr('action', '/admin-panel/person/middleCharge/edit/' + id + '/');
+    $('#personForm').attr('action', '/admin-panel/person/charge/edit/' + id + '/');
 
     $('#id_name').val($(this).data('name'));
     $('#id_person_amount').val($(this).data('person_amount'));
     $('#id_civil').val($(this).data('civil'));
+    $('#id_payment_penalty_amount').val($(this).data('payment_penalty_amount'));
+    $('#id_payment_deadline').val($(this).data('payment_deadline'));
+    $('#id_other_cost_amount').val($(this).data('other_cost_amount'));
     $('#id_details').val($(this).data('details'));
 
     // Update the modal title and submit button text for editing
@@ -1027,18 +1030,21 @@ $(document).on('click', '.edit-fix-area-btn', function () {
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     // Set the form action URL dynamically
-    $('#fixAreaForm').attr('action', '/admin-panel/fix/area/middleCharge/edit/' + id + '/');
+    $('#fixAreaForm').attr('action', '/admin-panel/fix/area/charge/edit/' + id + '/');
 
     // Set the form values based on the clicked button's data attributes
     $('#id_name').val($(this).data('name'));
     $('#id_area_amount').val($(this).data('area_amount'));
     $('#id_fix_charge_amount').val($(this).data('fix_charge_amount'));
     $('#id_civil').val($(this).data('civil'));
+    $('#id_payment_penalty_amount').val($(this).data('payment_penalty_amount'));
+    $('#id_payment_deadline').val($(this).data('payment_deadline'));
+    $('#id_other_cost_amount').val($(this).data('other_cost_amount'));
     $('#id_details').val($(this).data('details'));
 
     // Update the modal title and submit button text for editing
     let chargeName = $(this).data('name');
-    $('#exampleModalLongTitle').text('ویرایش شارژ: ' + chargeName);
+    $('#exampleModalLongTitle').text('ویرایش : ' + chargeName);
     $('#btn-submit-receive').text('ویرایش شارژ');
 });
 
@@ -1061,18 +1067,21 @@ $(document).on('click', '.edit-fix-person-btn', function () {
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     // Set the form action URL dynamically
-    $('#fixPersonForm').attr('action', '/admin-panel/fix/person/middleCharge/edit/' + id + '/');
+    $('#fixPersonForm').attr('action', '/admin-panel/fix/person/charge/edit/' + id + '/');
 
     // Set the form values based on the clicked button's data attributes
     $('#id_name').val($(this).data('name'));
     $('#id_person_amount').val($(this).data('person_amount'));
     $('#id_fix_charge_amount').val($(this).data('fix_charge_amount'));
     $('#id_civil').val($(this).data('civil'));
+    $('#id_payment_penalty_amount').val($(this).data('payment_penalty_amount'));
+    $('#id_payment_deadline').val($(this).data('payment_deadline'));
+    $('#id_other_cost_amount').val($(this).data('other_cost_amount'));
     $('#id_details').val($(this).data('details'));
 
     // Update the modal title and submit button text for editing
     let chargeName = $(this).data('name');
-    $('#exampleModalLongTitle').text('ویرایش شارژ: ' + chargeName);
+    $('#exampleModalLongTitle').text('ویرایش : ' + chargeName);
     $('#btn-submit-receive').text('ویرایش شارژ');
 });
 
@@ -1092,18 +1101,21 @@ $(document).on('click', '.edit-area-person-btn', function () {
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     // Set the form action URL dynamically
-    $('#personAreaForm').attr('action', '/admin-panel/area/person/middleCharge/edit/' + id + '/');
+    $('#personAreaForm').attr('action', '/admin-panel/area/person/charge/edit/' + id + '/');
 
     // Set the form values based on the clicked button's data attributes
     $('#id_name').val($(this).data('name'));
     $('#id_person_amount').val($(this).data('person_amount'));
     $('#id_area_amount').val($(this).data('area_amount'));
     $('#id_civil').val($(this).data('civil'));
+    $('#id_payment_penalty_amount').val($(this).data('payment_penalty_amount'));
+    $('#id_payment_deadline').val($(this).data('payment_deadline'));
+    $('#id_other_cost_amount').val($(this).data('other_cost_amount'));
     $('#id_details').val($(this).data('details'));
 
     // Update the modal title and submit button text for editing
     let chargeName = $(this).data('name');
-    $('#exampleModalLongTitle').text('ویرایش شارژ: ' + chargeName);
+    $('#exampleModalLongTitle').text('ویرایش : ' + chargeName);
     $('#btn-submit-receive').text('ویرایش شارژ');
 });
 
@@ -1124,7 +1136,7 @@ $(document).on('click', '.edit-area-person-fix-btn', function () {
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     // Set the form action URL dynamically
-    $('#FixPersonAreaForm').attr('action', '/admin-panel/fix/area/person/middleCharge/edit/' + id + '/');
+    $('#FixPersonAreaForm').attr('action', '/admin-panel/fix/area/person/charge/edit/' + id + '/');
 
     // Set the form values based on the clicked button's data attributes
     $('#id_name').val($(this).data('name'));
@@ -1132,11 +1144,14 @@ $(document).on('click', '.edit-area-person-fix-btn', function () {
     $('#id_person_amount').val($(this).data('person_amount'));
     $('#id_area_amount').val($(this).data('area_amount'));
     $('#id_civil').val($(this).data('civil'));
+    $('#id_payment_penalty_amount').val($(this).data('payment_penalty_amount'));
+    $('#id_payment_deadline').val($(this).data('payment_deadline'));
+    $('#id_other_cost_amount').val($(this).data('other_cost_amount'));
     $('#id_details').val($(this).data('details'));
 
     // Update the modal title and submit button text for editing
     let chargeName = $(this).data('name');
-    $('#exampleModalLongTitle').text('ویرایش شارژ: ' + chargeName);
+    $('#exampleModalLongTitle').text('ویرایش : ' + chargeName);
     $('#btn-submit-receive').text('ویرایش شارژ');
 });
 
@@ -1156,7 +1171,7 @@ $(document).on('click', '.edit-variable-fix-btn', function () {
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     // Set the form action URL dynamically
-    $('#variableFixForm').attr('action', '/admin-panel/fix/variable/middleCharge/edit/' + id + '/');
+    $('#variableFixForm').attr('action', '/admin-panel/fix/variable/charge/edit/' + id + '/');
 
     // Set the form values based on the clicked button's data attributes
     $('#id_name').val($(this).data('name'));
@@ -1165,13 +1180,13 @@ $(document).on('click', '.edit-variable-fix-btn', function () {
     $('#id_unit_variable_person_amount').val($(this).data('unit_variable_person_amount'));
     $('#id_unit_variable_area_amount').val($(this).data('unit_variable_area_amount'));
     $('#id_other_cost_amount').val($(this).data('other_cost_amount'));
-
     $('#id_civil').val($(this).data('civil'));
     $('#id_details').val($(this).data('details'));
-
+    $('#id_payment_penalty_amount').val($(this).data('payment_penalty_amount'));
+    $('#id_payment_deadline').val($(this).data('payment_deadline'));
     // Update the modal title and submit button text for editing
     let chargeName = $(this).data('name');
-    $('#exampleModalLongTitle').text('ویرایش شارژ: ' + chargeName);
+    $('#exampleModalLongTitle').text('ویرایش : ' + chargeName);
     $('#btn-submit-receive').text('ویرایش شارژ');
 });
 

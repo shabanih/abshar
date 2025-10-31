@@ -260,7 +260,7 @@ class FixCharge(models.Model):
 class FixedChargeCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_fix')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_fix')
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب',null=True, blank=True)
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     fix_charge = models.ForeignKey(FixCharge, on_delete=models.CASCADE, related_name='fix_charge_amount')
     charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
     amount = models.PositiveIntegerField(verbose_name='مبلغ')
@@ -314,7 +314,7 @@ class AreaCharge(models.Model):
 class AreaChargeCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_area')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_area')
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب',null=True, blank=True)
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     area_charge = models.ForeignKey(AreaCharge, on_delete=models.CASCADE, related_name='area_charge_amount')
     charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
     amount = models.PositiveIntegerField(verbose_name='مبلغ')
@@ -374,7 +374,7 @@ class PersonCharge(models.Model):
 class PersonChargeCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_person')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_person')
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب',null=True, blank=True)
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     person_charge = models.ForeignKey(PersonCharge, on_delete=models.CASCADE, related_name='person_charge_amount')
     charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
     amount = models.PositiveIntegerField(verbose_name='مبلغ')
@@ -768,3 +768,17 @@ class Fund(models.Model):
         self.final_amount = previous_final + (self.debtor_amount or 0) - (self.creditor_amount or 0)
 
         super().save(*args, **kwargs)
+
+
+class SmsManagement(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='sms_unit', blank=True, null=True)
+    subject = models.CharField(max_length=200)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    send_notification = models.BooleanField(default=False)
+    send_notification_date = models.DateField(null=True, blank=True, verbose_name='اعلام شارژ به کاربر')
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.subject

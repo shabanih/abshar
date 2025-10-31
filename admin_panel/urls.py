@@ -99,7 +99,7 @@ urlpatterns = [
     path('charge/edit/<int:pk>/', views.fix_charge_edit, name='charge_edit'),
     path('charge/delete/<int:pk>/', views.fix_charge_delete, name='fix_charge_delete'),
     path('charge/notify/<int:pk>/', views.show_fix_charge_notification_form, name='show_notification_fix_charge_form'),
-    path('charge/notify/send/<int:pk>/', views.send_notification_fix_charge_to_user,
+    path('charge/fix/notify/send/<int:pk>/', views.send_notification_fix_charge_to_user,
          name='send_notification_fix_charge_to_user'),
     path('remove-send-notification-fix/<int:pk>/', views.remove_send_notification_fix,
          name='remove_send_notification_fix'),
@@ -136,7 +136,7 @@ urlpatterns = [
 
     path('add-fix_area-charge', views.FixAreaChargeCreateView.as_view(), name='add_fix_area_charge'),
     path('fix/area/charge/edit/<int:pk>/', views.fix_area_charge_edit, name='charge_fix_area_edit'),
-    path('fix/area/charge/delete/<int:pk>/', views.fix_area_charge_delete, name='middleCharge-fix_area_delete'),
+    path('fix/area/charge/delete/<int:pk>/', views.fix_area_charge_delete, name='charge-fix_area_delete'),
     path('charge/fix/area/notify/<int:pk>/', views.show_fix_area_charge_notification_form,
          name='show_notification_fix_area_charge_form'),
     path('charge/fix/area/notify/send/<int:pk>/', views.send_notification_fix_area_charge_to_user,
@@ -177,6 +177,12 @@ urlpatterns = [
          name='send_notification_fix_variable_charge_to_user'),
     path('remove-send-notification-fix-variable-middleCharge/<int:pk>/', views.remove_send_notification_fix_variable,
          name='remove_send_notification_fix_variable_charge'),
+
+    # Sms_Management
+    path('sms/management/', views.SmsManagementView.as_view(), name='sms_management'),
+    path('edit/sms/<int:pk>/', views.SmsUpdateView.as_view(), name='edit_sms'),
+    path('sms-delete/<int:pk>/', views.sms_delete, name='delete_sms'),
+    path('send-sms/<int:pk>/', views.send_sms, name='send_sms')
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

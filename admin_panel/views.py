@@ -25,18 +25,21 @@ from django.views.generic import CreateView, UpdateView, DetailView, ListView
 from openpyxl.styles import PatternFill, Font, Alignment
 from pypdf import PdfWriter
 from weasyprint import HTML, CSS
+
+from admin_panel import helper
 from admin_panel.forms import announcementForm, UnitForm, ExpenseForm, ExpenseCategoryForm, \
     IncomeForm, IncomeCategoryForm, BankForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, \
     MaintenanceForm, FixChargeForm, PersonAreaChargeForm, AreaChargeForm, PersonChargeForm, FixAreaChargeForm, \
-    FixPersonChargeForm, PersonAreaFixChargeForm, VariableFixChargeForm, UserRegistrationForm
+    FixPersonChargeForm, PersonAreaFixChargeForm, VariableFixChargeForm, UserRegistrationForm, SmsForm
 from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDocument, Income, IncomeDocument, \
     IncomeCategory, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, FixedChargeCalc, ChargeByPersonArea, AreaChargeCalc, PersonChargeCalc, FixAreaChargeCalc, \
     FixPersonChargeCalc, ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
     FixPersonCharge, FixAreaCharge, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariable, \
-    ChargeFixVariableCalc, Fund
+    ChargeFixVariableCalc, Fund, SmsManagement
 from user_app.models import Unit, Bank, Renter, User
 from django.contrib.auth import get_user_model
+
 
 # User = get_user_model()
 
@@ -2660,7 +2663,7 @@ class FixChargeCreateView(CreateView):
                 filter=Q(fix_charge_amount__send_notification=True)
             ),
             total_units=Count('fix_charge_amount')
-        ).order_by('-id')
+        ).order_by('-created_at')
 
         paginator = Paginator(charges, self.paginate_by)
         page_number = self.request.GET.get('page')
@@ -2669,7 +2672,6 @@ class FixChargeCreateView(CreateView):
         context['page_obj'] = page_obj
         context['charges'] = page_obj.object_list
         return context
-
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
@@ -3171,7 +3173,7 @@ def send_notification_area_charge_to_user(request, pk):
             if not created:
                 if not fixed_calc.send_notification:
                     fixed_calc.send_notification = True
-                    fixed_calc.send_notification_date=timezone.now()
+                    fixed_calc.send_notification_date = timezone.now()
                     fixed_calc.save()
                     notified_units.append(str(unit))
             else:
@@ -3275,6 +3277,9 @@ class PersonChargeCreateView(CreateView):
         print(f"Total people count calculated: {total_people_count}")  # Debug line
         person_charge.total_people = total_people_count
 
+        unit_count = Unit.objects.filter(is_active=True).count()
+        person_charge.unit_count = unit_count
+
         try:
             person_charge.save()
             self.object = person_charge
@@ -3302,7 +3307,7 @@ class PersonChargeCreateView(CreateView):
                 filter=Q(person_charge_amount__send_notification=True)
             ),
             total_units=Count('person_charge_amount')
-        )
+        ).order_by('-created_at')
         context['charges'] = charges
         return context
 
@@ -3413,11 +3418,12 @@ def calculate_total_charge_person(unit, charge):
         people_count = float(unit.people_count or 0)
         amount = float(charge.person_amount or 0)
         civil = float(charge.civil or 0)
+        other_cost = float(charge.other_cost_amount or 0)
     except (TypeError, ValueError):
-        people_count = amount = civil = 0.0
+        people_count = amount = civil = other_cost = 0.0
 
     final_person_amount = amount * people_count
-    total_charge = final_person_amount + civil
+    total_charge = final_person_amount + civil + other_cost
     return total_charge
 
 
@@ -3460,7 +3466,11 @@ def show_person_charge_notification_form(request, pk):
                 user=unit.user,
                 unit=unit,
                 civil_charge=charge.civil,
+                payment_deadline_date=charge.payment_deadline,
+                payment_penalty=int(charge.payment_penalty_amount or 0),
+                other_cost=charge.other_cost_amount or 0,
                 charge_name=charge.name,
+                details=charge.details,
                 amount=int(charge.person_amount or 0),
                 person_charge=charge,
                 total_charge_month=int(total_charge),
@@ -3480,7 +3490,7 @@ def show_person_charge_notification_form(request, pk):
 
     context = {
         'page_obj': page_obj,
-        'middleCharge': charge,
+        'charge': charge,
         'pk': pk,
         'notified_ids': list(notified_ids),
     }
@@ -3528,6 +3538,7 @@ def send_notification_person_charge_to_user(request, pk):
             if not created:
                 if not fixed_calc.send_notification:
                     fixed_calc.send_notification = True
+                    fixed_calc.send_notification_date = timezone.now()
                     fixed_calc.save()
                     notified_units.append(str(unit))
             else:
@@ -3621,8 +3632,8 @@ class FixPersonChargeCreateView(CreateView):
 
     def form_valid(self, form):
         person_charge = form.save(commit=False)
-
         charge_name = form.cleaned_data.get('name') or 0
+        person_charge.user = self.request.user
         person_charge.name = charge_name
         if person_charge.civil is None:
             person_charge.civil = 0
@@ -3652,7 +3663,7 @@ class FixPersonChargeCreateView(CreateView):
                 filter=Q(fix_person_charge__send_notification=True)
             ),
             total_units=Count('fix_person_charge')
-        )
+        ).order_by('-created_at')
         context['charges'] = charges
         return context
 
@@ -3713,11 +3724,12 @@ def calculate_total_charge_fix_person(unit, charge):
         fix_charge_amount = float(charge.fix_charge_amount or 0)
         amount = float(charge.person_amount or 0)
         civil = float(charge.civil or 0)
+        other_cost = float(charge.other_cost_amount or 0)
     except (TypeError, ValueError):
-        people_count = fix_charge_amount = amount = civil = 0.0
+        people_count = fix_charge_amount = amount = civil = other_cost = 0.0
 
     final_person_amount = (amount * people_count) + fix_charge_amount
-    total_charge = final_person_amount + civil
+    total_charge = final_person_amount + civil + other_cost
     return total_charge
 
 
@@ -3762,6 +3774,10 @@ def show_fix_person_charge_notification_form(request, pk):
                 civil_charge=charge.civil,
                 charge_name=charge.name,
                 amount=int(charge.person_amount or 0),
+                payment_deadline_date=charge.payment_deadline,
+                payment_penalty=int(charge.payment_penalty_amount or 0),
+                other_cost=charge.other_cost_amount or 0,
+                details=charge.details,
                 fix_person=charge,
                 total_people=int(charge.total_people),
                 fix_charge=int(charge.fix_charge_amount),
@@ -3783,7 +3799,7 @@ def show_fix_person_charge_notification_form(request, pk):
 
     context = {
         'page_obj': page_obj,
-        'middleCharge': charge,
+        'charge': charge,
         'pk': pk,
         'notified_ids': list(notified_ids),
     }
@@ -3831,6 +3847,7 @@ def send_notification_fix_person_charge_to_user(request, pk):
             if not created:
                 if not fixed_calc.send_notification:
                     fixed_calc.send_notification = True
+                    fixed_calc.send_notification_date = timezone.now()
                     fixed_calc.save()
                     notified_units.append(str(unit))
             else:
@@ -3955,7 +3972,7 @@ class FixAreaChargeCreateView(CreateView):
                 filter=Q(fix_area_charge__send_notification=True)
             ),
             total_units=Count('fix_area_charge')
-        )
+        ).order_by('-created_at')
         context['charges'] = charges
         return context
 
@@ -4017,11 +4034,12 @@ def calculate_total_charge_fix_area(unit, charge):
         fix_charge_amount = float(charge.fix_charge_amount or 0)
         amount = float(charge.area_amount or 0)
         civil = float(charge.civil or 0)
+        other_cost = float(charge.other_cost_amount or 0)
     except (TypeError, ValueError):
-        area = fix_charge_amount = amount = civil = 0.0
+        area = fix_charge_amount = amount = civil = other_cost = 0.0
 
     final_person_amount = (amount * area) + fix_charge_amount
-    total_charge = final_person_amount + civil
+    total_charge = final_person_amount + civil + other_cost
     return total_charge
 
 
@@ -4066,6 +4084,10 @@ def show_fix_area_charge_notification_form(request, pk):
                 civil_charge=charge.civil,
                 charge_name=charge.name,
                 amount=int(charge.area_amount or 0),
+                payment_deadline_date=charge.payment_deadline,
+                payment_penalty=int(charge.payment_penalty_amount or 0),
+                other_cost=charge.other_cost_amount or 0,
+                details=charge.details,
                 total_area=int(charge.total_area),
                 fix_area=charge,
                 fix_charge=int(charge.fix_charge_amount),
@@ -4087,7 +4109,7 @@ def show_fix_area_charge_notification_form(request, pk):
 
     context = {
         'page_obj': page_obj,
-        'middleCharge': charge,
+        'charge': charge,
         'pk': pk,
         'notified_ids': list(notified_ids),
     }
@@ -4135,6 +4157,7 @@ def send_notification_fix_area_charge_to_user(request, pk):
             if not created:
                 if not fixed_calc.send_notification:
                     fixed_calc.send_notification = True
+                    fixed_calc.send_notification_date = timezone.now()
                     fixed_calc.save()
                     notified_units.append(str(unit))
             else:
@@ -4227,11 +4250,10 @@ class PersonAreaChargeCreateView(CreateView):
     success_url = reverse_lazy('add_person_area_charge')
 
     def form_valid(self, form):
-
         person_area_charge = form.save(commit=False)
-
         charge_name = form.cleaned_data.get('name') or 0
         person_area_charge.name = charge_name
+        person_area_charge.user = self.request.user
         if person_area_charge.civil is None:
             person_area_charge.civil = 0
 
@@ -4263,7 +4285,7 @@ class PersonAreaChargeCreateView(CreateView):
                 filter=Q(person_area_charge__send_notification=True)
             ),
             total_units=Count('person_area_charge')
-        )
+        ).order_by('-created_at')
         context['charges'] = charges
         return context
 
@@ -4326,11 +4348,12 @@ def calculate_total_charge_person_area(unit, charge):
         area_amount = float(charge.area_amount or 0)
         person_amount = float(charge.person_amount or 0)
         civil = float(charge.civil or 0)
+        other_cost = float(charge.other_cost_amount or 0)
     except (TypeError, ValueError):
-        area = people = area_amount = person_amount = civil = 0.0
+        area = people = area_amount = person_amount = civil = other_cost = 0.0
 
     final_person_amount = (area_amount * area) + (person_amount * people)
-    total_charge = final_person_amount + civil
+    total_charge = final_person_amount + civil + other_cost
     return total_charge
 
 
@@ -4376,6 +4399,10 @@ def show_person_area_charge_notification_form(request, pk):
                 charge_name=charge.name,
                 area_charge=int(charge.area_amount or 0),
                 person_charge=int(charge.person_amount or 0),
+                payment_deadline_date=charge.payment_deadline,
+                payment_penalty=int(charge.payment_penalty_amount or 0),
+                other_cost=charge.other_cost_amount or 0,
+                details=charge.details,
                 total_area=int(charge.total_area),
                 person_area_charge=charge,
                 total_charge_month=int(total_charge),
@@ -4394,7 +4421,7 @@ def show_person_area_charge_notification_form(request, pk):
 
     context = {
         'page_obj': page_obj,
-        'middleCharge': charge,
+        'charge': charge,
         'pk': pk,
         'notified_ids': list(notified_ids),
     }
@@ -4443,6 +4470,7 @@ def send_notification_person_area_charge_to_user(request, pk):
             if not created:
                 if not fixed_calc.send_notification:
                     fixed_calc.send_notification = True
+                    fixed_calc.send_notification_date = timezone.now()
                     fixed_calc.save()
                     notified_units.append(str(unit))
             else:
@@ -4535,11 +4563,10 @@ class PersonAreaFixChargeCreateView(CreateView):
     success_url = reverse_lazy('add_person_area_fix_charge')
 
     def form_valid(self, form):
-
         fix_person_area_charge = form.save(commit=False)
-
         charge_name = form.cleaned_data.get('name') or 0
         fix_person_area_charge.name = charge_name
+        fix_person_area_charge.user = self.request.user
         if fix_person_area_charge.civil is None:
             fix_person_area_charge.civil = 0
 
@@ -4571,7 +4598,7 @@ class PersonAreaFixChargeCreateView(CreateView):
                 filter=Q(fix_person_area__send_notification=True)
             ),
             total_units=Count('fix_person_area')
-        )
+        ).order_by('-created_at')
         context['charges'] = charges
         return context
 
@@ -4688,6 +4715,10 @@ def show_fix_person_area_charge_notification_form(request, pk):
                 area_charge=int(charge.area_amount or 0),
                 person_charge=int(charge.person_amount or 0),
                 fix_charge=int(charge.fix_charge_amount or 0),
+                payment_deadline_date=charge.payment_deadline,
+                payment_penalty=int(charge.payment_penalty_amount or 0),
+                other_cost=charge.other_cost_amount or 0,
+                details=charge.details,
                 total_area=int(charge.total_area),
                 total_people=int(charge.total_people),
                 fix_person_area=charge,
@@ -4707,7 +4738,7 @@ def show_fix_person_area_charge_notification_form(request, pk):
 
     context = {
         'page_obj': page_obj,
-        'middleCharge': charge,
+        'charge': charge,
         'pk': pk,
         'notified_ids': list(notified_ids),
     }
@@ -4756,6 +4787,7 @@ def send_notification_fix_person_area_charge_to_user(request, pk):
             if not created:
                 if not fixed_calc.send_notification:
                     fixed_calc.send_notification = True
+                    fixed_calc.send_notification_date = timezone.now()
                     fixed_calc.save()
                     notified_units.append(str(unit))
             else:
@@ -4849,6 +4881,7 @@ class VariableFixChargeCreateView(CreateView):
 
     def form_valid(self, form):
         fix_variable_charge = form.save(commit=False)
+        fix_variable_charge.user = self.request.user
 
         if fix_variable_charge.civil is None:
             fix_variable_charge.civil = 0
@@ -4887,7 +4920,7 @@ class VariableFixChargeCreateView(CreateView):
                 filter=Q(fix_variable_charge__send_notification=True)
             ),
             total_units=Count('fix_variable_charge')
-        )
+        ).order_by('-created_at')
         context['charges'] = charges
         return context
 
@@ -5016,6 +5049,8 @@ def show_fix_variable_notification_form(request, pk):
                 unit_variable_person_charge=int(charge.unit_variable_person_amount or 0),
                 unit_variable_area_charge=int(charge.unit_variable_area_amount or 0),
                 unit_fix_charge_per_unit=int(charge.unit_fix_amount or 0),
+                payment_deadline_date=charge.payment_deadline,
+                payment_penalty=int(charge.payment_penalty_amount or 0),
                 total_area=int(charge.total_area),
                 total_people=int(charge.total_people),
                 fix_variable_charge=charge,
@@ -5043,7 +5078,7 @@ def show_fix_variable_notification_form(request, pk):
 
     context = {
         'page_obj': page_obj,
-        'middleCharge': charge,
+        'charge': charge,
         'pk': pk,
         'notified_ids': list(notified_ids),
     }
@@ -5093,6 +5128,7 @@ def send_notification_fix_variable_to_user(request, pk):
             if not created:
                 if not fixed_calc.send_notification:
                     fixed_calc.send_notification = True
+                    fixed_calc.send_notification_date = timezone.now()
                     fixed_calc.save()
                     notified_units.append(str(unit))
             else:
@@ -5174,3 +5210,109 @@ def remove_send_notification_fix_variable(request, pk):
         return JsonResponse({'success': f'{deleted_count} اطلاعیه حذف شد.'})
 
     return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
+
+
+# ==================================
+@method_decorator(admin_required, name='dispatch')
+class SmsManagementView(CreateView):
+    model = SmsManagement
+    template_name = 'admin_panel/sms_management.html'
+    form_class = SmsForm
+    success_url = reverse_lazy('admin_panel:sms_management')
+
+    def form_valid(self, form):
+        sms = form.save(commit=False)
+        sms.user = self.request.user
+        try:
+            sms.save()
+            self.object = sms
+            messages.success(self.request, 'پیامک موفقیت ثبت گردید')
+            return super().form_valid(form)
+        except:
+            messages.error(self.request, 'خطا در ثبت!')
+            return self.form_invalid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['all_sms'] = SmsManagement.objects.all().order_by('-created_at')
+        context['units'] = Unit.objects.all()
+
+        return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class SmsUpdateView(UpdateView):
+    model = SmsManagement
+    template_name = 'admin_panel/sms_management.html'
+    form_class = SmsForm
+    success_url = reverse_lazy('sms_management')
+
+    def form_valid(self, form):
+        edit_instance = form.instance
+        self.object = form.save(commit=False)
+        messages.success(self.request, 'پیامک با موفقیت ویرایش گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['all_sms'] = SmsManagement.objects.filter(is_active=True)
+        return context
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def sms_delete(request, pk):
+    sms = get_object_or_404(SmsManagement, id=pk)
+    print(sms.id)
+
+    try:
+        sms.delete()
+        messages.success(request, 'پسامک با موفقیت حذف گردید!')
+    except ProtectedError:
+        messages.error(request, " امکان حذف وجود ندارد! ")
+    return redirect(reverse('sms_management'))
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def send_sms(request, pk):
+    if request.method != "POST":
+        messages.warning(request, "فرم به درستی ارسال نشده است.")
+        return redirect('sms_management')
+
+    sms = get_object_or_404(SmsManagement, id=pk)
+    selected_units = request.POST.getlist('units')
+
+    if not selected_units:
+        messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
+        return redirect('sms_management')
+
+    units_qs = Unit.objects.filter(is_active=True)
+
+    if 'all' in selected_units:
+        units_to_notify = units_qs
+    else:
+        units_to_notify = units_qs.filter(id__in=selected_units)
+
+    if not units_to_notify.exists():
+        messages.warning(request, 'هیچ واحد معتبری برای ارسال پیامک پیدا نشد.')
+        return redirect('sms_management')
+
+    notified_units = []
+
+    with transaction.atomic():
+        for unit in units_to_notify:
+            # Send SMS to unit's user
+            if unit.user.mobile:
+                helper.send_sms_to_user(
+                    mobile=unit.user.mobile,
+                    title=sms.message,
+                    full_name=unit.user.full_name,
+                    otp=None
+                )
+                notified_units.append(str(unit.unit))
+
+    if notified_units:
+        messages.success(request, f'پیامک برای واحدهای زیر ارسال شد: {", ".join(notified_units)}')
+    else:
+        messages.info(request, 'پیامکی ارسال نشد؛ ممکن است شماره موبایل واحدها موجود نباشد.')
+
+    return redirect('sms_management')

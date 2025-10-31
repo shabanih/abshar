@@ -12,7 +12,7 @@ from jalali_date.widgets import AdminJalaliDateWidget
 from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, IncomeCategory, ReceiveMoney, PayMoney, \
                                 Property, Maintenance, ChargeByPersonArea, ChargeByFixPersonArea, FixCharge, AreaCharge,
                                 PersonCharge,
-                                FixPersonCharge, FixAreaCharge, ChargeFixVariable)
+                                FixPersonCharge, FixAreaCharge, ChargeFixVariable, SmsManagement)
 
 from user_app.models import Unit, Bank, User
 
@@ -185,7 +185,8 @@ class BankForm(forms.ModelForm):
     class Meta:
         model = Bank
         fields = (
-        'house_name', 'bank_name', 'account_holder_name', 'account_no', 'sheba_number', 'cart_number', 'initial_fund')
+            'house_name', 'bank_name', 'account_holder_name', 'account_no', 'sheba_number', 'cart_number',
+            'initial_fund')
 
 
 # class MyHouseForm(forms.ModelForm):
@@ -959,8 +960,7 @@ class FixPersonChargeForm(forms.ModelForm):
     class Meta:
         model = FixPersonCharge
         fields = ['name', 'person_amount', 'details', 'civil', 'fix_charge_amount', 'payment_deadline'
-            , 'payment_penalty_amount',
-                  'other_cost_amount']
+            , 'payment_penalty_amount', 'other_cost_amount']
 
 
 class PersonAreaChargeForm(forms.ModelForm):
@@ -1097,3 +1097,19 @@ class VariableFixChargeForm(forms.ModelForm):
         fields = ['name', 'extra_parking_amount', 'unit_fix_amount', 'unit_variable_area_amount',
                   'unit_variable_person_amount', 'civil', 'details', 'other_cost_amount',
                   'payment_penalty_amount', 'payment_deadline']
+
+
+class SmsForm(forms.ModelForm):
+    subject = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+                           required=True,
+                           label='عنوان پیامک ')
+    message = forms.CharField(error_messages=error_message, required=True, widget=forms.Textarea(
+        attrs={'class': 'form-control', 'rows': 2}),
+                            label='متن پیامک')
+
+    is_active = forms.ChoiceField(label='فعال /غیرفعال نمودن پیامک', required=True,
+                                  error_messages=error_message, choices=CHOICES, widget=forms.Select(attrs=attr))
+
+    class Meta:
+        model = SmsManagement
+        fields = ['subject', 'message', 'is_active']

@@ -19,7 +19,7 @@
                 </button>
                  </div>
                <div class="table-responsive">
-                            <table class="table table-bordered">
+                            <table class="table table-striped table-bordered border-primary">
                                 <thead class="text-center">
                                     <tr>
                                         <th>#</th>
@@ -30,10 +30,10 @@
                                         <th> شارژ عمرانی </th>
                                         <th> سایر هزینه ها </th>
                                         <th> توضیحات </th>
-                                        <th> اعلام شارژ </th>
                                         <th>تاریخ ایجاد</th>
                                          <th> دیرکرد</th>
                                             <th>مهلت پرداخت </th>
+                                         <th> اعلام شارژ </th>
                                         <th>دستورات</th>
                                     </tr>
                                 </thead>
@@ -50,14 +50,15 @@
                                             <td>{{charge.civil|three_digit_currency }}</td>
                                             <td>{{charge.other_cost_amount|three_digit_currency }}</td>
                                             <td>{{charge.details }}</td>
+                                            
+                                            <td>{{charge.created_at|show_jalali }}</td>
+                                         <td>% {{charge.payment_penalty_amount }}</td>
+                                             <td>{{charge.payment_deadline|show_jalali }}</td>
                                                <td>
                                                 <span>{{ charge.notified_count }} از {{ unit_count }} واحد</span>
                                                 </td>
-                                            <td>{{charge.created_at|show_jalali }}</td>
-                                            <td>% {{charge.payment_penalty_amount }}</td>
-                                             <td>{{charge.payment_deadline|show_jalali }}</td>
                                             
-                                               <td class="p-0">
+                                               <td class="col-1 p-0">
                                                       <a
                                            class="btn btn-gradient-info p-1 edit-charge-area-btn"
                                            data-id="{{ charge.id }}"
@@ -77,8 +78,9 @@
                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
                                             </a>
                                      <a href="{% url 'show_notification_area_charge_form' charge.id %}"
-                                       class="btn btn-gradient-success p-2">
-                                            اعلان شارژ
+                                           class="btn btn-gradient-success p-1" 
+                                          data-bs-toggle="tooltip"  title="اعلان شارژ">
+                                         <i class="fas fa-bullhorn fa-flip-horizontal"></i>
                                             </a>
 
                                         </td>

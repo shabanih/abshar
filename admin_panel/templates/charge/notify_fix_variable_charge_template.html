@@ -37,17 +37,17 @@
         {% csrf_token %}
        
         <hr>
-      <div class="row mb-2">
+      <div class="row g-3">
             <div class="col-12 col-md-2 col-xl-2 form-check align-self-center">
             <button type="button" id="toggle-select-btn" class="btn btn-gradient-info shadow_style px-3">
                 انتخاب همه واحدها
             </button>
             </div>
-                   <div class="col-12 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
+                   <div class="col-6 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
                     <span class="circleSendNotify"></span>
                   ارسال موفق اطلاعیه شارژ 
                 </div>
-            <div class="col-12 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
+            <div class="col-6 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
                     <span class="circlePayment"></span>
                   پرداخت موفق شارژ
                 </div>
@@ -56,13 +56,14 @@
                 <button type="button" id="remove-all-btn" class="btn btn-dark px-3 shadow_style">
                     حذف اطلاعیه واحدها
                 </button>
-                <button type="submit" onclick="return confirmWithSweetAlert(event)" class="btn btn-gradient-success px-3 shadow_style">ارسال اطلاعیه شارژ به واحد</button>
+                <button type="submit" onclick="return confirmWithSweetAlert(event)" class="btn btn-gradient-success px-3 shadow_style">ارسال اطلاعیه شارژ </button>
                 <a href="{% url 'add_variable_fix_charge' %}" class="btn btn-danger px-3 shadow_style"> بازگشت</a>
              </div>
         </div>
     
   
-<div class="row g-2">
+<div class="row g-2 mt-3">
+<p class="text-danger">توجه: جهت مشاهده اطلاعات شارژ بر روی آن کلیک نمایید.</p>
    {% for unit, renter, is_paid, total_charge in page_obj %}
     <div class="col-6 col-lg-2 col-md-2 col-xl-2 mb-3">
        <div class="card shadow_style fixChargeTable p-0 m-0"
@@ -88,7 +89,11 @@
                                       {% if renter %}مستاجر: {{ renter.renter_name }}{% else %}بدون مستاجر{% endif %}
                                     {% else %}
                                       مالک: {{ unit.owner_name }}
-                                    {% endif %}<br>مبلغ شارژ: {{ total_charge|three_digit_currency }} تومان">
+                                    {% endif %}<br>مبلغ شارژ: {{ total_charge|three_digit_currency }} تومان
+                                    <br> متراژ واحد: {{ unit.area }}
+                                    <br> تعداد نفرات: {{ unit.people_count }}
+                                    <br> تعداد پارکینگ اضافه: {{ unit.parking_counts }}
+                                 ">
                  {% if unit.parking_counts %}
                  	    <input class="form-check-input unit-checkbox mx-2" 
                            type="checkbox" name="units" 
@@ -113,7 +118,6 @@
 </div>
                     
 
-        <hr>
       
   
     </form>
