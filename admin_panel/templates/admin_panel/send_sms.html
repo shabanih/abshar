@@ -1,0 +1,118 @@
+﻿{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}مدیریت پیامک ها{% endblock %}
+
+{% block main_content %}
+<div class="container mt-3">
+
+    <!-- فرم ثبت/ویرایش پیامک -->
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="row">
+            <div class="col-12 col-lg-6 mb-3">
+                {{ form.subject.label_tag }}
+                {{ form.subject }}
+                {{ form.subject.errors }}
+            </div>
+            <div class="col-12 mb-3">
+                {{ form.message.label_tag }}
+                {{ form.message }}
+                {{ form.message.errors }}
+            </div>
+        </div>
+
+        <!-- جدول انتخاب واحدها -->
+        <h5>انتخاب واحدها برای ارسال پیامک:</h5>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>
+                        <input type="checkbox" id="select_all" /> انتخاب همه
+                    </th>
+                    <th>واحد</th>
+                    <th>شماره تماس</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for unit in units %}
+                <tr>
+                    <td>
+                        <input type="checkbox" name="units" value="{{ unit.id }}" class="unit_checkbox" />
+                    </td>
+                    <td>{{ unit.unit }}</td>
+                    <td>{{ unit.user.mobile }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="mt-3">
+            <button type="submit" class="btn btn-success">
+                {% if form.instance.id %}ذخیره پیامک{% else %}ارسال پیامک{% endif %}
+            </button>
+        </div>
+    </form>
+
+    <!-- جدول پیامک‌های ثبت شده -->
+    <div class="mt-5">
+        <h5>پیامک‌های ثبت شده</h5>
+        <div class="table-responsive">
+            <table class="table table-bordered text-center">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>ایجاد کننده</th>
+                        <th>عنوان</th>
+                        <th>متن پیامک</th>
+                        <th>تاریخ ایجاد</th>
+                        <th>فعال/غیرفعال</th>
+                        <th>دستورات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if all_sms %}
+                        {% for sms in all_sms %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ sms.user.full_name }}</td>
+                            <td>{{ sms.subject }}</td>
+                            <td>{{ sms.message }}</td>
+                            <td>{{ sms.created_at|show_jalali }}</td>
+                            <td>
+                                {% if sms.is_active %}
+                                    <span class="badge bg-success">فعال</span>
+                                {% else %}
+                                    <span class="badge bg-danger">غیر فعال</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'edit_sms' sms.id %}" class="btn btn-primary btn-sm">ویرایش</a>
+                                <a href="{% url 'delete_sms' sms.id %}" class="btn btn-danger btn-sm"
+                                   onclick="return confirm('آیا مطمئن هستید؟')">حذف</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7">هیچ پیامی برای نمایش وجود ندارد.</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- JS برای انتخاب همه -->
+<script>
+    const selectAll = document.getElementById('select_all');
+    const checkboxes = document.querySelectorAll('.unit_checkbox');
+
+    selectAll.addEventListener('change', function () {
+        checkboxes.forEach(cb => cb.checked = this.checked);
+    });
+</script>
+{% endblock %}
