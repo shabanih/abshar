@@ -5272,47 +5272,74 @@ def sms_delete(request, pk):
     return redirect(reverse('sms_management'))
 
 
+
+@login_required(login_url='/admin-panel/login-admin')  # یا settings.LOGIN_URL_ADMIN
+def show_send_sms_form(request, pk):
+    sms = get_object_or_404(SmsManagement, id=pk)
+
+    units = Unit.objects.filter(is_active=True).order_by('unit')
+    units_to_notify = ChargeFixVariableCalc.objects.filter(
+        is_paid=False,
+    )
+
+    units_with_details = []
+    for unit in units:
+        active_renter = unit.renters.filter(renter_is_active=True).first()
+        units_with_details.append({
+            'unit': unit,
+            'active_renter': active_renter
+        })
+
+    return render(request, 'admin_panel/send_sms.html', {
+        'sms': sms,
+        'units_with_details': units_with_details,
+        'units_to_notify': units_to_notify
+    })
+
+
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def send_sms(request, pk):
-    if request.method != "POST":
-        messages.warning(request, "فرم به درستی ارسال نشده است.")
-        return redirect('sms_management')
-
     sms = get_object_or_404(SmsManagement, id=pk)
-    selected_units = request.POST.getlist('units')
 
-    if not selected_units:
-        messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
+    if request.method == "POST":
+        selected_units = request.POST.getlist('units[]')
+        if not selected_units:
+            messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
+            return redirect('sms_management')
+
+        units_qs = Unit.objects.filter(is_active=True)
+        if 'all' in selected_units:
+            units_to_notify = units_qs
+        else:
+            units_to_notify = units_qs.filter(id__in=selected_units)
+
+        if not units_to_notify.exists():
+            messages.warning(request, 'هیچ واحد معتبری برای ارسال پیامک پیدا نشد.')
+            return redirect('sms_management')
+
+        notified_units = []
+        with transaction.atomic():
+            for unit in units_to_notify:
+                if unit.user and unit.user.mobile:
+                    helper.send_sms_to_user(
+                        mobile=unit.user.mobile,
+                        title=sms.message,
+                        full_name=unit.user.full_name,
+                        otp=None
+                    )
+                    notified_units.append(str(unit.unit))
+
+        if notified_units:
+            messages.success(request, f'پیامک برای واحدهای زیر ارسال شد: {", ".join(notified_units)}')
+        else:
+            messages.info(request, 'پیامکی ارسال نشد؛ ممکن است شماره موبایل واحدها موجود نباشد.')
+
         return redirect('sms_management')
 
-    units_qs = Unit.objects.filter(is_active=True)
+    # اگر GET بود، فرم را رندر کن
+    units_with_details = Unit.objects.filter(is_active=True)
+    return render(request, 'admin_panel/send_sms.html', {
+        'sms': sms,
+        'units_with_details': units_with_details,
+    })
 
-    if 'all' in selected_units:
-        units_to_notify = units_qs
-    else:
-        units_to_notify = units_qs.filter(id__in=selected_units)
-
-    if not units_to_notify.exists():
-        messages.warning(request, 'هیچ واحد معتبری برای ارسال پیامک پیدا نشد.')
-        return redirect('sms_management')
-
-    notified_units = []
-
-    with transaction.atomic():
-        for unit in units_to_notify:
-            # Send SMS to unit's user
-            if unit.user.mobile:
-                helper.send_sms_to_user(
-                    mobile=unit.user.mobile,
-                    title=sms.message,
-                    full_name=unit.user.full_name,
-                    otp=None
-                )
-                notified_units.append(str(unit.unit))
-
-    if notified_units:
-        messages.success(request, f'پیامک برای واحدهای زیر ارسال شد: {", ".join(notified_units)}')
-    else:
-        messages.info(request, 'پیامکی ارسال نشد؛ ممکن است شماره موبایل واحدها موجود نباشد.')
-
-    return redirect('sms_management')

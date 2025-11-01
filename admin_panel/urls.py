@@ -182,6 +182,7 @@ urlpatterns = [
     path('sms/management/', views.SmsManagementView.as_view(), name='sms_management'),
     path('edit/sms/<int:pk>/', views.SmsUpdateView.as_view(), name='edit_sms'),
     path('sms-delete/<int:pk>/', views.sms_delete, name='delete_sms'),
+    path('sms/send/form/<int:pk>/', views.show_send_sms_form, name='show_send_sms_form'),
     path('send-sms/<int:pk>/', views.send_sms, name='send_sms')
 ]
 if settings.DEBUG:

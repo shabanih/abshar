@@ -1236,4 +1236,57 @@ function confirmDeleteWithSweetAlert(event) {
     return false; // جلوگیری از رفتار پیش‌فرض لینک
 }
 
+// ================sms =================
+const available = document.getElementById("availableUnits");
+const selected = document.getElementById("selectedUnits");
+const addBtn = document.getElementById("addBtn");
+const removeBtn = document.getElementById("removeBtn");
+const addAllBtn = document.getElementById("addAllBtn");
+const removeAllBtn = document.getElementById("removeAllBtn");
+const searchAvailable = document.getElementById("searchAvailable");
+const searchSelected = document.getElementById("searchSelected");
 
+// انتقال گزینه‌ها
+addBtn.onclick = () => moveOptions(available, selected);
+removeBtn.onclick = () => moveOptions(selected, available);
+addAllBtn.onclick = () => moveAllOptions(available, selected);
+removeAllBtn.onclick = () => moveAllOptions(selected, available);
+
+function moveOptions(from, to) {
+    [...from.selectedOptions].forEach(opt => {
+        to.add(opt);
+        opt.selected = false;
+    });
+}
+
+function moveAllOptions(from, to) {
+    [...from.options].forEach(opt => {
+        to.add(opt);
+        opt.selected = false;
+    });
+}
+
+// قبل از submit همه گزینه‌های select مقصد را selected کن
+document.querySelector("form").addEventListener("submit", function() {
+    [...selected.options].forEach(opt => opt.selected = true);
+});
+
+// جستجوی کلاینت
+searchAvailable.addEventListener("keyup", function() {
+    const filter = this.value.toLowerCase();
+    [...available.options].forEach(opt => {
+        opt.style.display = opt.text.toLowerCase().includes(filter) ? "" : "none";
+    });
+});
+
+searchSelected.addEventListener("keyup", function() {
+    const filter = this.value.toLowerCase();
+    [...selected.options].forEach(opt => {
+        opt.style.display = opt.text.toLowerCase().includes(filter) ? "" : "none";
+    });
+});
+
+document.querySelector('form').addEventListener('submit', function() {
+    const selected = document.getElementById('selectedUnits');
+    Array.from(selected.options).forEach(opt => opt.selected = true);
+});
