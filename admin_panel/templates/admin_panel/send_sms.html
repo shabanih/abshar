@@ -2,133 +2,94 @@
 {% load static %}
 {% load poll_extras %}
 
-{% block page_title %}مدیریت پیامک ها{% endblock %}
+{#{% block page_title %}مدیریت پیامک‌ها{% endblock %}#}
 
 {% block main_content %}
-<div class="container mt-4">
-
-    <form method="POST" action="{% url 'send_sms' sms.id %}">
-        {% csrf_token %}
-
-        <div class="row">
-            <!-- واحدهای موجود -->
-       <div class="col-md-5">
-    <h5>واحدهای موجود</h5>
-    <input type="text" id="searchAvailable" class="form-control mb-2" placeholder="جستجو...">
-    <select id="availableUnits" multiple size="15" class="form-select">
-        {% for item in units_with_details %}
-            {% with unit=item.unit active_renter=item.active_renter %}
-            <option value="{{ unit.id }}" data-is-paid="{{ unit.is_paid|yesno:"true,false" }}">
-                واحد {{ unit.unit }} - 
-                {% if unit.is_owner %}
-                    مستاجر: {% if active_renter %}{{ active_renter.renter_name }}{% else %}ندارد{% endif %}
-                    {% if active_renter and active_renter.mobile %} ({{ active_renter.mobile }}){% endif %}
-                {% else %}
-                    مالک: {{ unit.owner_name }}
-                    {% if unit.user and unit.user.mobile %} ({{ unit.user.mobile }}){% endif %}
-                {% endif %}
-            </option>
-            {% endwith %}
-        {% endfor %}
-    </select>
-</div>
-
-
-
-            <!-- دکمه‌ها -->
-            <div class="col-md-2 d-flex flex-column justify-content-center align-items-center gap-2 mt-4">
-                <button type="button" class="btn btn-primary w-75" id="addAllBtn">
-                    <i class="fas fa-angle-double-left w-50 text-center"></i>
-                </button>
-                <button type="button" class="btn btn-primary w-75" id="addBtn">
-                    <i class="fas fa-angle-left"></i>
-                </button>
-                <button type="button" class="btn btn-primary w-75" id="removeBtn">
-                    <i class="fas fa-angle-right"></i>
-                </button>
-                <button type="button" class="btn btn-primary w-75" id="removeAllBtn">
-                    <i class="fas fa-angle-double-right"></i>
-                </button>
-            </div>
-
-            <!-- واحدهای انتخاب‌شده -->
-            <div class="col-md-5">
-                <h5>واحدهای انتخاب‌شده</h5>
-                <input type="text" id="searchSelected" class="form-control mb-2" placeholder="جستجو...">
-                <select id="selectedUnits" name="units[]" multiple size="15" class="form-select"></select>
-            </div>
+<div class="container mt-5">
+    <div class="card shadow-lg border-0 rounded-4">
+        <div class="card-header bg-gradient-secondary text-white text-center py-3 rounded-top-4">
+            <h4 class="mb-0"><i class="fas fa-sms me-2"></i>مدیریت ارسال پیامک‌ها</h4>
         </div>
-<div class="col-12 text-center">
-     <button type="submit" class="btn btn-primary mt-3">ارسال پیامک</button>
+
+        <div class="card-body p-4">
+            <form method="POST" action="{% url 'send_sms' sms.id %}">
+                {% csrf_token %}
+
+                <div class="row g-4 ">
+                    <!-- واحدهای موجود -->
+                    <div class="col-md-5">
+                        <div class="card border-0 shadow-sm rounded-3 h-100">
+                            <div class="card-header bg-light text-center fw-bold">
+                                <i class="fas fa-building text-primary me-1"></i> واحدهای موجود
+                            </div>
+                            <div class="card-body">
+                                <input type="text" id="searchAvailable" class="form-control mb-3"
+                                       placeholder="جستجو..." />
+                                <select id="availableUnits" multiple size="15" class="form-select rounded-3">
+                                    {% for item in units_with_details %}
+                                        {% with unit=item.unit active_renter=item.active_renter %}
+                                        <option value="{{ unit.id }}">
+                                            واحد {{ unit.unit }} -
+                                            {% if unit.is_owner %}
+                                                مستاجر: {% if active_renter %}{{ active_renter.renter_name }}{% else %}ندارد{% endif %}
+                                                {% if active_renter and active_renter.renter_mobile %} ({{ active_renter.renter_mobile }}){% endif %}
+                                            {% else %}
+                                                مالک: {{ unit.owner_name }}
+                                                {% if unit.user and unit.user.mobile %} ({{ unit.user.mobile }}){% endif %}
+                                            {% endif %}
+                                        </option>
+                                        {% endwith %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- دکمه‌های انتقال -->
+                    <div class="col-md-2 d-flex flex-column justify-content-center align-items-center gap-3">
+                        <button type="button" class="btn btn-outline-primary btn-lg rounded-circle shadow-sm"
+                                id="addAllBtn" title="افزودن همه">
+                            <i class="fas fa-angle-double-left"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-lg rounded-circle shadow-sm"
+                                id="addBtn" title="افزودن انتخاب‌شده‌ها">
+                            <i class="fas fa-angle-left"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-warning btn-lg rounded-circle shadow-sm"
+                                id="removeBtn" title="حذف انتخاب‌شده‌ها">
+                            <i class="fas fa-angle-right"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-lg rounded-circle shadow-sm"
+                                id="removeAllBtn" title="حذف همه">
+                            <i class="fas fa-angle-double-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- واحدهای انتخاب‌شده -->
+                    <div class="col-md-5">
+                        <div class="card border-0 shadow-sm rounded-3 h-100">
+                            <div class="card-header bg-light text-center fw-bold">
+                                <i class="fas fa-list text-primary me-1"></i> واحدهای انتخاب‌شده
+                            </div>
+                            <div class="card-body">
+                                <input type="text" id="searchSelected" class="form-control mb-3"
+                                       placeholder="جستجو..." />
+                                <select id="selectedUnits" name="units" multiple size="15" class="form-select rounded-3"></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- دکمه ارسال -->
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-gradient-success btn-lg px-5 shadow">
+                        <i class="fas fa-paper-plane me-2"></i>ارسال پیامک
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
-       
-    </form>
-</div>
+    
 
-
-
-
-
-
-
-    <!-- جدول پیامک‌های ثبت شده -->
-{#    <div class="mt-5">#}
-{#        <h5>پیامک‌های ثبت شده</h5>#}
-{#        <div class="table-responsive">#}
-{#            <table class="table table-bordered text-center">#}
-{#                <thead>#}
-{#                    <tr>#}
-{#                        <th>#</th>#}
-{#                        <th>ایجاد کننده</th>#}
-{#                        <th>عنوان</th>#}
-{#                        <th>متن پیامک</th>#}
-{#                        <th>تاریخ ایجاد</th>#}
-{#                        <th>فعال/غیرفعال</th>#}
-{#                        <th>دستورات</th>#}
-{#                    </tr>#}
-{#                </thead>#}
-{#                <tbody>#}
-{#                    {% if all_sms %}#}
-{#                        {% for sms in all_sms %}#}
-{#                        <tr>#}
-{#                            <td>{{ forloop.counter }}</td>#}
-{#                            <td>{{ sms.user.full_name }}</td>#}
-{#                            <td>{{ sms.subject }}</td>#}
-{#                            <td>{{ sms.message }}</td>#}
-{#                            <td>{{ sms.created_at|show_jalali }}</td>#}
-{#                            <td>#}
-{#                                {% if sms.is_active %}#}
-{#                                    <span class="badge bg-success">فعال</span>#}
-{#                                {% else %}#}
-{#                                    <span class="badge bg-danger">غیر فعال</span>#}
-{#                                {% endif %}#}
-{#                            </td>#}
-{#                            <td>#}
-{#                                <a href="{% url 'edit_sms' sms.id %}" class="btn btn-primary btn-sm">ویرایش</a>#}
-{#                                <a href="{% url 'delete_sms' sms.id %}" class="btn btn-danger btn-sm"#}
-{#                                   onclick="return confirm('آیا مطمئن هستید؟')">حذف</a>#}
-{#                            </td>#}
-{#                        </tr>#}
-{#                        {% endfor %}#}
-{#                    {% else %}#}
-{#                        <tr>#}
-{#                            <td colspan="7">هیچ پیامی برای نمایش وجود ندارد.</td>#}
-{#                        </tr>#}
-{#                    {% endif %}#}
-{#                </tbody>#}
-{#            </table>#}
-{#        </div>#}
-{#    </div>#}
-{#</div>#}
-
-
-{#<script>#}
-{#    const selectAll = document.getElementById('select_all');#}
-{#    const checkboxes = document.querySelectorAll('.unit_checkbox');#}
-{##}
-{#    selectAll.addEventListener('change', function () {#}
-{#        checkboxes.forEach(cb => cb.checked = this.checked);#}
-{#    });#}
-{##}
-{#</script>#}
 {% endblock %}

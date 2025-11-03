@@ -35,9 +35,9 @@ def send_notify_user_by_sms(mobile, fix_charge, name, otp=None):
 
 
 def send_sms_to_user(mobile, message, full_name, otp=None):
-    mobile = [mobile]
-    full_name = [full_name]
-    title = [message]
+    mobile = str(mobile)  # مطمئن شو عدد به رشته تبدیل شده
+    full_name = str(full_name)
+    message = str(message)
     text = '.'
 
     try:
@@ -46,10 +46,10 @@ def send_sms_to_user(mobile, message, full_name, otp=None):
         params = {
             'receptor': [mobile],  # List of strings for mobile numbers
 
-            'token': text,
+            'token': message,
             'token10': full_name,
             'token20': message,
-            'template': 'send_message',  # Template name (if using a template)
+            'template': 'raya',  # Template name (if using a template)
             'message': otp,  # Custom message
             'type': 'sms'
         }

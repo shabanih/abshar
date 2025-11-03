@@ -793,3 +793,17 @@ div.d-flex.justify-content-between div{
   line-height: 1.9em;
   text-align: center;
 }
+
+    select.form-select option {
+        padding: 5px;
+    }
+    select.form-select option:hover {
+        background-color: #f1f1f1;
+    }
+    .btn-outline-primary:hover,
+    .btn-outline-success:hover,
+    .btn-outline-warning:hover,
+    .btn-outline-danger:hover {
+        transform: scale(1.1);
+        transition: all 0.2s ease;
+    }

@@ -5218,7 +5218,7 @@ class SmsManagementView(CreateView):
     model = SmsManagement
     template_name = 'admin_panel/sms_management.html'
     form_class = SmsForm
-    success_url = reverse_lazy('admin_panel:sms_management')
+    success_url = reverse_lazy('sms_management')
 
     def form_valid(self, form):
         sms = form.save(commit=False)
@@ -5266,7 +5266,7 @@ def sms_delete(request, pk):
 
     try:
         sms.delete()
-        messages.success(request, 'پسامک با موفقیت حذف گردید!')
+        messages.success(request, 'پیامک با موفقیت حذف گردید!')
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
     return redirect(reverse('sms_management'))
@@ -5302,7 +5302,8 @@ def send_sms(request, pk):
     sms = get_object_or_404(SmsManagement, id=pk)
 
     if request.method == "POST":
-        selected_units = request.POST.getlist('units[]')
+        selected_units = request.POST.getlist('units')
+        print(request.POST)
         if not selected_units:
             messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
             return redirect('sms_management')
@@ -5321,15 +5322,20 @@ def send_sms(request, pk):
         with transaction.atomic():
             for unit in units_to_notify:
                 if unit.user and unit.user.mobile:
-                    helper.send_sms_to_user(
-                        mobile=unit.user.mobile,
-                        title=sms.message,
-                        full_name=unit.user.full_name,
-                        otp=None
-                    )
+                    # helper.send_sms_to_user(
+                    #     mobile=unit.user.mobile,
+                    #     message=sms.message,
+                    #     full_name=unit.user.full_name,
+                    #     otp=None
+                    # )
                     notified_units.append(str(unit.unit))
 
         if notified_units:
+            sms.notified_units.set(notified_units)  # ذخیره در ManyToMany
+            sms.send_notification = True
+            sms.send_notification_date = timezone.now()
+            sms.save()
+            sms.refresh_from_db()
             messages.success(request, f'پیامک برای واحدهای زیر ارسال شد: {", ".join(notified_units)}')
         else:
             messages.info(request, 'پیامکی ارسال نشد؛ ممکن است شماره موبایل واحدها موجود نباشد.')
