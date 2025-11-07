@@ -1,180 +1,93 @@
 {% load static %}
-<ul class="navbar-nav navbar-nav-right" style="margin-bottom: 1rem">
-            <li class="nav-item d-none d-lg-block full-screen-link">
-              <a class="nav-link">
-                <i class="mdi mdi-fullscreen" id="fullscreen-button"></i>
-              </a>
-            </li>
-            <li class="nav-item dropdown">
-              <a class="nav-link count-indicator dropdown-bs-toggle" id="messageDropdown" href="#"
-                 data-bs-toggle="dropdown" aria-expanded="true">
-                <i class="far fa-comments"></i>
-{#                <span class="count-symbol bg-warning" aria-hidden="true">10</span>#}
+<ul class="navbar-nav navbar-nav-right" style="margin-bottom: 1rem;">
 
-                  <span class="position-absolute bg-warning rounded-circle d-flex align-items-center justify-content-center text-dark px-1"
-                        style="top: 20px; left: 20px; height: 20px; min-width: 2px;" >0
+  <!-- تمام صفحه -->
+  <li class="nav-item d-none d-lg-block full-screen-link">
+    <a class="nav-link">
+      <i class="mdi mdi-fullscreen" id="fullscreen-button"></i>
+    </a>
+  </li>
 
-                  </span>
+  <!-- دیدگاه‌ها -->
+  <li class="nav-item dropdown">
+    <a class="nav-link count-indicator dropdown-bs-toggle" id="commentsDropdown" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="far fa-comments"></i>
+      <span id="count-comments" class="position-absolute bg-warning rounded-circle d-flex align-items-center justify-content-center text-dark px-1"
+            style="top: 20px; left: 20px; height: 20px; min-width: 2px;">0</span>
+    </a>
+  </li>
 
-              </a>
-            </li>
+  <!-- پیام‌ها -->
+  <li class="nav-item dropdown">
+    <a class="nav-link count-indicator dropdown-bs-toggle" id="messagesDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="mdi mdi-email-outline"></i>
+      <span id="count-messages" class="position-absolute bg-warning rounded-circle d-flex align-items-center justify-content-center text-dark px-1"
+            style="top: 20px; left: 15px; height: 20px; min-width: 2px;">0</span>
+    </a>
 
-            <li class="nav-item dropdown">
-              <a class="nav-link count-indicator dropdown-bs-toggle" id="messageDropdown" 
-                 data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="mdi mdi-email-outline"></i>
-{#                <span class="count-symbol bg-warning" aria-hidden="true">10</span>#}
+    <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="messagesDropdown">
 
-                  	
-              
-                  <span id="total-count-products" class="position-absolute bg-warning rounded-circle d-flex align-items-center justify-content-center text-dark px-1"
-                        style="top: 20px; left: 15px; height: 20px; min-width: 2px;" >0
-
-                  </span>
-
-              </a>
-              <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="messageDropdown">
-{#                <h6 class="p-3 mb-0 text-center">پیام ها</h6>#}
-
-                <div class="dropdown-divider"></div>
-                <a class="dropdown-item preview-item" href="#">
-                  <div class="preview-thumbnail rounded-circle">
-                   <img src="{% static 'admin_panel/images/notification/5956428_427.jpg' %}" width="20" alt="image" class="profile-pic">
-                  </div>
-                 <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
-                  <h6 class="preview-subject ellipsis mb-1 font-weight-normal">دیدگاه های کالا</h6>
-                  <p class="text-gray mb-0"> <span class="circleOrangePayment">0</span>
-                      پیام در انتظار تایید </p>
-                 </div>
-                </a>
-                	
+      <div class="dropdown-divider"></div>
+      <a class="dropdown-item preview-item" href="#">
+        <div class="preview-thumbnail rounded-circle">
+          <img src="{% static 'admin_panel/images/notification/5956428_427.jpg' %}" width="20" alt="image" class="profile-pic">
+        </div>
+        <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
+          <h6 class="preview-subject ellipsis mb-1 font-weight-normal">دیدگاه‌های کالا</h6>
+          <p class="text-gray mb-0"><span id="count-product-comments" class="circleOrangePayment">0</span> پیام در انتظار تایید</p>
+        </div>
+      </a>
 
 
-                  	   <div class="dropdown-divider"></div>
-                <a class="dropdown-item preview-item" href="#">
-                  <div class="preview-thumbnail">
-                    <img src="{% static 'admin_panel/images/notification/20181124_085333-780x470-1.webp' %}" alt="image" class="profile-pic">
-                 </div>
-                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
-                    <h6 class="preview-subject ellipsis mb-1 font-weight-normal">دیدگاه جاذبه تاریخی</h6>
-                   <p class="text-gray mb-0"> <span class="circleOrangePayment">0</span>
-                       پیام در انتظار تایید </p>
-                 </div>
-               </a>
-
-             
-
-              	
-              
-               <div class="dropdown-divider"></div>
-                <a class="dropdown-item preview-item" href="">
-                  <div class="preview-thumbnail">
-                    <img src="{% static 'admin_panel/images/notification/17098084_523.jpg' %}" alt="image" class="profile-pic">
-                 </div>
-                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
-                   <h6 class="preview-subject ellipsis mb-1 font-weight-normal">دیدگاه مسیر سفر</h6>
-                 <p class="text-gray mb-0">  <span class="circleOrangePayment">0</span>
-                     پیام در انتظار تایید </p>
-                </div>
-               </a>
 
 
-              
-                    <div class="dropdown-divider"></div>
-                     <a class="dropdown-item preview-item" href="">
-                  <div class="preview-thumbnail">
-                    <img src="{% static 'admin_panel/images/notification/torki.jpg' %}" alt="image" class="profile-pic">
-                 </div>
-                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
-                   <h6 class="preview-subject ellipsis mb-1 font-weight-normal">دیدگاه مشاهیر</h6>
-                  <p class="text-gray mb-0">  <span class="circleOrangePayment">0</span>
-                      پیام در انتظار تایید </p>
-                </div>
-               </a>
 
-{#                <div class="dropdown-divider"></div>#}
-{#                <h6 class="p-3 mb-0 text-center">نمایش همه پیام ها</h6>#}
-              </div>
-            </li>
-              <li class="nav-item dropdown">
-              <a class="nav-link count-indicator dropdown-toggle" id="notificationDropdown" href="#" data-bs-toggle="dropdown">
-                <i class="mdi mdi-bell-outline"></i>
-                  <span id="total-count-products" class="position-absolute bg-danger rounded-circle d-flex align-items-center justify-content-center text-dark px-1"
-                        style="top: 20px; left: 15px; height: 20px; min-width: 2px;" >
-                      0
-                  </span>
-              </a>
-              <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="notificationDropdown">
-                <h6 class="p-3 mb-0">اعلانات</h6>
-                <div class="dropdown-divider"></div>
-<!--                <a class="dropdown-item preview-item">-->
-<!--                  <div class="preview-thumbnail">-->
-<!--                    <div class="preview-icon bg-success">-->
-<!--                      <i class="mdi mdi-calendar"></i>-->
-<!--                    </div>-->
-<!--                  </div>-->
-<!--                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">-->
-<!--                    <h6 class="preview-subject font-weight-normal mb-1">رویداد هر روز</h6>-->
-<!--                    <p class="text-gray ellipsis mb-0"> یک ساعت قبل </p>-->
-<!--                  </div>-->
-<!--                </a>-->
-                <div class="dropdown-divider"></div>
-<!--                <a class="dropdown-item preview-item">-->
-<!--                  <div class="preview-thumbnail">-->
-<!--                    <div class="preview-icon bg-warning">-->
-<!--                      <i class="mdi mdi-settings"></i>-->
-<!--                    </div>-->
-<!--                  </div>-->
-<!--                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">-->
-<!--                    <h6 class="preview-subject font-weight-normal mb-1">تنظیمات</h6>-->
-<!--                    <p class="text-gray ellipsis mb-0"> اعلان ۲ </p>-->
-<!--                  </div>-->
-<!--                </a>-->
-<!--                <div class="dropdown-divider"></div>-->
-<!--                <a class="dropdown-item preview-item">-->
-<!--                  <div class="preview-thumbnail">-->
-<!--                    <div class="preview-icon bg-info">-->
-<!--                      <i class="mdi mdi-link-variant"></i>-->
-<!--                    </div>-->
-<!--                  </div>-->
-<!--                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">-->
-<!--                    <h6 class="preview-subject font-weight-normal mb-1"> ورود کاربر جدید</h6>-->
-<!--                    <p class="text-gray ellipsis mb-0"> اعلان ۳ </p>-->
-<!--                  </div>-->
-<!--                </a>-->
-                <div class="dropdown-divider"></div>
-                <h6 class="p-3 mb-0 text-center">نمایش همه اعلانات</h6>
-              </div>
-            </li>
-          
-              <li class="nav-item nav-profile dropdown">
-              <a class="nav-link dropdown-toggle" id="profileDropdown" href="#" data-bs-toggle="dropdown" aria-expanded="false">
-                <div class="nav-profile-img">
-<!--                  <img src="">-->
-                  {% if user.profile_pic == ""  %}
-                    <img class="img img-fluid mb-2" height="100" width="100"
-                         src="{% static 'admin_panel/images/no-user-img.png' %}" alt="">
-                    {% else %}
-                    <img class="img img-fluid mb-2" height="100" width="100"
-                         src="{% static 'admin_panel/images/no-user-img.png' %}" alt="">
-                    {% endif %}
-                  <span class="availability-status online"></span>
-                </div>
-                <div class="nav-profile-text">
-                  <p class="mb-1 text-black">{{ user.full_name }} </p>
-                </div>
-              </a>
 
-              <div class="dropdown-menu navbar-dropdown" aria-labelledby="profileDropdown">
-                <div class="dropdown-divider"></div>
-                <a class="dropdown-item" href="{% url 'logout_middle_admin' %}">
-                  <i class="mdi mdi-logout me-2 text-primary"></i> خروج </a>
-              </div>
-            </li>
-            <li class="nav-item nav-settings d-none d-lg-block">
-              <a class="nav-link" href="#">
-                <i class="mdi mdi-format-line-spacing"></i>
-              </a>
-            </li>
+    </div>
+  </li>
 
-          </ul>
+  <!-- اعلان‌ها -->
+  <li class="nav-item dropdown">
+    <a class="nav-link count-indicator dropdown-toggle" id="notificationsDropdown" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+      <i class="mdi mdi-bell-outline"></i>
+      <span id="count-notifications" class="position-absolute bg-danger rounded-circle d-flex align-items-center justify-content-center text-dark px-1"
+            style="top: 20px; left: 15px; height: 20px; min-width: 2px;">0</span>
+    </a>
+    <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="notificationsDropdown">
+      <h6 class="p-3 mb-0">اعلانات</h6>
+      <div class="dropdown-divider"></div>
+      <h6 class="p-3 mb-0 text-center">نمایش همه اعلانات</h6>
+    </div>
+  </li>
+
+  <!-- پروفایل کاربر -->
+  <li class="nav-item nav-profile dropdown">
+    <a class="nav-link dropdown-toggle" id="profileDropdown" href="#" data-bs-toggle="dropdown" aria-expanded="false">
+      <div class="nav-profile-img">
+        {% if user.profile_pic %}
+          <img class="img img-fluid mb-2" height="100" width="100" src="{{ user.profile_pic.url }}" alt="">
+        {% else %}
+          <img class="img img-fluid mb-2" height="100" width="100" src="{% static 'admin_panel/images/no-user-img.png' %}" alt="">
+        {% endif %}
+        <span class="availability-status online"></span>
+      </div>
+      <div class="nav-profile-text">
+        <p class="mb-1 text-black">{{ user.full_name }}</p>
+      </div>
+    </a>
+    <div class="dropdown-menu navbar-dropdown" aria-labelledby="profileDropdown">
+      <div class="dropdown-divider"></div>
+      <a class="dropdown-item" href="{% url 'logout_middle_admin' %}">
+        <i class="mdi mdi-logout me-2 text-primary"></i> خروج
+      </a>
+    </div>
+  </li>
+
+  <!-- تنظیمات -->
+  <li class="nav-item nav-settings d-none d-lg-block">
+    <a class="nav-link" href="#">
+      <i class="mdi mdi-format-line-spacing"></i>
+    </a>
+  </li>
+
+</ul>

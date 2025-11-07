@@ -356,6 +356,7 @@ class AreaChargeCalc(models.Model):
 
 
 class PersonCharge(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chargePerson')
     name = models.CharField(max_length=300, verbose_name='', null=True, blank=True)
     person_amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True)
     civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', default=0, null=True, blank=True)
@@ -477,6 +478,7 @@ class FixPersonChargeCalc(models.Model):
 
 
 class FixAreaCharge(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_fixed_area')
     name = models.CharField(max_length=300, verbose_name='', null=True, blank=True)
     fix_charge_amount = models.PositiveIntegerField(verbose_name='مبلغ ثابت', null=True, blank=True)
     area_amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True)

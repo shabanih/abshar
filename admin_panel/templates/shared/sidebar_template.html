@@ -3,7 +3,7 @@
 
           <ul class="nav">
             <li class="nav-item nav-profile bg-light">
-              <a href="{% url 'manage_house' %}" class="nav-link">
+              <a href="#" class="nav-link">
                 <div class="nav-profile-image">
                   <img src="{% static 'admin_panel/icone8/icons8-home.gif' %}" alt="profile">
                   <span class="login-status online"></span>
@@ -13,7 +13,7 @@
                     <h5 class="mt-2"><strong>ساختمان من</strong></h5>
                     <span style="font-size: 12px;">افرودن/ویرایش</span>
                 </div>
-{#                <i class="mdi mdi-bookmark-check text-success nav-profile-badge"></i>#}
+                <i class="mdi mdi-bookmark-check text-success nav-profile-badge"></i>
               </a>
             </li>
 
@@ -21,7 +21,7 @@
                {% url 'admin_dashboard' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
                 <i class="menu-title">داشبورد</i>
-                <i class="mdi mdi-home menu-icon"></i>
+                <i class="mdi mdi-cellphone-link menu-icon"></i>
               </a>
             </li>
 
@@ -32,11 +32,26 @@
                 <i class="mdi mdi-bell-ring-outline menu-icon"></i>
               </a>
             </li>
-             <li class="nav-item border-top mt-0">
+        
+               <li class="nav-item border-top mt-0">
+                 {% url 'manage_house' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title"> افزودن ساختمان</i>
+                <i class="mdi mdi-home menu-icon"></i>
+              </a>
+            </li>
+               <li class="nav-item mt-0">
                  {% url 'create_middle_admin' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                <i class="menu-title"> مدیریت کاربران</i>
-                <i class="mdi mdi-city menu-icon menu-icon"></i>
+                <i class="menu-title"> مدیریت مدیران </i>
+                <i class="mdi mdi-account-star  menu-icon"></i>
+              </a>
+            </li>
+                <li class="nav-item  mt-0">
+                 {% url 'manage_bank' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title"> مدیریت حساب بانکی</i>
+                <i class="fas fa-bank menu-icon menu-icon"></i>
               </a>
             </li>
           
@@ -55,6 +70,7 @@
                 <i class="mdi mdi-square-inc-cash menu-icon"></i>
               </a>
             </li>
+          
 
              <li class="nav-item border-top mt-0">
               <a class="nav-link" data-bs-toggle="collapse" href="#general23" aria-expanded="true"
@@ -80,6 +96,7 @@
 
                 </ul>
               </div>
+             </li>
           <li class="nav-item mt-0">
               <a class="nav-link" data-bs-toggle="collapse" href="#general2" aria-expanded="true"
                  aria-controls="general2">
@@ -116,6 +133,20 @@
                             <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
                             <i class="menu-title"> مدیریت پیامک ها</i>
                             <i class="fas fa-comment-dots menu-icon"></i>
+                          </a>
+                        </li>
+             <li class="nav-item border-top mt-0">
+                                {% url 'sms_management' as address_url %}
+                            <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                            <i class="menu-title"> مدیریت نظرسنجی</i>
+                            <i class="fas fa-send menu-icon"></i>
+                          </a>
+                        </li>
+              <li class="nav-item border-top mt-0">
+                                {% url 'sms_management' as address_url %}
+                            <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                            <i class="menu-title">پشتبانی</i>
+                            <i class="fas fa-headphones-alt menu-icon"></i>
                           </a>
                         </li>
           

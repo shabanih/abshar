@@ -30,14 +30,14 @@ from admin_panel import helper
 from admin_panel.forms import announcementForm, UnitForm, ExpenseForm, ExpenseCategoryForm, \
     IncomeForm, IncomeCategoryForm, BankForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, \
     MaintenanceForm, FixChargeForm, PersonAreaChargeForm, AreaChargeForm, PersonChargeForm, FixAreaChargeForm, \
-    FixPersonChargeForm, PersonAreaFixChargeForm, VariableFixChargeForm, UserRegistrationForm, SmsForm
+    FixPersonChargeForm, PersonAreaFixChargeForm, VariableFixChargeForm, UserRegistrationForm, SmsForm, MyHouseForm
 from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDocument, Income, IncomeDocument, \
     IncomeCategory, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, FixedChargeCalc, ChargeByPersonArea, AreaChargeCalc, PersonChargeCalc, FixAreaChargeCalc, \
     FixPersonChargeCalc, ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
     FixPersonCharge, FixAreaCharge, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariable, \
     ChargeFixVariableCalc, Fund, SmsManagement
-from user_app.models import Unit, Bank, Renter, User
+from user_app.models import Unit, Bank, Renter, User, MyHouse
 from django.contrib.auth import get_user_model
 
 
@@ -208,9 +208,9 @@ def announcement_delete(request, pk):
 # ========================== My House Views ========================
 @method_decorator(admin_required, name='dispatch')
 class AddMyHouseView(CreateView):
-    model = Bank
+    model = MyHouse
     template_name = 'admin_panel/add_my_house.html'
-    form_class = BankForm
+    form_class = MyHouseForm
     success_url = reverse_lazy('manage_house')
 
     def form_valid(self, form):
@@ -221,21 +221,72 @@ class AddMyHouseView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['banks'] = Bank.objects.all()
+        context['houses'] = MyHouse.objects.all()
         return context
 
 
 @method_decorator(admin_required, name='dispatch')
-class MyBankUpdateView(UpdateView):
-    model = Bank
+class MyHouseUpdateView(UpdateView):
+    model = MyHouse
     template_name = 'admin_panel/add_my_house.html'
-    form_class = BankForm
+    form_class = MyHouseForm
     success_url = reverse_lazy('manage_house')
 
     def form_valid(self, form):
         self.object = form.save(commit=False)
         self.object.user = self.request.user
         messages.success(self.request, 'اطلاعات ساختمان با موفقیت ویرایش گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['Houses'] = MyHouse.objects.filter(is_active=True)
+        return context
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def house_delete(request, pk):
+    house = get_object_or_404(MyHouse, id=pk)
+    try:
+        house.delete()
+        messages.success(request, 'ساختمان با موفقیت حذف گردید!')
+        return redirect(reverse('manage_house'))
+    except Bank.DoesNotExist:
+        messages.info(request, 'خطا در حذف')
+        return redirect(reverse('manage_house'))
+
+
+# ========================== Bank Views ========================
+@method_decorator(admin_required, name='dispatch')
+class AddBankView(CreateView):
+    model = Bank
+    template_name = 'admin_panel/add_my_bank.html'
+    form_class = BankForm
+    success_url = reverse_lazy('manage_bank')
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.user = self.request.user
+        messages.success(self.request, 'اطلاعات حساب بانکی با موفقیت ثبت گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['banks'] = Bank.objects.all()
+        return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class BankUpdateView(UpdateView):
+    model = Bank
+    template_name = 'admin_panel/add_my_bank.html'
+    form_class = BankForm
+    success_url = reverse_lazy('manage_bank')
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.user = self.request.user
+        messages.success(self.request, 'اطلاعات حساب بانکی با موفقیت ویرایش گردید!')
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
@@ -250,16 +301,14 @@ def bank_delete(request, pk):
     try:
         bank.delete()
         messages.success(request, 'حساب بانکی با موفقیت حذف گردید!')
-        return redirect(reverse('manage_house'))
+        return redirect(reverse('manage_bank'))
     except Bank.DoesNotExist:
-        messages.info(request, 'خطا در ثبت حساب بانکی')
-        return redirect(reverse('manage_house'))
+        messages.info(request, 'خطا در حذف')
+        return redirect(reverse('manage_bank'))
 
 
 # =========================== unit Views ================================
 @method_decorator(admin_required, name='dispatch')
-# from django.shortcuts import redirect
-
 class UnitRegisterView(LoginRequiredMixin, CreateView):
     model = Unit
     form_class = UnitForm
@@ -382,17 +431,22 @@ class UnitUpdateView(LoginRequiredMixin, UpdateView):
                         return str(val)
 
                     renter_fields_changed = (
-                        current_renter is None or
-                        normalize(current_renter.renter_name) != normalize(form.cleaned_data.get('renter_name')) or
-                        normalize(current_renter.renter_mobile) != normalize(form.cleaned_data.get('renter_mobile')) or
-                        normalize(current_renter.renter_national_code) != normalize(form.cleaned_data.get('renter_national_code')) or
-                        normalize(current_renter.renter_people_count) != normalize(form.cleaned_data.get('renter_people_count')) or
-                        current_renter.start_date != form.cleaned_data.get('start_date') or
-                        current_renter.end_date != form.cleaned_data.get('end_date') or
-                        normalize(current_renter.contract_number) != normalize(form.cleaned_data.get('contract_number')) or
-                        normalize(current_renter.estate_name) != normalize(form.cleaned_data.get('estate_name')) or
-                        int(current_renter.first_charge or 0) != int(form.cleaned_data.get('first_charge') or 0) or
-                        normalize(current_renter.renter_details) != normalize(form.cleaned_data.get('renter_details'))
+                            current_renter is None or
+                            normalize(current_renter.renter_name) != normalize(form.cleaned_data.get('renter_name')) or
+                            normalize(current_renter.renter_mobile) != normalize(
+                        form.cleaned_data.get('renter_mobile')) or
+                            normalize(current_renter.renter_national_code) != normalize(
+                        form.cleaned_data.get('renter_national_code')) or
+                            normalize(current_renter.renter_people_count) != normalize(
+                        form.cleaned_data.get('renter_people_count')) or
+                            current_renter.start_date != form.cleaned_data.get('start_date') or
+                            current_renter.end_date != form.cleaned_data.get('end_date') or
+                            normalize(current_renter.contract_number) != normalize(
+                        form.cleaned_data.get('contract_number')) or
+                            normalize(current_renter.estate_name) != normalize(form.cleaned_data.get('estate_name')) or
+                            int(current_renter.first_charge or 0) != int(form.cleaned_data.get('first_charge') or 0) or
+                            normalize(current_renter.renter_details) != normalize(
+                        form.cleaned_data.get('renter_details'))
                     )
 
                     if renter_fields_changed:
@@ -428,7 +482,6 @@ class UnitUpdateView(LoginRequiredMixin, UpdateView):
         except Exception as e:
             form.add_error(None, f"خطا در ذخیره اطلاعات: {str(e)}")
             return self.form_invalid(form)
-
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -5237,7 +5290,6 @@ def remove_send_notification_fix_variable(request, pk):
 
     return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
 
-
 # ==================================
 @method_decorator(admin_required, name='dispatch')
 class SmsManagementView(CreateView):
@@ -5296,7 +5348,6 @@ def sms_delete(request, pk):
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
     return redirect(reverse('sms_management'))
-
 
 
 @login_required(login_url='/admin-panel/login-admin')  # یا settings.LOGIN_URL_ADMIN
@@ -5374,4 +5425,3 @@ def send_sms(request, pk):
         'sms': sms,
         'units_with_details': units_with_details,
     })
-

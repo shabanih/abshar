@@ -13,7 +13,7 @@
  <div class="col-12 mb-2">
                 <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong3">
                         <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
-                    افزودن حساب بانکی
+                    افزودن ساختمان
                 </button>
                  </div>
                <div class="table-responsive">
@@ -23,54 +23,48 @@
                                         <th>#</th>
                                         <th>ایجاد کننده</th>
                                         <th>نام ساختمان</th>
-                                        <th> نام بانک</th>
-                                        <th>نام صاحب حساب</th>
-                                        <th>شماره حساب</th>
-                                        <th>شماره شبا</th>
-                                        <th>شماره کارت</th>
-                                        <th>موجودی اولیه</th>
-{#                                        <th>فعال/غیرفعال</th>#}
+                                        <th> کاربری</th>
+                                        <th>شهر</th>
+                                        <th>آدرس</th>
+                                        <th>فعال/غیرفعال</th>
                                         <th>دستورات</th>
                                     </tr>
                                 </thead>
-                            {% if banks %}
-                           {% for bank in banks %}
+                            {% if houses %}
+                           {% for house in houses %}
                                     <tbody class="text-center">
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
-                                            <td>{{ bank.user.full_name }}</td>
-                                            <td>{{bank.house_name }}</td>
-                                            <td>{{bank.bank_name }}</td>
-                                            <td>{{bank.account_holder_name }}</td>
-                                            <td>{{bank.account_no }}</td>
-                                            <td>{{bank.sheba_number }}</td>
-                                            <td>{{bank.cart_number|four_digit_cart }}</td>
-                                            <td>{{bank.initial_fund|three_digit_currency }}</td>
-{#                                              <td>#}
-{#                                               {% if bank.is_active == True %}#}
-{#                                                <button class="btn btn-primary bg-gradient-success p-1">فعال</button>#}
-{#                                                   {% else %}#}
-{#                                                   <button class="btn btn-gradient-danger p-1">غیر فعال</button>#}
-{##}
-{#                                               {% endif %}#}
-{#                                            </td>#}
+                                            <td>{{ house.user.full_name }}</td>
+                                            <td>{{house.name }}</td>
+                                            <td>{{house.user_type }}</td>
+                                            <td>{{house.city }}</td>
+                                            <td>{{house.address }}</td>
+
+                                              <td>
+                                               {% if house.is_active == True %}
+                                                <button class="btn btn-primary bg-gradient-success p-1">فعال</button>
+                                                   {% else %}
+                                                   <button class="btn btn-gradient-danger p-1">غیر فعال</button>
+
+                                               {% endif %}
+                                            </td>
 
                                                <td>
                                                       <a
-                                           class="btn btn-gradient-info p-1 edit-bank-btn"
-                                           data-id="{{ bank.id }}"
-                                           data-house_name="{{ bank.house_name }}"
-                                           data-bank_name="{{ bank.bank_name }}"
-                                           data-account_holder_name="{{ bank.account_holder_name}}"
-                                           data-account_no="{{ bank.account_no }}"
-                                           data-sheba_number="{{ bank.sheba_number }}"
-                                           data-cart_number="{{ bank.cart_number }}"
-                                           data-initial_fund="{{ bank.initial_fund|three_digit_currency }}"
+                                           class="btn btn-gradient-info p-1 edit-house-btn"
+                                           data-id="{{ house.id }}"
+                                           data-name="{{ house.name }}"
+                                           data-user_type="{{ house.user_type }}"
+                                           data-city="{{ house.city}}"
+                                           data-address="{{ house.address }}"
+                                           data-is_active="{{ house.is_active }}"
+                                      
                                            data-bs-toggle="modal"
                                            data-bs-target="#exampleModalLong3">
                                            <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
                                         </a>
-                                                          <a href="{% url 'middle_delete_bank' bank.id %}" class="btn btn-gradient-danger p-1"
+                                                          <a href="{%  url 'delete_house' house.id %}" class="btn btn-gradient-danger p-1"
                                                        onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
                                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                             </a>
@@ -80,7 +74,7 @@
                                     {% endfor %}
                                         {% else %}
                                         <tr>
-                                            <td colspan="9" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                            <td colspan="9" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
                                         </tr>
                                  <tbody>
                                 {% endif %}
@@ -94,56 +88,39 @@
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header" id="exampleModalLongTitle3">
-        <h5 class="modal-title">افزودن حساب بانکی جدید</h5>
+        <h5 class="modal-title">افزودن  ساختمان جدید</h5>
       </div>
          <hr>
       <div class="modal-body" >
          {{ form.non_field_errors }}
-          <form id="bankForm" action="" method="POST"
+          <form id="houseForm" action="" method="POST"
                 enctype="multipart/form-data" novalidate>
               {% csrf_token %}
               <div class="row g-2">
-                  <div class="col">
-                      {{ form.house_name.label_tag }}
-                      {{ form.house_name }}
-                      {{ form.house_name.errors }}
+                  <div class="col-12">
+                      {{ form.name.label_tag }}
+                      {{ form.name }}
+                      {{ form.name.errors }}
                   </div>
+                  
               </div>
                  <div class="row g-2">
-                  <div class="col-4 col-lg-4 col-xl-4">
-                      {{ form.bank_name.label_tag }}
-                      {{ form.bank_name }}
-                      {{ form.bank_name.errors }}
+                  <div class="col-6 ">
+                      {{ form.user_type.label_tag }}
+                      {{ form.user_type }}
+                      {{ form.user_type.errors }}
                   </div>
-                      <div class="col-4 col-lg-8 col-xl-8">
-                       {{ form.account_holder_name.label_tag }}
-                      {{ form.account_holder_name }}
-                      {{ form.account_holder_name.errors }}
+                      <div class="col-6 ">
+                       {{ form.city.label_tag }}
+                      {{ form.city }}
+                      {{ form.city.errors }}
                   </div>
                      </div>
                   <div class="row g-2">
-                      <div class="col-4 col-lg-4 col-xl-4 ">
-                       {{ form.account_no.label_tag }}
-                      {{ form.account_no }}
-                      {{ form.account_no.errors }}
-                  </div>
-                      <div class="col-4 col-lg-8 col-xl-8">
-                       {{ form.sheba_number.label_tag }}
-                      {{ form.sheba_number }}
-                      {{ form.sheba_number.errors }}
-                  </div>
-                     </div>
-              
-                  <div class="row g-2">
-                  <div class="col-4 col-lg-8 col-xl-8">
-                      {{ form.cart_number.label_tag }}
-                      {{ form.cart_number }}
-                      {{ form.cart_number.errors }}
-                  </div>
-                    <div class="col-4 col-lg-4 col-xl-4">
-                      {{ form.initial_fund.label_tag }}
-                      {{ form.initial_fund }}
-                      {{ form.initial_fund.errors }}
+                      <div class="col-12 ">
+                       {{ form.address.label_tag }}
+                      {{ form.address }}
+                      {{ form.address.errors }}
                   </div>
                      </div>
                   <div class="row">
@@ -158,7 +135,7 @@
               
                    <hr class="mt-2" style="color: #0f1531">
                     <div class="d-flex justify-content-between">
-                        <button type="submit" name="submit_bank" id="account_holder_name" class="btn btn-gradient-success px-4 py-2">ثبت حساب بانکی</button>
+                        <button type="submit" name="submit_bank" id="account_holder_name" class="btn btn-gradient-success px-4 py-2">ثبت اطلاعات ساختمان</button>
                            <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
                      </div>
         

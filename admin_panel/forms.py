@@ -1,21 +1,14 @@
-from datetime import datetime
-
-import jdatetime
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django import forms
-from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.core.validators import RegexValidator
-from jalali_date import widgets
 from jalali_date.fields import JalaliDateField
 from jalali_date.widgets import AdminJalaliDateWidget
-
 from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, IncomeCategory, ReceiveMoney, PayMoney, \
                                 Property, Maintenance, ChargeByPersonArea, ChargeByFixPersonArea, FixCharge, AreaCharge,
                                 PersonCharge,
                                 FixPersonCharge, FixAreaCharge, ChargeFixVariable, SmsManagement)
 
-from user_app.models import Unit, Bank, User
+from user_app.models import Unit, Bank, User, MyHouse
 
 attr = {'class': 'form-control border-1 py-2 mb-4 '}
 attr1 = {'class': 'form-control border-1 py-1 mb-4 '}
@@ -159,8 +152,12 @@ class UserRegistrationForm(forms.ModelForm):
 
 
 class BankForm(forms.ModelForm):
-    house_name = forms.CharField(error_messages=error_message, required=True,
-                                 widget=forms.TextInput(attrs=attr3), label='نام ساختمان')
+    house = forms.ModelChoiceField(
+        queryset=MyHouse.objects.filter(is_active=True),
+        required=True,
+        widget=forms.Select(attrs=attr3),
+        label='نام ساختمان'
+    )
     bank_name = forms.ChoiceField(error_messages=error_message, required=True, choices=BANK_CHOICES,
                                   widget=forms.Select(attrs=attr3), label='نام بانک')
 
@@ -181,27 +178,66 @@ class BankForm(forms.ModelForm):
                                   label='شماره کارت')
     initial_fund = forms.CharField(error_messages=error_message, required=True, widget=forms.NumberInput(attrs=attr),
                                    label='موجودی اولیه')
+    is_active = forms.BooleanField(initial=True, required=False, label='فعال/غیرفعال')
 
     class Meta:
         model = Bank
         fields = (
-            'house_name', 'bank_name', 'account_holder_name', 'account_no', 'sheba_number', 'cart_number',
-            'initial_fund')
+            'house', 'bank_name', 'account_holder_name', 'account_no', 'sheba_number', 'cart_number',
+            'initial_fund', 'is_active')
 
 
-# class MyHouseForm(forms.ModelForm):
-#     name = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
-#                            label='نام ساختمان')
-#     address = forms.CharField(error_messages=error_message, required=True,
-#                               widget=forms.TextInput(attrs=attr),
-#                               label='آدرس')
-#     account_number = forms.ModelChoiceField(queryset=Bank.objects.all(), widget=forms.Select(attrs=attr2),
-#                                             label="شماره حساب")
-#     is_active = forms.BooleanField(initial=True, required=False, label='فعال/غیرفعال')
-#
-#     class Meta:
-#         model = MyHouse
-#         fields = ['name', 'address', 'account_number', 'is_active']
+USER_TYPE_CHOICES = [
+    ('', '--- انتخاب کنید ---'),
+    ('مسکونی', 'مسکونی'),
+    ('اداری', 'اداری'),
+    ('تجاری', 'تجاری'),
+    ('سایر', 'سایر'),
+]
+
+CITY_CHOICES = [
+    ('', '--- انتخاب کنید ---'),
+    ('تهران', 'تهران'),
+    ('مشهد', 'مشهد'),
+    ('شیراز', 'شیراز'),
+    ('اصفهان', 'اصفهان'),
+    ('کرج', 'کرج'),
+    ('قم', 'قم'),
+    ('رشت', 'رشت'),
+    ('اهواز', 'اهواز'),
+    ('تبریز', 'تبریز'),
+    ('یزد', 'یزد'),
+    ('کرمان', 'کرمان'),
+    ('گرگان', 'گرگان'),
+    ('سنندج', 'سنندج'),
+    ('بندرعباس', 'بندرعباس'),
+    ('زاهدان', 'زاهدان'),
+    ('اردبیل', 'اردبیل'),
+    ('بوشهر', 'بوشهر'),
+    ('قزوین', 'قزوین'),
+    ('ارومیه', 'ارومیه'),
+    ('ساری', 'ساری'),
+]
+
+
+class MyHouseForm(forms.ModelForm):
+    name = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
+                           label='نام ساختمان')
+    user_type = forms.ChoiceField(error_messages=error_message, choices=USER_TYPE_CHOICES, required=True,
+                                  widget=forms.Select(attrs=attr3),
+                                  label='نوع کاربری')
+
+    city = forms.ChoiceField(error_messages=error_message, choices=CITY_CHOICES, required=True,
+                             widget=forms.Select(attrs=attr3),
+                             label='شهر')
+    address = forms.CharField(error_messages=error_message, required=True,
+                              widget=forms.TextInput(attrs=attr),
+                              label='آدرس')
+    is_active = forms.BooleanField(initial=True, required=False, label='فعال/غیرفعال')
+
+    class Meta:
+        model = MyHouse
+        fields = ['name', 'address', 'user_type', 'city', 'is_active']
 
 
 class UnitForm(forms.ModelForm):
@@ -1101,11 +1137,11 @@ class VariableFixChargeForm(forms.ModelForm):
 
 class SmsForm(forms.ModelForm):
     subject = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
-                           required=True,
-                           label='عنوان پیامک ')
+                              required=True,
+                              label='عنوان پیامک ')
     message = forms.CharField(error_messages=error_message, required=True, widget=forms.Textarea(
         attrs={'class': 'form-control', 'rows': 2}),
-                            label='متن پیامک')
+                              label='متن پیامک')
 
     is_active = forms.ChoiceField(label='فعال /غیرفعال نمودن پیامک', required=True,
                                   error_messages=error_message, choices=CHOICES, widget=forms.Select(attrs=attr))

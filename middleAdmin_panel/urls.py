@@ -10,14 +10,21 @@ urlpatterns = [
     path('log-out/', views.logout__middle_admin, name='logout_middle_admin'),
 
     path('middle-announcement/', views.MiddleAnnouncementView.as_view(), name='middle_announcement'),
-    path('edit/middle/announcement/<int:pk>/', views.MiddleMyBankUpdateView.as_view(),
+    path('edit/middle/announcement/<int:pk>/', views.MiddleAnnouncementUpdateView.as_view(),
          name='edit_middle_announcement'),
     path('announcement-middle-delete/<int:pk>/', views.middle_announcement_delete, name='delete_middle_announcement'),
 
     # House Urls
-    path('middle-manage-house', views.MiddleAddMyBankView.as_view(), name='middle_manage_house'),
-    path('bank/middle/edit/<int:pk>/', views.MiddleMyBankUpdateView.as_view(), name='middle_edit_bank'),
-    path('delete/middle/bank/<int:pk>/', views.middle_bank_delete, name='middle_delete_bank'),
+
+    path('middle-manage-house', views.MiddleAddMyHouseView.as_view(), name='middle_manage_house'),
+    path('middle/house/edit/<int:pk>/', views.MiddleMyHouseUpdateView.as_view(), name='middle_edit_house'),
+    path('middle/delete/house/<int:pk>/', views.middle_house_delete, name='middle_delete_house'),
+
+
+    # Bank Urls
+    path('middle-manage-bank', views.middleAddBankView.as_view(), name='middle_manage_bank'),
+    path('middle/bank/edit/<int:pk>/', views.middleBankUpdateView.as_view(), name='middle_edit_bank'),
+    path('middle/delete/bank/<int:pk>/', views.middle_bank_delete, name='middle_delete_bank'),
 
     # Unit Urls
     path('middle-add-unit', views.MiddleUnitRegisterView.as_view(), name='middle_add_unit'),

@@ -2,26 +2,32 @@
 <nav class="sidebar sidebar-offcanvas" id="sidebar">
 
           <ul class="nav">
-            <li class="nav-item nav-profile bg-light">
+            <li class="nav-item nav-profile bg-body">
               <a href="{% url 'middle_manage_house' %}" class="nav-link">
                 <div class="nav-profile-image">
-                  <img src="{% static 'admin_panel/icone8/icons8-home.gif' %}" alt="profile">
+                  <img src="{% static 'admin_panel/icone8/icons8-home (1).gif' %}" width="20" alt="profile">
                   <span class="login-status online"></span>
                   <!--change to offline or busy as needed-->
                 </div>
-                <div class="nav-profile-text d-flex flex-column">
-                    <h5 class="mt-2"><strong>ساختمان من</strong></h5>
-                    <span style="font-size: 12px;">افرودن/ویرایش</span>
-                </div>
-{#                <i class="mdi mdi-bookmark-check text-success nav-profile-badge"></i>#}
+                  <br>
+               <div class="nav-profile-text ms-2 mt-3 ">
+      {% if house and house.name %}
+        <h4 class="mb-2  fw-bold"> {{ house.name }}</h4>
+      {% else %}
+        <h6 class="mb-1">ساختمان من</h6>
+      {% endif %}
+      <small class="text-muted p-2">افزودن / ویرایش</small>
+    </div>
+{#                <i class="mdi mdi-home text-secondary nav-profile-badge" style="font-size: 2.125rem;"></i>#}
+
               </a>
             </li>
 
-            <li class="nav-item">
+            <li class="nav-item border-top">
                {% url 'middle_admin_dashboard' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
                 <i class="menu-title">داشبورد</i>
-                <i class="mdi mdi-home menu-icon"></i>
+                <i class="mdi mdi-cellphone-link menu-icon"></i>
               </a>
             </li>
 
@@ -32,14 +38,22 @@
                 <i class="mdi mdi-bell-ring-outline menu-icon"></i>
               </a>
             </li>
+                 <li class="nav-item border-top mt-0">
+                 {% url 'middle_manage_bank' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title"> مدیریت حساب بانکی</i>
+                <i class="fas fa-bank menu-icon menu-icon"></i>
+              </a>
+            </li>
           
-           <li class="nav-item border-top mt-0">
+           <li class="nav-item  mt-0">
                  {% url 'middle_manage_unit' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
                 <i class="menu-title"> مدیریت واحدها</i>
                 <i class="mdi mdi-city menu-icon menu-icon"></i>
               </a>
             </li>
+
           
                <li class="nav-item border-top mt-0">
                  {% url 'middle_add_charge' as address_url %}

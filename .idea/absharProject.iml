@@ -57,6 +57,7 @@
         <option value="$MODULE_DIR$/middleAdmin_panel/templates/middleProperty" />
         <option value="$MODULE_DIR$/middleAdmin_panel/templates/middleMaintenance" />
         <option value="$MODULE_DIR$/middleAdmin_panel/templates/middleCharge" />
+        <option value="$MODULE_DIR$/admin_panel/templates/charge_management" />
       </list>
     </option>
   </component>

@@ -20,10 +20,14 @@ urlpatterns = [
 
     # House Urls
     path('manage-house', views.AddMyHouseView.as_view(), name='manage_house'),
-    path('bank/edit/<int:pk>/', views.MyBankUpdateView.as_view(), name='edit_bank'),
+    path('house/edit/<int:pk>/', views.MyHouseUpdateView.as_view(), name='edit_house'),
+    path('delete/house/<int:pk>/', views.house_delete, name='delete_house'),
+
+
+    # Bank Urls
+    path('manage-bank', views.AddBankView.as_view(), name='manage_bank'),
+    path('bank/edit/<int:pk>/', views.BankUpdateView.as_view(), name='edit_bank'),
     path('delete/bank/<int:pk>/', views.bank_delete, name='delete_bank'),
-
-
 
     # Unit Urls
     path('add-unit', views.UnitRegisterView.as_view(), name='add_unit'),

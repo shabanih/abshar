@@ -390,22 +390,53 @@ $(document).on('click', '.delete-image21-btn', function () {
         }
     });
 });
+// ========================================
+$(document).on('click', '.edit-house-btn', function () {
+    console.log('ویرایش کلیک شد2');
 
-$(document).on('click', '.edit-bank-btn', function () {
+    // Get the expense ID from the clicked button's data attributes
+    var id = $(this).data('id');
+    $('#houseForm').attr('action', '/admin-panel/house/edit/' + id + '/');
+
+    // Populate the form with the expense data
+    $('#id_name').val($(this).data('name'));
+    $('#id_user_type').val($(this).data('user_type'));
+    $('#id_city').val($(this).data('city'));
+    $('#id_address').val($(this).data('address'));
+       // تعیین مقدار is_active
+    let isActive = $(this).data('is_active');
+    $('#editForm select[name="is_active"]').val(isActive.toString());
+    // Update the modal title and submit button text for editing
+    $('#exampleModalLongTitle3').text('ویرایش اطلاعات ');
+    $('#btn-submit-bank').text('ویرایش اطلاعات ساختمان');
+});
+ document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('exampleModalLong');
+    const form = document.getElementById('personForm');
+
+    modal.addEventListener('hidden.bs.modal', function () {
+      form.reset();
+    });
+  });
+
+
+ $(document).on('click', '.edit-bank-btn', function () {
     console.log('ویرایش کلیک شد2');
 
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     $('#bankForm').attr('action', '/admin-panel/bank/edit/' + id + '/');
 
-    // Populate the form with the expense data
-    $('#id_house_name').val($(this).data('house_name'));
+
+    $('#id_house').val($(this).data('house')).trigger('change');
     $('#id_bank_name').val($(this).data('bank_name'));
     $('#id_account_holder_name').val($(this).data('account_holder_name'));
     $('#id_account_no').val($(this).data('account_no'));
     $('#id_sheba_number').val($(this).data('sheba_number'));
     $('#id_cart_number').val($(this).data('cart_number'));
     $('#id_initial_fund').val($(this).data('initial_fund').toString().replace(/,/g, ''));
+    let isActive = $(this).data('is_active');
+    $('#editForm select[name="is_active"]').val(isActive.toString());
 
     // Update the modal title and submit button text for editing
     $('#exampleModalLongTitle3').text('ویرایش اطلاعات ساختمان');

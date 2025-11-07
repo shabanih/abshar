@@ -31,13 +31,13 @@ from weasyprint import CSS, HTML
 from admin_panel.forms import announcementForm, BankForm, UnitForm, ExpenseCategoryForm, ExpenseForm, \
     IncomeCategoryForm, IncomeForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, MaintenanceForm, FixChargeForm, \
     FixAreaChargeForm, AreaChargeForm, PersonChargeForm, FixPersonChargeForm, PersonAreaChargeForm, \
-    PersonAreaFixChargeForm, VariableFixChargeForm
+    PersonAreaFixChargeForm, VariableFixChargeForm, MyHouseForm
 from admin_panel.models import Announcement, ExpenseCategory, Expense, Fund, ExpenseDocument, IncomeCategory, Income, \
     IncomeDocument, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, FixCharge, FixedChargeCalc, AreaCharge, AreaChargeCalc, PersonCharge, PersonChargeCalc, \
     FixAreaCharge, FixAreaChargeCalc, FixPersonCharge, FixPersonChargeCalc, ChargeByPersonArea, ChargeByPersonAreaCalc, \
     ChargeByFixPersonArea, ChargeByFixPersonAreaCalc, ChargeFixVariable, ChargeFixVariableCalc
-from user_app.models import Bank, Unit, User, Renter
+from user_app.models import Bank, Unit, User, Renter, MyHouse
 
 
 def middle_admin_required(view_func):
@@ -72,7 +72,6 @@ def middle_admin_login_view(request):
 def logout__middle_admin(request):
     logout(request)
     return redirect('login_middle_admin')
-
 
 def site_header_component(request):
     context = {
@@ -147,10 +146,10 @@ def middle_announcement_delete(request, pk):
 
 # ========================== My House Views ========================
 @method_decorator(middle_admin_required, name='dispatch')
-class MiddleAddMyBankView(CreateView):
-    model = Bank
+class MiddleAddMyHouseView(CreateView):
+    model = MyHouse
     template_name = 'middle_admin/middle_add_my_house.html'
-    form_class = BankForm
+    form_class = MyHouseForm
     success_url = reverse_lazy('middle_manage_house')
 
     def form_valid(self, form):
@@ -161,15 +160,15 @@ class MiddleAddMyBankView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['banks'] = Bank.objects.filter(is_active=True, user=self.request.user)
+        context['houses'] = MyHouse.objects.filter(user=self.request.user)
         return context
 
 
 @method_decorator(middle_admin_required, name='dispatch')
-class MiddleMyBankUpdateView(UpdateView):
-    model = Bank
+class MiddleMyHouseUpdateView(UpdateView):
+    model = MyHouse
     template_name = 'middle_admin/middle_add_my_house.html'
-    form_class = BankForm
+    form_class = MyHouseForm
     success_url = reverse_lazy('middle_manage_house')
 
     def form_valid(self, form):
@@ -180,20 +179,71 @@ class MiddleMyBankUpdateView(UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['banks'] = Bank.objects.filter(is_active=True, user=self.request.user)
+        context['houses'] = MyHouse.objects.filter(user=self.request.user)
         return context
 
 
-@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def middle_house_delete(request, pk):
+    house = get_object_or_404(MyHouse, id=pk)
+    try:
+        house.delete()
+        messages.success(request, 'ساختمان با موفقیت حذف گردید!')
+        return redirect(reverse('middle_manage_house'))
+    except Bank.DoesNotExist:
+        messages.info(request, 'خطا در حذف')
+        return redirect(reverse('middle_manage_house'))
+
+
+# ========================== Bank Views ========================
+@method_decorator(middle_admin_required, name='dispatch')
+class middleAddBankView(CreateView):
+    model = Bank
+    template_name = 'middle_admin/middle_add_my_bank.html'
+    form_class = BankForm
+    success_url = reverse_lazy('middle_manage_bank')
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.user = self.request.user
+        messages.success(self.request, 'اطلاعات حساب بانکی با موفقیت ثبت گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['banks'] = Bank.objects.filter(user=self.request.user)
+        return context
+
+
+@method_decorator(middle_admin_required, name='dispatch')
+class middleBankUpdateView(UpdateView):
+    model = Bank
+    template_name = 'middle_admin/middle_add_my_bank.html'
+    form_class = BankForm
+    success_url = reverse_lazy('middle_manage_bank')
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.user = self.request.user
+        messages.success(self.request, 'اطلاعات حساب بانکی با موفقیت ویرایش گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['banks'] = Bank.objects.filter(user=self.request.user)
+        return context
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def middle_bank_delete(request, pk):
     bank = get_object_or_404(Bank, id=pk)
     try:
         bank.delete()
         messages.success(request, 'حساب بانکی با موفقیت حذف گردید!')
-        return redirect(reverse('middle_manage_house'))
+        return redirect(reverse('middle_manage_bank'))
     except Bank.DoesNotExist:
-        messages.info(request, 'خطا در ثبت حساب بانکی')
-        return redirect(reverse('middle_manage_house'))
+        messages.info(request, 'خطا در حذف')
+        return redirect(reverse('middle_manage_bank'))
 
 
 # =========================== unit Views ================================
@@ -4180,8 +4230,11 @@ class MiddlePersonAreaChargeCreateView(CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['unit_count'] = Unit.objects.filter(is_active=True, user__manager=self.request.user).count()
-        context['total_area'] = Unit.objects.filter(is_active=True, user__manager=self.request.user).aggregate(total=Sum('area'))['total'] or 0
-        context['total_people'] = Unit.objects.filter(is_active=True, user__manager=self.request.user).aggregate(total=Sum('people_count'))['total'] or 0
+        context['total_area'] = \
+        Unit.objects.filter(is_active=True, user__manager=self.request.user).aggregate(total=Sum('area'))['total'] or 0
+        context['total_people'] = \
+        Unit.objects.filter(is_active=True, user__manager=self.request.user).aggregate(total=Sum('people_count'))[
+            'total'] or 0
 
         charges = ChargeByPersonArea.objects.annotate(
             notified_count=Count(

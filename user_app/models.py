@@ -39,14 +39,25 @@ class User(AbstractUser):
 
 
 class Bank(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    house_name = models.CharField(max_length=100, verbose_name='نام ساختمان', null=True, blank=True)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='کاربر (مدیر)'
+    )
+    house = models.ForeignKey(
+        'MyHouse',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='banks',
+        verbose_name='ساختمان مرتبط'
+    )
     bank_name = models.CharField(max_length=100, verbose_name='نام بانک')
-    account_no = models.CharField(max_length=100, verbose_name='شماره حساب ')
+    account_no = models.CharField(max_length=100, verbose_name='شماره حساب')
     account_holder_name = models.CharField(max_length=100, verbose_name='نام صاحب حساب')
     sheba_number = models.CharField(max_length=100, verbose_name='شماره شبا')
     cart_number = models.CharField(max_length=100, verbose_name='شماره کارت')
-    initial_fund = models.PositiveIntegerField(verbose_name='موجود اولیه صندوق')
+    initial_fund = models.PositiveIntegerField(verbose_name='موجودی اولیه صندوق')
     create_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 
@@ -54,16 +65,17 @@ class Bank(models.Model):
         return f"{self.bank_name} - {self.cart_number}"
 
 
-# class MyHouse(models.Model):
-#     name = models.CharField(max_length=100, verbose_name='نام ساختمان')
-#     address = models.CharField(max_length=100, verbose_name='آدرس')
-#     account_number = models.ForeignKey(Bank, on_delete=models.SET_NULL, null=True, blank=True,
-#                                        verbose_name='شماره حساب')
-#     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
-#     is_active = models.BooleanField(default=True, verbose_name='')
-#
-#     def __str__(self):
-#         return str(self.account_number)
+class MyHouse(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100, verbose_name='نام ساختمان')
+    user_type = models.CharField(max_length=100, null=True, blank=True, verbose_name='نوع کاربری')
+    city = models.CharField(max_length=100, null=True, blank=True, verbose_name='شهر')
+    address = models.CharField(max_length=200, verbose_name='آدرس')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
+    is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
+
+    def __str__(self):
+        return self.name
 
 
 class Unit(models.Model):
