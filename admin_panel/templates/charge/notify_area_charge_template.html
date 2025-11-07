@@ -54,7 +54,8 @@
                 <button type="button" id="remove-all-btn" class="btn btn-dark px-3 shadow_style">
                     حذف اطلاعیه واحدها
                 </button>
-                <button type="submit" onclick="return confirmWithSweetAlert(event)" class="btn btn-gradient-success px-3 shadow_style">ارسال اطلاعیه شارژ به واحد</button>
+                <button type="submit" onclick="return confirmWithSweetAlert(event)" 
+                        class="btn btn-gradient-success px-3 shadow_style">ارسال اطلاعیه شارژ </button>
                 <a href="{% url 'add_area_charge' %}" class="btn btn-danger px-3 shadow_style"> بازگشت</a>
              </div>
         </div>
@@ -80,7 +81,7 @@
                    data-bs-trigger="hover focus"
                    data-bs-placement="top"
                    data-bs-html="true"
-                   data-bs-content="{% if unit.is_owner %}
+                   data-bs-content="{% if unit.is_renter %}
                                       {% if renter %}مستاجر: {{ renter.renter_name }}{% else %}بدون مستاجر{% endif %}
                                     {% else %}
                                       مالک: {{ unit.owner_name }}

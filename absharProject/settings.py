@@ -15,7 +15,6 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -26,7 +25,6 @@ SECRET_KEY = 'django-insecure-_o*sce-7v=squt58jj0$l=ezgw^!ek$_%8c2##qd^o&7n@4v0h
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -47,11 +45,12 @@ INSTALLED_APPS = [
     'payment_app',
     'reports',
 
-
     # other_app
     'django_render_partial',
     'sweetify',
     'jalali_date',
+    'ckeditor',
+    'ckeditor_uploader',  # enables file & image uploads
 ]
 
 MIDDLEWARE = [
@@ -69,7 +68,6 @@ ROOT_URLCONF = 'absharProject.urls'
 
 LOGIN_URL_ADMIN = '/admin-panel/login-admin/'
 LOGIN_URL_MIDDLE_ADMIN = '/middle-admin-panel/login-middleAdmin/'
-
 
 TEMPLATES = [
     {
@@ -89,7 +87,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'absharProject.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
@@ -99,7 +96,6 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -119,7 +115,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
@@ -130,7 +125,6 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
@@ -145,18 +139,47 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'  # Use a consistent trailing slash
 MEDIA_ROOT = BASE_DIR / 'uploads'  # Directory where uploaded files will be stored
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+CKEDITOR_UPLOAD_PATH = "uploads/articles/"  # همان فولدری که ساختی
+CKEDITOR_IMAGE_BACKEND = "pillow"
+
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'full',
+        'filebrowserUploadUrl': '/ckeditor/upload/',
+        'filebrowserBrowseUrl': '/ckeditor/browse/',
+        'contentsCss': ['/static/admin_panel/css/ckeditor_fa.css'],
+
+        'height': 300,
+        'width': 'auto',
+        'extraPlugins': ','.join([
+            'uploadimage',  # برای آپلود تصویر داخل متن
+            'justify',  # برای Justify یا تنظیم چپ/راست
+            'font',  # انتخاب فونت
+            'colorbutton',  # رنگ متن
+            'embed',  # Embed ویدیو
+            'emoji',
+            'autocomplete',  # وابسته به emoji
+            'textmatch',  # وابسته به emoji
+
+        ]),
+        'font_names': 'Vazir;VazirB1;VazirB2;VazirB3;VazirB4;VazirBold;Tahoma;Arial;Sans-Serif;',
+        'removePlugins': 'stylesheetparser',
+        'language': 'fa',
+        'direction': 'rtl',
+        'contentsLangDirection': 'rtl',
+        'contentsLanguage': 'fa',
+        'tabSpaces': 4,
+    }
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 Kavenegar_API = '795A7476367A46796858526E6E4744576A7A516E7750696E6C65654E654E525835784C38716437515270453D'
 
-
 JALALI_DATE_DEFAULTS = {
-   # if change it to true then all dates of the list_display will convert to the Jalali.
-   'LIST_DISPLAY_AUTO_CONVERT': False,
-   'Strftime': {
+    # if change it to true then all dates of the list_display will convert to the Jalali.
+    'LIST_DISPLAY_AUTO_CONVERT': False,
+    'Strftime': {
         'date': '%y/%m/%d',
         'datetime': '%H:%M:%S _ %y/%m/%d',
     },
@@ -166,7 +189,7 @@ JALALI_DATE_DEFAULTS = {
         ],
         'css': {
             'all': [
-              'admin/css/django_jalali.min.css',
+                'admin/css/django_jalali.min.css',
             ]
         }
     },

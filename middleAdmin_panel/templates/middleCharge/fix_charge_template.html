@@ -24,7 +24,9 @@
                                         <th>#</th>
                                         <th> عنوان شارژ </th>
                                         <th>تعداد واحدها</th>
-                                        <th class="p-0">مبلغ شارژ به ازای هر واحد(تومان)</th>
+{#                                        <th class="p-0">مبلغ شارژ به ازای هر واحد(تومان)</th>#}
+                                          <th> شارژ کل ماهانه </th>
+                                          <th> توضیحات </th>
                                         <th>جریمه دیرکرد</th>
                                             <th>مهلت پرداخت </th>
                                            <th> اعلام شارژ </th>
@@ -36,33 +38,34 @@
                                     <tbody class="text-center p-0">
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
-                                         
+
                                             <td class="p-0">{{charge.name }}</td>
                                             <td>{{unit_count }}</td>
-                                            <td class="bg-gradient-light p-0"><strong>{{charge.fix_amount|three_digit_currency }}</strong></td>
+                                            <td class="bg-gradient-light p-0"><strong>{{charge.total_charge_month|three_digit_currency }}</strong></td>
+                                        <td class="col-2">{{charge.details }}</td>
                                             	  <td>
                                                    {% if charge.payment_penalty_amount %}
                                                       % {{charge.payment_penalty_amount }}
                                                 {% else %}
                                                 ثبت نشده است
-                                            {% endif %} 
+                                            {% endif %}
                                           </td>
                                              <td>
                                                  {% if charge.payment_deadline %}
                                                  	  {{charge.payment_deadline|show_jalali }}
                                                    {% else %}
                                                 ثبت نشده است
-                                            {% endif %} 
-                                               
+                                            {% endif %}
+
                                              </td>
                                           <td class="bg-gradient-light">
                                                 <span>{{ charge.notified_count }} از {{ unit_count }} واحد</span>
                                                 </td>
-                                 
-                                              
+
+
                                                <td class="p-0">
                                                    <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ charge.id }}"
-                                                        class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
+                                                        class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
                                                 </button>
                                                       <a
                                            class="btn btn-gradient-info p-1 edit-middleCharge-btn"
@@ -83,9 +86,10 @@
                                                   <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                 </a>
                                       <a href="{% url 'middle_show_notification_fix_charge_form' charge.id %}"
-                                           class="btn btn-gradient-success p-2">
-                                           اعلان شارژ
-                                        </a>
+                                                        class="btn btn-gradient-success px-3 py-1" 
+                                          data-bs-toggle="tooltip"  title="اعلان شارژ">
+                                         <i class="fas fa-bullhorn fa-flip-horizontal"></i>
+                                            </a>
 
                                         </td>
                     <div class="modal fade"  id="exampleModalLong2{{ charge.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ charge.id }}" aria-hidden="true">
@@ -103,15 +107,15 @@
                                 <p><strong>تاریخ ثبت :</strong> {{ charge.created_at|show_jalali_date_only }} </p>
                                 <p><strong>مهلت پرداخت :</strong> {{ charge.payment_deadline|show_jalali_date_only }} </p>
                                 <p><strong>جریمه دیرکرد:</strong> {{ charge.payment_penalty_amount|three_digit_currency }} تومان</p>
-                                <p><strong>توضیحات:</strong> 
+                                <p><strong>توضیحات:</strong>
                                     {% if charge.details %}
                                         <span class="badge bg-warning">{{ charge.details }} </span>
                                         {% else %}
                                         توضیحات ثبت نشده است
-                                    {% endif %} 
-                                    
+                                    {% endif %}
+
                                 </p>
-                                    
+
                             </div>
                             <hr/>
                             <div class="modal-footer">

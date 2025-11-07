@@ -62,10 +62,11 @@
         <button type="button" id="remove-all-btn" class="btn btn-dark px-3 shadow_style m-1">
             حذف اطلاعیه واحدها
         </button>
-        <button type="submit" onclick="return confirmWithSweetAlert(event)" class="btn btn-gradient-success px-3 shadow_style">
+        <button type="submit" onclick="return confirmWithSweetAlert(event)" 
+                class="btn btn-gradient-success px-3 shadow_style m-1">
             ارسال اطلاعیه شارژ 
         </button>
-        <a href="{% url 'add_fixed_charge' %}" class="btn btn-gradient-danger shadow_style px-3">
+        <a href="{% url 'add_fixed_charge' %}" class="btn btn-gradient-danger shadow_style">
             بازگشت
         </a>
     </div>
@@ -93,7 +94,7 @@
                     واحد شماره {{ unit.unit }}
                 </p>
 
-                {% if unit.is_owner %}
+                {% if unit.is_renter %}
                     <p class="card-charge-text">مستاجر: 
                         {% if active_renter %}
                             {{ active_renter.renter_name }}

@@ -41,7 +41,10 @@ from user_app.models import Bank, Unit, User, Renter
 
 
 def middle_admin_required(view_func):
-    return user_passes_test(lambda u: u.is_middle_admin, login_url=settings.LOGIN_URL_MIDDLE_ADMIN)(view_func)
+    return user_passes_test(
+        lambda u: u.is_authenticated and getattr(u, 'is_middle_admin', False),
+        login_url=settings.LOGIN_URL_MIDDLE_ADMIN
+    )(view_func)
 
 
 def middle_admin_login_view(request):
@@ -207,7 +210,7 @@ class MiddleUnitRegisterView(CreateView):
             with transaction.atomic():
                 mobile = form.cleaned_data['mobile']
                 password = form.cleaned_data['password']
-                is_owner = form.cleaned_data.get('is_owner')  # Boolean
+                is_renter = form.cleaned_data.get('is_renter')  # Boolean
 
                 # بررسی وجود کاربر
                 user, created = User.objects.get_or_create(mobile=mobile)
@@ -220,7 +223,8 @@ class MiddleUnitRegisterView(CreateView):
                 user.username = mobile
                 user.otp_create_time = timezone.now()
                 user.is_staff = True
-                user.full_name = form.cleaned_data.get('renter_name') if is_owner else form.cleaned_data.get(
+                is_renter = str(form.cleaned_data.get('is_renter')).lower() == 'true'
+                user.full_name = form.cleaned_data.get('renter_name') if is_renter else form.cleaned_data.get(
                     'owner_name')
                 user.manager = self.request.user  # ثبت مدیر سطح میانی
                 user.save()
@@ -231,7 +235,7 @@ class MiddleUnitRegisterView(CreateView):
                 unit.save()
 
                 # اگر مستاجر وجود دارد
-                if is_owner:
+                if is_renter:
                     Renter.objects.create(
                         unit=unit,
                         renter_name=form.cleaned_data.get('renter_name'),
@@ -271,7 +275,7 @@ class MiddleUnitUpdateView(LoginRequiredMixin, UpdateView):
 
                 new_mobile = form.cleaned_data.get('mobile')
                 new_password = form.cleaned_data.get('password')
-                is_owner = form.cleaned_data.get('is_owner')
+                is_renter = form.cleaned_data.get('is_renter')
 
                 if new_mobile and new_mobile != unit_owner.mobile:
                     if User.objects.filter(mobile=new_mobile).exclude(pk=unit_owner.pk).exists():
@@ -280,8 +284,8 @@ class MiddleUnitUpdateView(LoginRequiredMixin, UpdateView):
 
                     unit_owner.mobile = new_mobile
                     unit_owner.username = new_mobile
-
-                unit_owner.name = form.cleaned_data.get('renter_name') if is_owner else form.cleaned_data.get(
+                is_renter = str(form.cleaned_data.get('is_renter')).lower() == 'true'
+                unit_owner.name = form.cleaned_data.get('renter_name') if is_renter else form.cleaned_data.get(
                     'owner_name')
                 if new_password:
                     unit_owner.set_password(new_password)
@@ -290,7 +294,7 @@ class MiddleUnitUpdateView(LoginRequiredMixin, UpdateView):
                 self.object.save()  # Save the unit after confirming no issues
 
                 # Renter logic...
-                if is_owner:
+                if is_renter:
                     current_renter = Renter.objects.filter(unit=self.object, renter_is_active=True).first()
 
                     def normalize(val):
@@ -337,7 +341,7 @@ class MiddleUnitUpdateView(LoginRequiredMixin, UpdateView):
                         )
 
                 messages.success(self.request, f'واحد {self.object.unit} با موفقیت به‌روزرسانی شد.')
-                if is_owner and renter_fields_changed:
+                if is_renter and renter_fields_changed:
                     messages.warning(self.request, 'اطلاعات مستأجر جدید ثبت شد.')
 
                 return super().form_valid(form)
@@ -374,9 +378,9 @@ class MiddleUnitUpdateView(LoginRequiredMixin, UpdateView):
                     'renter_details': renter.renter_details,
                 })
             else:
-                initial['is_owner'] = 'False'
+                initial['is_renter'] = 'False'
         except Renter.DoesNotExist:
-            initial['is_owner'] = 'False'
+            initial['is_renter'] = 'False'
         return initial
 
 
@@ -411,12 +415,9 @@ class MiddleUnitListView(ListView):
     paginate_by = 50
 
     def get_queryset(self):
-        # Start with all units
-        queryset = Unit.objects.filter(user__manager=self.request.user).order_by('unit')
+        queryset = Unit.objects.filter(user__manager=self.request.user)
 
-        # Retrieve filter parameters correctly
         unit = self.request.GET.get('unit')
-        print(unit)
         owner_name = self.request.GET.get('owner_name')
         owner_mobile = self.request.GET.get('owner_mobile')
         area = self.request.GET.get('area')
@@ -428,37 +429,29 @@ class MiddleUnitListView(ListView):
 
         if unit and unit.isdigit():
             queryset = queryset.filter(unit=int(unit))
-
         if owner_name:
             queryset = queryset.filter(owner_name__icontains=owner_name)
-
         if owner_mobile:
             queryset = queryset.filter(owner_mobile__icontains=owner_mobile)
-
-        if area:
-            queryset = queryset.filter(area__icontains=area)
-
+        if area and area.isdigit():
+            queryset = queryset.filter(area=int(area))
         if bedrooms_count and bedrooms_count.isdigit():
             queryset = queryset.filter(bedrooms_count=int(bedrooms_count))
-
         if renter_name:
             queryset = queryset.filter(renters__renter_name__icontains=renter_name)
-
         if renter_mobile:
             queryset = queryset.filter(renters__renter_mobile__icontains=renter_mobile)
-
         if people_count and people_count.isdigit():
-            queryset = queryset.filter(owner_people_count=people_count)
-
+            queryset = queryset.filter(owner_people_count=int(people_count))
         if status_residence:
-            queryset = queryset.filter(status_residence__icontains=status_residence)
+            queryset = queryset.filter(status_residence=status_residence)
 
-        return queryset.distinct()
+        return queryset.distinct().order_by('unit')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['total_units'] = Unit.objects.count()
-        context['units'] = Unit.objects.filter(user__manager=self.request.user).order_by('unit')
+        context['total_units'] = Unit.objects.filter(user__manager=self.request.user).count()
+        context['units'] = context['object_list']
         return context
 
 
@@ -2880,9 +2873,17 @@ class MiddleAreaChargeCreateView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        unit_count = Unit.objects.filter(is_active=True).count()
-        total_area = Unit.objects.filter(is_active=True, user__manager=self.request.user).aggregate(total=Sum('area'))[
-                         'total'] or 0
+
+        unit_count = Unit.objects.filter(
+            is_active=True,
+            user__manager=self.request.user
+        ).count()
+
+        total_area = Unit.objects.filter(
+            is_active=True,
+            user__manager=self.request.user
+        ).aggregate(total=Sum('area'))['total'] or 0
+
         total_people = Unit.objects.filter(
             is_active=True,
             user=self.request.user
@@ -2894,7 +2895,7 @@ class MiddleAreaChargeCreateView(CreateView):
                 filter=Q(area_charge_amount__send_notification=True)
             ),
             total_units=Count('area_charge_amount')
-        )
+        ).order_by('-created_at')
 
         context.update({
             'unit_count': unit_count,
@@ -3223,7 +3224,7 @@ class MiddlePersonChargeCreateView(CreateView):
                 filter=Q(person_charge_amount__send_notification=True)
             ),
             total_units=Count('person_charge_amount')
-        )
+        ).order_by('-created_at')
         context['charges'] = charges
         return context
 
@@ -3531,7 +3532,7 @@ class MiddleFixAreaChargeCreateView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['unit_count'] = Unit.objects.filter(is_active=True).count()
+        context['unit_count'] = Unit.objects.filter(is_active=True, user__manager=self.request.user).count()
         context['total_area'] = \
             Unit.objects.filter(is_active=True, user__manager=self.request.user).aggregate(total=Sum('area'))[
                 'total'] or 0
@@ -3542,7 +3543,7 @@ class MiddleFixAreaChargeCreateView(CreateView):
                 filter=Q(fix_area_charge__send_notification=True)
             ),
             total_units=Count('fix_area_charge')
-        )
+        ).order_by('-created_at')
         context['charges'] = charges
         return context
 
@@ -3853,7 +3854,7 @@ class MiddleFixPersonChargeCreateView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['unit_count'] = Unit.objects.filter(is_active=True).count()
+        context['unit_count'] = Unit.objects.filter(is_active=True, user__manager=self.request.user).count()
         context['total_area'] = Unit.objects.filter(is_active=True).aggregate(total=Sum('area'))['total'] or 0
         context['total_people'] = Unit.objects.filter(is_active=True, user__manager=self.request.user
                                                       ).aggregate(total=Sum('people_count'))['total'] or 0
@@ -3864,7 +3865,7 @@ class MiddleFixPersonChargeCreateView(CreateView):
                 filter=Q(fix_person_charge__send_notification=True)
             ),
             total_units=Count('fix_person_charge')
-        )
+        ).order_by('-created_at')
         context['charges'] = charges
         return context
 
@@ -4178,9 +4179,9 @@ class MiddlePersonAreaChargeCreateView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['unit_count'] = Unit.objects.filter(is_active=True).count()
-        context['total_area'] = Unit.objects.filter(is_active=True).aggregate(total=Sum('area'))['total'] or 0
-        context['total_people'] = Unit.objects.filter(is_active=True).aggregate(total=Sum('people_count'))['total'] or 0
+        context['unit_count'] = Unit.objects.filter(is_active=True, user__manager=self.request.user).count()
+        context['total_area'] = Unit.objects.filter(is_active=True, user__manager=self.request.user).aggregate(total=Sum('area'))['total'] or 0
+        context['total_people'] = Unit.objects.filter(is_active=True, user__manager=self.request.user).aggregate(total=Sum('people_count'))['total'] or 0
 
         charges = ChargeByPersonArea.objects.annotate(
             notified_count=Count(
@@ -4188,7 +4189,7 @@ class MiddlePersonAreaChargeCreateView(CreateView):
                 filter=Q(person_area_charge__send_notification=True)
             ),
             total_units=Count('person_area_charge')
-        )
+        ).order_by('-created_at')
         context['charges'] = charges
         return context
 
@@ -4515,7 +4516,7 @@ class MiddlePersonAreaFixChargeCreateView(CreateView):
                 filter=Q(fix_person_area__send_notification=True)
             ),
             total_units=Count('fix_person_area')
-        )
+        ).order_by('-created_at')
         context['charges'] = charges
         return context
 

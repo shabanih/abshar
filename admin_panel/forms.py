@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import jdatetime
+from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -34,17 +35,16 @@ CHOICES = {
 
 
 class announcementForm(forms.ModelForm):
-    title = forms.CharField(error_messages=error_message, required=True, widget=forms.Textarea(attrs=attr),
-                            label='عنوان اطلاعیه')
+    title = forms.CharField(widget=CKEditorUploadingWidget())
 
-    slug = forms.SlugField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
-                           label='عنوان در Url')
+    # slug = forms.SlugField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
+    #                        label='عنوان در Url')
     is_active = forms.ChoiceField(label='فعال /غیرفعال نمودن اطلاعیه', required=True,
                                   error_messages=error_message, choices=CHOICES, widget=forms.Select(attrs=attr))
 
     class Meta:
         model = Announcement
-        fields = ['title', 'slug', 'is_active']
+        fields = ['title', 'is_active']
 
 
 RESIDENCE_STATUS_CHOICES = {
@@ -265,9 +265,9 @@ class UnitForm(forms.ModelForm):
     status_residence = forms.ChoiceField(error_messages=error_message, choices=RESIDENCE_STATUS_CHOICES, required=True,
                                          widget=forms.Select(attrs=attr),
                                          label='وضعیت سکونت')
-    is_owner = forms.ChoiceField(
+    is_renter = forms.ChoiceField(
         choices=[('', '--- انتخاب کنید ---'), ('True', 'بله'), ('False', 'خیر')],
-        widget=forms.Select(attrs={'id': 'id_is_owner', 'class': 'form-control'}),
+        widget=forms.Select(attrs={'id': 'id_is_renter', 'class': 'form-control'}),
         label='واحد دارای مستاجر است؟'
     )
     owner_details = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'rows': 8}), required=False,
@@ -336,7 +336,7 @@ class UnitForm(forms.ModelForm):
         if password and confirm_password and password != confirm_password:
             self.add_error('confirm_password', "کلمه عبور و تکرار آن باید یکسان باشند.")
 
-        is_owner = cleaned_data.get('is_owner')
+        is_renter = cleaned_data.get('is_renter')
 
         if cleaned_data.get('start_date') and cleaned_data.get('end_date'):
             start_date = cleaned_data.get('start_date')
@@ -345,7 +345,7 @@ class UnitForm(forms.ModelForm):
             if start_date > end_date:
                 self.add_error('start_date', 'تاریخ شروع اجاره نباید از تاریخ پایان بزرگتر باشد.')
 
-        if str(is_owner).lower() == 'true':
+        if str(is_renter).lower() == 'true':
             required_fields_if_rented = [
                 'renter_name', 'renter_mobile', 'renter_national_code', 'estate_name',
                 'renter_people_count', 'start_date', 'end_date', 'contract_number', 'first_charge'
@@ -362,16 +362,16 @@ class UnitForm(forms.ModelForm):
                   'owner_national_code', 'unit_phone', 'owner_details',
                   'parking_number', 'parking_count', 'status_residence', 'purchase_date', 'renter_name',
                   'renter_national_code', 'renter_details', 'extra_parking_first', 'extra_parking_second',
-                  'renter_mobile', 'is_owner', 'owner_people_count',
+                  'renter_mobile', 'is_renter', 'owner_people_count',
                   'renter_people_count', 'start_date', 'end_date', 'first_charge', 'contract_number',
                   'estate_name', 'is_active', 'mobile', 'password', 'confirm_password']
 
     def save(self, commit=True):
         instance = super().save(commit=False)
 
-        is_owner = self.cleaned_data.get('is_owner') == 'False'
+        is_renter = str(self.cleaned_data.get('is_renter')).lower() == 'true'
 
-        if is_owner:
+        if not is_renter:
             # Owner is resident, clear renter fields
             instance.renter_name = ''
             instance.renter_mobile = ''
@@ -392,7 +392,7 @@ class UnitForm(forms.ModelForm):
             instance.save()  # ✅ Save first so instance has a PK
 
             # ✅ Now you can access related renters
-            if not is_owner:
+            if not is_renter:
                 active_renter = instance.renters.filter(renter_is_active=True).last()
                 if active_renter:
                     instance.people_count = active_renter.renter_people_count or 0

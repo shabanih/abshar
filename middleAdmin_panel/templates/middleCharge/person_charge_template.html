@@ -25,6 +25,7 @@
                                         <th> عنوان شارژ </th>
                                         <th class="p-0">تعداد کل نفرات</th>
                                          <th class="p-0">مبلغ شارژ به ازای هر نفر(تومان)</th>
+                                           <th> توضیحات </th>
                                          <th>تاریخ ثبت</th>
                                         <th>جریمه دیرکرد</th>
                                         <th>مهلت پرداخت </th>
@@ -38,8 +39,9 @@
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
                                             <td>{{charge.name }}</td>
-                                            <td>{{charge.total_people }}</td>
+                                            <td>{{total_people }}</td>
                                             <td class="bg-gradient-light">{{charge.person_amount|three_digit_currency }}</td>
+                                         <td>{{charge.details }}</td>
                                               <td>{{charge.created_at|show_jalali }}</td>
                                               	  <td>
                                                    {% if charge.payment_penalty_amount %}
@@ -84,8 +86,9 @@
                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
                                             </a>
                                      <a href="{% url 'middle_show_notification_person_charge_form' charge.id %}"
-                                       class="btn btn-gradient-success p-2">
-                                            اعلان شارژ
+                                            class="btn btn-gradient-success px-3 py-1" 
+                                          data-bs-toggle="tooltip"  title="اعلان شارژ">
+                                         <i class="fas fa-bullhorn fa-flip-horizontal"></i>
                                             </a>
 
                                         </td>

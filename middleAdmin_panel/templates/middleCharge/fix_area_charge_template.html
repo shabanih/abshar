@@ -26,6 +26,7 @@
                                         <th> تعداد واحدها </th>
                                         <th> شارز ثابت(تومان) </th>
                                         <th class="p-0">مبلغ شارژ به ازای هر متر(تومان)</th>
+                                        <th>توضیحات</th>
                                         <th>تاریخ ثبت</th>
                                         <th>جریمه دیرکرد</th>
                                         <th>مهلت پرداخت </th>
@@ -42,6 +43,7 @@
                                             <td>{{charge.unit_count }}</td>
                                             <td>{{charge.fix_charge_amount|three_digit_currency  }}</td>
                                             <td>{{charge.area_amount|three_digit_currency }}</td>
+                                                  <td>{{charge.details }}</td>
                                                   <td>{{charge.created_at|show_jalali }}</td>
                                             <td>
                                                    {% if charge.payment_penalty_amount %}
@@ -87,8 +89,9 @@
                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
                                             </a>
                                             <a href="{% url 'middle_show_notification_fix_area_charge_form' charge.id %}"
-                                       class="btn btn-gradient-success p-2">
-                                            اعلان شارژ
+                                                class="btn btn-gradient-success px-3 py-1" 
+                                          data-bs-toggle="tooltip"  title="اعلان شارژ">
+                                         <i class="fas fa-bullhorn fa-flip-horizontal"></i>
                                             </a>
                                                    
 

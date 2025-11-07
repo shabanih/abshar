@@ -160,6 +160,9 @@ class AnnouncementView(CreateView):
 
     def form_valid(self, form):
         self.object = form.save(commit=False)
+        self.object.user = self.request.user  # 👈 اضافه کن
+        self.object.save()
+
         # announce_instance = form.instance
         messages.success(self.request, 'اطلاعیه با موفقیت ثبت گردید!')
         return super(AnnouncementView, self).form_valid(form)
@@ -255,41 +258,48 @@ def bank_delete(request, pk):
 
 # =========================== unit Views ================================
 @method_decorator(admin_required, name='dispatch')
+# from django.shortcuts import redirect
+
 class UnitRegisterView(LoginRequiredMixin, CreateView):
     model = Unit
     form_class = UnitForm
-    success_url = reverse_lazy('manage_unit')
     template_name = 'unit_templates/unit_register.html'
+    success_url = reverse_lazy('manage_unit')
 
     def form_valid(self, form):
         try:
             with transaction.atomic():
                 mobile = form.cleaned_data['mobile']
                 password = form.cleaned_data['password']
-                is_owner = form.cleaned_data.get('is_owner')  # Boolean
+                is_renter = str(form.cleaned_data.get('is_renter')).lower() == 'true'
 
                 # بررسی وجود کاربر
-                user, created = User.objects.get_or_create(mobile=mobile)
-                if created:
-                    user.set_password(password)
-                else:
+                if User.objects.filter(mobile=mobile).exists():
                     form.add_error('mobile', 'کاربری با این شماره موبایل قبلاً ثبت شده است.')
                     return self.form_invalid(form)
 
-                user.username = mobile
-                user.otp_create_time = timezone.now()
-                user.is_staff = True
-                user.name = form.cleaned_data.get('renter_name') if is_owner else form.cleaned_data.get('owner_name')
-                user.manager = self.request.user  # ثبت مدیر سطح میانی
-                user.save()
+                # ایجاد کاربر
+                user = User.objects.create_user(
+                    mobile=mobile,
+                    username=mobile,
+                    password=password,
+                    is_staff=True,
+                    manager=self.request.user,
+                    otp_create_time=timezone.now(),
+                    full_name=form.cleaned_data.get('renter_name') if is_renter else form.cleaned_data.get('owner_name')
+                )
 
-                # ساخت واحد و اتصال به کاربر جدید
+                # ثبت واحد
                 unit = form.save(commit=False)
-                unit.user = user  # کاربر ایجاد شده، مالک واحد است
+                unit.user = user
+                unit.people_count = int(
+                    form.cleaned_data.get('renter_people_count') or
+                    form.cleaned_data.get('owner_people_count') or 0
+                )
                 unit.save()
 
-                # اگر مستاجر وجود دارد
-                if is_owner:
+                # اگر مستأجر وجود دارد
+                if is_renter:
                     Renter.objects.create(
                         unit=unit,
                         renter_name=form.cleaned_data.get('renter_name'),
@@ -305,7 +315,7 @@ class UnitRegisterView(LoginRequiredMixin, CreateView):
                     )
 
             messages.success(self.request, 'واحد و کاربر با موفقیت ثبت گردید!')
-            return super().form_valid(form)
+            return redirect(self.success_url)
 
         except IntegrityError:
             form.add_error(None, "خطا در ذخیره اطلاعات. لطفاً مجدد تلاش کنید.")
@@ -317,38 +327,51 @@ class UnitUpdateView(LoginRequiredMixin, UpdateView):
     model = Unit
     form_class = UnitForm
     template_name = 'unit_templates/edit_unit.html'
-    success_url = reverse_lazy('manage_unit')  # Redirect where you want after update
+    success_url = reverse_lazy('manage_unit')
 
     def form_valid(self, form):
         try:
             with transaction.atomic():
                 self.object = form.save(commit=False)
-
-                # Don't change self.object.user (the original unit owner)
-                unit_owner = self.object.user  # Correct user to edit
+                unit_owner = self.object.user  # Original linked user
 
                 new_mobile = form.cleaned_data.get('mobile')
                 new_password = form.cleaned_data.get('password')
-                is_owner = form.cleaned_data.get('is_owner')
+                is_renter = str(form.cleaned_data.get('is_renter')).lower() == 'true'
 
+                # ✅ Validate mobile
                 if new_mobile and new_mobile != unit_owner.mobile:
                     if User.objects.filter(mobile=new_mobile).exclude(pk=unit_owner.pk).exists():
                         form.add_error('mobile', 'این شماره موبایل قبلاً ثبت شده است.')
                         return self.form_invalid(form)
-
                     unit_owner.mobile = new_mobile
                     unit_owner.username = new_mobile
 
-                unit_owner.name = form.cleaned_data.get('renter_name') if is_owner else form.cleaned_data.get(
-                    'owner_name')
+                # ✅ Always update full_name and people_count
+                unit_owner.full_name = (
+                    form.cleaned_data.get('renter_name') if is_renter else form.cleaned_data.get('owner_name')
+                )
+
+                # Determine people count based on renter/owner
+                people_count = int(
+                    form.cleaned_data.get('renter_people_count') or
+                    form.cleaned_data.get('owner_people_count') or 0
+                )
+
+                # ✅ Update both User and Unit every time
+                unit_owner.people_count = people_count
+                self.object.people_count = people_count
+
+                # ✅ Update password if given
                 if new_password:
                     unit_owner.set_password(new_password)
 
+                # Save both user and unit
                 unit_owner.save()
-                self.object.save()  # Save the unit after confirming no issues
+                self.object.save()
 
-                # Renter logic...
-                if is_owner:
+                # ✅ Handle renter logic
+                if is_renter:
                     current_renter = Renter.objects.filter(unit=self.object, renter_is_active=True).first()
 
                     def normalize(val):
@@ -359,26 +382,23 @@ class UnitUpdateView(LoginRequiredMixin, UpdateView):
                         return str(val)
 
                     renter_fields_changed = (
-                            current_renter is None or
-                            normalize(current_renter.renter_name) != normalize(form.cleaned_data.get('renter_name')) or
-                            normalize(current_renter.renter_mobile) != normalize(
-                        form.cleaned_data.get('renter_mobile')) or
-                            normalize(current_renter.renter_national_code) != normalize(
-                        form.cleaned_data.get('renter_national_code')) or
-                            normalize(current_renter.renter_people_count) != normalize(
-                        form.cleaned_data.get('renter_people_count')) or
-                            current_renter.start_date != form.cleaned_data.get('start_date') or
-                            current_renter.end_date != form.cleaned_data.get('end_date') or
-                            normalize(current_renter.contract_number) != normalize(
-                        form.cleaned_data.get('contract_number')) or
-                            normalize(current_renter.estate_name) != normalize(form.cleaned_data.get('estate_name')) or
-                            int(current_renter.first_charge or 0) != int(form.cleaned_data.get('first_charge') or 0) or
-                            normalize(current_renter.renter_details) != normalize(
-                        form.cleaned_data.get('renter_details'))
+                        current_renter is None or
+                        normalize(current_renter.renter_name) != normalize(form.cleaned_data.get('renter_name')) or
+                        normalize(current_renter.renter_mobile) != normalize(form.cleaned_data.get('renter_mobile')) or
+                        normalize(current_renter.renter_national_code) != normalize(form.cleaned_data.get('renter_national_code')) or
+                        normalize(current_renter.renter_people_count) != normalize(form.cleaned_data.get('renter_people_count')) or
+                        current_renter.start_date != form.cleaned_data.get('start_date') or
+                        current_renter.end_date != form.cleaned_data.get('end_date') or
+                        normalize(current_renter.contract_number) != normalize(form.cleaned_data.get('contract_number')) or
+                        normalize(current_renter.estate_name) != normalize(form.cleaned_data.get('estate_name')) or
+                        int(current_renter.first_charge or 0) != int(form.cleaned_data.get('first_charge') or 0) or
+                        normalize(current_renter.renter_details) != normalize(form.cleaned_data.get('renter_details'))
                     )
 
                     if renter_fields_changed:
+                        # Deactivate previous renter(s)
                         Renter.objects.filter(unit=self.object, renter_is_active=True).update(renter_is_active=False)
+                        # Create new renter record
                         Renter.objects.create(
                             unit=self.object,
                             renter_name=form.cleaned_data.get('renter_name'),
@@ -394,8 +414,13 @@ class UnitUpdateView(LoginRequiredMixin, UpdateView):
                             renter_is_active=True
                         )
 
+                # ✅ Clear renter if switched back to owner
+                else:
+                    Renter.objects.filter(unit=self.object, renter_is_active=True).update(renter_is_active=False)
+
+                # ✅ Messages
                 messages.success(self.request, f'واحد {self.object.unit} با موفقیت به‌روزرسانی شد.')
-                if is_owner and renter_fields_changed:
+                if is_renter:
                     messages.info(self.request, 'اطلاعات مستأجر جدید ثبت شد.')
 
                 return super().form_valid(form)
@@ -403,6 +428,7 @@ class UnitUpdateView(LoginRequiredMixin, UpdateView):
         except Exception as e:
             form.add_error(None, f"خطا در ذخیره اطلاعات: {str(e)}")
             return self.form_invalid(form)
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -419,7 +445,7 @@ class UnitUpdateView(LoginRequiredMixin, UpdateView):
 
             if renter.renter_name:
                 initial.update({
-                    'is_owner': 'True',
+                    'is_renter': 'True',
                     'renter_name': renter.renter_name,
                     'renter_mobile': renter.renter_mobile,
                     'renter_national_code': renter.renter_national_code,
@@ -432,9 +458,9 @@ class UnitUpdateView(LoginRequiredMixin, UpdateView):
                     'renter_details': renter.renter_details,
                 })
             else:
-                initial['is_owner'] = 'False'
+                initial['is_renter'] = 'False'
         except Renter.DoesNotExist:
-            initial['is_owner'] = 'False'
+            initial['is_renter'] = 'False'
         return initial
 
 

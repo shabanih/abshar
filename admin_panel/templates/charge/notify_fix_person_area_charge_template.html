@@ -82,7 +82,7 @@
                    data-bs-trigger="hover focus"
                    data-bs-placement="top"
                    data-bs-html="true"
-                   data-bs-content="{% if unit.is_owner %}
+                   data-bs-content="{% if unit.is_renter %}
                                       {% if renter %}مستاجر: {{ renter.renter_name }}{% else %}بدون مستاجر{% endif %}
                                     {% else %}
                                       مالک: {{ unit.owner_name }}

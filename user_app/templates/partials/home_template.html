@@ -5,24 +5,30 @@
 {% endblock page_title %}
 
 {% block main_content %}
-   
-    <div class="container">
-    {% for unit in units %}
-    	 <div class="row">
-        <div class="col-2">{{ unit.unit }}</div>
-        <div class="col-2">{{ unit.area }}</div>
-       <div class="col-2">
-    {% for renter in unit.renters.all %}
-        {{ renter.renter_mobile }}{% if not forloop.last %}, {% endif %}
-    {% endfor %}
-</div>
-        <div class="col-2">{{ unit.user.mobile }}</div>
-        <div class="col-2">{{ unit.owner_name }}</div>
-    </div>
-    {% endfor %}
     
-   
-    </div>
+<div class="container py-5">
+  <div class="card shadow-lg p-4">
+    <h1 class="header-style text-center mb-4">اطلاعیه‌های ساختمان</h1>
+
+    {% if announcements %}
+      {% for announcement in announcements %}
+        <div class="row align-items-center border-bottom py-3">
+          <div class="col-12 d-flex align-items-center">
+            <i class="fas fa-bell ms-2" style="color: rgba(98,112,204,0.98); font-size: 1.3rem;"></i>
+            <p class="info-text mb-0 ">{{ announcement.title|safe }}</p>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="text-center py-4 text-muted">
+        <i class="fas fa-info-circle me-1"></i>
+        هیچ اطلاعیه‌ای ثبت نشده است.
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+
 
 
 {% endblock main_content %}

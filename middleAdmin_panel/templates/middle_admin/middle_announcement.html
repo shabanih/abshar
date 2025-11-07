@@ -13,15 +13,15 @@
         {% csrf_token %}
         <div class="row">
             <div class="col-12">
-                {{ form.title.label_tag }}
+{#                {{ form.title.label_tag }}#}
                 {{ form.title }}
                 {{ form.title.errors }}
             </div>
-            <div class="col-4">
-                {{ form.slug.label_tag }}
-                {{ form.slug }}
-                {{ form.slug.errors }}
-            </div>
+{#            <div class="col-4">#}
+{#                {{ form.slug.label_tag }}#}
+{#                {{ form.slug }}#}
+{#                {{ form.slug.errors }}#}
+{#            </div>#}
             <div class="col-4 py-2">
                 {{ form.is_active.label_tag }}
                 {{ form.is_active }}
@@ -63,7 +63,7 @@
                             <tr>
                                 <td>{{ forloop.counter }}</td>
                                 <td>{{user.full_name }}</td>
-                                <td>{{ announcement.title }}</td>
+                                <td>{{ announcement.title|safe }}</td>
 
                                 <td>{{ announcement.created_at|show_jalali}}</td>
                                   <td>

@@ -1,5 +1,6 @@
 import json
 
+from ckeditor_uploader.fields import RichTextUploadingField
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
@@ -12,8 +13,8 @@ from user_app.models import Unit, User, Bank
 
 class Announcement(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    title = models.CharField(max_length=270, verbose_name='عنوان')
-    slug = models.SlugField(db_index=True, default='', null=True, max_length=200, verbose_name='عنوان در url')
+    title = RichTextUploadingField(null=True, blank=True)  # ⬅ـ تغییر
+    # slug = models.SlugField(db_index=True, default='', null=True, max_length=200, verbose_name='عنوان در url')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 

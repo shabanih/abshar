@@ -86,25 +86,42 @@ class Unit(models.Model):
     owner_people_count = models.CharField(max_length=10, null=True, blank=True, verbose_name='تعداد نفرات مالک')
     owner_details = models.TextField(null=True, blank=True, verbose_name='توضیحات مالک')
     status_residence = models.CharField(max_length=100, null=True, blank=True, verbose_name='وضعیت سکونت')
-    is_owner = models.BooleanField(default=False, verbose_name='مالک یا مستاجر', null=True, blank=True)
+    is_renter = models.BooleanField(default=False, verbose_name=' مستاجر دارد؟', null=True, blank=True)
     people_count = models.IntegerField(null=True, blank=True, verbose_name='تعداد نفرات')
     parking_counts = models.IntegerField(null=True, blank=True, verbose_name='تعداد پارکینگ اضافه')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='زمان ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیر فعال')
 
     def __str__(self):
-        return f'واحد {self.unit} - کاربر {self.user}'
+        return self.owner_name
 
     def get_active_renter(self):
         return self.renters.filter(renter_is_active=True).first()
 
     def save(self, *args, **kwargs):
+        # --- Calculate extra parking count ---
         count = 0
         if self.extra_parking_first:
             count += 1
         if self.extra_parking_second:
             count += 1
         self.parking_counts = count
+
+        # --- Update people_count based on owner or renter ---
+        if self.is_renter:
+            # if this unit has an active renter, use their people count
+            if hasattr(self, 'renters'):
+                active_renter = self.renters.filter(renter_is_active=True).first()
+                if active_renter and hasattr(active_renter, 'renter_people_count'):
+                    self.people_count = active_renter.renter_people_count
+        else:
+            # if it's owned (not rented), use owner_people_count
+            if self.owner_people_count:
+                try:
+                    self.people_count = int(self.owner_people_count)
+                except ValueError:
+                    self.people_count = None  # handle invalid input gracefully
+
         super().save(*args, **kwargs)
 
 

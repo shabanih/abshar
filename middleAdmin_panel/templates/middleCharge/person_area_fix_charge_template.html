@@ -28,6 +28,7 @@
                                         <th> شارژ ثابت </th>
                                         <th class="p-0"> شارژ به ازای هر نفر(تومان)</th>
                                         <th class="p-0"> شارژ به ازای هر متر(تومان)</th>
+                                          <th>توضیحات</th>
                                         <th>تاریخ ثبت</th>
                                         <th>جریمه دیرکرد</th>
                                           <th> اعلام شارژ </th>
@@ -45,6 +46,7 @@
                                             <td>{{charge.fix_charge_amount }}</td>
                                             <td>{{charge.person_amount|three_digit_currency }}</td>
                                             <td>{{charge.area_amount|three_digit_currency }}</td>
+                                        <th>{{ charge.details }}</th>
                                                   <td>{{charge.created_at|show_jalali }}</td>
                                             <td>
                                                    {% if charge.payment_penalty_amount %}
@@ -91,10 +93,11 @@
                                        onclick="return confirmDeleteWithSweetAlert(event)">
                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
                                             </a>
-                                                    <a href="{% url 'middle_show_notification_fix_person_area_charge_form' charge.id %}"
-                                       class="btn btn-gradient-success p-2">
-                                            اعلان شارژ
-                                            </a>
+                                        <a href="{% url 'middle_show_notification_fix_person_area_charge_form' charge.id %}"
+                                         class="btn btn-gradient-success px-3 py-1" 
+                                          data-bs-toggle="tooltip"  title="اعلان شارژ">
+                                         <i class="fas fa-bullhorn fa-flip-horizontal"></i>
+                                        </a>
 
                                         </td>
                    <div class="modal fade"  id="exampleModalLong2{{ charge.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ charge.id }}" aria-hidden="true">
@@ -187,18 +190,7 @@
                       {{ form.fix_charge_amount.errors }}
                   </div>
                  </div>
-                <div class="row g-2">
-                     <div class="col-6">
-                      {{ form.civil.label_tag }}
-                      {{ form.civil }}
-                      {{ form.civil.errors }}
-                  </div>
-                        <div class="col-6">
-                      {{ form.other_cost_amount.label_tag }}
-                      {{ form.other_cost_amount }}
-                      {{ form.other_cost_amount.errors }}
-                  </div>
-                     </div>
+                
               <div class="row g-2">
                    <div class="col-6">
                          <label for="">تعداد کل نفرات:</label>
@@ -221,6 +213,18 @@
                          {{ form.area_amount.label_tag }}
                       {{ form.area_amount }}
                       {{ form.area_amount.errors }}
+                  </div>
+                     </div>
+              <div class="row g-2">
+                     <div class="col-6">
+                      {{ form.civil.label_tag }}
+                      {{ form.civil }}
+                      {{ form.civil.errors }}
+                  </div>
+                        <div class="col-6">
+                      {{ form.other_cost_amount.label_tag }}
+                      {{ form.other_cost_amount }}
+                      {{ form.other_cost_amount.errors }}
                   </div>
                      </div>
                               <div class="row g-2">

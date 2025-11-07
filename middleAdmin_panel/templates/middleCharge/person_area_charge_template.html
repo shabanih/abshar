@@ -87,8 +87,9 @@
                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
                                             </a>
                                        <a href="{% url 'middle_show_notification_person_area_charge_form' charge.id %}"
-                                       class="btn btn-gradient-success p-2">
-                                            اعلان شارژ
+                                        class="btn btn-gradient-success px-3 py-1" 
+                                          data-bs-toggle="tooltip"  title="اعلان شارژ">
+                                         <i class="fas fa-bullhorn fa-flip-horizontal"></i>
                                             </a>
 
                                         </td>
@@ -104,6 +105,7 @@
                                  <p><strong>مبلغ شارژ هر ازای هر نفر:</strong> {{ charge.person_amount|three_digit_currency }} تومان</p>
                                  <p><strong>مبلغ شارژ هر ازای هر متر:</strong> {{ charge.area_amount|three_digit_currency }} تومان</p>
                                  <p><strong>کل نفرات ساختمان:</strong> {{ charge.total_people }} نفر </p>
+                                 <p><strong>کل متراژ ساختمان:</strong> {{ charge.total_area }} نفر </p>
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil|three_digit_currency }} تومان</p>
                                 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost_amount|three_digit_currency }} تومان</p>
                                 <p><strong>تاریخ ثبت :</strong> {{ charge.created_at|show_jalali_date_only }} </p>

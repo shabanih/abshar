@@ -8,9 +8,9 @@
 {% endblock page_title %}
 
 {% block main_content %}
-<div class="container mt-4 p-0">
+<div class="container-fluid mt-4 p-0">
       <div class="row mb-4 ">
-              <div class="col-12 col-md-10 col-xl-10 align-self-center ">
+              <div class="col-9 col-md-10 col-xl-10 align-self-center ">
          <form method="get" action="">
     <input type="text" class="p-2" name="search" id="searchInput" autocomplete="off"
            value="{{ request.GET.search|default_if_none:'' }}"
@@ -19,8 +19,8 @@
     <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
 </form>        
           </div>
-             <div class="col-6 col-md-2 col-xl-2 text-start ">
-                  <label for="cardsPerPage" class="form-label">تعداد نمایش :</label>
+             <div class="col-3 col-md-2 col-xl-2 text-start ">
+                  <label for="cardsPerPage" class="form-label d-none d-md-inline">تعداد نمایش :</label>
                  <select id="cardsPerPage" class="form-select" style="width: auto;height: auto; display: inline-block;">
                   <option value="20" selected>20</option>
                   <option value="50">50</option>
@@ -37,32 +37,33 @@
         {% csrf_token %}
        
         <hr>
-      <div class="row mb-2">
-            <div class="col-12 col-md-2 col-xl-2 form-check align-self-center">
+      <div class="row g-3 mb-2">
+            <div class="col-12 col-md-2 col-xl-2 form-check align-self-center p-1">
             <button type="button" id="toggle-select-btn" class="btn btn-gradient-info shadow_style px-3">
                 انتخاب همه واحدها
             </button>
             </div>
-                   <div class="col-12 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
+                   <div class="col-6 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
                     <span class="circleSendNotify"></span>
                   ارسال موفق اطلاعیه شارژ 
                 </div>
-            <div class="col-12 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
+            <div class="col-6 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
                     <span class="circlePayment"></span>
                   پرداخت موفق شارژ
                 </div>
          
-            <div class="col-12 col-md-6 col-xl-6 text-start align-self-center">
-                <button type="button" id="remove-all-btn" class="btn btn-dark px-3 shadow_style">
+            <div class="col-12 col-md-6 col-xl-6 text-start align-self-center p-1">
+                <button type="button" id="remove-all-btn" class="btn btn-dark px-2 shadow_style">
                     حذف اطلاعیه واحدها
                 </button>
-                <button type="submit" onclick="return confirmWithSweetAlert(event)" class="btn btn-gradient-success px-3 shadow_style">ارسال اطلاعیه شارژ به واحد</button>
+                <button type="submit" onclick="return confirmWithSweetAlert(event)" 
+                        class="btn btn-gradient-success px-3 shadow_style">ارسال اطلاعیه شارژ </button>
                 <a href="{% url 'middle_add_person_charge' %}" class="btn btn-danger px-3 shadow_style"> بازگشت</a>
              </div>
         </div>
     
   
-<div class="row g-2">
+<div class="row mt-3 g-2">
    {% for unit, renter, is_paid, total_charge in page_obj %}
     <div class="col-6 col-lg-2 col-md-2 col-xl-2 mb-3">
        <div class="card shadow_style fixChargeTable p-0 m-0"
@@ -81,7 +82,7 @@
                    data-bs-trigger="hover focus"
                    data-bs-placement="top"
                    data-bs-html="true"
-                   data-bs-content="{% if unit.is_owner %}
+                   data-bs-content="{% if unit.is_renter %}
                                       {% if renter %}مستاجر: {{ renter.renter_name }}{% else %}بدون مستاجر{% endif %}
                                     {% else %}
                                       مالک: {{ unit.owner_name }}

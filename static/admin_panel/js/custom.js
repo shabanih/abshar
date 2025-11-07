@@ -1,17 +1,17 @@
-﻿    function toggleRenterFields() {
-    const isOwner = document.getElementById('id_is_owner').value;
+﻿function toggleRenterFields() {
+    const isRenter = document.getElementById('id_is_renter').value;
     const renterFields = document.getElementById('renter_div');
 
-    if (isOwner === 'True') {
-        renterFields.style.display = 'block';  // show fields when user is the owner
+    if (isRenter === 'True') {
+        renterFields.style.display = 'block';
     } else {
-        renterFields.style.display = 'none';  // hide otherwise (False or not selected)
+        renterFields.style.display = 'none';
     }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
     toggleRenterFields();
-    document.getElementById('id_is_owner').addEventListener('change', toggleRenterFields);
+    document.getElementById('id_is_renter').addEventListener('change', toggleRenterFields);
 });
 
 

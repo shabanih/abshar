@@ -2,7 +2,7 @@ import io
 
 from django.apps import apps
 from django.contrib import messages
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -130,6 +130,11 @@ def resend_otp(request):
         return HttpResponseRedirect(reverse('index'))
 
 
+def logout_user(request):
+    logout(request)
+    return redirect('mobile_login')
+
+
 def site_header_component(request):
     context = {
         'user': request.user,
@@ -140,16 +145,45 @@ def site_header_component(request):
 
 
 def user_panel(request):
-    units = Unit.objects.filter(user=request.user, is_active=True).prefetch_related('renters')
+    user = request.user
 
+    # 🧠 If this user is a middle admin
+    if user.is_middle_admin:
+        # Show their own announcements + their managed units
+        units = Unit.objects.filter(user__manager=user, is_active=True).prefetch_related('renters')
+        announcements = Announcement.objects.filter(user=user, is_active=True).order_by('-created_at')[:4]
+
+    else:
+        # 🧠 If this user is a normal user
+        units = Unit.objects.filter(user=user, is_active=True).prefetch_related('renters')
+
+        # Show announcements from this user's manager (middle admin)
+        announcements = Announcement.objects.filter(
+            is_active=True,
+            user=user.manager
+        ).order_by('-created_at')[:4]
+
+    # find active renters for each unit
     units_with_active_renter = []
     for unit in units:
         active_renter = unit.renters.filter(renter_is_active=True).first()
         units_with_active_renter.append((unit, active_renter))
 
+    units_with_details = []
+    for unit in units:
+        active_renter = unit.renters.filter(renter_is_active=True).first()
+        units_with_details.append({
+            'unit': unit,
+            'active_renter': active_renter,
+
+        })
+
     context = {
-        'user': request.user,
-        'units': units
+        'user': user,
+        'units': units,
+        'announcements': announcements,
+        'units_with_active_renter': units_with_active_renter,
+        'units_with_details': units_with_details,
     }
     return render(request, 'partials/home_template.html', context)
 
