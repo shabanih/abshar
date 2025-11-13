@@ -53,7 +53,9 @@
 </head>
 <body>
     <div class="invoice-box">
-        <h2 class="text-center font-weight-bold">صورت‌حساب {{ charge.charge_name }}</h2>
+         <h3 class="text-center font-weight-bold">مجتمع مسکونی {{ house.name }}</h3>
+
+        <h2 class="text-center font-weight-bold">صورتحساب {{ charge.charge_name }}</h2>
     <table>
                   <tr>
                 <th>واحد</th>
@@ -112,18 +114,27 @@
 {#        <p><strong>مهلت پرداخت:</strong>{{ charge.payment_deadline_date|show_jalali_date_only }}</p>#}
 
 
-        <table>
-            <tr>
-                <td>
-                    <p>
-                        خواهشمند است مبلغ شارژ را به شماره حساب {{ charge.bank.account_no }} نزد بانک  {{ charge.bank.bank_name }} بنام آقایان
-                        {{ charge.bank.account_holder_name}} واریز نمایید.
-                    </p>
-                    <p>شبای حساب بانکی: {{ charge.bank.sheba_number }}</p>
-                    <p>شماره کارت: {{ charge.bank.cart_number }}</p>
-                </td>
-            </tr>
-        </table>
+        <table style="width: 100%; border: none; font-size: 13px; line-height: 1.8;">
+    <tr>
+        <td style="text-align: right; direction: rtl;">
+            {% if bank %}
+                <p>
+                    خواهشمند است مبلغ شارژ را به شماره حساب
+                    <strong>{{ bank.account_no }}</strong>
+                    نزد بانک
+                    <strong>{{ bank.bank_name }}</strong>
+                    بنام
+                    <strong>{{ bank.account_holder_name }}</strong>
+                    واریز نمایید.
+                </p>
+                <p>شماره شبا: <strong>{{ bank.sheba_number }}</strong></p>
+                <p>شماره کارت: <strong>{{ bank.cart_number }}</strong></p>
+            {% else %}
+                <p style="color: red;">اطلاعات حساب بانکی ثبت نشده است.</p>
+            {% endif %}
+        </td>
+    </tr>
+</table>
     </div>
 </body>
 </html>

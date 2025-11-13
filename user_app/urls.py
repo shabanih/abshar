@@ -20,6 +20,14 @@ urlpatterns = [
     path('charge/fix/person/area/pdf/<int:pk>/', views.export_fix_person_area_charge_pdf,
          name='export_fix_person_area_charge_pdf'),
 
-    path('fixed-charges/', views.fetch_user_fixed_charges, name='user_fixed_charges'),
+    path('user-charges/', views.fetch_user_fixed_charges, name='user_charges'),
+    path('user-announce/', views.user_announcements, name='user_announce_manage'),
+
+    path('support-ticket/', views.SupportUserCreateView.as_view(), name='user_support_ticket'),
+    path('myTicket/', views.TicketsView.as_view(), name='tickets'),
+    path('tiket/details/<int:pk>/', views.user_ticket_detail, name='ticket_detail'),
+    path('ticket/close/<int:pk>/', views.close_ticket, name='close_ticket')
+
+
 ]
 

@@ -46,6 +46,21 @@ MONTHS = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرد�
 #     except (ValueError, TypeError):
 #         return ''  # Return empty string if there's an error in conversion
 
+@register.filter(name='show_jalali_date_time')
+def show_jalali_date_time(value):
+    if value is None:
+        return ''
+    # تبدیل به Jalali
+    jalali_datetime = jdatetime.datetime.fromgregorian(datetime=value)
+
+    # نام روز و ماه
+    weekday = WEEKDAYS[jalali_datetime.weekday()]
+    month = MONTHS[jalali_datetime.month - 1]
+
+    # فرمت تاریخ و زمان
+    formatted = f'{jalali_datetime.hour:02d}:{jalali_datetime.minute:02d} - {jalali_datetime.day}/ {jalali_datetime.month}/ {jalali_datetime.year} '
+    return formatted
+
 
 @register.filter(name='show_jalali_date_only')
 def show_jalali_date(value):

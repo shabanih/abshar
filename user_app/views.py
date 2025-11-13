@@ -4,20 +4,21 @@ from django.apps import apps
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db.models import Q
 from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import get_template
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, CreateView, ListView, DetailView
 from pypdf import PdfWriter
 from weasyprint import CSS, HTML
 
 from user_app import helper
 from admin_panel.models import Announcement, FixedChargeCalc, AreaChargeCalc, PersonCharge, PersonChargeCalc, \
     FixPersonChargeCalc, FixAreaChargeCalc, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariableCalc
-from user_app.forms import LoginForm, MobileLoginForm
-from user_app.models import User, Unit, Bank
+from user_app.forms import LoginForm, MobileLoginForm, SupportUserForm, SupportMessageForm
+from user_app.models import User, Unit, Bank, MyHouse, SupportUser, SupportFile, SupportMessage
 
 
 def index(request):
@@ -132,7 +133,7 @@ def resend_otp(request):
 
 def logout_user(request):
     logout(request)
-    return redirect('mobile_login')
+    return redirect('index')
 
 
 def site_header_component(request):
@@ -228,8 +229,21 @@ def fetch_user_fixed_charges(request):
 # ========================= Pdf Charges ===================
 def export_fix_variable_charge_pdf(request, pk, charge_type=None):
     charge = get_object_or_404(ChargeFixVariableCalc, pk=pk)
+    user = request.user
+
+    # دریافت مدیر میانی
+    manager = user.manager
+
+    # بانک‌های ثبت‌شده توسط مدیر
+    bank = Bank.objects.filter(user=manager, is_active=True).first()
+
+    # ساختمان‌های ثبت‌شده توسط مدیر
+    house = MyHouse.objects.filter(user=manager, is_active=True).first()
     template = get_template('pdf/fix_variable_pdf.html')
-    html_string = template.render({'charge': charge})
+    html_string = template.render({'charge': charge,
+                                   'bank': bank,
+                                   'house': house,
+                                   })
     font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
     css = CSS(string=f"""
         @page {{ size: A5 portrait; margin: 1cm; }}
@@ -253,8 +267,21 @@ def export_fix_variable_charge_pdf(request, pk, charge_type=None):
 
 def export_person_charge_pdf(request, pk, charge_type=None):
     charge = get_object_or_404(PersonChargeCalc, pk=pk)
+    user = request.user
+
+    # دریافت مدیر میانی
+    manager = user.manager
+
+    # بانک‌های ثبت‌شده توسط مدیر
+    bank = Bank.objects.filter(user=manager, is_active=True).first()
+
+    # ساختمان‌های ثبت‌شده توسط مدیر
+    house = MyHouse.objects.filter(user=manager, is_active=True).first()
     template = get_template('pdf/person_charge_pdf.html')
-    html_string = template.render({'charge': charge})
+    html_string = template.render({'charge': charge,
+                                   'bank': bank,
+                                   'house': house,
+                                   })
     font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
     css = CSS(string=f"""
         @page {{ size: A5 portrait; margin: 1cm; }}
@@ -278,8 +305,21 @@ def export_person_charge_pdf(request, pk, charge_type=None):
 
 def export_area_charge_pdf(request, pk, charge_type=None):
     charge = get_object_or_404(AreaChargeCalc, pk=pk)
+    user = request.user
+
+    # دریافت مدیر میانی
+    manager = user.manager
+
+    # بانک‌های ثبت‌شده توسط مدیر
+    bank = Bank.objects.filter(user=manager, is_active=True).first()
+
+    # ساختمان‌های ثبت‌شده توسط مدیر
+    house = MyHouse.objects.filter(user=manager, is_active=True).first()
     template = get_template('pdf/area_charge_pdf.html')
-    html_string = template.render({'charge': charge})
+    html_string = template.render({'charge': charge,
+                                   'bank': bank,
+                                   'house': house,
+                                   })
     font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
     css = CSS(string=f"""
         @page {{ size: A5 portrait; margin: 1cm; }}
@@ -303,8 +343,21 @@ def export_area_charge_pdf(request, pk, charge_type=None):
 
 def export_fix_person_area_charge_pdf(request, pk, charge_type=None):
     charge = get_object_or_404(ChargeByFixPersonAreaCalc, pk=pk)
+    user = request.user
+
+    # دریافت مدیر میانی
+    manager = user.manager
+
+    # بانک‌های ثبت‌شده توسط مدیر
+    bank = Bank.objects.filter(user=manager, is_active=True).first()
+
+    # ساختمان‌های ثبت‌شده توسط مدیر
+    house = MyHouse.objects.filter(user=manager, is_active=True).first()
     template = get_template('pdf/fix_person_area_pdf.html')
-    html_string = template.render({'charge': charge})
+    html_string = template.render({'charge': charge,
+                                   'bank': bank,
+                                   'house': house,
+                                   })
     font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
     css = CSS(string=f"""
         @page {{ size: A5 portrait; margin: 1cm; }}
@@ -328,8 +381,21 @@ def export_fix_person_area_charge_pdf(request, pk, charge_type=None):
 
 def export_fix_area_charge_pdf(request, pk, charge_type=None):
     charge = get_object_or_404(FixAreaChargeCalc, pk=pk)
+    user = request.user
+
+    # دریافت مدیر میانی
+    manager = user.manager
+
+    # بانک‌های ثبت‌شده توسط مدیر
+    bank = Bank.objects.filter(user=manager, is_active=True).first()
+
+    # ساختمان‌های ثبت‌شده توسط مدیر
+    house = MyHouse.objects.filter(user=manager, is_active=True).first()
     template = get_template('pdf/fix_area_pdf.html')
-    html_string = template.render({'charge': charge})
+    html_string = template.render({'charge': charge,
+                                   'bank': bank,
+                                   'house': house,
+                                   })
     font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
     css = CSS(string=f"""
         @page {{ size: A5 portrait; margin: 1cm; }}
@@ -353,8 +419,21 @@ def export_fix_area_charge_pdf(request, pk, charge_type=None):
 
 def export_fix_person_charge_pdf(request, pk, charge_type=None):
     charge = get_object_or_404(FixPersonChargeCalc, pk=pk)
+    user = request.user
+
+    # دریافت مدیر میانی
+    manager = user.manager
+
+    # بانک‌های ثبت‌شده توسط مدیر
+    bank = Bank.objects.filter(user=manager, is_active=True).first()
+
+    # ساختمان‌های ثبت‌شده توسط مدیر
+    house = MyHouse.objects.filter(user=manager, is_active=True).first()
     template = get_template('pdf/fix_person_pdf.html')
-    html_string = template.render({'charge': charge})
+    html_string = template.render({'charge': charge,
+                                   'bank': bank,
+                                   'house': house,
+                                   })
     font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
     css = CSS(string=f"""
         @page {{ size: A5 portrait; margin: 1cm; }}
@@ -378,8 +457,22 @@ def export_fix_person_charge_pdf(request, pk, charge_type=None):
 
 def export_fix_charge_pdf(request, pk, charge_type=None):
     charge = get_object_or_404(FixedChargeCalc, pk=pk)
+    user = request.user
+
+    # دریافت مدیر میانی
+    manager = user.manager
+
+    # بانک‌های ثبت‌شده توسط مدیر
+    bank = Bank.objects.filter(user=manager, is_active=True).first()
+
+    # ساختمان‌های ثبت‌شده توسط مدیر
+    house = MyHouse.objects.filter(user=manager, is_active=True).first()
+    # bank = Bank.objects.filter(user__manager=request.user, is_active=True).first()
     template = get_template('pdf/fix_charge_pdf.html')
-    html_string = template.render({'charge': charge})
+    html_string = template.render({'charge': charge,
+                                   'bank': bank,
+                                   'house': house,
+                                   })
     font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
     css = CSS(string=f"""
         @page {{ size: A5 portrait; margin: 1cm; }}
@@ -403,8 +496,18 @@ def export_fix_charge_pdf(request, pk, charge_type=None):
 
 def export_person_area_charge_pdf(request, pk, charge_type=None):
     charge = get_object_or_404(ChargeByPersonAreaCalc, pk=pk)
+    user = request.user
+
+    # دریافت مدیر میانی
+    manager = user.manager
+
+    # بانک‌های ثبت‌شده توسط مدیر
+    bank = Bank.objects.filter(user=manager, is_active=True).first()
+
+    # ساختمان‌های ثبت‌شده توسط مدیر
+    house = MyHouse.objects.filter(user=manager, is_active=True).first()
     template = get_template('pdf/person_area_pdf.html')
-    html_string = template.render({'charge': charge})
+    html_string = template.render({'charge': charge, 'bank': bank, 'house': house});
     font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
     css = CSS(string=f"""
         @page {{ size: A5 portrait; margin: 1cm; }}
@@ -424,3 +527,132 @@ def export_person_area_charge_pdf(request, pk, charge_type=None):
     response = HttpResponse(pdf_file, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
     return response
+
+
+def user_announcements(request):
+    user = request.user
+
+    # اگر کاربر مدیر میانی ندارد، هیچ اطلاعیه‌ای ندارد
+    if not user.manager:
+        announcements = []
+    else:
+        # فقط اطلاعیه‌های مدیر میانی کاربر
+        announcements = Announcement.objects.filter(
+            user=user.manager,
+            is_active=True
+        ).order_by('-created_at')
+
+    context = {
+        'announcements': announcements
+    }
+    return render(request, 'manage_announcement.html', context)
+
+
+class SupportUserCreateView(CreateView):
+    model = SupportUser
+    template_name = 'send_ticket.html'
+    form_class = SupportUserForm
+    success_url = reverse_lazy('user_support_ticket')
+
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.user = self.request.user
+        obj.save()
+
+        # Handle multiple files manually
+        files = self.request.FILES.getlist('file')
+        for f in files:
+            SupportFile.objects.create(support_user=obj, file=f)
+
+        initial_message = form.cleaned_data.get('message')
+        if initial_message:
+            msg = SupportMessage.objects.create(
+                support_user=obj,
+                sender=self.request.user,
+                message=initial_message
+            )
+
+            # اگر فایل‌ها مربوط به پیام هستند
+            for f in files:
+                file_obj = SupportFile.objects.create(support_user=obj, file=f)
+                msg.attachments.add(file_obj)
+
+        messages.success(
+            self.request,
+            'تیکت با موفقیت ارسال گردید. کارشناسان ما طی ۳ تا ۵ ساعت آینده پاسخ خواهند داد.'
+        )
+
+        # ✅ بدون ذخیره دوباره فرم
+        return redirect(self.success_url)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tickets'] = SupportUser.objects.filter(
+            user=self.request.user
+        ).order_by('-created_at')
+        return context
+
+
+class TicketsView(ListView):
+    model = SupportUser
+    template_name = 'user_ticket.html'
+    context_object_name = 'tickets'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+        qs = SupportUser.objects.filter(user=self.request.user)
+        if query:
+            qs = qs.filter(
+                Q(subject__icontains=query) |
+                Q(message__icontains=query) |
+                Q(ticket_no__icontains=query)
+            )
+        return qs.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        return context
+
+
+def user_ticket_detail(request, pk):
+    ticket = get_object_or_404(SupportUser, id=pk)
+    form = SupportMessageForm()
+
+    if request.method == 'POST':
+        form = SupportMessageForm(request.POST, request.FILES)
+        files = request.FILES.getlist('attachments')
+        if form.is_valid():
+            msg = form.save(commit=False)
+            msg.support_user = ticket
+            msg.sender = request.user
+            msg.save()
+            for f in files:
+                file_obj = SupportFile.objects.create(file=f)
+                msg.attachments.add(file_obj)
+            # تغییر وضعیت تیکت بعد از پاسخ
+            ticket.is_answer = True
+            ticket.is_closed = False
+            ticket.save()
+            messages.success(request, "پیام با موفقیت ارسال شد.")
+            return redirect('ticket_detail', pk=ticket.id)
+
+    messages_list = ticket.messages.order_by('-created_at')
+    return render(request, 'ticket_details.html', {
+        'ticket': ticket,
+        'messages': messages_list,
+        'form': form
+    })
+
+
+def close_ticket(request, pk):
+    ticket = get_object_or_404(SupportUser, id=pk)
+    ticket.is_closed = True
+    ticket.save()
+    return redirect('ticket_detail', pk=ticket.id)

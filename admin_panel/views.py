@@ -36,8 +36,8 @@ from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDo
     MaintenanceDocument, FixedChargeCalc, ChargeByPersonArea, AreaChargeCalc, PersonChargeCalc, FixAreaChargeCalc, \
     FixPersonChargeCalc, ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
     FixPersonCharge, FixAreaCharge, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariable, \
-    ChargeFixVariableCalc, Fund, SmsManagement
-from user_app.models import Unit, Bank, Renter, User, MyHouse
+    ChargeFixVariableCalc, SmsManagement, Fund
+from user_app.models import Unit, Bank, Renter, User, MyHouse, SupportUser
 from django.contrib.auth import get_user_model
 
 
@@ -5425,3 +5425,5 @@ def send_sms(request, pk):
         'sms': sms,
         'units_with_details': units_with_details,
     })
+
+

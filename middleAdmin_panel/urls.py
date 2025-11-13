@@ -208,6 +208,12 @@ urlpatterns = [
     path('middle-remove-send-notification-fix-variable-charge/<int:pk>/',
          views.middle_remove_send_notification_fix_variable,
          name='middle_remove_send_notification_fix_variable_charge'),
+
+    path('middle/tickets/', views.MiddleTicketsView.as_view(), name='middle_tickets'),
+
+    path('middle-ticket/<int:pk>/', views.middleAdmin_ticket_detail, name='middleAdmin_ticket_detail'),
+    path('middle/ticket/close/<int:pk>/', views.middle_close_ticket, name='middle_close_ticket'),
+    path('middle/ticket/open/<int:pk>/', views.middle_open_ticket, name='middle_open_ticket'),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -107,27 +107,27 @@
             </div>
             <section class="content pt-3">
               <div class="container-fluid">
-                <div class="row">
-                  <div class="col-12">
-                    <div class="form-group">
-                      {% if messages %}
-                      {% for message in messages  %}
-
-                      {% if message.tags == 'success' %}
-                      <div class="alert alert-success">
-                        {{message}}
-                      </div>
-                      {% else %}
-                      <div class="alert alert-danger">
-                        {{message}}
-                      </div>
-                      {% endif %}
-
-                      {% endfor %}
-                      {% endif %}
-            </div>
-                   </div>
-                </div>
+{#                <div class="row">#}
+{#                  <div class="col-12">#}
+{#                    <div class="form-group">#}
+{#                      {% if messages %}#}
+{#                      {% for message in messages  %}#}
+{##}
+{#                      {% if message.tags == 'success' %}#}
+{#                      <div class="alert alert-success">#}
+{#                        {{message}}#}
+{#                      </div>#}
+{#                      {% else %}#}
+{#                      <div class="alert alert-warning">#}
+{#                        {{message}}#}
+{#                      </div>#}
+{#                      {% endif %}#}
+{##}
+{#                      {% endfor %}#}
+{#                      {% endif %}#}
+{#            </div>#}
+{#                   </div>#}
+{#                </div>#}
               </div>
             </section>
 

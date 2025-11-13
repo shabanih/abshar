@@ -41,17 +41,39 @@ INSTALLED_APPS = [
     'admin_panel',
     'middleAdmin_panel',
 
+    # 'jalali_date',
+
     'polls',
     'payment_app',
     'reports',
-
-    # other_app
+    #
+    # # other_app
     'django_render_partial',
     'sweetify',
-    'jalali_date',
+
     'ckeditor',
     'ckeditor_uploader',  # enables file & image uploads
+    'azbankgateways',
+
+
 ]
+
+# AZ_IRANIAN_BANK_GATEWAYS = {
+#    'GATEWAYS': {
+#        'MELLAT': {
+#            'TERMINAL_CODE': '8807710',
+#            'USERNAME': '8807710',
+#            'PASSWORD': '64728741',
+#        },
+#    },
+#    'DEFAULT': 'MELLAT',
+#    'CURRENCY': 'IRR', # اختیاری
+#    'TRACKING_CODE_QUERY_PARAM': 'tc', # اختیاری
+#    'TRACKING_CODE_LENGTH': 16, # اختیاری
+#    'SETTING_VALUE_READER_CLASS': 'azbankgateways.readers.DefaultReader', # اختیاری
+#    'BANK_PRIORITIES': [
+#    ], # اختیاری
+# }
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -72,8 +94,7 @@ LOGIN_URL_MIDDLE_ADMIN = '/middle-admin-panel/login-middleAdmin/'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -120,13 +141,10 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
 LANGUAGE_CODE = 'fa-ir'
-
-TIME_ZONE = 'UTC'
-
+TIME_ZONE = 'Asia/Tehran'
 USE_I18N = True
-
-USE_TZ = True
-
+USE_L10N = True
+USE_TZ = False
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
@@ -170,8 +188,43 @@ CKEDITOR_CONFIGS = {
         'contentsLangDirection': 'rtl',
         'contentsLanguage': 'fa',
         'tabSpaces': 4,
+    },
+
+    'classic_light': {
+        'toolbar': [['Bold', 'Italic', 'Underline', 'Undo', 'Font', 'Redo', 'Color', 'Background', 'Source',
+                     'NumberedList', 'BulletedList', 'Strikethrough', 'Link', 'Blockquote', 'Image', 'Text', 'Embed']],
+        'filebrowserUploadUrl': '/ckeditor/upload/',
+        'filebrowserBrowseUrl': '/ckeditor/browse/',
+        'contentsCss': ['/static/admin_panel/css/ckeditor_fa.css'],
+
+        'width': '100%',  # عرض کامل نسبت به المان والد
+        'height': 250,    # ارتفاع اولیه
+        'extraPlugins': ','.join([
+            'uploadimage',  # برای آپلود تصویر داخل متن
+            'justify',  # برای Justify یا تنظیم چپ/راست
+            'font',  # انتخاب فونت
+            'colorbutton',  # رنگ متن
+            'embed',  # Embed ویدیو
+            'emoji',
+            'autocomplete',  # وابسته به emoji
+            'textmatch',  # وابسته به emoji
+
+        ]),
+        'font_names': 'Vazir;Tahoma;Arial;Sans-Serif;',
+
+        'removePlugins': 'stylesheetparser',
+        'language': 'fa',
+        'direction': 'rtl',
+        'contentsLangDirection': 'rtl',
+        'contentsLanguage': 'fa',
+
+        'tabSpaces': 4,
+        'resize_enabled': True,       # امکان تغییر ارتفاع با موس
+        'autoGrow_minHeight': 250,    # حداقل ارتفاع
+        'autoGrow_maxHeight': 600,    # حداکثر ارتفاع
     }
-}
+    ,
+    }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

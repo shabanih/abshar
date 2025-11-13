@@ -1,16 +1,20 @@
 {% extends 'partials/core_template.html' %}
 {% load poll_extras %}
 
-{% block page_title %}
-مدیریت شارژ واحد {{ unit.unit }}
-{% endblock page_title %}
+{#{% block page_title %}#}
+{#مدیریت شارژ واحد {{ unit.unit }}#}
+{#{% endblock page_title %}#}
 
 {% block main_content %}
-    <hr>
      <div class="container py-2 mt-2"   dir="rtl">
-
-     <div class="row">
+     <div class="row text-center">
          <div class="col-12">
+             <img src="/static/img/pay-charge.png" width="350" alt="">
+         </div>
+     </div>
+
+     <div class="row d-flex justify-content-center">
+         <div class="col-8 text-center">
 
 
     {% if info %}
@@ -31,8 +35,8 @@
         </div>
     {% endif %}
          </div>
-     <div class="col-12 text-start mt-4">
-           <a class="btn btn-gradient-danger" href="{% url 'user_panel' %}"> برگشت </a>
+     <div class="col-12 text-center mt-4">
+           <a class="btn btn-gradient-danger w-25" href="{% url 'user_charges' %}"> مدیریت شارژ </a>
      </div>
      </div>
      

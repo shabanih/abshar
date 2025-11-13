@@ -14,7 +14,6 @@ from user_app.models import Unit, User, Bank
 class Announcement(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = RichTextUploadingField(null=True, blank=True)  # ⬅ـ تغییر
-    # slug = models.SlugField(db_index=True, default='', null=True, max_length=200, verbose_name='عنوان در url')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 
@@ -736,11 +735,13 @@ class ChargeFixVariableCalc(models.Model):
 
 
 class Fund(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     doc_number = models.PositiveIntegerField(unique=True, editable=False, null=True, blank=True)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
 
+    amount = models.DecimalField(max_digits=12, decimal_places=0, null=True, blank=True)
     debtor_amount = models.DecimalField(max_digits=12, decimal_places=0)
     creditor_amount = models.DecimalField(max_digits=12, decimal_places=0)
     final_amount = models.PositiveIntegerField(default=0)

@@ -1,11 +1,9 @@
 import json
-
 import requests
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse
 from django.utils import timezone
 
 from admin_panel.models import FixedChargeCalc, AreaChargeCalc, PersonChargeCalc, FixPersonChargeCalc, \
@@ -13,23 +11,28 @@ from admin_panel.models import FixedChargeCalc, AreaChargeCalc, PersonChargeCalc
 
 MERCHANT = "3d6d6a26-c139-49ac-9d8d-b03a8cdf0fdd"
 
-ZP_API_REQUEST = "https://api.zarinpal.com/pg/v4/payment/request.json"
-ZP_API_VERIFY = "https://api.zarinpal.com/pg/v4/payment/verify.json"
-ZP_API_STARTPAY = "https://www.zarinpal.com/pg/StartPay/{authority}"
+# ZP_API_REQUEST = "https://api.zarinpal.com/pg/v4/payment/request.json"
+# ZP_API_VERIFY = "https://api.zarinpal.com/pg/v4/payment/verify.json"
+# ZP_API_STARTPAY = "https://www.zarinpal.com/pg/StartPay/{authority}"#
 
-amount = 1000  # Rial / Required
+
+ZP_API_REQUEST = "https://sandbox.zarinpal.com/pg/v4/payment/request.json"
+ZP_API_VERIFY = "https://sandbox.zarinpal.com/pg/v4/payment/verify.json"
+ZP_API_STARTPAY = "https://sandbox.zarinpal.com/pg/StartPay/{authority}"
+
+
+# amount = 1000  # Rial / Required
 description = "Raya"  # Required
 # phone = 'YOUR_PHONE_NUMBER'  # Optional
 # Important: need to edit for realy server.
-CallbackURLFix = 'http://127.0.0.1:8000/payment/verify-pay-fix/'
-CallbackURLArea = 'http://127.0.0.1:8000/payment/verify-pay-area/'
-CallbackURLPerson = 'http://127.0.0.1:8000/payment/verify-pay-person/'
-CallbackURLFixPerson = 'http://127.0.0.1:8000/payment/verify-pay-fix-person/'
-CallbackURLFixArea = 'http://127.0.0.1:8000/payment/verify-pay-fix-area/'
-CallbackURLPersonArea = 'http://127.0.0.1:8000/payment/verify-pay-person-area/'
-CallbackURLFixPersonArea = 'http://127.0.0.1:8000/payment/verify-pay-fix-person-area/'
-CallbackURLFixVariable = 'http://127.0.0.1:8000/payment/verify-pay-fix-variable/'
-
+CallbackURLFix = 'http://127.0.0.1:8001/payment/verify-pay-fix/'
+CallbackURLArea = 'http://127.0.0.1:8001/payment/verify-pay-area/'
+CallbackURLPerson = 'http://127.0.0.1:8001/payment/verify-pay-person/'
+CallbackURLFixPerson = 'http://127.0.0.1:8001/payment/verify-pay-fix-person/'
+CallbackURLFixArea = 'http://127.0.0.1:8001/payment/verify-pay-fix-area/'
+CallbackURLPersonArea = 'http://127.0.0.1:8001/payment/verify-pay-person-area/'
+CallbackURLFixPersonArea = 'http://127.0.0.1:8001/payment/verify-pay-fix-person-area/'
+CallbackURLFixVariable = 'http://127.0.0.1:8001/payment/verify-pay-fix-variable/'
 
 @login_required()
 def request_pay_fix(request: HttpRequest, charge_id):
@@ -118,9 +121,11 @@ def verify_pay_fix(request: HttpRequest):
                         content_type=content_type,
                         object_id=payment_charge.id,
                         debtor_amount=payment_charge.total_charge_month,
+                        amount=payment_charge.total_charge_month,
                         creditor_amount=0,
+                        user=request.user,
                         payment_date=payment_charge.payment_date,
-                        payment_description=f"{payment_charge.charge_name} - {payment_charge.user.full_name}",
+                        payment_description=f"{payment_charge.charge_name}",
                     )
 
                     return render(request, 'payment_done.html', {
@@ -240,8 +245,10 @@ def verify_pay_area(request: HttpRequest):
                         object_id=payment_charge.id,
                         debtor_amount=payment_charge.total_charge_month,
                         creditor_amount=0,
+                        amount=payment_charge.total_charge_month,
+                        user=request.user,
                         payment_date=payment_charge.payment_date,
-                        payment_description=f"{payment_charge.charge_name} - {payment_charge.user.full_name}",
+                        payment_description=f"{payment_charge.charge_name}",
                     )
                     return render(request, 'payment_done.html', {
                         'success': f'تراکنش شما با کد پیگیری {ref_str} با موفقیت انجام و پرداخت شارژ شما ثبت گردید. سپاس از شما'
@@ -268,7 +275,7 @@ def verify_pay_area(request: HttpRequest):
     else:
         payment_charge.is_paid = False
         payment_charge.save()
-        return redirect('user_fixed_charges')
+        return redirect('user_charges')
 
 
 # ============================================ Person Charge payment =================
@@ -361,8 +368,10 @@ def verify_pay_person(request: HttpRequest):
                         object_id=payment_charge.id,
                         debtor_amount=payment_charge.total_charge_month,
                         creditor_amount=0,
+                        amount=payment_charge.total_charge_month,
+                        user=request.user,
                         payment_date=payment_charge.payment_date,
-                        payment_description=f"{payment_charge.charge_name} - {payment_charge.user.full_name}",
+                        payment_description=f"{payment_charge.charge_name}",
                     )
                     return render(request, 'payment_done.html', {
                         'success': f'تراکنش شما با کد پیگیری {ref_str} با موفقیت انجام و پرداخت شارژ شما ثبت گردید. سپاس از شما'
@@ -389,7 +398,7 @@ def verify_pay_person(request: HttpRequest):
     else:
         payment_charge.is_paid = False
         payment_charge.save()
-        return redirect('user_fixed_charges')
+        return redirect('user_charges')
 
 
 # ================================== Person Fix charges ============================
@@ -481,8 +490,10 @@ def verify_pay_fix_person(request: HttpRequest):
                         object_id=payment_charge.id,
                         debtor_amount=payment_charge.total_charge_month,
                         creditor_amount=0,
+                        amount=payment_charge.total_charge_month,
+                        user=request.user,
                         payment_date=payment_charge.payment_date,
-                        payment_description=f"{payment_charge.charge_name} - {payment_charge.user.full_name}",
+                        payment_description=f"{payment_charge.charge_name}",
                     )
                     return render(request, 'payment_done.html', {
                         'success': f'تراکنش شما با کد پیگیری {ref_str} با موفقیت انجام و پرداخت شارژ شما ثبت گردید. سپاس از شما'
@@ -509,7 +520,7 @@ def verify_pay_fix_person(request: HttpRequest):
     else:
         payment_charge.is_paid = False
         payment_charge.save()
-        return redirect('user_fixed_charges')
+        return redirect('user_charges')
 
 
 # ================================== Area Fix charges ============================
@@ -600,8 +611,10 @@ def verify_pay_fix_area(request: HttpRequest):
                         object_id=payment_charge.id,
                         debtor_amount=payment_charge.total_charge_month,
                         creditor_amount=0,
+                        amount=payment_charge.total_charge_month,
+                        user=request.user,
                         payment_date=payment_charge.payment_date,
-                        payment_description=f"{payment_charge.charge_name} - {payment_charge.user.full_name}",
+                        payment_description=f"{payment_charge.charge_name}",
                     )
                     return render(request, 'payment_done.html', {
                         'success': f'تراکنش شما با کد پیگیری {ref_str} با موفقیت انجام و پرداخت شارژ شما ثبت گردید. سپاس از شما'
@@ -628,7 +641,7 @@ def verify_pay_fix_area(request: HttpRequest):
     else:
         payment_charge.is_paid = False
         payment_charge.save()
-        return redirect('user_fixed_charges')
+        return redirect('user_charges')
 
 # ================================== Person Area charges ============================
 @login_required()
@@ -718,8 +731,10 @@ def verify_pay_person_area(request: HttpRequest):
                         object_id=payment_charge.id,
                         debtor_amount=payment_charge.total_charge_month,
                         creditor_amount=0,
+                        amount=payment_charge.total_charge_month,
+                        user=request.user,
                         payment_date=payment_charge.payment_date,
-                        payment_description=f"{payment_charge.charge_name} - {payment_charge.user.full_name}",
+                        payment_description=f"{payment_charge.charge_name}",
                     )
                     return render(request, 'payment_done.html', {
                         'success': f'تراکنش شما با کد پیگیری {ref_str} با موفقیت انجام و پرداخت شارژ شما ثبت گردید. سپاس از شما'
@@ -746,7 +761,7 @@ def verify_pay_person_area(request: HttpRequest):
     else:
         payment_charge.is_paid = False
         payment_charge.save()
-        return redirect('user_fixed_charges')
+        return redirect('user_charges')
 
 
 # ==================================  Fix Person Area charges ============================
@@ -837,8 +852,10 @@ def verify_pay_fix_person_area(request: HttpRequest):
                         object_id=payment_charge.id,
                         debtor_amount=payment_charge.total_charge_month,
                         creditor_amount=0,
+                        amount=payment_charge.total_charge_month,
+                        user=request.user,
                         payment_date=payment_charge.payment_date,
-                        payment_description=f"{payment_charge.charge_name} - {payment_charge.user.full_name}",
+                        payment_description=f"{payment_charge.charge_name}",
                     )
                     return render(request, 'payment_done.html', {
                         'success': f'تراکنش شما با کد پیگیری {ref_str} با موفقیت انجام و پرداخت شارژ شما ثبت گردید. سپاس از شما'
@@ -865,7 +882,7 @@ def verify_pay_fix_person_area(request: HttpRequest):
     else:
         payment_charge.is_paid = False
         payment_charge.save()
-        return redirect('user_fixed_charges')
+        return redirect('user_charges')
 
 
 # ==================================  Fix Person Area charges ============================
@@ -956,8 +973,10 @@ def verify_pay_fix_variable(request: HttpRequest):
                         object_id=payment_charge.id,
                         debtor_amount=payment_charge.total_charge_month,
                         creditor_amount=0,
+                        amount=payment_charge.total_charge_month,
+                        user=request.user,
                         payment_date=payment_charge.payment_date,
-                        payment_description=f"{payment_charge.charge_name} - {payment_charge.user.full_name}",
+                        payment_description=f"{payment_charge.charge_name}",
                     )
                     return render(request, 'payment_done.html', {
                         'success': f'تراکنش شما با کد پیگیری {ref_str} با موفقیت انجام و پرداخت شارژ شما ثبت گردید. سپاس از شما'
@@ -984,4 +1003,4 @@ def verify_pay_fix_variable(request: HttpRequest):
     else:
         payment_charge.is_paid = False
         payment_charge.save()
-        return redirect('user_fixed_charges')
+        return redirect('user_charges')

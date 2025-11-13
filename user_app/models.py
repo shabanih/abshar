@@ -1,5 +1,10 @@
+import os
+import random
+
+from ckeditor_uploader.fields import RichTextUploadingField
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
+from django.forms import FileField
 
 
 # Create your models here.
@@ -155,3 +160,56 @@ class Renter(models.Model):
 
     def __str__(self):
         return self.renter_name
+
+
+def generate_ticket_no():
+    """Generate a unique 6-digit ticket number."""
+    while True:
+        number = random.randint(100000, 999999)
+        if not SupportUser.objects.filter(ticket_no=number).exists():
+            return number
+
+
+class SupportUser(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    subject = models.CharField(max_length=200, null=True, blank=True, verbose_name='عنوان')
+    ticket_no = models.PositiveIntegerField(unique=True, editable=False, default=generate_ticket_no)
+    message = RichTextUploadingField()
+    answer_message = RichTextUploadingField(null=True, blank=True)
+    is_call = models.BooleanField(default=False, verbose_name='تماس گرفته شده')
+    is_closed = models.BooleanField(default=False, verbose_name='فعال')
+    is_answer = models.BooleanField(default=False, verbose_name='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return str(self.user)
+
+
+class SupportFile(models.Model):
+    support_user = models.ForeignKey(SupportUser, on_delete=models.CASCADE, related_name='files')
+    file = models.ImageField(upload_to='support_files/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.support_user.user.username} - {self.file.name}"
+
+    def delete(self, *args, **kwargs):
+        if self.file:
+            if os.path.isfile(self.file.path):
+                os.remove(self.file.path)
+        super().delete(*args, **kwargs)
+
+
+class SupportMessage(models.Model):
+    support_user = models.ForeignKey(SupportUser, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = RichTextUploadingField()
+    attachments = models.ManyToManyField(SupportFile, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def sender_role(self):
+        return "مدیر ساختمان" if self.sender.is_middle_admin else "کاربر"
+
+    def __str__(self):
+        return ""

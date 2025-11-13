@@ -37,7 +37,8 @@ from admin_panel.models import Announcement, ExpenseCategory, Expense, Fund, Exp
     MaintenanceDocument, FixCharge, FixedChargeCalc, AreaCharge, AreaChargeCalc, PersonCharge, PersonChargeCalc, \
     FixAreaCharge, FixAreaChargeCalc, FixPersonCharge, FixPersonChargeCalc, ChargeByPersonArea, ChargeByPersonAreaCalc, \
     ChargeByFixPersonArea, ChargeByFixPersonAreaCalc, ChargeFixVariable, ChargeFixVariableCalc
-from user_app.models import Bank, Unit, User, Renter, MyHouse
+from user_app.forms import SupportMessageForm
+from user_app.models import Bank, Unit, User, Renter, MyHouse, SupportFile, SupportUser
 
 
 def middle_admin_required(view_func):
@@ -72,6 +73,7 @@ def middle_admin_login_view(request):
 def logout__middle_admin(request):
     logout(request)
     return redirect('login_middle_admin')
+
 
 def site_header_component(request):
     context = {
@@ -4231,10 +4233,11 @@ class MiddlePersonAreaChargeCreateView(CreateView):
         context = super().get_context_data(**kwargs)
         context['unit_count'] = Unit.objects.filter(is_active=True, user__manager=self.request.user).count()
         context['total_area'] = \
-        Unit.objects.filter(is_active=True, user__manager=self.request.user).aggregate(total=Sum('area'))['total'] or 0
+            Unit.objects.filter(is_active=True, user__manager=self.request.user).aggregate(total=Sum('area'))[
+                'total'] or 0
         context['total_people'] = \
-        Unit.objects.filter(is_active=True, user__manager=self.request.user).aggregate(total=Sum('people_count'))[
-            'total'] or 0
+            Unit.objects.filter(is_active=True, user__manager=self.request.user).aggregate(total=Sum('people_count'))[
+                'total'] or 0
 
         charges = ChargeByPersonArea.objects.annotate(
             notified_count=Count(
@@ -5197,3 +5200,75 @@ def middle_remove_send_notification_fix_variable(request, pk):
         return JsonResponse({'success': f'{deleted_count} اطلاعیه حذف شد.'})
 
     return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
+
+
+class MiddleTicketsView(ListView):
+    model = SupportUser
+    template_name = 'middle_admin/middle_tickets.html'
+    context_object_name = 'tickets'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+        qs = SupportUser.objects.all()
+        if query:
+            qs = qs.filter(
+                Q(subject__icontains=query) |
+                Q(message__icontains=query) |
+                Q(ticket_no__icontains=query)
+            )
+        return qs.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        return context
+
+
+def middleAdmin_ticket_detail(request, pk):
+    ticket = get_object_or_404(SupportUser, id=pk)
+    form = SupportMessageForm()
+
+    if request.method == 'POST':
+        form = SupportMessageForm(request.POST, request.FILES)
+        files = request.FILES.getlist('attachments')
+        if form.is_valid():
+            msg = form.save(commit=False)
+            msg.support_user = ticket
+            msg.sender = request.user
+            msg.save()
+            for f in files:
+                file_obj = SupportFile.objects.create(file=f)
+                msg.attachments.add(file_obj)
+            # تغییر وضعیت تیکت بعد از پاسخ
+            ticket.is_answer = True
+            ticket.is_closed = False
+            ticket.save()
+            messages.success(request, "پیام با موفقیت ارسال شد.")
+            return redirect('middleAdmin_ticket_detail', pk=ticket.id)
+
+    messages_list = ticket.messages.order_by('-created_at')
+    return render(request, 'middle_admin/middle_ticket_detail.html', {
+        'ticket': ticket,
+        'messages': messages_list,
+        'form': form
+    })
+
+
+def middle_close_ticket(request, pk):
+    ticket = get_object_or_404(SupportUser, id=pk)
+    ticket.is_closed = True
+    ticket.save()
+    return redirect('middleAdmin_ticket_detail', pk=ticket.id)
+
+
+def middle_open_ticket(request, pk):
+    ticket = get_object_or_404(SupportUser, id=pk)
+    ticket.is_closed = False
+    ticket.save()
+    return redirect('middleAdmin_ticket_detail', pk=ticket.id)
