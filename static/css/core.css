@@ -133,3 +133,20 @@ h1, h2, h3, h4, h5, h6 {
     align-items: center;
 }
 /*===============================================*/
+.counter-badge {
+    position: relative;
+    top: -8px;
+    right: -25px;
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: 50%;
+}
+
+.counter-badge_second{
+    position: relative;
+    top: -8px;
+    /*right: -10px;*/
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: 50%;
+}

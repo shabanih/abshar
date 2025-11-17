@@ -807,3 +807,12 @@ div.d-flex.justify-content-between div{
         transform: scale(1.1);
         transition: all 0.2s ease;
     }
+
+.counter-badge {
+    position: relative;
+    top: -8px;
+    right: -10px;
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: 50%;
+}

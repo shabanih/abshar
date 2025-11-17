@@ -1,11 +1,12 @@
 import io
 
-from django.apps import apps
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Q
-from django.http import HttpResponseRedirect, HttpResponse
+from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import get_template
 from django.urls import reverse, reverse_lazy
@@ -14,11 +15,12 @@ from django.views.generic import TemplateView, CreateView, ListView, DetailView
 from pypdf import PdfWriter
 from weasyprint import CSS, HTML
 
+from notifications.models import Notification
 from user_app import helper
 from admin_panel.models import Announcement, FixedChargeCalc, AreaChargeCalc, PersonCharge, PersonChargeCalc, \
     FixPersonChargeCalc, FixAreaChargeCalc, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariableCalc
-from user_app.forms import LoginForm, MobileLoginForm, SupportUserForm, SupportMessageForm
-from user_app.models import User, Unit, Bank, MyHouse, SupportUser, SupportFile, SupportMessage
+from user_app.forms import LoginForm, MobileLoginForm
+from user_app.models import User, Unit, Bank, MyHouse
 
 
 def index(request):
@@ -548,111 +550,214 @@ def user_announcements(request):
     return render(request, 'manage_announcement.html', context)
 
 
-class SupportUserCreateView(CreateView):
-    model = SupportUser
-    template_name = 'send_ticket.html'
-    form_class = SupportUserForm
-    success_url = reverse_lazy('user_support_ticket')
+# class SupportUserCreateView(CreateView):
+#     model = SupportUser
+#     template_name = 'send_ticket.html'
+#     form_class = SupportUserForm
+#     success_url = reverse_lazy('user_support_ticket')
+#
+#     def form_valid(self, form):
+#         obj = form.save(commit=False)
+#         obj.user = self.request.user
+#         obj.is_sent = True
+#         obj.save()
+#
+#         # فایل‌ها
+#         files = self.request.FILES.getlist('file')
+#         file_objects = [SupportFile.objects.create(support_user=obj, file=f) for f in files]
+#
+#         # پیام اولیه
+#         initial_message = form.cleaned_data.get('message')
+#         if initial_message:
+#             msg = SupportMessage.objects.create(
+#                 support_user=obj,
+#                 sender=self.request.user,
+#                 message=initial_message
+#             )
+#             for file_obj in file_objects:
+#                 msg.attachments.add(file_obj)
+#
+#         # مشخص کردن recipient و ticket
+#         recipient = User.objects.filter(is_staff=True).first()  # مدیر ساختمان
+#         ticket = obj
+#
+#         # ایجاد نوتیفیکیشن
+#         notification = Notification.objects.create(
+#             user=recipient,
+#             ticket=ticket,
+#             title="تیکت جدید",
+#             message="یک پیام جدید دریافت کردید",
+#             link=f"/myTicket/{ticket.id}/"
+#         )
+#
+#         # ارسال WebSocket
+#         channel_layer = get_channel_layer()
+#         async_to_sync(channel_layer.group_send)(
+#             f"user_{recipient.id}",
+#             {
+#                 "type": "notify",
+#                 "data": {
+#                     "action": "new_notification",
+#                     "id": notification.id,
+#                     "title": notification.title,
+#                     "link": notification.link,
+#                 }
+#             }
+#         )
+#
+#         messages.success(
+#             self.request,
+#             'تیکت با موفقیت ارسال گردید. کارشناسان ما طی ۳ تا ۵ ساعت آینده پاسخ خواهند داد.'
+#         )
+#         return redirect(self.success_url)
+#
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['tickets'] = SupportUser.objects.filter(
+#             user=self.request.user
+#         ).order_by('-created_at')
+#         return context
+#
+#
+# class TicketsView(ListView):
+#     model = SupportUser
+#     template_name = 'user_ticket.html'
+#     context_object_name = 'tickets'
+#
+#     def get_paginate_by(self, queryset):
+#         paginate = self.request.GET.get('paginate')
+#         if paginate == '1000':
+#             return None  # نمایش همه
+#         return int(paginate or 20)
+#
+#     def get_queryset(self):
+#         query = self.request.GET.get('q', '')
+#         qs = SupportUser.objects.filter(user=self.request.user)
+#         if query:
+#             qs = qs.filter(
+#                 Q(subject__icontains=query) |
+#                 Q(message__icontains=query) |
+#                 Q(ticket_no__icontains=query)
+#             )
+#         return qs.order_by('-created_at')
+#
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['query'] = self.request.GET.get('q', '')
+#         return context
+#
+#
+# def user_ticket_detail(request, pk):
+#     ticket = get_object_or_404(SupportUser, id=pk, user=request.user)
+#     form = SupportMessageForm()
+#
+#     # 🔹 صفر کردن نوتیفیکیشن‌ها وقتی کاربر وارد صفحه تیکت می‌شود
+#     # Notification.objects.filter(
+#     #     user=request.user,
+#     #     ticket=ticket,
+#     #     is_read=False
+#     # ).update(is_read=True)
+#
+#     if request.method == 'POST':
+#         if ticket.is_closed:
+#             messages.error(request, "این تیکت بسته شده و نمی‌توانید پیام جدید ارسال کنید.")
+#             return redirect('ticket_detail', pk=ticket.id)
+#
+#         form = SupportMessageForm(request.POST, request.FILES)
+#         files = request.FILES.getlist('file')
+#
+#         if form.is_valid():
+#             msg = form.save(commit=False)
+#             msg.support_user = ticket
+#             msg.sender = request.user
+#             msg.save()
+#
+#             # 🔹 ذخیره فایل‌ها
+#             for f in files:
+#                 file_obj = SupportFile.objects.create(file=f, support_user=ticket)
+#                 msg.attachments.add(file_obj)
+#
+#             # 🔹 وضعیت تیکت
+#             ticket.is_answer = True
+#             ticket.is_closed = False
+#             ticket.save()
+#
+#             # 🔥 ارسال نوتیفیکیشن به مدیر
+#             # middle_admin_user = User.objects.filter(is_middle_admin=True).first()
+#             # if middle_admin_user:
+#             #     Notification.objects.create(
+#             #         user=middle_admin_user,
+#             #         ticket=ticket,
+#             #         title="پیام جدید کاربر",
+#             #         message=f"یک پیام جدید از کاربر {request.user.mobile} دریافت شد.",
+#             #         link=f"/admin-panel/ticket/{ticket.id}/"
+#             #     )
+#
+#             messages.success(request, "پیام با موفقیت ارسال شد.")
+#             return redirect('ticket_detail', pk=ticket.id)
+#
+#     messages_list = ticket.messages.order_by('-created_at')
+#     return render(request, 'ticket_details.html', {
+#         'ticket': ticket,
+#         'messages': messages_list,
+#         'form': form
+#     })
+#
+# def notification_count(request):
+#     unread_count = request.user.notifications.filter(is_read=False).count()
+#     return JsonResponse({'unread_count': unread_count})
+#
+# def close_ticket(request, pk):
+#     ticket = get_object_or_404(SupportUser, id=pk)
+#     ticket.is_closed = True
+#     ticket.save()
+#     return redirect('ticket_detail', pk=ticket.id)
 
-    def form_valid(self, form):
-        obj = form.save(commit=False)
-        obj.user = self.request.user
-        obj.save()
-
-        # Handle multiple files manually
-        files = self.request.FILES.getlist('file')
-        for f in files:
-            SupportFile.objects.create(support_user=obj, file=f)
-
-        initial_message = form.cleaned_data.get('message')
-        if initial_message:
-            msg = SupportMessage.objects.create(
-                support_user=obj,
-                sender=self.request.user,
-                message=initial_message
-            )
-
-            # اگر فایل‌ها مربوط به پیام هستند
-            for f in files:
-                file_obj = SupportFile.objects.create(support_user=obj, file=f)
-                msg.attachments.add(file_obj)
-
-        messages.success(
-            self.request,
-            'تیکت با موفقیت ارسال گردید. کارشناسان ما طی ۳ تا ۵ ساعت آینده پاسخ خواهند داد.'
-        )
-
-        # ✅ بدون ذخیره دوباره فرم
-        return redirect(self.success_url)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['tickets'] = SupportUser.objects.filter(
-            user=self.request.user
-        ).order_by('-created_at')
-        return context
 
 
-class TicketsView(ListView):
-    model = SupportUser
-    template_name = 'user_ticket.html'
-    context_object_name = 'tickets'
+# @login_required
+# def ticket_counter_user(request):
+#     """
+#     تعداد پاسخ‌های جدید مدیر برای کاربر.
+#     وقتی کاربر صفحه تیکت‌ها را باز کند (با ?reset=1)، کانتر صفر می‌شود.
+#     """
+#     reset = request.GET.get('reset') == '1'
+#
+#     # فیلتر پیام‌های جدید از مدیر که هنوز خوانده نشده‌اند
+#     messages_qs = SupportMessage.objects.filter(
+#         support_user__user=request.user,
+#         sender__is_middle_admin=True,
+#         is_read=False
+#     )
+#
+#     count = messages_qs.count()
+#
+#     if reset:
+#         # علامت‌گذاری پیام‌ها به عنوان خوانده شده
+#         messages_qs.update(is_read=True)
+#         count = 0
+#
+#     return JsonResponse({'count': count})
+#
+#
+#
+# @login_required
+# def ticket_counter_admin(request):
+#     if not request.user.is_middle_admin:
+#         return JsonResponse({'count': 0})
+#
+#     reset = request.GET.get('reset') == '1'
+#
+#     tickets_qs = SupportUser.objects.filter(
+#         is_answer=False,
+#         is_closed=False
+#     )
+#
+#     count = tickets_qs.count()
+#
+#     if reset:
+#         tickets_qs.update(is_answer=True)  # تیکت‌ها به عنوان پاسخ داده شده علامت گذاری شوند
+#         count = 0
+#
+#     return JsonResponse({'count': count})
 
-    def get_paginate_by(self, queryset):
-        paginate = self.request.GET.get('paginate')
-        if paginate == '1000':
-            return None  # نمایش همه
-        return int(paginate or 20)
-
-    def get_queryset(self):
-        query = self.request.GET.get('q', '')
-        qs = SupportUser.objects.filter(user=self.request.user)
-        if query:
-            qs = qs.filter(
-                Q(subject__icontains=query) |
-                Q(message__icontains=query) |
-                Q(ticket_no__icontains=query)
-            )
-        return qs.order_by('-created_at')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['query'] = self.request.GET.get('q', '')
-        return context
-
-
-def user_ticket_detail(request, pk):
-    ticket = get_object_or_404(SupportUser, id=pk)
-    form = SupportMessageForm()
-
-    if request.method == 'POST':
-        form = SupportMessageForm(request.POST, request.FILES)
-        files = request.FILES.getlist('attachments')
-        if form.is_valid():
-            msg = form.save(commit=False)
-            msg.support_user = ticket
-            msg.sender = request.user
-            msg.save()
-            for f in files:
-                file_obj = SupportFile.objects.create(file=f)
-                msg.attachments.add(file_obj)
-            # تغییر وضعیت تیکت بعد از پاسخ
-            ticket.is_answer = True
-            ticket.is_closed = False
-            ticket.save()
-            messages.success(request, "پیام با موفقیت ارسال شد.")
-            return redirect('ticket_detail', pk=ticket.id)
-
-    messages_list = ticket.messages.order_by('-created_at')
-    return render(request, 'ticket_details.html', {
-        'ticket': ticket,
-        'messages': messages_list,
-        'form': form
-    })
-
-
-def close_ticket(request, pk):
-    ticket = get_object_or_404(SupportUser, id=pk)
-    ticket.is_closed = True
-    ticket.save()
-    return redirect('ticket_detail', pk=ticket.id)

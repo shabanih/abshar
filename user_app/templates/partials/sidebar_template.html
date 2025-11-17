@@ -1,88 +1,185 @@
 {% load static %}
+
 <nav class="sidebar sidebar-offcanvas" id="sidebar">
 
-          <ul class="nav">
-            <li class="nav-item nav-profile bg-light">
-              <a href="{% url 'manage_house' %}" class="nav-link">
+    <ul class="nav">
+
+        <!-- ساختمان من -->
+        <li class="nav-item nav-profile bg-light">
+            <a href="{% url 'manage_house' %}" class="nav-link">
                 <div class="nav-profile-image">
-                  <img src="{% static 'admin_panel/icone8/icons8-home.gif' %}" alt="profile">
-                  <span class="login-status online"></span>
-                  <!--change to offline or busy as needed-->
+                    <img src="{% static 'admin_panel/icone8/icons8-home.gif' %}" alt="profile">
+                    <span class="login-status online"></span>
                 </div>
                 <div class="nav-profile-text d-flex flex-column">
                     <h5 class="mt-2"><strong>ساختمان من</strong></h5>
-{#                    <span style="font-size: 12px;">تلفن :00000000</span>#}
                 </div>
-{#                <i class="mdi mdi-bookmark-check text-success nav-profile-badge"></i>#}
-              </a>
-            </li>
+            </a>
+        </li>
 
-            <li class="nav-item">
-               {% url 'user_panel' as address_url %}
-                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+        <!-- داشبورد -->
+        <li class="nav-item">
+            <a class="nav-link {% if request.resolver_match.url_name == 'user_panel' %}active{% endif %}"
+               href="{% url 'user_panel' %}">
                 <i class="menu-title">داشبورد</i>
                 <i class="mdi mdi-home menu-icon"></i>
-              </a>
-            </li>
+            </a>
+        </li>
 
-                <li class="nav-item mt-0">
-                 {% url 'user_charges' as address_url %}
-                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                <i class="menu-title"> مدیریت شارژ</i>
-                <i class="mdi mdi-bell-ring-outline menu-icon"></i>
-              </a>
-            
-                      <li class="nav-item mt-0">
-              <a class="nav-link" data-bs-toggle="collapse" href="#general2" aria-expanded="true"
-                 aria-controls="general2">
-                <i class="menu-title"> گزارشات </i>
+        <!-- مدیریت شارژ -->
+        <li class="nav-item mt-0">
+            <a class="nav-link {% if request.resolver_match.url_name == 'user_charges' %}active{% endif %}"
+               href="{% url 'user_charges' %}">
+                <i class="menu-title">مدیریت شارژ</i>
+{#                <i class="mdi mdi-bell-ring-outline menu-icon"></i>#}
+                <i class="mdi mdi-cash-multiple menu-icon"></i>
+            </a>
+        </li>
+
+        <!-- گزارشات -->
+        <li class="nav-item mt-0">
+
+            <a class="nav-link
+               {% if request.resolver_match.url_name == 'user_announce_manage' or request.resolver_match.url_name == 'fund_turn_over_user' %}active{% endif %}"
+               data-bs-toggle="collapse"
+               href="#general2">
+        
+                <i class="menu-title">گزارشات</i>
                 <i class="menu-arrow"></i>
                 <i class="mdi mdi-clipboard-text menu-icon"></i>
-              </a>
-              <div class="collapse" id="general2">
-                <ul class="nav flex-column sub-menu">
-                    <li class="nav-item mt-0">
-                    <a class="nav-link" href="{% url 'user_announce_manage' %}"> اطلاعیه ها </a></li>
-                     <li class="nav-item mt-0">
-                    <a class="nav-link" href="{% url 'fund_turn_over_user' %}"> تراکنش مالی </a></li>
-{#                    <li class="nav-item mt-0">#}
-{#                    <a class="nav-link" href="#"> بیلان ساختمان </a></li>#}
-                </ul>
-              </div>
-            </li>
+            </a>
 
-{#             <li class="nav-item border-top mt-0">#}
-{#                    {% url 'sms_management' as address_url %}#}
-{#                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">#}
-{#                <i class="menu-title"> پیامک ها</i>#}
-{#                <i class="fas fa-comment-dots menu-icon"></i>#}
-{#              </a>#}
-{#            </li>#}
-             <li class="nav-item border-top mt-0">
-                    {% url 'sms_management' as address_url %}
-                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                <i class="menu-title"> نظرسنجی</i>
+            <div class="collapse
+                {% if request.resolver_match.url_name == 'user_announce_manage' or request.resolver_match.url_name == 'fund_turn_over_user' %}show{% endif %}"
+                id="general2">
+        
+                <ul class="nav flex-column sub-menu">
+        
+                    <li class="nav-item mt-0">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'user_announce_manage' %}active{% endif %}"
+                           href="{% url 'user_announce_manage' %}">اطلاعیه ها</a>
+                    </li>
+        
+                    <li class="nav-item mt-0">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'fund_turn_over_user' %}active{% endif %}"
+                           href="{% url 'fund_turn_over_user' %}">تراکنش مالی</a>
+                    </li>
+        
+                </ul>
+            </div>
+        </li>
+
+
+        <!-- نظرسنجی -->
+        <li class="nav-item mt-0">
+            <a class="nav-link {% if request.resolver_match.url_name == 'sms_management' %}active{% endif %}"
+               href="{% url 'sms_management' %}">
+                <i class="menu-title">نظرسنجی</i>
                 <i class="fas fa-send menu-icon"></i>
-              </a>
-            </li>
-         <li class="nav-item mt-0">
-              <a class="nav-link" data-bs-toggle="collapse" href="#general3" aria-expanded="true"
-                 aria-controls="general3">
-                <i class="menu-title"> پشتیبانی </i>
+            </a>
+        </li>
+
+        <!-- پشتیبانی -->
+       <li class="nav-item mt-0">
+
+                   <a class="nav-link d-flex align-items-center position-relative
+                       {% if request.resolver_match.url_name == 'user_support_ticket' or request.resolver_match.url_name == 'tickets' %}active{% endif %}"
+               data-bs-toggle="collapse"
+               href="#general3">
+            
+            
+                <span class="ms-2">پشتیبانی</span>
+                <span id="ticket-counter-main" class="badge bg-danger counter-badge">0</span>
+{#                       <span id="ticket-counter-main" class="badge bg-danger counter-badge"> </span>#}
+                      
+                   
+                       
                 <i class="menu-arrow"></i>
-                <i class="mdi mdi-clipboard-text menu-icon"></i>
-              </a>
-              <div class="collapse" id="general3">
+                <i class="mdi mdi-headphones menu-icon"></i>
+            </a>
+            <div class="collapse
+                {% if request.resolver_match.url_name == 'user_support_ticket' or request.resolver_match.url_name == 'tickets' %}show{% endif %}"
+                id="general3">
+        
                 <ul class="nav flex-column sub-menu">
+        
                     <li class="nav-item mt-0">
-                    <a class="nav-link" href="{% url 'user_support_ticket' %}"> ارسال تیکت </a></li>
-                     <li class="nav-item mt-0">
-                    <a class="nav-link" href="{% url 'tickets' %}"> تیکت های من </a></li>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'user_support_ticket' %}active{% endif %}"
+                           href="{% url 'user_support_ticket' %}">ارسال تیکت</a>
+                    </li>
+        
+                    <li class="nav-item mt-0">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'tickets' %}active{% endif %}"
+                           href="{% url 'tickets' %}">تیکت‌های من
+{#                           <span id="ticket-counter-sub" class="badge bg-danger counter-badge_second">0</span>#}
+
+                        </a>
+                    </li>
+        
                 </ul>
-              </div>
-            </li>
+            </div>
+        </li>
 
 
-          </ul>
+    </ul>
 
 </nav>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    const userSocket = new WebSocket(
+    "ws://" + window.location.host + "/ws/tickets/"
+);
+
+userSocket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    const el = document.getElementById("ticket-counter-main"); // یا ticket-counter-admin
+    el.textContent = data.count;
+    el.style.display = data.count > 0 ? "inline-block" : "none";
+};
+
+userSocket.onopen = function(e) {
+    console.log("WebSocket connected!");
+};
+userSocket.onclose = function(e) {
+    console.log("WebSocket closed!");
+};
+
+</script>
+
+{#<script>#}
+{#document.addEventListener("DOMContentLoaded", function () {#}
+{##}
+{#    const mainCounter = document.getElementById("ticket-counter-main");#}
+{##}
+{#    // تابع به‌روز رسانی شمارنده#}
+{#    function updateTicketCounter() {#}
+{#        fetch("/notifications/ticket-counter/user/")#}
+{#            .then(res => res.json())#}
+{#            .then(data => {#}
+{#                mainCounter.textContent = data.count;#}
+{#                mainCounter.style.display = data.count > 0 ? "inline-block" : "none";#}
+{#            });#}
+{#    }#}
+{##}
+{#    // آپدیت اولیه و هر 3 ثانیه#}
+{#    updateTicketCounter();#}
+{#    setInterval(updateTicketCounter, 3000);#}
+{##}
+{#    // وقتی تیکت باز می‌شود#}
+{#    document.querySelectorAll(".ticket-link").forEach(link => {#}
+{#        link.addEventListener("click", function(){#}
+{#            const ticketId = this.dataset.ticketId;#}
+{#            fetch(`/notifications/reset-ticket-counter-user/${ticketId}/`)#}
+{#                .then(res => res.json())#}
+{#                .then(data => {#}
+{#                    if(data.success){#}
+{#                        mainCounter.textContent = data.remaining;#}
+{#                        mainCounter.style.display = data.remaining > 0 ? "inline-block" : "none";#}
+{#                    }#}
+{#                });#}
+{#        });#}
+{#    });#}
+{#});#}
+{#</script>#}
+

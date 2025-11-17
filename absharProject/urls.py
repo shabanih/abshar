@@ -10,6 +10,7 @@ urlpatterns = [
     path('middle-admin-panel/', include('middleAdmin_panel.urls')),
     path('payment/', include('payment_app.urls')),
     path('reports/', include('reports.urls')),
+    path('notifications/', include('notifications.urls')),
     path('', include('user_app.urls')),
     path('ckeditor/', include('ckeditor_uploader.urls')),  # this is required
     # path('bankgateways/', az_bank_gateways_urls()),

@@ -42,6 +42,14 @@ class User(AbstractUser):
     def get_full_name(self):
         return self.full_name
 
+    def get_manager_for_user(user):
+        """
+        بر اساس فیلد manager در مدل User، مدیر مربوط به کاربر را برمی‌گرداند.
+        """
+        if user.manager and user.manager.is_middle_admin:
+            return user.manager
+        return None
+
 
 class Bank(models.Model):
     user = models.ForeignKey(
@@ -165,51 +173,80 @@ class Renter(models.Model):
 def generate_ticket_no():
     """Generate a unique 6-digit ticket number."""
     while True:
-        number = random.randint(100000, 999999)
+        number = random.randint(1000000, 9999999)
         if not SupportUser.objects.filter(ticket_no=number).exists():
             return number
+#
+#
+# class SupportUser(models.Model):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE)
+#     subject = models.CharField(max_length=200, null=True, blank=True, verbose_name='عنوان')
+#     ticket_no = models.PositiveIntegerField(unique=True, editable=False, default=generate_ticket_no)
+#     message = RichTextUploadingField()
+#     answer_message = RichTextUploadingField(null=True, blank=True)
+#     is_sent = models.BooleanField(default=False, verbose_name='')
+#     is_read = models.BooleanField(default=False, verbose_name='')
+#     is_call = models.BooleanField(default=False, verbose_name='تماس گرفته شده')
+#     is_closed = models.BooleanField(default=False, verbose_name='فعال')
+#     is_answer = models.BooleanField(default=False, verbose_name='')
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+#
+#     def __str__(self):
+#         return str(self.user)
+#
+#     def delete(self, *args, **kwargs):
+#         for f in self.files.all():
+#             try:
+#                 f.delete()
+#             except:
+#                 pass
+#         super().delete(*args, **kwargs)
+#
+#
+# class SupportFile(models.Model):
+#     support_user = models.ForeignKey(SupportUser, on_delete=models.CASCADE, related_name='files')
+#     file = models.ImageField(upload_to='support_files/')
+#     uploaded_at = models.DateTimeField(auto_now_add=True)
+#
+#     def __str__(self):
+#         return f"{self.support_user.user.username} - {self.file.name}"
+#
+#     def delete(self, *args, **kwargs):
+#         if self.file:
+#             if os.path.isfile(self.file.path):
+#                 os.remove(self.file.path)
+#         super().delete(*args, **kwargs)
+#
+#
+# class SupportMessage(models.Model):
+#     support_user = models.ForeignKey(SupportUser, on_delete=models.CASCADE, related_name='messages')
+#     sender = models.ForeignKey(User, on_delete=models.CASCADE)
+#     message = RichTextUploadingField()
+#     attachments = models.ManyToManyField(SupportFile, blank=True)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     is_read = models.BooleanField(default=False)  # ← اضافه کردن این خط
+#
+#     def sender_role(self):
+#         if self.sender.is_superuser:
+#             return "ادمین"
+#         elif self.sender.is_middle_admin:
+#             return "مدیر ساختمان"
+#         else:
+#             return "کاربر"
+#
+#     def __str__(self):
+#         return ""
 
 
-class SupportUser(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    subject = models.CharField(max_length=200, null=True, blank=True, verbose_name='عنوان')
-    ticket_no = models.PositiveIntegerField(unique=True, editable=False, default=generate_ticket_no)
-    message = RichTextUploadingField()
-    answer_message = RichTextUploadingField(null=True, blank=True)
-    is_call = models.BooleanField(default=False, verbose_name='تماس گرفته شده')
-    is_closed = models.BooleanField(default=False, verbose_name='فعال')
-    is_answer = models.BooleanField(default=False, verbose_name='')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return str(self.user)
-
-
-class SupportFile(models.Model):
-    support_user = models.ForeignKey(SupportUser, on_delete=models.CASCADE, related_name='files')
-    file = models.ImageField(upload_to='support_files/')
-    uploaded_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.support_user.user.username} - {self.file.name}"
-
-    def delete(self, *args, **kwargs):
-        if self.file:
-            if os.path.isfile(self.file.path):
-                os.remove(self.file.path)
-        super().delete(*args, **kwargs)
-
-
-class SupportMessage(models.Model):
-    support_user = models.ForeignKey(SupportUser, on_delete=models.CASCADE, related_name='messages')
-    sender = models.ForeignKey(User, on_delete=models.CASCADE)
-    message = RichTextUploadingField()
-    attachments = models.ManyToManyField(SupportFile, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def sender_role(self):
-        return "مدیر ساختمان" if self.sender.is_middle_admin else "کاربر"
-
-    def __str__(self):
-        return ""
+# class Notification(models.Model):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+#     ticket = models.ForeignKey(SupportUser, null=True, blank=True, on_delete=models.CASCADE)
+#     title = models.CharField(max_length=255)
+#     message = models.TextField()
+#     link = models.CharField(max_length=255, null=True, blank=True)  # برای مسیرهای داخلی
+#     is_read = models.BooleanField(default=False)
+#     created_at = models.DateTimeField(auto_now_add=True)
+#
+#     def __str__(self):
+#         return f"{self.user.username} - {self.title}"

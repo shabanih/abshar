@@ -29,6 +29,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -37,9 +38,11 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     # main_app
+    'channels',
     'user_app',
     'admin_panel',
     'middleAdmin_panel',
+    'notifications',
 
     # 'jalali_date',
 
@@ -107,7 +110,14 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'absharProject.wsgi.application'
+# WSGI_APPLICATION = 'absharProject.wsgi.application'
+ASGI_APPLICATION = 'absharProject.asgi.application'
+#
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -181,50 +191,16 @@ CKEDITOR_CONFIGS = {
             'textmatch',  # وابسته به emoji
 
         ]),
+
         'font_names': 'Vazir;VazirB1;VazirB2;VazirB3;VazirB4;VazirBold;Tahoma;Arial;Sans-Serif;',
-        'removePlugins': 'stylesheetparser',
+        'removePlugins': 'stylesheetparser,exportpdf,clipboard',
         'language': 'fa',
         'direction': 'rtl',
         'contentsLangDirection': 'rtl',
         'contentsLanguage': 'fa',
         'tabSpaces': 4,
     },
-
-    'classic_light': {
-        'toolbar': [['Bold', 'Italic', 'Underline', 'Undo', 'Font', 'Redo', 'Color', 'Background', 'Source',
-                     'NumberedList', 'BulletedList', 'Strikethrough', 'Link', 'Blockquote', 'Image', 'Text', 'Embed']],
-        'filebrowserUploadUrl': '/ckeditor/upload/',
-        'filebrowserBrowseUrl': '/ckeditor/browse/',
-        'contentsCss': ['/static/admin_panel/css/ckeditor_fa.css'],
-
-        'width': '100%',  # عرض کامل نسبت به المان والد
-        'height': 250,    # ارتفاع اولیه
-        'extraPlugins': ','.join([
-            'uploadimage',  # برای آپلود تصویر داخل متن
-            'justify',  # برای Justify یا تنظیم چپ/راست
-            'font',  # انتخاب فونت
-            'colorbutton',  # رنگ متن
-            'embed',  # Embed ویدیو
-            'emoji',
-            'autocomplete',  # وابسته به emoji
-            'textmatch',  # وابسته به emoji
-
-        ]),
-        'font_names': 'Vazir;Tahoma;Arial;Sans-Serif;',
-
-        'removePlugins': 'stylesheetparser',
-        'language': 'fa',
-        'direction': 'rtl',
-        'contentsLangDirection': 'rtl',
-        'contentsLanguage': 'fa',
-
-        'tabSpaces': 4,
-        'resize_enabled': True,       # امکان تغییر ارتفاع با موس
-        'autoGrow_minHeight': 250,    # حداقل ارتفاع
-        'autoGrow_maxHeight': 600,    # حداکثر ارتفاع
-    }
-    ,
-    }
+}
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

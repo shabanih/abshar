@@ -126,6 +126,7 @@ def verify_pay_fix(request: HttpRequest):
                         user=request.user,
                         payment_date=payment_charge.payment_date,
                         payment_description=f"{payment_charge.charge_name}",
+                        transaction_no=payment_charge.transaction_reference,
                     )
 
                     return render(request, 'payment_done.html', {

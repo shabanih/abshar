@@ -37,7 +37,7 @@ from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDo
     FixPersonChargeCalc, ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
     FixPersonCharge, FixAreaCharge, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariable, \
     ChargeFixVariableCalc, SmsManagement, Fund
-from user_app.models import Unit, Bank, Renter, User, MyHouse, SupportUser
+from user_app.models import Unit, Bank, Renter, User, MyHouse
 from django.contrib.auth import get_user_model
 
 

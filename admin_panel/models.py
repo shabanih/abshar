@@ -747,6 +747,7 @@ class Fund(models.Model):
     final_amount = models.PositiveIntegerField(default=0)
 
     payment_date = models.DateField()
+    transaction_no = models.CharField(max_length=15, null=True, blank=True)
     payment_description = models.CharField(max_length=500, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

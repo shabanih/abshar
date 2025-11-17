@@ -2,7 +2,8 @@ from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django import forms
 from django.core.validators import RegexValidator
 
-from user_app.models import User, SupportUser, SupportFile, SupportMessage
+from notifications.models import SupportUser, SupportMessage
+from user_app.models import User
 
 attr = {'class': 'form-control border-1 py-2 mb-2 placeholder-gray', }
 attr1 = {'class': 'form-control border-1 py-1 mb-2 '}
