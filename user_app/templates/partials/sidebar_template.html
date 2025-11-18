@@ -147,39 +147,3 @@ userSocket.onclose = function(e) {
 
 </script>
 
-{#<script>#}
-{#document.addEventListener("DOMContentLoaded", function () {#}
-{##}
-{#    const mainCounter = document.getElementById("ticket-counter-main");#}
-{##}
-{#    // تابع به‌روز رسانی شمارنده#}
-{#    function updateTicketCounter() {#}
-{#        fetch("/notifications/ticket-counter/user/")#}
-{#            .then(res => res.json())#}
-{#            .then(data => {#}
-{#                mainCounter.textContent = data.count;#}
-{#                mainCounter.style.display = data.count > 0 ? "inline-block" : "none";#}
-{#            });#}
-{#    }#}
-{##}
-{#    // آپدیت اولیه و هر 3 ثانیه#}
-{#    updateTicketCounter();#}
-{#    setInterval(updateTicketCounter, 3000);#}
-{##}
-{#    // وقتی تیکت باز می‌شود#}
-{#    document.querySelectorAll(".ticket-link").forEach(link => {#}
-{#        link.addEventListener("click", function(){#}
-{#            const ticketId = this.dataset.ticketId;#}
-{#            fetch(`/notifications/reset-ticket-counter-user/${ticketId}/`)#}
-{#                .then(res => res.json())#}
-{#                .then(data => {#}
-{#                    if(data.success){#}
-{#                        mainCounter.textContent = data.remaining;#}
-{#                        mainCounter.style.display = data.remaining > 0 ? "inline-block" : "none";#}
-{#                    }#}
-{#                });#}
-{#        });#}
-{#    });#}
-{#});#}
-{#</script>#}
-

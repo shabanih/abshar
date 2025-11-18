@@ -153,7 +153,7 @@ class UserRegistrationForm(forms.ModelForm):
 
 class BankForm(forms.ModelForm):
     house = forms.ModelChoiceField(
-        queryset=MyHouse.objects.filter(is_active=True),
+        queryset=MyHouse.objects.none(),
         required=True,
         widget=forms.Select(attrs=attr3),
         label='نام ساختمان'
@@ -185,6 +185,17 @@ class BankForm(forms.ModelForm):
         fields = (
             'house', 'bank_name', 'account_holder_name', 'account_no', 'sheba_number', 'cart_number',
             'initial_fund', 'is_active')
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)  # گرفتن کاربر از ویو
+        super().__init__(*args, **kwargs)
+        if user and user.is_middle_admin:
+            # فقط ساختمان‌هایی که مدیر آن همان کاربر است و فعال هستند
+            self.fields['house'].queryset = MyHouse.objects.filter(user=user, is_active=True)
+        else:
+            # اگر کاربر مدیر نبود، خالی باشد
+            self.fields['house'].queryset = MyHouse.objects.none()
+
 
 
 USER_TYPE_CHOICES = [

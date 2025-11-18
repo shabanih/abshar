@@ -45,22 +45,17 @@
       <form action="" method="post" novalidate class="d-flex flex-column align-items-center">
         {% csrf_token %}
 
-        {% if messages %}
-        <div class="alert alert-danger w-100 text-center py-2 rounded-3">
-          {% for message in messages %}
-            <div>{{ message }}</div>
-          {% endfor %}
-        </div>
-        {% endif %}
-
         <div class=" w-75">
           <label class="form-label fw-semibold w-100 text-end">نام کاربری:</label>
           {{ form.mobile }}
+            
+            <span class="text-danger">{{ form.mobile.errors }}</span> 
         </div>
 
         <div class=" w-75">
           <label class="form-label fw-semibold w-100 text-end">کلمه عبور:</label>
           {{ form.password }}
+           <span class="text-danger">{{ form.password.errors }}</span> 
         </div>
              <button type="submit" class="btn btn-info text-white w-25">
             ورود

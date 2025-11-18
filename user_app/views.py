@@ -34,9 +34,9 @@ def index(request):
             user = authenticate(request, username=mobile, password=password)
             if user is not None and user.is_active:
                 login(request, user)
-                if user.is_superuser:
-                    return redirect(reverse('admin_dashboard'))
-                elif user.is_middle_admin:
+                # if user.is_superuser:
+                #     return redirect(reverse('admin_dashboard'))
+                if user.is_middle_admin:
                     return redirect(reverse('middle_admin_dashboard'))
                 else:
                     return redirect(reverse('user_panel'))

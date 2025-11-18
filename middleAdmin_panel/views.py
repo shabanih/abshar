@@ -75,7 +75,7 @@ def middle_admin_login_view(request):
 
 def logout__middle_admin(request):
     logout(request)
-    return redirect('login_middle_admin')
+    return redirect('index')
 
 
 def site_header_component(request):

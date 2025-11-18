@@ -170,13 +170,13 @@ class Renter(models.Model):
         return self.renter_name
 
 
-def generate_ticket_no():
-    """Generate a unique 6-digit ticket number."""
-    while True:
-        number = random.randint(1000000, 9999999)
-        if not SupportUser.objects.filter(ticket_no=number).exists():
-            return number
-#
+# def generate_ticket_no():
+#     """Generate a unique 6-digit ticket number."""
+#     while True:
+#         number = random.randint(1000000, 9999999)
+#         if not SupportUser.objects.filter(ticket_no=number).exists():
+#             return number
+# #
 #
 # class SupportUser(models.Model):
 #     user = models.ForeignKey(User, on_delete=models.CASCADE)
