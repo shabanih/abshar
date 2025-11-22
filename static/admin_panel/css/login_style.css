@@ -71,7 +71,7 @@
 
 
 body {
-	background: url("/media/pictures/ripi_backgrand.jpg") no-repeat center center fixed;
+	/*background: url("/media/pictures/ripi_backgrand.jpg") no-repeat center center fixed;*/
 	-webkit-background-size: cover;
 	-moz-background-size: cover;
 	-o-background-size: cover;
@@ -289,3 +289,4 @@ input:-webkit-autofill:active {
     background-color: #e30a0a;
     border-color: #ffd8e0;
 }
+

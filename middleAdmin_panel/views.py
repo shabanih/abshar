@@ -208,6 +208,11 @@ class middleAddBankView(CreateView):
     form_class = BankForm
     success_url = reverse_lazy('middle_manage_bank')
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user  # ← ارسال user به فرم
+        return kwargs
+
     def form_valid(self, form):
         self.object = form.save(commit=False)
         self.object.user = self.request.user
@@ -287,6 +292,7 @@ class MiddleUnitRegisterView(CreateView):
                 # ساخت واحد و اتصال به کاربر جدید
                 unit = form.save(commit=False)
                 unit.user = user  # کاربر ایجاد شده، مالک واحد است
+                unit.is_renter = is_renter
                 unit.save()
 
                 # اگر مستاجر وجود دارد
@@ -397,7 +403,7 @@ class MiddleUnitUpdateView(LoginRequiredMixin, UpdateView):
 
                 messages.success(self.request, f'واحد {self.object.unit} با موفقیت به‌روزرسانی شد.')
                 if is_renter and renter_fields_changed:
-                    messages.warning(self.request, 'اطلاعات مستأجر جدید ثبت شد.')
+                    messages.success(self.request, 'اطلاعات مستأجر جدید ثبت شد.')
 
                 return super().form_valid(form)
 
@@ -5204,100 +5210,3 @@ def middle_remove_send_notification_fix_variable(request, pk):
 
     return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
 
-
-# class MiddleTicketsView(ListView):
-#     model = SupportUser
-#     template_name = 'middle_admin/middle_tickets.html'
-#     context_object_name = 'tickets'
-#
-#     def get_paginate_by(self, queryset):
-#         paginate = self.request.GET.get('paginate')
-#         if paginate == '1000':
-#             return None  # نمایش همه
-#         return int(paginate or 20)
-#
-#     def get_queryset(self):
-#         query = self.request.GET.get('q', '')
-#         qs = SupportUser.objects.all()
-#         if query:
-#             qs = qs.filter(
-#                 Q(subject__icontains=query) |
-#                 Q(message__icontains=query) |
-#                 Q(ticket_no__icontains=query)
-#             )
-#         return qs.order_by('-created_at')
-#
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         context['query'] = self.request.GET.get('q', '')
-#         return context
-#
-#
-# def middleAdmin_ticket_detail(request, pk):
-#     ticket = get_object_or_404(SupportUser, id=pk)
-#     form = SupportMessageForm()
-#
-#     if request.method == 'POST':
-#         form = SupportMessageForm(request.POST, request.FILES)
-#         files = request.FILES.getlist('file')
-#         if form.is_valid():
-#             msg = form.save(commit=False)
-#             msg.support_user = ticket
-#             msg.sender = request.user
-#             msg.save()
-#             for f in files:
-#                 file_obj = SupportFile.objects.create(file=f, support_user=ticket)
-#                 msg.attachments.add(file_obj)
-#
-#             # تغییر وضعیت تیکت
-#             ticket.is_answer = True
-#             ticket.is_closed = False
-#             ticket.save()
-#
-#             # ایجاد نوتیفیکیشن برای کاربر
-#             notification = Notification.objects.create(
-#                 user=ticket.user,
-#                 ticket=ticket,
-#                 title="پاسخ به تیکت شما",
-#                 message=f"مدیر شما به تیکت #{ticket.id} پاسخ داد",
-#                 link=f"/user_dashboard/myTicket/{ticket.id}/"
-#             )
-#
-#             # ارسال WebSocket
-#             channel_layer = get_channel_layer()
-#             async_to_sync(channel_layer.group_send)(
-#                 f"user_{ticket.user.id}",
-#                 {
-#                     "type": "notify",
-#                     "data": {
-#                         "action": "new_notification",
-#                         "id": notification.id,
-#                         "title": notification.title,
-#                         "link": notification.link,
-#                     }
-#                 }
-#             )
-#
-#             messages.success(request, "پیام با موفقیت ارسال شد.")
-#             return redirect('middleAdmin_ticket_detail', pk=ticket.id)
-#
-#     messages_list = ticket.messages.order_by('-created_at')
-#     return render(request, 'middle_admin/middle_ticket_detail.html', {
-#         'ticket': ticket,
-#         'messages': messages_list,
-#         'form': form
-#     })
-#
-#
-# def middle_close_ticket(request, pk):
-#     ticket = get_object_or_404(SupportUser, id=pk)
-#     ticket.is_closed = True
-#     ticket.save()
-#     return redirect('middleAdmin_ticket_detail', pk=ticket.id)
-#
-#
-# def middle_open_ticket(request, pk):
-#     ticket = get_object_or_404(SupportUser, id=pk)
-#     ticket.is_closed = False
-#     ticket.save()
-#     return redirect('middleAdmin_ticket_detail', pk=ticket.id)

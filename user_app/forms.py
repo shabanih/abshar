@@ -2,7 +2,7 @@ from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django import forms
 from django.core.validators import RegexValidator
 
-from notifications.models import SupportUser, SupportMessage
+from notifications.models import SupportUser, SupportMessage, AdminTicket, AdminTicketMessage
 from user_app.models import User
 
 attr = {'class': 'form-control border-1 py-2 mb-2 placeholder-gray', }
@@ -108,8 +108,54 @@ class SupportUserForm(forms.ModelForm):
 
 
 class SupportMessageForm(forms.ModelForm):
+    message = forms.CharField(widget=CKEditorUploadingWidget(),
+                              error_messages=error_message, label='پیام', required=True)
+
+    attachments = forms.FileField(
+        required=False, error_messages=error_message,
+    )
+
     class Meta:
         model = SupportMessage
+        fields = ['message', 'attachments']
+        widgets = {
+            'message': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+        }
+
+
+# =========================================
+
+class MiddleAdminTicketForm(forms.ModelForm):
+    subject = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
+                              label='موضوع')
+    message = forms.CharField(widget=CKEditorUploadingWidget(),
+                              error_messages=error_message, label='پیام')
+    # is_closed = forms.ChoiceField(label='بستن تیکت', required=True,
+    #                               error_messages=error_message, choices=CHOICES, widget=forms.Select(attrs=attr))
+    is_call = forms.ChoiceField(
+        label='در صورت نیاز، جهت تسریع در حل مشکلتان، مایل هستید با شما تماس بگیریم؟',
+        choices=CALL_CHOICES,
+        widget=forms.RadioSelect,  # نمایش به صورت رادیو باتن
+        required=True,
+        initial=False
+
+    )
+
+    class Meta:
+        model = AdminTicket
+        fields = ['subject', 'message', 'is_call']
+
+
+class MiddleAdminMessageForm(forms.ModelForm):
+    message = forms.CharField(widget=CKEditorUploadingWidget(),
+                              error_messages=error_message, label='پیام', required=True)
+
+    attachments = forms.FileField(
+        required=False, error_messages=error_message,
+    )
+
+    class Meta:
+        model = AdminTicketMessage
         fields = ['message', 'attachments']
         widgets = {
             'message': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),

@@ -109,7 +109,7 @@ class UserRegistrationForm(forms.ModelForm):
         widget=forms.PasswordInput(attrs=attr),
         help_text='رمز عبور باید شامل اعداد و حروف باشد'
     )
-    is_active = forms.BooleanField(required=False, label='فعال/غیرفعال')
+    is_active = forms.BooleanField(required=False,initial=True, label='فعال/غیرفعال')
 
     class Meta:
         model = User
@@ -187,13 +187,13 @@ class BankForm(forms.ModelForm):
             'initial_fund', 'is_active')
 
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)  # گرفتن کاربر از ویو
+        user = kwargs.pop('user', None)  # دریافت کاربر از ویو
         super().__init__(*args, **kwargs)
+
         if user and user.is_middle_admin:
-            # فقط ساختمان‌هایی که مدیر آن همان کاربر است و فعال هستند
+            # فقط ساختمان‌هایی که این کاربر مدیرشان است
             self.fields['house'].queryset = MyHouse.objects.filter(user=user, is_active=True)
         else:
-            # اگر کاربر مدیر نبود، خالی باشد
             self.fields['house'].queryset = MyHouse.objects.none()
 
 

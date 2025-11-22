@@ -40,13 +40,13 @@
         <img src="/static/img/logo_login.png" width="120" alt="">
         <h4>ورود به پنل ادمین</h4>
         <p class="font-weight-light m-3">جهت ورود لطفا نام کاربری و رمز عبور خود را وارد کنید</p>
-{#               {% if messages %}#}
-{#                            <div class="alert alert-danger px-5 py-2">#}
-{#                                {% for message in messages %}#}
-{#                                    {{ message }}#}
-{#                                {% endfor %}#}
-{#                            </div>#}
-{#                            {% endif %}#}
+               {% if messages %}
+                            <div class="alert alert-danger px-5 py-2">
+                                {% for message in messages %}
+                                    {{ message }}
+                                {% endfor %}
+                            </div>
+                            {% endif %}
         <form action="" method="post" novalidate>
             {% csrf_token %}
             <div class="row g-2 justify-content-center">

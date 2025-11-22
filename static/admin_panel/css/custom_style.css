@@ -808,10 +808,10 @@ div.d-flex.justify-content-between div{
         transition: all 0.2s ease;
     }
 
-.counter-badge {
+.counter-badge-middle {
     position: relative;
     top: -8px;
-    right: -10px;
+    right: -30px;
     font-size: 12px;
     padding: 3px 6px;
     border-radius: 50%;

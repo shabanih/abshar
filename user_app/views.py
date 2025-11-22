@@ -31,22 +31,37 @@ def index(request):
         if form.is_valid():
             mobile = form.cleaned_data['mobile']
             password = form.cleaned_data['password']
-            user = authenticate(request, username=mobile, password=password)
-            if user is not None and user.is_active:
-                login(request, user)
-                # if user.is_superuser:
-                #     return redirect(reverse('admin_dashboard'))
-                if user.is_middle_admin:
-                    return redirect(reverse('middle_admin_dashboard'))
-                else:
-                    return redirect(reverse('user_panel'))
 
-            messages.error(request, 'ورود ناموفق: شماره موبایل یا کلمه عبور نادرست است.')
+            user = authenticate(request, username=mobile, password=password)
+
+            if user is not None:
+
+                # جلوگیری فقط از ورود سوپریوزر
+                if user.is_superuser:
+                    messages.error(request, 'شما مجوز ورود از این صفحه را ندارید.')
+                    return redirect('index')
+
+                # مدیر میانی و کاربر هر دو allowed هستند
+                if user.is_active:
+                    login(request, user)
+
+                    if user.is_middle_admin:
+                        return redirect('middle_admin_dashboard')
+
+                    return redirect('user_panel')
+
+                else:
+                    messages.error(request, 'حساب کاربری شما غیرفعال است.')
+                    return redirect('index')
+
+            else:
+                messages.error(request, 'ورود ناموفق: شماره موبایل یا کلمه عبور نادرست است.')
 
     return render(request, 'index.html', {
         'announcements': announcements,
         'form': form,
     })
+
 
 
 def mobile_login(request):
@@ -552,7 +567,7 @@ def user_announcements(request):
 
 # class SupportUserCreateView(CreateView):
 #     model = SupportUser
-#     template_name = 'send_ticket.html'
+#     template_name = 'user_send_ticket.html'
 #     form_class = SupportUserForm
 #     success_url = reverse_lazy('user_support_ticket')
 #
@@ -697,7 +712,7 @@ def user_announcements(request):
 #             return redirect('ticket_detail', pk=ticket.id)
 #
 #     messages_list = ticket.messages.order_by('-created_at')
-#     return render(request, 'ticket_details.html', {
+#     return render(request, 'user_ticket_details.html', {
 #         'ticket': ticket,
 #         'messages': messages_list,
 #         'form': form

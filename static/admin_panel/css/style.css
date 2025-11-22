@@ -14491,3 +14491,12 @@ ul > li {
     border-bottom: 2px solid var(--bs-secondary) !important;
 }
 /*** Single Page End ***/
+
+.counter-badge {
+    position: relative;
+    top: -8px;
+    right: -10px;
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: 50%;
+}

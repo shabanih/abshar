@@ -6,18 +6,18 @@
               <a href="{% url 'middle_manage_house' %}" class="nav-link">
                 <div class="nav-profile-image">
                   <img src="{% static 'admin_panel/icone8/icons8-home (1).gif' %}" width="20" alt="profile">
-                  <span class="login-status online"></span>
+{#                  <span class="login-status online"></span>#}
                   <!--change to offline or busy as needed-->
                 </div>
                   <br>
-               <div class="nav-profile-text ms-2 mt-3 ">
-      {% if house and house.name %}
-        <h6 class="mb-2  fw-bold"> {{ house.name }}</h6>
-      {% else %}
-        <h6 class="mb-1">ساختمان من</h6>
-      {% endif %}
-      <small class="text-muted p-2">افزودن / ویرایش</small>
-    </div>
+               <div class="nav-profile-text ms-auto mt-3">
+                      {% if house and house.name %}
+                        <h6 class="mb-2"> {{ house.name }}</h6>
+                      {% else %}
+                        <h6 class="mb-1">ساختمان من</h6>
+                      {% endif %}
+                      <small class="text-muted p-2">افزودن / ویرایش</small>
+                    </div>
 {#                <i class="mdi mdi-home text-secondary nav-profile-badge" style="font-size: 2.125rem;"></i>#}
 
               </a>
@@ -26,7 +26,7 @@
             <li class="nav-item border-top">
                {% url 'middle_admin_dashboard' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                <i class="menu-title">داشبورد</i>
+                <i class="menu-title">داشبورد مدیر</i>
                 <i class="mdi mdi-cellphone-link menu-icon"></i>
               </a>
             </li>
@@ -130,46 +130,37 @@
                         </li>
 
              <li class="nav-item border-top mt-0">
-                            <a class="nav-link">
-                            <i class="menu-title"> مدیریت پیامک ها</i>
-                            <i class="fas fa-comment-dots menu-icon"></i>
-                          </a>
-                        </li>
-
-
-
+                <a class="nav-link" href="#">
+                <i class="menu-title"> مدیریت پیامک ها</i>
+                <i class="fas fa-comment-dots menu-icon"></i>
+              </a>
+            </li>
 
                  <li class="nav-item border-top mt-0">
-
                    <a class="nav-link d-flex align-items-center position-relative
-                       {% if request.resolver_match.url_name == 'middle_support_ticket' or request.resolver_match.url_name == 'middle_tickets' %}active{% endif %}"
+                       {% if request.resolver_match.url_name == 'middleAdmin_support_ticket' or request.resolver_match.url_name == 'middleAdmin_tickets' %}active{% endif %}"
                data-bs-toggle="collapse"
                href="#general4">
-
-
                 <span class="ms-2">پشتیبانی</span>
-                <span id="ticket-counter-main" class="badge bg-danger counter-badge">0</span>
+                <span id="ticket-counter-middle-admin" class="badge bg-danger counter-badge-middle">0</span>
 {#                       <span id="ticket-counter-main" class="badge bg-danger counter-badge"> </span>#}
-
-
-
                 <i class="menu-arrow"></i>
                 <i class="mdi mdi-headphones menu-icon"></i>
             </a>
             <div class="collapse
-                {% if request.resolver_match.url_name == 'middle_support_ticket' or request.resolver_match.url_name == 'middle_tickets' %}show{% endif %}"
+                {% if request.resolver_match.url_name == 'middleAdmin_support_ticket' or request.resolver_match.url_name == 'middleAdmin_tickets' %}show{% endif %}"
                 id="general4">
 
                 <ul class="nav flex-column sub-menu">
 
                     <li class="nav-item mt-0">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'middle_support_ticket' %}active{% endif %}"
-                           href="{% url 'user_support_ticket' %}">ارسال تیکت</a>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'middleAdmin_support_ticket' %}active{% endif %}"
+                           href="{% url 'middleAdmin_support_ticket' %}">ارسال تیکت</a>
                     </li>
 
                     <li class="nav-item mt-0">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'middle_tickets' %}active{% endif %}"
-                           href="{% url 'middle_tickets' %}">تیکت‌های من
+                        <a class="nav-link {% if request.resolver_match.url_name == 'middleAdmin_tickets' %}active{% endif %}"
+                           href="{% url 'middleAdmin_tickets' %}">تیکت‌های من
 {#                           <span id="ticket-counter-sub" class="badge bg-danger counter-badge_second">0</span>#}
 
                         </a>
@@ -184,6 +175,25 @@
           </ul>
 
 </nav>
+<style>
+    .counter-badge {
+    position: relative;
+    top: -8px;
+    right: -12px;
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: 50%;
+}
+
+.counter-badge-middle{
+    position: relative;
+    top: -8px;
+    right: -29px;
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: 50%;
+}
+</style>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
@@ -192,8 +202,9 @@
 );
 
 userSocket.onmessage = function(e) {
+    console.log("WS message received:", e.data);
     const data = JSON.parse(e.data);
-    const el = document.getElementById("ticket-counter-main"); // یا ticket-counter-admin
+    const el = document.getElementById("ticket-counter-main");
     el.textContent = data.count;
     el.style.display = data.count > 0 ? "inline-block" : "none";
 };
@@ -206,36 +217,26 @@ userSocket.onclose = function(e) {
 };
 
 </script>
-{#<script>#}
-{#  const adminCounter = document.getElementById("ticket-counter-admin");#}
-{##}
-{#    function updateAdminTicketCounter() {#}
-{#        fetch("/notifications/ticket-counter/admin/")#}
-{#            .then(res => res.json())#}
-{#            .then(data => {#}
-{#                adminCounter.textContent = data.count;#}
-{#                adminCounter.style.display = data.count > 0 ? "inline-block" : "none";#}
-{#            });#}
-{#    }#}
-{##}
-{#    updateAdminTicketCounter();#}
-{#    setInterval(updateAdminTicketCounter, 3000);#}
-{##}
-{#    document.querySelectorAll(".ticket-link-admin").forEach(link => {#}
-{#        link.addEventListener("click", function(){#}
-{#            const ticketId = this.dataset.ticketId;#}
-{#            fetch(`/notifications/reset-ticket-counter-admin/${ticketId}/`)#}
-{#                .then(res => res.json())#}
-{#                .then(data => {#}
-{#                    if(data.success){#}
-{#                        adminCounter.textContent = data.remaining;#}
-{#                        adminCounter.style.display = data.remaining > 0 ? "inline-block" : "none";#}
-{#                    }#}
-{#                });#}
-{#        });#}
-{#    });#}
-{##}
-{#</script>#}
 
+<script>
+    const middleSocket = new WebSocket(
+    "ws://" + window.location.host + "/ws/tickets/admin/"
+);
+
+middleSocket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    const el = document.getElementById("ticket-counter-middle-admin"); // یا ticket-counter-admin
+    el.textContent = data.count;
+    el.style.display = data.count > 0 ? "inline-block" : "none";
+};
+
+middleSocket.onopen = function(e) {
+    console.log("WebSocket connected!");
+};
+middleSocket.onclose = function(e) {
+    console.log("WebSocket closed!");
+};
+
+</script>
 
 

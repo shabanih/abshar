@@ -11,9 +11,13 @@
                     <img src="{% static 'admin_panel/icone8/icons8-home.gif' %}" alt="profile">
                     <span class="login-status online"></span>
                 </div>
-                <div class="nav-profile-text d-flex flex-column">
-                    <h5 class="mt-2"><strong>ساختمان من</strong></h5>
-                </div>
+                            <div class="nav-profile-text ms-auto mt-3">
+                              {% if house and house.name %}
+                                <h6 class="mb-2"> {{ house.name }}</h6>
+                              {% else %}
+                                <h6 class="mb-1">ساختمان من</h6>
+                              {% endif %}
+                            </div>
             </a>
         </li>
 
@@ -21,7 +25,7 @@
         <li class="nav-item">
             <a class="nav-link {% if request.resolver_match.url_name == 'user_panel' %}active{% endif %}"
                href="{% url 'user_panel' %}">
-                <i class="menu-title">داشبورد</i>
+                <i class="menu-title">داشبورد کاربر</i>
                 <i class="mdi mdi-home menu-icon"></i>
             </a>
         </li>
@@ -124,6 +128,16 @@
     </ul>
 
 </nav>
+<style>
+    .counter-badge {
+    position: relative;
+    top: -8px;
+    right: -30px;
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: 50%;
+}
+</style>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>

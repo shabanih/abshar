@@ -8,7 +8,26 @@
 
 {% block main_content %}
     <hr/>
+    
+            
+
+     {{ form.non_field_errors }}
 <div class="container p-0">
+{% if messages %}
+  <div class="mt-3 mb-4">
+    {% for message in messages %}
+      <div class="alert {% if 'error' in message.tags %}alert-danger{% else %}alert-{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+        
+        <div class="me-5 text-white ">
+          {{ message }}
+        </div>
+
+        <button type="button" class="btn-close bg-white bordered text-white" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
       <div class="row align-self-center mb-2">
             <div class="col-12 col-md-3 col-xl-3 align-self-center">
                 <a href="{% url 'middle_add_unit' %}" class="btn btn-primary px-1 py-2">
@@ -29,6 +48,7 @@
             </a>
             </div>
           </div>
+
        <div id="query-form" style="display: none;" class="row mt-2">
             <form method="get">
                <div class="row mt-2">

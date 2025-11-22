@@ -53,11 +53,11 @@ INSTALLED_APPS = [
     # # other_app
     'django_render_partial',
     'sweetify',
+    'jalali_date',
 
     'ckeditor',
     'ckeditor_uploader',  # enables file & image uploads
     'azbankgateways',
-
 
 ]
 

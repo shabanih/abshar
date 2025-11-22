@@ -61,6 +61,7 @@ class MiddleAdminCreateView(CreateView):
             'password')  # Assuming you're using UserCreationForm or a custom form with 'password1'
         self.object.set_password(raw_password)  # Hash the password properly
         self.object.is_middle_admin = True
+        self.object.manager = self.request.user
         self.object.save()
         messages.success(self.request, 'مدیر ساختمان با موفقیت ثبت گردید!')
         return redirect(self.success_url)
@@ -75,23 +76,35 @@ class MiddleAdminCreateView(CreateView):
 class MiddleAdminUpdateView(UpdateView):
     model = User
     template_name = 'admin_panel/add_middleAdmin.html'
-    form_class = UserRegistrationForm  # یا فرم سفارشی اگر تعریف کرده‌اید
+    form_class = UserRegistrationForm
     success_url = reverse_lazy('create_middle_admin')
 
     def form_valid(self, form):
-        self.object = form.save(commit=False)
-        raw_password = form.cleaned_data.get(
-            'password')  # Assuming you're using UserCreationForm or a custom form with 'password1'
-        self.object.set_password(raw_password)  # Hash the password properly
-        self.object.user = self.request.user
+        obj = form.save(commit=False)
+
+        # گرفتن رمز جدید
+        raw_password = form.cleaned_data.get('password')
+
+        # اگر رمز جدید وارد شده بود → تغییر بده
+        if raw_password:
+            obj.set_password(raw_password)
+        else:
+            # اگر رمز خالی بود → رمز قبلی را نگه‌دار
+            old_user = User.objects.get(pk=obj.pk)
+            obj.password = old_user.password
+
+        obj.manager = self.request.user
+        obj.save()
+
         messages.success(self.request, 'اطلاعات مدیر ساختمان با موفقیت ویرایش گردید!')
-        return super().form_valid(form)
+        return redirect(self.success_url)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['middleAdmins'] = User.objects.filter(is_middle_admin=True).order_by('-created_time')
         context['users'] = User.objects.filter(is_active=True).order_by('-created_time')
         return context
+
 
 
 def middleAdmin_delete(request, pk):
@@ -5425,5 +5438,7 @@ def send_sms(request, pk):
         'sms': sms,
         'units_with_details': units_with_details,
     })
+
+
 
 

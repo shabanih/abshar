@@ -64,9 +64,9 @@
                                                                          alt="logo"  /></a>
         </div>
         <div class="navbar-menu-wrapper d-flex align-items-stretch">
-{#          <button class="navbar-toggler align-self-center" type="button" id="sidebarToggle">#}
-{#              <span class="mdi mdi-menu"></span>#}
-{#            </button>#}
+               <button class="navbar-toggler navbar-toggler align-self-center" type="button" data-toggle="minimize">
+            <span class="mdi mdi-menu"></span>
+          </button>
           <div class="search-field d-none d-sm-block">
             <form class="d-flex align-items-center p-1  h-100" action="#">
 {#                   <p id="jalali-date_head" style="color: black; margin: auto; font-size: smaller"></p>#}
@@ -77,9 +77,9 @@
           </div>
 {#          {% include 'partials/notification_template.html' %}#}
             {% render_partial 'user_app.views.site_header_component' %}
-{#                   <button class="navbar-toggler align-self-center" type="button" id="sidebarToggle">#}
-{#  <span class="mdi mdi-menu"></span>#}
-{#</button>#}
+                      <button class="navbar-toggler navbar-toggler-right d-lg-none align-self-center" type="button" data-toggle="offcanvas">
+            <span class="mdi mdi-menu"></span>
+          </button>
             <script>
                 
             </script>
@@ -108,7 +108,7 @@
                 </ul>
               </nav>
             </div>
-{#            <section class="content pt-3">#}
+{#            <section class="content py-3">#}
 {#              <div class="container-fluid">#}
 {#                <div class="row">#}
 {#                  <div class="col-12">#}

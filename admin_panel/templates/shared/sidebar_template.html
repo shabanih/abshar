@@ -129,29 +129,58 @@
             </li>
 
              <li class="nav-item border-top mt-0">
-                                {% url 'sms_management' as address_url %}
-                            <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                            <i class="menu-title"> مدیریت پیامک ها</i>
-                            <i class="fas fa-comment-dots menu-icon"></i>
-                          </a>
-                        </li>
-             <li class="nav-item border-top mt-0">
-                                {% url 'sms_management' as address_url %}
-                            <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                            <i class="menu-title"> مدیریت نظرسنجی</i>
-                            <i class="fas fa-send menu-icon"></i>
-                          </a>
-                        </li>
+                    {% url 'sms_management' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title"> مدیریت پیامک ها</i>
+                <i class="fas fa-comment-dots menu-icon"></i>
+              </a>
+            </li>
+{#             <li class="nav-item border-top mt-0">#}
+{#                                {% url 'sms_management' as address_url %}#}
+{#                            <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">#}
+{#                            <i class="menu-title"> مدیریت نظرسنجی</i>#}
+{#                            <i class="fas fa-send menu-icon"></i>#}
+{#                          </a>#}
+{#                        </li>#}
               <li class="nav-item border-top mt-0">
-                                {% url 'sms_management' as address_url %}
-                            <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                            <i class="menu-title">پشتبانی</i>
-                            <i class="fas fa-headphones-alt menu-icon"></i>
-                          </a>
-                        </li>
-          
-             
+                    {% url 'admin_tickets' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title">پشتبانی</i>
+                <span id="ticket-counter-admin" class="badge bg-danger bordered counter-badge">0</span>
 
+                <i class="fas fa-headphones-alt menu-icon"></i>
+              </a>
+            </li>
           </ul>
 
 </nav>
+<style>
+    .counter-badge {
+    position: relative;
+    top: -8px;
+    right: -38px;
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: 50%;
+}
+</style>
+<script>
+    const userSocket = new WebSocket(
+    "ws://" + window.location.host + "/ws/tickets/admin/"
+);
+
+userSocket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    const el = document.getElementById("ticket-counter-admin"); // یا ticket-counter-admin
+    el.textContent = data.count;
+    el.style.display = data.count > 0 ? "inline-block" : "none";
+};
+
+userSocket.onopen = function(e) {
+    console.log("WebSocket connected!");
+};
+userSocket.onclose = function(e) {
+    console.log("WebSocket closed!");
+};
+
+</script>
