@@ -1,0 +1,108 @@
+{% extends 'middleShared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+
+{% block page_title %}
+    مشاهده جزئیات تیکت
+{% endblock page_title %}
+
+{% block main_content %}
+
+    
+
+  <div class="container-fluid mt-3">
+        <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-light text-white">
+            <h3 class="mb-0">تیکت {{ ticket.ticket_no }}#</h3>
+        </div>
+        <div class="card-body p-3">
+            <h5 class="mb-4">موضوع: {{ ticket.subject }} # (  فرستنده: {{ ticket.user.full_name }})</h5>
+            <button type="button" onclick="document.getElementById('replyForm').scrollIntoView({ behavior: 'smooth' });">
+                <i class="fas fa-pencil-alt"></i> پاسخ
+            </button>
+            {% if ticket.is_closed == False %}
+            <a class="btn btn-danger py-2" href="{%  url 'middle_close_ticket' ticket.id %}">بستن تیکت</a>
+      
+            {% else %} 
+            <a class="btn btn-gradient-success py-2" href="{%  url 'middle_open_ticket' ticket.id %}">باز کردن تیکت</a>
+           <div class="alert alert-warning" >
+                    این تیکت بسته شد.
+                </div>
+             {% endif %}
+        </div>
+    </div>
+
+    <!-- پیام‌ها -->
+    {% for msg in messages_list %}
+    <div class="card mb-2 {% if msg.sender.is_staff %}border-info{% else %}border-secondary{% endif %} shadow-sm">
+        <div class="card-header">
+               <strong>
+            <span class="{% if msg.sender.is_staff %}badge bg-info px-4 py-2 fw-bold{% else %}badge bg-success fw-bold{% endif %}">
+                {{ msg.sender_role }}
+            </span>
+        </strong>
+                <span class=" text-muted me-2">{{ msg.created_at|show_jalali }}</span> 
+        </div>
+        <div class="card-body">
+            <div class="content">{{ msg.message|safe }}</div>
+          {% if msg.attachments.all %}
+       <strong>فایل‌های تیکت:</strong>
+          
+            <div class="attachments mt-2">
+                <ul>
+                    {% for file in msg.attachments.all %}
+                        <li><a href="{{ file.file.url }}" target="_blank">{{ file.file.name|slice:"30" }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+  </div>
+  
+    
+{% if not ticket.is_closed %}
+    <div class="container p-4">
+	 <h5 class="mt-4">ارسال پاسخ جدید</h5>
+                <form id="replyForm" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="row text-center">
+                           {{ form.message }}
+                        {{ form.message.errors }}
+                    </div>
+                       <div class="col-12 form-group mt-3">
+                        <label for="files">آپلود فایل‌ها:</label>
+                        <input type="file" name="file" multiple class="form-control">
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" id="success" class="btn btn-primary px-4  mt-2">ارسال پاسخ</button>
+
+                    </div>
+                </form>
+              </div>
+{% endif %} 
+     
+
+
+{% endblock main_content %}
+
+{#<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>#}
+{##}
+{#<script>#}
+{#document.getElementById("replyForm").addEventListener("submit", function(e) {#}
+{#    e.preventDefault(); // جلوگیری از submit معمولی#}
+{##}
+{#    Swal.fire({#}
+{#        icon: 'success',#}
+        {#title: 'موفقیت!',#}
+{#        text: 'پاسخ تیکت با موفقیت ارسال شد.',#}
+{#        timer: 2000,#}
+{#        showConfirmButton: false#}
+{#    }).then(() => {#}
+{#        // بعد از نمایش پیام، فرم را submit کنید#}
+{#        e.target.submit();#}
+{#    });#}
+{#});#}
+</script>

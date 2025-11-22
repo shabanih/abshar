@@ -1,0 +1,63 @@
+{% extends 'middleShared/base_template.html' %}
+{% load poll_extras %}
+
+{% block page_title %}
+    ارسال تیکت
+{% endblock page_title %}
+
+{% block main_content %}
+
+  <div class="container py-3">
+  
+  <div class="row">
+      <div class="col-12">
+          <div class="card p-4">
+<form action="" id="sendTicketForm" method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    <div class="row mb-1">
+        <!-- subject -->
+        <div class="col-12 form-group" >
+            {{ form.subject.label_tag }}
+            {{ form.subject }}
+            {{ form.subject.errors }}
+        </div>
+    </div>
+        <!-- is_call -->
+        <div class="row px-4">
+        <div class="col-12 form-group form-control bg-light">
+            {{ form.is_call.label_tag }}
+            {{ form.is_call }}
+            {{ form.is_call.errors }}
+        </div>
+            </div>
+        <div class="row">
+        <!-- message (CKEditor) -->
+        <div class="col-12 form-group text-center">
+            {{ form.message.label_tag }}
+            {{ form.message }}
+            {{ form.message.errors }}
+        </div>
+        </div>
+        <!-- file upload -->
+        <div class="col-12 form-group">
+            <label for="files">آپلود فایل‌ها:</label>
+            <input type="file" name="file" multiple class="form-control">
+        </div>
+
+        <!-- submit button -->
+        <div class="col-12 pt-4 text-center">
+            <button type="submit" id="success" class="btn btn-info">ثبت تیکت</button>
+            <a href="{% url 'tickets' %}" class="btn btn-warning">منصرف شدم</a>
+        </div>
+ 
+</form>
+
+
+      </div>
+  </div>
+  </div>
+  
+  </div>
+
+    
+{% endblock main_content %}

@@ -1,0 +1,61 @@
+{% extends 'partials/core_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+تراکنش های مالی
+{% endblock page_title %}
+
+{% block main_content %}
+{#    <hr/>#}
+<div class="container py-5">
+      <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="text-center">
+                                    <tr>
+                                        <th>#</th>
+{#                                        <th>شماره سند</th>#}
+                                        <th>تاریخ پرداخت</th>
+                                        <th>شرح </th>
+                                        <th>مبلغ تراکنش</th>
+                                        <th>درگاه پرداخت</th>
+                                        <th>شماره تراکنش</th>
+{#                                        <th>موجودی نهایی</th>#}
+{#                                        <th>فعال/غیرفعال</th>#}
+{#                                        <th>دستورات</th>#}
+                                    </tr>
+                                </thead>
+                            {% if funds %}
+                           {% for fund in funds %}
+                                    <tbody class="text-center">
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+{#                                            <td>{{ fund.doc_number }}</td>#}
+                                               <td>{{fund.payment_date|show_jalali }}</td>
+                                            <td>بابت {{fund.payment_description }}</td>
+{#                                            <td>{{fund.debtor_amount|three_digit_currency}}</td>#}
+{#                                            <td>{{fund.creditor_amount|three_digit_currency }}</td>#}
+                                            <td class="btn-gradient-success">{{fund.amount|three_digit_currency }}</td>
+                                        <td>به پرداخت ملت</td>
+                                        <td class="btn-gradient-success">{{fund.transaction_no }}</td>
+
+                                        </tr>
+                                    {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="9" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                        </tr>
+                                 <tbody>
+                                {% endif %}
+                            </table>
+               </div>
+
+    <hr>
+</div>
+
+
+
+
+{% endblock %}
+
+

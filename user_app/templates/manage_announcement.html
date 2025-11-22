@@ -1,0 +1,66 @@
+{% extends 'partials/core_template.html' %}
+{% load poll_extras %}
+
+{% block page_title %}
+مدیریت اطلاعیه {{ unit.unit }}
+{% endblock page_title %}
+
+{% block main_content %}
+{#    <hr>#}
+    
+  <div class="container py-5">
+{#  <div class="card shadow-lg p-4">#}
+    <h1 class="header-style text-center mb-4">اطلاعیه‌های ساختمان</h1>
+  
+  <table class="table table-bordered">
+      <thead>
+      <tr>
+          <th>عنوان</th>
+          <th>تاریخ ثبت</th>
+      </tr>
+      </thead>
+         {% if announcements %}
+      {% for announcement in announcements %}
+      <tbody>
+      <tr>
+          <td class="col-10">{{ announcement.title|safe }}</td>
+          <td class="col-2">{{ announcement.created_at|show_jalali_date_only }}</td>
+      </tr>
+      </tbody>
+           {% endfor %}
+    {% else %}
+           <tbody>
+           <tr>
+            <td>
+                    هیچ اطلاعیه‌ای ثبت نشده است.
+        </td> 
+           </tr>
+ 
+           </tbody>
+    {% endif %}
+  </table>
+
+{#    {% if announcements %}#}
+{#      {% for announcement in announcements %}#}
+{#        <div class="row align-items-center border-bottom py-3">#}
+{#          <div class="col-10 d-flex align-items-center">#}
+{#            <i class="fas fa-bell ms-2" style="color: rgba(98,112,204,0.98); font-size: 1.3rem;"></i>#}
+{#            <p class="info-text mb-0 mt-2 ">{{ announcement.title|safe }}-({{ announcement.created_at }})</p>#}
+{#          </div>#}
+{#        <div class="col-2 d-flex align-items-center">#}
+{#            <i class="fas fa-bell ms-2" style="color: rgba(98,112,204,0.98); font-size: 1.3rem;"></i>#}
+{#            <p class="info-text mb-0 mt-2 ">({{ announcement.created_at }})</p>#}
+{#          </div>#}
+{#        </div>#}
+{#      {% endfor %}#}
+{#    {% else %}#}
+{#      <div class="text-center py-4 text-muted">#}
+{#        <i class="fas fa-info-circle me-1"></i>#}
+{#        هیچ اطلاعیه‌ای ثبت نشده است.#}
+{#      </div>#}
+{#    {% endif %}#}
+  </div>
+{#</div>#}
+    
+    
+{% endblock main_content %}
