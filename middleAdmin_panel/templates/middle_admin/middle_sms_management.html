@@ -1,0 +1,152 @@
+﻿{% extends 'middleShared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+مدیریت پیامک ها
+{% endblock page_title %}
+
+{% block main_content %}
+<div class="container mt-3">
+  <div class="container-fluid">
+                <div class="row">
+                  <div class="col-12">
+                    <div class="form-group">
+                      {% if messages %}
+                      {% for message in messages  %}
+
+                      {% if message.tags == 'success' %}
+                      <div class="alert alert-success">
+                        {{message}}
+                      </div>
+                      {% else %}
+                      <div class="alert alert-danger">
+                        {{message}}
+                      </div>
+                      {% endif %}
+
+                      {% endfor %}
+                      {% endif %}
+            </div>
+                   </div>
+                </div>
+              </div>
+    <form action="" method="post" novalidate>
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-12 col-lg-8">
+                {{ form.subject.label_tag }}
+                {{ form.subject }}
+                {{ form.subject.errors }}
+            </div>
+            <div class="col-12 col-lg-4 py-2">
+                {{ form.is_active.label_tag }}
+                {{ form.is_active }}
+                {{ form.is_active.errors }}
+            </div>
+            <div class="col-12">
+                {{ form.message.label_tag }}
+                {{ form.message }}
+                {{ form.message.errors }}
+            </div>
+
+
+                  {% if form.instance.id %}
+        	<div class=" col-12 pt-4 text-start">
+                 <button type="submit" class="btn btn-info">ذخیره پیامک</button>
+              </div>
+             {% else %}
+             <div class="col-12  pt-4 text-start">
+                 <button type="submit" class="btn btn-info">ثبت پیامک</button>
+              </div>
+        {% endif %}
+
+        </div>
+
+
+    </form>
+
+    <div class="container p-0 mt-4">
+        <div class="row mt-2">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+{#                            <th>ایجاد کننده</th>#}
+                            <th>عنوان </th>
+                            <th>متن پیامک </th>
+                            <th>تاریخ ایجاد</th>
+                            <th>فعال/غیرفعال</th>
+                            <th>وضعیت</th>
+                            <th>تاریخ ارسال</th>
+                            <th>تعداد پیامک ارسالی</th>
+                            <th>دستورات</th>
+                        </tr>
+                    </thead>
+                    {% if all_sms %}
+                        {% for sms in all_sms %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+{#                                <td>{{sms.user.full_name }}</td>#}
+                                <td>{{ sms.subject }}</td>
+                                <td>{{ sms.message }}</td>
+
+                                <td>{{ sms.created_at|show_jalali}}</td>
+                                  <td>
+                                   {% if sms.is_active == True %}
+                                    <button class="btn btn-primary bg-success p-2">فعال</button>
+                                       {% else %}
+                                       <button class="btn btn-danger p-2">غیر فعال</button>
+                                   {% endif %}
+                                </td>
+                                       <td>
+                                   {% if sms.send_notification == True %}
+                                    <button class="btn btn-primary bg-success p-2">ارسال گردید</button>
+                                       {% else %}
+                                       <button class="btn btn-warning p-2">در انتظار ارسال</button>
+                                   {% endif %}
+                                </td>
+                     <td>
+                        {% if sms.send_notification_date %}
+                            {{ sms.send_notification_date|show_jalali }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                           <td>{{ sms.notified_units_count }}</td>
+
+                               <td class="col-1 p-0">
+                                   <a href="{% url 'middle_edit_sms' sms.id %}" class="btn btn-primary p-1">
+                              <i class="mdi mdi-lead-pencil" aria-hidden="true"></i></a>
+                                     <a href="{% url 'middle_delete_sms' sms.id %}" class="btn btn-gradient-danger p-1"
+                                       onclick="return confirmDeleteWithSweetAlert(event)">
+                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                            </a>
+                             <a href="{% url 'middle_show_send_sms_form' sms.id %}" class="btn btn-gradient-success p-1"
+                                   data-bs-toggle="tooltip" title="ارسال پیامک">
+                                   <i class="fas fa-sms"></i>
+                                </a>
+
+                            </td>
+
+                            </tr>
+                        </tbody>
+                        {% endfor %}
+                    {% else %}
+                        <tbody>
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                            </tr>
+                        </tbody>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+
