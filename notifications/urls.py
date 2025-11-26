@@ -12,6 +12,8 @@ urlpatterns = [
     path('middle-ticket/<int:pk>/', views.middleAdmin_ticket_detail, name='middleAdmin_ticket_detail'),
     path('middle/ticket/close/<int:pk>/', views.middle_close_ticket, name='middle_close_ticket'),
     path('middle/ticket/open/<int:pk>/', views.middle_open_ticket, name='middle_open_ticket'),
+    path('middle/ticket/waiting/<int:pk>/', views.middle_is_waiting, name='middle_waiting_ticket'),
+    path('middle/ticket/continue/<int:pk>/', views.middle_is_continue, name='middle_continue_ticket'),
 
     # path('ticket-counter/user/', views.ticket_counter_user, name='ticket_counter_user'),
     # path('reset-ticket-counter-user/<int:ticket_id>/', views.reset_ticket_counter_user,

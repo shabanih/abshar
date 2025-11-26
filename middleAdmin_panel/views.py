@@ -33,12 +33,13 @@ from weasyprint import CSS, HTML
 from admin_panel.forms import announcementForm, BankForm, UnitForm, ExpenseCategoryForm, ExpenseForm, \
     IncomeCategoryForm, IncomeForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, MaintenanceForm, FixChargeForm, \
     FixAreaChargeForm, AreaChargeForm, PersonChargeForm, FixPersonChargeForm, PersonAreaChargeForm, \
-    PersonAreaFixChargeForm, VariableFixChargeForm, MyHouseForm
+    PersonAreaFixChargeForm, VariableFixChargeForm, MyHouseForm, SmsForm
 from admin_panel.models import Announcement, ExpenseCategory, Expense, Fund, ExpenseDocument, IncomeCategory, Income, \
     IncomeDocument, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, FixCharge, FixedChargeCalc, AreaCharge, AreaChargeCalc, PersonCharge, PersonChargeCalc, \
     FixAreaCharge, FixAreaChargeCalc, FixPersonCharge, FixPersonChargeCalc, ChargeByPersonArea, ChargeByPersonAreaCalc, \
-    ChargeByFixPersonArea, ChargeByFixPersonAreaCalc, ChargeFixVariable, ChargeFixVariableCalc
+    ChargeByFixPersonArea, ChargeByFixPersonAreaCalc, ChargeFixVariable, ChargeFixVariableCalc, SmsManagement
+from admin_panel.views import admin_required
 from notifications.models import Notification
 
 from user_app.models import Bank, Unit, User, Renter, MyHouse
@@ -49,6 +50,16 @@ def middle_admin_required(view_func):
         lambda u: u.is_authenticated and getattr(u, 'is_middle_admin', False),
         login_url=settings.LOGIN_URL_MIDDLE_ADMIN
     )(view_func)
+
+
+@middle_admin_required
+def middle_admin_dashboard(request):
+    announcements = Announcement.objects.filter(is_active=True, user=request.user).order_by('-created_at')[:3]
+    context = {
+
+        'announcements': announcements
+    }
+    return render(request, 'middleShared/home_template.html', context)
 
 
 def middle_admin_login_view(request):
@@ -85,21 +96,11 @@ def site_header_component(request):
     return render(request, 'middleShared/notification_template.html', context)
 
 
-@middle_admin_required
-def middle_admin_dashboard(request):
-    announcements = Announcement.objects.filter(is_active=True, user=request.user)
-    context = {
-
-        'announcements': announcements
-    }
-    return render(request, 'middleShared/home_template.html', context)
-
-
 # ============================= Announcement ====================
 @method_decorator(middle_admin_required, name='dispatch')
 class MiddleAnnouncementView(CreateView):
     model = Announcement
-    template_name = 'middle_admin/middle_announcement.html'
+    template_name = 'middle_admin/middle_send_announcement.html'
     form_class = announcementForm
     success_url = reverse_lazy('middle_announcement')
 
@@ -114,6 +115,38 @@ class MiddleAnnouncementView(CreateView):
         context = super().get_context_data(**kwargs)
         context['announcements'] = Announcement.objects.filter(user=self.request.user).order_by('-created_at')
         return context
+
+
+class MiddleAnnouncementListView(ListView):
+    model = Announcement
+    template_name = 'middle_admin/middle_announcement.html'
+    context_object_name = 'announcements'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        queryset = Announcement.objects.filter(
+            user=self.request.user,
+            is_active=True
+        )
+
+        if query:
+            queryset = queryset.filter(title__icontains=query)
+
+        return queryset.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        return context
+
 
 
 @method_decorator(middle_admin_required, name='dispatch')
@@ -5209,4 +5242,138 @@ def middle_remove_send_notification_fix_variable(request, pk):
         return JsonResponse({'success': f'{deleted_count} اطلاعیه حذف شد.'})
 
     return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
+
+
+# --------------------------------------------------------
+
+@method_decorator(middle_admin_required, name='dispatch')
+class MiddleSmsManagementView(CreateView):
+    model = SmsManagement
+    template_name = 'middle_admin/middle_sms_management.html'
+    form_class = SmsForm
+    success_url = reverse_lazy('middle_sms_management')
+
+    def form_valid(self, form):
+        sms = form.save(commit=False)
+        sms.user = self.request.user
+        try:
+            sms.save()
+            self.object = sms
+            messages.success(self.request, 'پیامک موفقیت ثبت گردید')
+            return super().form_valid(form)
+        except:
+            messages.error(self.request, 'خطا در ثبت!')
+            return self.form_invalid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['all_sms'] = SmsManagement.objects.filter(user=self.request.user).order_by('-created_at')
+        context['units'] = Unit.objects.all()
+
+        return context
+
+
+@method_decorator(middle_admin_required, name='dispatch')
+class MiddleSmsUpdateView(UpdateView):
+    model = SmsManagement
+    template_name = 'middle_admin/middle_sms_management.html'
+    form_class = SmsForm
+    success_url = reverse_lazy('middle_sms_management')
+
+    def form_valid(self, form):
+        edit_instance = form.instance
+        self.object = form.save(commit=False)
+        messages.success(self.request, 'پیامک با موفقیت ویرایش گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['all_sms'] = SmsManagement.objects.filter(is_active=True, user=self.request.user).order_by('-created_at')
+        return context
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_sms_delete(request, pk):
+    sms = get_object_or_404(SmsManagement, id=pk)
+    print(sms.id)
+
+    try:
+        sms.delete()
+        messages.success(request, 'پیامک با موفقیت حذف گردید!')
+    except ProtectedError:
+        messages.error(request, " امکان حذف وجود ندارد! ")
+    return redirect(reverse('middle_sms_management'))
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_show_send_sms_form(request, pk):
+    sms = get_object_or_404(SmsManagement, id=pk, user=request.user)
+    units = Unit.objects.filter(is_active=True, user__manager=request.user).prefetch_related('renters').order_by('unit')
+
+    units_with_details = []
+    for unit in units:
+        active_renter = unit.renters.filter(renter_is_active=True).first()
+        units_with_details.append({
+            'unit': unit,
+            'active_renter': active_renter
+        })
+
+    return render(request, 'middle_admin/middle_send_sms.html', {
+        'sms': sms,
+        'units_with_details': units_with_details,
+        # 'units_to_notify': units_to_notify
+    })
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_send_sms(request, pk):
+    sms = get_object_or_404(SmsManagement, id=pk, user=request.user)
+
+    if request.method == "POST":
+        selected_units = request.POST.getlist('units')
+        if not selected_units:
+            messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
+            return redirect('middle_sms_management')
+
+        units_qs = Unit.objects.filter(is_active=True, user__manager=request.user)
+        if 'all' in selected_units:
+            units_to_notify = units_qs
+        else:
+            units_to_notify = units_qs.filter(id__in=selected_units)
+
+        if not units_to_notify.exists():
+            messages.warning(request, 'هیچ واحد معتبری برای ارسال پیامک پیدا نشد.')
+            return redirect('middle_sms_management')
+
+        notified_units = []
+        with transaction.atomic():
+            for unit in units_to_notify:
+                if unit.user and unit.user.mobile:
+                    # helper.send_sms_to_user(
+                    #     mobile=unit.user.mobile,
+                    #     message=sms.message,
+                    #     full_name=unit.user.full_name,
+                    #     otp=None
+                    # )
+                    notified_units.append(unit)  # append instance, NOT string
+
+        if notified_units:
+            sms.notified_units.set(notified_units)  # ✅ correct
+            sms.send_notification = True
+            sms.send_notification_date = timezone.now().date()  # use .date()
+            sms.save()
+            messages.success(request,
+                             f'پیامک برای واحدهای زیر ارسال شد: {", ".join(str(u.unit) for u in notified_units)}')
+        else:
+            messages.info(request, 'پیامکی ارسال نشد؛ ممکن است شماره موبایل واحدها موجود نباشد.')
+
+        return redirect('middle_sms_management')
+
+    # اگر GET بود، فرم را رندر کن
+    units_with_details = Unit.objects.filter(is_active=True)
+    return render(request, 'middle_admin/middle_send_sms.html', {
+        'sms': sms,
+        'units_with_details': units_with_details,
+    })
+
 

@@ -31,13 +31,42 @@
               </a>
             </li>
 
-                <li class="nav-item mt-0">
-                 {% url 'middle_announcement' as address_url %}
-                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                <i class="menu-title"> مدیریت اطلاعیه ها</i>
-                <i class="mdi mdi-bell-ring-outline menu-icon"></i>
-              </a>
-            </li>
+
+           {% url 'middle_send_announcement' as url_middle_send %}
+{% url 'middle_announcement' as url_middle_list %}
+
+<li class="nav-item mt-0">
+  <a class="nav-link" data-bs-toggle="collapse"
+     href="#general66"
+     aria-expanded="true"
+     aria-controls="general66">
+    <i class="menu-title"> مدیریت اطلاعیه ها </i>
+    <i class="menu-arrow"></i>
+    <i class="mdi mdi-bell-alert menu-icon"></i>
+  </a>
+
+  <div class="collapse {% if request.path == url_middle_send or request.path == url_middle_list %}show{% endif %}" id="general66">
+    <ul class="nav flex-column sub-menu">
+
+      <li class="nav-item mt-0">
+        <a class="nav-link {% if request.path == url_middle_send %}active{% endif %}"
+           href="{{ url_middle_send }}">
+           ارسال اطلاعیه
+        </a>
+      </li>
+
+      <li class="nav-item mt-0">
+        <a class="nav-link {% if request.path == url_middle_list %}active{% endif %}"
+           href="{{ url_middle_list }}">
+           اطلاعیه های من
+        </a>
+      </li>
+
+    </ul>
+  </div>
+</li>
+
+
                  <li class="nav-item border-top mt-0">
                  {% url 'middle_manage_bank' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
@@ -117,7 +146,7 @@
                 </ul>
               </div>
             </li>
-                   <li class="nav-item border-top mt-0">
+         <li class="nav-item border-top mt-0">
                             {% url 'middle_tickets' as address_url %}
                            <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
                             <i class="menu-title">مدیریت تیکت ها</i>
@@ -129,46 +158,57 @@
                           </a>
                         </li>
 
-             <li class="nav-item border-top mt-0">
-                <a class="nav-link" href="#">
+                <li class="nav-item border-top mt-0">
+                    {% url 'middle_sms_management' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
                 <i class="menu-title"> مدیریت پیامک ها</i>
                 <i class="fas fa-comment-dots menu-icon"></i>
               </a>
             </li>
 
-                 <li class="nav-item border-top mt-0">
-                   <a class="nav-link d-flex align-items-center position-relative
-                       {% if request.resolver_match.url_name == 'middleAdmin_support_ticket' or request.resolver_match.url_name == 'middleAdmin_tickets' %}active{% endif %}"
-               data-bs-toggle="collapse"
-               href="#general4">
-                <span class="ms-2">پشتیبانی</span>
-                <span id="ticket-counter-middle-admin" class="badge bg-danger counter-badge-middle">0</span>
-{#                       <span id="ticket-counter-main" class="badge bg-danger counter-badge"> </span>#}
-                <i class="menu-arrow"></i>
-                <i class="mdi mdi-headphones menu-icon"></i>
-            </a>
-            <div class="collapse
-                {% if request.resolver_match.url_name == 'middleAdmin_support_ticket' or request.resolver_match.url_name == 'middleAdmin_tickets' %}show{% endif %}"
-                id="general4">
+             {% url 'middleAdmin_support_ticket' as url_support_ticket %}
+{% url 'middleAdmin_tickets' as url_support_list %}
 
-                <ul class="nav flex-column sub-menu">
+<li class="nav-item border-top mt-0">
 
-                    <li class="nav-item mt-0">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'middleAdmin_support_ticket' %}active{% endif %}"
-                           href="{% url 'middleAdmin_support_ticket' %}">ارسال تیکت</a>
-                    </li>
+    <a class="nav-link
+        {% if request.path == url_support_ticket or request.path == url_support_list %}active{% endif %}"
+       data-bs-toggle="collapse"
+       href="#general4">
 
-                    <li class="nav-item mt-0">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'middleAdmin_tickets' %}active{% endif %}"
-                           href="{% url 'middleAdmin_tickets' %}">تیکت‌های من
-{#                           <span id="ticket-counter-sub" class="badge bg-danger counter-badge_second">0</span>#}
+        <i class="menu-title">پشتیبانی</i>
 
-                        </a>
-                    </li>
+        <span id="ticket-counter-middle-admin" class="badge bg-danger counter-badge-middle">0</span>
 
-                </ul>
-            </div>
-        </li>
+        <i class="menu-arrow"></i>
+        <i class="mdi mdi-headphones-box menu-icon"></i>
+    </a>
+
+    <div class="collapse
+        {% if request.path == url_support_ticket or request.path == url_support_list %}show{% endif %}"
+         id="general4">
+
+        <ul class="nav flex-column sub-menu">
+
+            <li class="nav-item mt-0">
+                <a class="nav-link {% if request.path == url_support_ticket %}active{% endif %}"
+                   href="{{ url_support_ticket }}">
+                    ارسال تیکت
+                </a>
+            </li>
+
+            <li class="nav-item mt-0">
+                <a class="nav-link {% if request.path == url_support_list %}active{% endif %}"
+                   href="{{ url_support_list }}">
+                    تیکت‌های من
+                </a>
+            </li>
+
+        </ul>
+    </div>
+
+</li>
+
           
              
 

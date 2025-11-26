@@ -38,6 +38,7 @@
           <th>تاریخ ثبت</th>
            <th>موضوع</th>
           <th>شماره تیکت</th>
+          <th>شماره تماس</th>
           <th>وضعیت</th>
           <th>آخرین بروزرسانی</th>
       </tr>
@@ -52,6 +53,14 @@
            <td>{{ ticket.created_at|show_jalali_date_only }}</td>
           <td>{{ ticket.subject|safe }}</td>
           <td>#{{ ticket.ticket_no}}</td>
+     
+      	<td>
+               {% if ticket.is_call %}
+            <button class="btn btn-gradient-info p-1">{{ ticket.user.mobile}}</button>
+                 {% else %}
+                   <span>ثبت نشده است</span>
+        {% endif %}
+          </td>
          <td>
     {% if ticket.is_closed %}
         <button class="btn btn-danger p-1">تیکت بسته شد</button>

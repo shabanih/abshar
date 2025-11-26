@@ -76,16 +76,22 @@
            <td>{{ ticket.created_at|show_jalali_date_only }}</td>
           <td>{{ ticket.subject|safe }}</td>
           <td>#{{ ticket.ticket_no}}</td>
-            <td>
-               {% if ticket.is_answer == True %}
-                <button class="btn btn-primary bg-gradient-success p-1">پاسخ داده شد</button>
-                   {% elif ticket.is_closed == True %}
-                      <button class="btn btn-primary bg-gradient-danger p-1">تیکت بسته شد</button>
-                   {% else %}
-                   <button class="btn btn-gradient-warning p-1">در انتظار پاسخ</button>
+                 <td>
+    {% if ticket.is_closed %}
+        <button class="btn btn-danger p-1">تیکت بسته شد</button>
+        {% elif ticket.is_waiting %}
+        <button class="btn btn-gradient-primary p-1">در حال بررسی</button>
 
-               {% endif %}
-            </td>
+    {% elif ticket.is_answer %}
+        <button class="btn btn-gradient-success p-1">پاسخ داده شد</button>
+
+    {% elif ticket.is_sent %}
+        <button class="btn btn-warning p-1">در انتظار پاسخ </button>
+
+    {% else %}
+        <button class="btn btn-secondary p-1">در حال بررسی</button>
+    {% endif %}
+</td>
           <td>{{ ticket.updated_at|show_jalali_date_time }}</td>
       </tr>
       </tbody>

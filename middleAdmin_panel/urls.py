@@ -9,7 +9,8 @@ urlpatterns = [
     path('login-middleAdmin/', views.middle_admin_login_view, name='login_middle_admin'),
     path('log-out/', views.logout__middle_admin, name='logout_middle_admin'),
 
-    path('middle-announcement/', views.MiddleAnnouncementView.as_view(), name='middle_announcement'),
+    path('middle-send-announcement/', views.MiddleAnnouncementView.as_view(), name='middle_send_announcement'),
+    path('middle-announcement/', views.MiddleAnnouncementListView.as_view(), name='middle_announcement'),
     path('edit/middle/announcement/<int:pk>/', views.MiddleAnnouncementUpdateView.as_view(),
          name='edit_middle_announcement'),
     path('announcement-middle-delete/<int:pk>/', views.middle_announcement_delete, name='delete_middle_announcement'),
@@ -209,11 +210,12 @@ urlpatterns = [
          views.middle_remove_send_notification_fix_variable,
          name='middle_remove_send_notification_fix_variable_charge'),
 
-    # path('middle/tickets/', views.MiddleTicketsView.as_view(), name='middle_tickets'),
-    #
-    # path('middle-ticket/<int:pk>/', views.middleAdmin_ticket_detail, name='middleAdmin_ticket_detail'),
-    # path('middle/ticket/close/<int:pk>/', views.middle_close_ticket, name='middle_close_ticket'),
-    # path('middle/ticket/open/<int:pk>/', views.middle_open_ticket, name='middle_open_ticket'),
+    # Sms_Management
+    path('middle/sms/management/', views.MiddleSmsManagementView.as_view(), name='middle_sms_management'),
+    path('middle/edit/sms/<int:pk>/', views.MiddleSmsUpdateView.as_view(), name='middle_edit_sms'),
+    path('middle-sms-delete/<int:pk>/', views.middle_sms_delete, name='middle_delete_sms'),
+    path('middle/sms/send/form/<int:pk>/', views.middle_show_send_sms_form, name='middle_show_send_sms_form'),
+    path('middle-send-sms/<int:pk>/', views.middle_send_sms, name='middle_send_sms')
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -17,19 +17,27 @@
             <h3 class="mb-0">تیکت {{ ticket.ticket_no }}#</h3>
         </div>
         <div class="card-body p-3">
-            <h5 class="mb-4">موضوع: {{ ticket.subject }} # (  فرستنده: {{ ticket.user.full_name }})</h5>
+               <h5 class="mb-4">موضوع: {{ ticket.subject }} # 
+                ( فرستنده: {{ ticket.user.full_name }})
+                      {% if ticket.is_call %}
+        	        <button class="btn btn-facebook py-2 px-3">کاربر درخواست تماس تلفنی ثبت کرده است</button>
+        {% endif %} 
+            </h5>
             <button type="button" onclick="document.getElementById('replyForm').scrollIntoView({ behavior: 'smooth' });">
                 <i class="fas fa-pencil-alt"></i> پاسخ
             </button>
-            {% if ticket.is_closed == False %}
-            <a class="btn btn-danger py-2" href="{%  url 'middle_close_ticket' ticket.id %}">بستن تیکت</a>
-      
-            {% else %} 
-            <a class="btn btn-gradient-success py-2" href="{%  url 'middle_open_ticket' ticket.id %}">باز کردن تیکت</a>
-           <div class="alert alert-warning" >
-                    این تیکت بسته شد.
-                </div>
-             {% endif %}
+           {% if ticket.is_closed %}
+        <a class="btn btn-gradient-success py-2" href="{% url 'middle_open_ticket' ticket.id %}">باز کردن تیکت</a>
+        <div class="alert alert-warning">این تیکت بسته شد.</div>
+
+    {% elif ticket.is_waiting %}
+        <a class="btn btn-gradient-warning py-2" href="{% url 'middle_continue_ticket' ticket.id %}">ادامه و ارسال پاسخ</a>
+
+    {% else %}
+        <!-- حالت فعال و در حال بررسی -->
+        <a class="btn btn-danger py-2" href="{% url 'middle_close_ticket' ticket.id %}">بستن تیکت</a>
+        <a class="btn btn-gradient-warning py-2" href="{% url 'middle_waiting_ticket' ticket.id %}">در حال بررسی</a>
+    {% endif %}
         </div>
     </div>
 
@@ -63,7 +71,7 @@
   </div>
   
     
-{% if not ticket.is_closed %}
+{% if not ticket.is_closed and not ticket.is_waiting %}
     <div class="container p-4">
 	 <h5 class="mt-4">ارسال پاسخ جدید</h5>
                 <form id="replyForm" method="post" enctype="multipart/form-data">

@@ -816,3 +816,20 @@ div.d-flex.justify-content-between div{
     padding: 3px 6px;
     border-radius: 50%;
 }
+
+.header-style{
+	font-family: VazirBold, sans-serif;
+	font-weight: 900;
+	font-size: 20px;
+	color: #0f1531;
+	margin: 10px;
+	text-shadow: 1px 5px 6px #525050;
+
+}
+
+.select-fix {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    height: auto !important;
+    font-size: 14px; /* تنظیم سایز دلخواه */
+}

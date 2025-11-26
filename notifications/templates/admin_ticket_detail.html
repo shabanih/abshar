@@ -17,7 +17,13 @@
             <h3 class="mb-0">تیکت {{ ticket.ticket_no }}#</h3>
         </div>
         <div class="card-body p-3">
-            <h5 class="mb-4">موضوع: {{ ticket.subject }} # (  فرستنده: {{ ticket.user.full_name }})</h5>
+            <h5 class="mb-4">موضوع: {{ ticket.subject }} # 
+                ( فرستنده: {{ ticket.user.full_name }})
+                      {% if ticket.is_call %}
+        	        <button class="btn btn-facebook py-2 px-3">کاربر درخواست تماس تلفنی ثبت کرده است</button>
+        {% endif %} 
+            </h5>
+  
             <button type="button" onclick="document.getElementById('replyForm').scrollIntoView({ behavior: 'smooth' });">
                 <i class="fas fa-pencil-alt"></i> پاسخ
             </button>
@@ -108,4 +114,4 @@
 {#        e.target.submit();#}
 {#    });#}
 {#});#}
-</script>
+{#</script>#}

@@ -30,7 +30,7 @@
                                         {% with unit=item.unit active_renter=item.active_renter %}
                                         <option value="{{ unit.id }}">
                                             واحد {{ unit.unit }} -
-                                            {% if unit.is_owner %}
+                                            {% if unit.is_renter %}
                                                 مستاجر: {% if active_renter %}{{ active_renter.renter_name }}{% else %}ندارد{% endif %}
                                                 {% if active_renter and active_renter.renter_mobile %} ({{ active_renter.renter_mobile }}){% endif %}
                                             {% else %}

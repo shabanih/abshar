@@ -26,6 +26,7 @@ class SupportUser(models.Model):
     is_call = models.BooleanField(default=False, verbose_name='تماس گرفته شده')
     is_closed = models.BooleanField(default=False, verbose_name='فعال')
     is_answer = models.BooleanField(default=False, verbose_name='')
+    is_waiting = models.BooleanField(default=False, verbose_name='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

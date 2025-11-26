@@ -340,6 +340,20 @@ def middle_open_ticket(request, pk):
     return redirect('middleAdmin_ticket_detail', pk=ticket.id)
 
 
+def middle_is_waiting(request, pk):
+    ticket = get_object_or_404(SupportUser, id=pk)
+    ticket.is_waiting = True
+    ticket.save()
+    return redirect('middleAdmin_ticket_detail', pk=ticket.id)
+
+
+def middle_is_continue(request, pk):
+    ticket = get_object_or_404(SupportUser, id=pk)
+    ticket.is_waiting = False
+    ticket.save()
+    return redirect('middleAdmin_ticket_detail', pk=ticket.id)
+
+
 # =================================================
 
 class MiddleAdminTicketCreateView(CreateView):
@@ -500,14 +514,10 @@ def middlAdmin_close_ticket(request, pk):
     ticket.is_closed = True
     ticket.save()
     # messages.success(request, "تیکت بسته شد.")
-    return redirect('MAdmin_ticket_detail', pk=ticket.id)
+    return redirect('middleAdmin_ticket_detail', pk=ticket.id)
 
 
-def middleAdmin_is_waiting(request, pk):
-    ticket = get_object_or_404(AdminTicket, id=pk)
-    ticket.is_waiting = True
-    ticket.save()
-    return redirect('middleAdmin_support_ticket', pk=ticket.id)
+
 
 
 # -------------------------------------------------------------------------------
