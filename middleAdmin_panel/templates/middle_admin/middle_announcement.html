@@ -65,9 +65,12 @@
                                 <td>{{ announcement.title|safe }}</td>
                                 <td>{{ announcement.created_at|show_jalali }}</td>
                                 <td>
-{#                                    <button class="btn p-2 {{ 'btn-success' if announcement.is_active else 'btn-danger' }}">#}
-{#                                        {{ 'فعال' if announcement.is_active else 'غیر فعال' }}#}
-{#                                    </button>#}
+                                         {% if announcement.is_active == True %}
+                                                <button class="btn btn-primary bg-gradient-success p-1">فعال</button>
+                                                   {% else %}
+                                                   <button class="btn btn-gradient-danger p-1">غیر فعال</button>
+
+                                               {% endif %}
                                 </td>
                                 <td class="col-lg-1 col-xl-1">
                                     <a href="{% url 'edit_middle_announcement' announcement.id %}" class="btn btn-primary p-1">

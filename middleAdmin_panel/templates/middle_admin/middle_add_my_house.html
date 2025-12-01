@@ -154,5 +154,22 @@
     
     
 {% endblock %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+<script>
+document.getElementById("houseForm").addEventListener("submit", function(e) {
+    e.preventDefault(); // جلوگیری از submit معمولی
+
+    Swal.fire({
+        icon: 'success',
+        title: 'موفقیت!',
+        text: 'ساختمان با موفقیت ثبت شد.',
+        timer: 2000,
+        showConfirmButton: false
+    }).then(() => {
+        // بعد از نمایش پیام، فرم را submit کنید
+        e.target.submit();
+    });
+});
+</script>
 

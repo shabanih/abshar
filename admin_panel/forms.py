@@ -8,7 +8,7 @@ from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, 
                                 PersonCharge,
                                 FixPersonCharge, FixAreaCharge, ChargeFixVariable, SmsManagement)
 
-from user_app.models import Unit, Bank, User, MyHouse
+from user_app.models import Unit, Bank, User, MyHouse, ChargeMethod
 
 attr = {'class': 'form-control border-1 py-2 mb-4 '}
 attr1 = {'class': 'form-control border-1 py-1 mb-4 '}
@@ -85,6 +85,19 @@ BANK_CHOICES = {
 }
 
 
+class ChargeCategoryForm(forms.ModelForm):
+    name = forms.CharField(error_messages=error_message, required=True,
+                                          widget=forms.TextInput(attrs=attr),
+                                          label='روش شارژ')
+
+    is_active = forms.ChoiceField(label='فعال /غیرفعال  ', required=True,
+                                  error_messages=error_message, choices=CHOICES, widget=forms.Select(attrs=attr))
+
+    class Meta:
+        model = ChargeMethod
+        fields = ['name', 'is_active']
+
+
 class UserRegistrationForm(forms.ModelForm):
     mobile = forms.CharField(error_messages=error_message,
                              required=True,
@@ -109,11 +122,18 @@ class UserRegistrationForm(forms.ModelForm):
         widget=forms.PasswordInput(attrs=attr),
         help_text='رمز عبور باید شامل اعداد و حروف باشد'
     )
-    is_active = forms.BooleanField(required=False,initial=True, label='فعال/غیرفعال')
+    charge_methods = forms.ModelMultipleChoiceField(
+        queryset=ChargeMethod.objects.all(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        label='روش‌های شارژ قابل دسترسی'
+    )
+
+    is_active = forms.BooleanField(required=False, initial=True, label='فعال/غیرفعال')
 
     class Meta:
         model = User
-        fields = ['full_name', 'mobile', 'username', 'password', 'is_active']
+        fields = ['full_name', 'mobile', 'username', 'password', 'is_active', 'charge_methods']
 
     def clean_mobile(self):
         mobile = self.cleaned_data.get('mobile')
@@ -143,11 +163,25 @@ class UserRegistrationForm(forms.ModelForm):
         user = super().save(commit=False)
         password = self.cleaned_data.get('password')
         if password:
-            user.set_password(password)  # sets hashed password
+            user.set_password(password)
         else:
-            user.password = self.instance.password  # keep existing hashed password
+            user.password = self.instance.password
+
         if commit:
             user.save()
+
+            # ذخیره روش‌های شارژ برای مدیر سطح میانی
+            if user.is_middle_admin:
+                selected_methods = self.cleaned_data.get('charge_methods')
+                if hasattr(user, 'charge_access'):
+                    # اگر دسترسی قبلا وجود داشت، آپدیت کن
+                    user.charge_access.charge_methods.set(selected_methods)
+                else:
+                    # اگر دسترسی وجود نداشت، بساز
+                    from .models import MiddleAdminChargeAccess
+                    access = MiddleAdminChargeAccess.objects.create(manager=user)
+                    access.charge_methods.set(selected_methods)
+
         return user
 
 
@@ -195,7 +229,6 @@ class BankForm(forms.ModelForm):
             self.fields['house'].queryset = MyHouse.objects.filter(user=user, is_active=True)
         else:
             self.fields['house'].queryset = MyHouse.objects.none()
-
 
 
 USER_TYPE_CHOICES = [

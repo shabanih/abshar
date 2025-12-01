@@ -455,6 +455,8 @@ $(document).on('click', '.edit-house-btn', function () {
 $(document).on('click', '.edit-middle-btn', function () {
     console.log('ویرایش کلیک شد2');
 
+    var modal = $('#exampleModalLong3'); // ← اضافه شد
+
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     $('#middleForm').attr('action', '/admin-panel/middle/edit/' + id + '/');
@@ -467,15 +469,27 @@ $(document).on('click', '.edit-middle-btn', function () {
     $('#middleForm input[name="password"]').val('');
     $('#middleForm input[name="confirm_password"]').val('');
 
-     // تعیین مقدار is_active
+    // تعیین مقدار is_active
     let isActive = $(this).data('is_active');
-    $('#editForm select[name="is_active"]').val(isActive.toString());
+    $('#middleForm select[name="is_active"]').val(isActive.toString());
 
+    // پر کردن چک‌باکس‌های charge_methods
+    var selectedMethods = $(this).data('charge-methods');
+    if (typeof selectedMethods === 'string') {
+        selectedMethods = JSON.parse(selectedMethods);
+    }
+    modal.find('input[name="charge_methods"]').prop('checked', false);
+    if (selectedMethods) {
+        selectedMethods.forEach(function(id) {
+            modal.find('input[name="charge_methods"][value="'+id+'"]').prop('checked', true);
+        });
+    }
 
     // Update the modal title and submit button text for editing
     $('#exampleModalLongTitle3').text('ویرایش اطلاعات مدیر ساختمان');
     $('#btn-submit-bank').text('ویرایش اطلاعات ');
 });
+
  document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('exampleModalLong');
     const form = document.getElementById('personForm');

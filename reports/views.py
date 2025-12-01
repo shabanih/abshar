@@ -4,7 +4,7 @@ from admin_panel.models import Fund
 
 
 def fund_turnover(request):
-    funds = Fund.objects.all()
+    funds = Fund.objects.filter(user__manager=request.user)
     context = {
         'funds': funds
     }

@@ -30,14 +30,15 @@ from admin_panel import helper
 from admin_panel.forms import announcementForm, UnitForm, ExpenseForm, ExpenseCategoryForm, \
     IncomeForm, IncomeCategoryForm, BankForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, \
     MaintenanceForm, FixChargeForm, PersonAreaChargeForm, AreaChargeForm, PersonChargeForm, FixAreaChargeForm, \
-    FixPersonChargeForm, PersonAreaFixChargeForm, VariableFixChargeForm, UserRegistrationForm, SmsForm, MyHouseForm
+    FixPersonChargeForm, PersonAreaFixChargeForm, VariableFixChargeForm, UserRegistrationForm, SmsForm, MyHouseForm, \
+    ChargeCategoryForm
 from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDocument, Income, IncomeDocument, \
     IncomeCategory, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, FixedChargeCalc, ChargeByPersonArea, AreaChargeCalc, PersonChargeCalc, FixAreaChargeCalc, \
     FixPersonChargeCalc, ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
     FixPersonCharge, FixAreaCharge, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariable, \
     ChargeFixVariableCalc, SmsManagement, Fund
-from user_app.models import Unit, Bank, Renter, User, MyHouse
+from user_app.models import Unit, Bank, Renter, User, MyHouse, ChargeMethod
 from django.contrib.auth import get_user_model
 
 
@@ -63,6 +64,11 @@ class MiddleAdminCreateView(CreateView):
         self.object.is_middle_admin = True
         self.object.manager = self.request.user
         self.object.save()
+
+        charge_methods = form.cleaned_data.get('charge_methods')
+        if charge_methods:
+            self.object.charge_methods.set(charge_methods)
+
         messages.success(self.request, 'مدیر ساختمان با موفقیت ثبت گردید!')
         return redirect(self.success_url)
 
@@ -85,26 +91,31 @@ class MiddleAdminUpdateView(UpdateView):
         # گرفتن رمز جدید
         raw_password = form.cleaned_data.get('password')
 
-        # اگر رمز جدید وارد شده بود → تغییر بده
         if raw_password:
             obj.set_password(raw_password)
         else:
-            # اگر رمز خالی بود → رمز قبلی را نگه‌دار
             old_user = User.objects.get(pk=obj.pk)
             obj.password = old_user.password
 
         obj.manager = self.request.user
         obj.save()
 
+        # ست کردن روش‌های شارژ
+        charge_methods = form.cleaned_data.get('charge_methods')
+        if charge_methods is not None:
+            obj.charge_methods.set(charge_methods)
+
         messages.success(self.request, 'اطلاعات مدیر ساختمان با موفقیت ویرایش گردید!')
         return redirect(self.success_url)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['middleAdmins'] = User.objects.filter(is_middle_admin=True).order_by('-created_time')
+        middle_admins = User.objects.filter(is_middle_admin=True).order_by('-created_time')
+        for middle in middle_admins:
+            middle.charge_method_ids = list(middle.charge_methods.values_list('id', flat=True))
+        context['middleAdmins'] = middle_admins
         context['users'] = User.objects.filter(is_active=True).order_by('-created_time')
         return context
-
 
 
 def middleAdmin_delete(request, pk):
@@ -2713,6 +2724,59 @@ def export_maintenance_excel(request):
 
 
 # ======================== Charge Views ======================================
+@method_decorator(admin_required, name='dispatch')
+class ChargeCategoryCreateView(CreateView):
+    model = ChargeMethod
+    template_name = 'charge/add_category_charge.html'
+    form_class = ChargeCategoryForm
+    success_url = reverse_lazy('add_charge_category')
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.save()
+
+        # announce_instance = form.instance
+        messages.success(self.request, 'روش شارژ با موفقیت ثبت گردید!')
+        return super(ChargeCategoryCreateView, self).form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['charges'] = ChargeMethod.objects.all()
+        return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class ChargeCategoryUpdateView(UpdateView):
+    model = ChargeMethod
+    template_name = 'charge/add_category_charge.html'
+    form_class = ChargeCategoryForm
+    success_url = reverse_lazy('add_charge_category')
+
+    def form_valid(self, form):
+        edit_instance = form.instance
+        self.object = form.save(commit=False)
+        messages.success(self.request, 'روش شارژ با موفقیت ویرایش گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['charges'] = ChargeMethod.objects.all()
+        return context
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def charge_category_delete(request, pk):
+    charge = get_object_or_404(ChargeMethod, id=pk)
+
+    try:
+        charge.delete()
+        messages.success(request, 'روش شارژ با موفقیت حذف گردید!')
+    except ProtectedError:
+        messages.error(request, " امکان حذف وجود ندارد! ")
+    return redirect(reverse('add_charge_category'))
+
+
+
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def charge_view(request):
     return render(request, 'charge/add_charge.html')

@@ -5,7 +5,7 @@ from channels.layers import get_channel_layer
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import get_template
@@ -15,16 +15,16 @@ from django.views.generic import TemplateView, CreateView, ListView, DetailView
 from pypdf import PdfWriter
 from weasyprint import CSS, HTML
 
-from notifications.models import Notification
+from notifications.models import Notification, SupportUser
 from user_app import helper
 from admin_panel.models import Announcement, FixedChargeCalc, AreaChargeCalc, PersonCharge, PersonChargeCalc, \
-    FixPersonChargeCalc, FixAreaChargeCalc, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariableCalc
+    FixPersonChargeCalc, FixAreaChargeCalc, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariableCalc, \
+    FixCharge, AreaCharge, FixPersonCharge, FixAreaCharge, ChargeByPersonArea, ChargeByFixPersonArea
 from user_app.forms import LoginForm, MobileLoginForm
 from user_app.models import User, Unit, Bank, MyHouse
 
 
 def index(request):
-    announcements = Announcement.objects.filter(is_active=True).order_by('-created_at')[:4]
     form = LoginForm(request.POST or None)
 
     if request.method == 'POST':
@@ -58,10 +58,8 @@ def index(request):
                 messages.error(request, 'ورود ناموفق: شماره موبایل یا کلمه عبور نادرست است.')
 
     return render(request, 'index.html', {
-        'announcements': announcements,
         'form': form,
     })
-
 
 
 def mobile_login(request):
@@ -156,8 +154,6 @@ def logout_user(request):
 def site_header_component(request):
     context = {
         'user': request.user,
-        # اگر اعلان داری می‌توانی اعلان‌ها را هم اضافه کنی مثلا:
-        # 'notifications': Notification.objects.filter(user=request.user, is_read=False),
     }
     return render(request, 'partials/notification_template.html', context)
 
@@ -165,45 +161,73 @@ def site_header_component(request):
 def user_panel(request):
     user = request.user
 
-    # 🧠 If this user is a middle admin
+    # --- TICKETS ---
+    tickets = SupportUser.objects.filter(user=user).order_by('-created_at')[:5]
+    ticket_count = SupportUser.objects.filter(user=user).count()
+
+    # --- CALCULATIONS (one pass counts) ---
+    calculation_models = [
+        FixedChargeCalc,
+        AreaChargeCalc,
+        PersonChargeCalc,
+        FixPersonChargeCalc,
+        FixAreaChargeCalc,
+        ChargeByPersonAreaCalc,
+        ChargeByFixPersonAreaCalc,
+        ChargeFixVariableCalc,
+    ]
+
+    total_charge = 0
+    total_charge_unpaid = 0
+    total_unpaid_amount = 0
+
+    for model in calculation_models:
+        qs = model.objects.filter(user=user)
+        total_charge += qs.count()
+        total_charge_unpaid += qs.filter(is_paid=False).count()
+
+        result = model.objects.filter(
+            user=request.user,
+            is_paid=False
+        ).aggregate(total=Sum("total_charge_month"))
+
+        total_unpaid_amount += result["total"] or 0
+
+    # --- UNITS & ANNOUNCEMENTS ---
     if user.is_middle_admin:
-        # Show their own announcements + their managed units
         units = Unit.objects.filter(user__manager=user, is_active=True).prefetch_related('renters')
-        announcements = Announcement.objects.filter(user=user, is_active=True).order_by('-created_at')[:4]
+        announcements = Announcement.objects.filter(user=user, is_active=True).order_by('-created_at')[:5]
 
     else:
-        # 🧠 If this user is a normal user
         units = Unit.objects.filter(user=user, is_active=True).prefetch_related('renters')
-
-        # Show announcements from this user's manager (middle admin)
         announcements = Announcement.objects.filter(
             is_active=True,
             user=user.manager
-        ).order_by('-created_at')[:4]
+        ).order_by('-created_at')[:5]
 
-    # find active renters for each unit
-    units_with_active_renter = []
-    for unit in units:
-        active_renter = unit.renters.filter(renter_is_active=True).first()
-        units_with_active_renter.append((unit, active_renter))
-
+    # --- ACTIVE RENTERS PER UNIT ---
     units_with_details = []
     for unit in units:
         active_renter = unit.renters.filter(renter_is_active=True).first()
         units_with_details.append({
-            'unit': unit,
-            'active_renter': active_renter,
-
+            "unit": unit,
+            "active_renter": active_renter
         })
 
     context = {
-        'user': user,
-        'units': units,
-        'announcements': announcements,
-        'units_with_active_renter': units_with_active_renter,
-        'units_with_details': units_with_details,
+        "user": user,
+        "units": units,
+        "tickets": tickets,
+        "ticket": ticket_count,
+        "announcements": announcements,
+        "units_with_details": units_with_details,
+        "total_charge": total_charge,
+        "total_charge_unpaid": total_charge_unpaid,
+        'total_unpaid_amount': total_unpaid_amount
     }
+
     return render(request, 'partials/home_template.html', context)
+
 
 
 # ==================================

@@ -6,8 +6,14 @@ from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 from django.forms import FileField
 
+class ChargeMethod(models.Model):
+    name = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True, verbose_name='')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
 
-# Create your models here.
+    def __str__(self):
+        return self.name
+
 
 class User(AbstractUser):
     full_name = models.CharField(max_length=200, verbose_name='نام')
@@ -28,6 +34,11 @@ class User(AbstractUser):
         related_name='managed_users',
         verbose_name='مدیر سطح میانی'
     )
+    charge_methods = models.ManyToManyField(
+        'ChargeMethod',
+        blank=True,
+        verbose_name='روش‌های شارژ قابل دسترسی'
+    )
 
     is_middle_admin = models.BooleanField(default=False, verbose_name='مدیر سطح میانی')
 
@@ -41,6 +52,10 @@ class User(AbstractUser):
 
     def get_full_name(self):
         return self.full_name
+
+    @property
+    def charge_method_ids(self):
+        return list(self.charge_methods.values_list('id', flat=True))
 
     @staticmethod
     def get_manager_for_user(user):

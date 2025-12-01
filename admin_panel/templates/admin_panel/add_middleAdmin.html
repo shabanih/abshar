@@ -45,19 +45,20 @@
                                             </td>
 
                                                <td>
-                                                      <a
+                                           <a
                                            class="btn btn-gradient-info p-1 edit-middle-btn"
                                            data-id="{{ middle.id }}"
                                            data-full_name="{{ middle.full_name }}"
                                            data-mobile="{{ middle.mobile}}"
                                            data-username="{{ middle.username }}"
                                            data-is_active="{{ middle.is_active }}"
+                                           data-charge-methods='{{ middle.charge_method_ids|safe }}'
 {#                                           data-password="{{ middle.password }}"#}
 {#                                           data-confirm_password="{{ middle.confirm_password }}"#}
                                            data-bs-toggle="modal"
                                            data-bs-target="#exampleModalLong3">
                                            <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
-                                        </a>
+                                                </a>
                                                           <a href="{% url 'delete_middle_admin' middle.id %}" class="btn btn-gradient-danger p-1"
                                                        onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
                                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
@@ -131,6 +132,20 @@
                       {{ form.is_active.errors }}
                   </div>
                      </div>
+              <div class="row g-2 mt-3">
+    <div class="col-12">
+        <label class="form-label">روش‌های شارژ قابل دسترسی</label>
+        <div class="border p-2" style="max-height:200px; overflow-y:auto;">
+            {% for method in form.charge_methods %}
+                <div class="form-check">
+                    {{ method.tag }}
+                    {{ method.choice_label }}
+                </div>
+            {% endfor %}
+            {{ form.charge_methods.errors }}
+        </div>
+    </div>
+</div>
               
                    <hr class="mt-2" style="color: #0f1531">
                     <div class="d-flex justify-content-between">

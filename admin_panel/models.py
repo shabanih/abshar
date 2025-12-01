@@ -230,6 +230,7 @@ class MaintenanceDocument(models.Model):
 
 
 # =========================== Charge Modals =============================
+
 class FixCharge(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fixCharge')
     name = models.CharField(max_length=300, verbose_name='', null=True, blank=True)
@@ -783,7 +784,7 @@ class SmsManagement(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     send_notification = models.BooleanField(default=False)
     send_notification_date = models.DateField(null=True, blank=True, verbose_name='اعلام شارژ به کاربر')
-    notified_units = models.ManyToManyField('user_app.Unit', blank=True, null=True)  # اضافه کردن رابطه با واحدها
+    notified_units = models.ManyToManyField('user_app.Unit', blank=True)  # اضافه کردن رابطه با واحدها
     is_active = models.BooleanField(default=True)
 
     def __str__(self):

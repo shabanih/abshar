@@ -11,7 +11,7 @@
                 </div>
                 <div class="nav-profile-text d-flex flex-column">
                     <h5 class="mt-2"><strong>ساختمان من</strong></h5>
-                    <span style="font-size: 12px;">افرودن/ویرایش</span>
+{#                    <span style="font-size: 12px;">افرودن/ویرایش</span>#}
                 </div>
                 <i class="mdi mdi-bookmark-check text-success nav-profile-badge"></i>
               </a>
@@ -64,7 +64,14 @@
             </li>
           
                <li class="nav-item border-top mt-0">
-                 {% url 'add_charge' as address_url %}
+                 {% url 'add_charge_category' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title"> افزودن مدل شارژ</i>
+                <i class="mdi mdi-square-inc-cash menu-icon"></i>
+              </a>
+            </li>
+             <li class="nav-item mt-0">
+                 {% url 'charges_method' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
                 <i class="menu-title"> مدیریت شارژ</i>
                 <i class="mdi mdi-square-inc-cash menu-icon"></i>

@@ -1,7 +1,7 @@
 {% extends 'middleShared/base_template.html' %}
 {% load static %}
 {% load poll_extras %}
-{% load jalai_tags %}
+{% load jalali_tags %}
 
 {% block page_title %}
 مدیریت حساب بانکی
@@ -11,10 +11,13 @@
     <hr/>
 <div class="container mt-3">
  <div class="col-12 mb-2">
-                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong3">
+     {% if house %}
+     	<button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong3">
                         <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
                     افزودن حساب بانکی
                 </button>
+     {% endif %} 
+                
                  </div>
                <div class="table-responsive">
                             <table class="table table-bordered">
@@ -174,5 +177,22 @@
     
     
 {% endblock %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+<script>
+document.getElementById("bankForm").addEventListener("submit", function(e) {
+    e.preventDefault(); // جلوگیری از submit معمولی
+
+    Swal.fire({
+        icon: 'success',
+        title: 'موفقیت!',
+        text: 'حساب بانکی با موفقیت ثبت شد.',
+        timer: 2000,
+        showConfirmButton: false
+    }).then(() => {
+        // بعد از نمایش پیام، فرم را submit کنید
+        e.target.submit();
+    });
+});
+</script>
 

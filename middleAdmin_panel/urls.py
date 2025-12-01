@@ -211,7 +211,8 @@ urlpatterns = [
          name='middle_remove_send_notification_fix_variable_charge'),
 
     # Sms_Management
-    path('middle/sms/management/', views.MiddleSmsManagementView.as_view(), name='middle_sms_management'),
+    path('middle/sms/register/', views.MiddleSmsManagementView.as_view(), name='middle_register_sms'),
+    path('middle/sms/management/', views.MiddleSmsListView.as_view(), name='middle_sms_management'),
     path('middle/edit/sms/<int:pk>/', views.MiddleSmsUpdateView.as_view(), name='middle_edit_sms'),
     path('middle-sms-delete/<int:pk>/', views.middle_sms_delete, name='middle_delete_sms'),
     path('middle/sms/send/form/<int:pk>/', views.middle_show_send_sms_form, name='middle_show_send_sms_form'),

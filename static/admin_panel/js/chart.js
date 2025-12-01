@@ -29,31 +29,6 @@ $(function () {
       fill: false
     }]
   };
-  var dataDark = {
-    labels: ["2013", "2014", "2014", "2015", "2016", "2017"],
-    datasets: [{
-      label: '# of Votes',
-      data: [10, 19, 3, 5, 2, 3],
-      backgroundColor: [
-        'rgba(255, 99, 132, 0.2)',
-        'rgba(54, 162, 235, 0.2)',
-        'rgba(255, 206, 86, 0.2)',
-        'rgba(75, 192, 192, 0.2)',
-        'rgba(153, 102, 255, 0.2)',
-        'rgba(255, 159, 64, 0.2)'
-      ],
-      borderColor: [
-        'rgba(255,99,132,1)',
-        'rgba(54, 162, 235, 1)',
-        'rgba(255, 206, 86, 1)',
-        'rgba(75, 192, 192, 1)',
-        'rgba(153, 102, 255, 1)',
-        'rgba(255, 159, 64, 1)'
-      ],
-      borderWidth: 1,
-      fill: false
-    }]
-  };
   var multiLineData = {
     labels: ["Red", "Blue", "Yellow", "Green", "Purple", "Orange"],
     datasets: [{
@@ -87,46 +62,19 @@ $(function () {
   };
   var options = {
     scales: {
-      yAxes: [{
+      y: {
         ticks: {
           beginAtZero: true
         }
-      }]
-    },
-    legend: {
-      display: false
-    },
-    elements: {
-      point: {
-        radius: 0
       }
-    }
-
-  };
-  var optionsDark = {
-    scales: {
-      yAxes: [{
-        ticks: {
-          beginAtZero: true
-        },
-        gridLines: {
-          color: '#322f2f',
-          zeroLineColor: '#322f2f'
-        }
-      }],
-      xAxes: [{
-        ticks: {
-          beginAtZero: true
-        },
-        gridLines: {
-          color: '#322f2f',
-        }
-      }],
     },
     legend: {
       display: false
     },
     elements: {
+      line: {
+        tension: 0.5
+      },
       point: {
         radius: 0
       }
@@ -135,7 +83,7 @@ $(function () {
   };
   var doughnutPieData = {
     datasets: [{
-      data: [30, 40, 30],
+      data: [20, 90, 10],
       backgroundColor: [
         'rgba(255, 99, 132, 0.5)',
         'rgba(54, 162, 235, 0.5)',
@@ -194,59 +142,11 @@ $(function () {
     }]
   };
 
-  var areaDataDark = {
-    labels: ["2013", "2014", "2015", "2016", "2017"],
-    datasets: [{
-      label: '# of Votes',
-      data: [12, 19, 3, 5, 2, 3],
-      backgroundColor: [
-        'rgba(255, 99, 132, 0.2)',
-        'rgba(54, 162, 235, 0.2)',
-        'rgba(255, 206, 86, 0.2)',
-        'rgba(75, 192, 192, 0.2)',
-        'rgba(153, 102, 255, 0.2)',
-        'rgba(255, 159, 64, 0.2)'
-      ],
-      borderColor: [
-        'rgba(255,99,132,1)',
-        'rgba(54, 162, 235, 1)',
-        'rgba(255, 206, 86, 1)',
-        'rgba(75, 192, 192, 1)',
-        'rgba(153, 102, 255, 1)',
-        'rgba(255, 159, 64, 1)'
-      ],
-      borderWidth: 1,
-      fill: true, // 3: no fill
-    }]
-  };
-
   var areaOptions = {
-    plugins: {
-      filler: {
-        propagate: true
+    elements: {
+      line: {
+        tension: 0.5
       }
-    }
-  }
-
-  var areaOptionsDark = {
-    scales: {
-      yAxes: [{
-        ticks: {
-          beginAtZero: true
-        },
-        gridLines: {
-          color: '#322f2f',
-          zeroLineColor: '#322f2f'
-        }
-      }],
-      xAxes: [{
-        ticks: {
-          beginAtZero: true
-        },
-        gridLines: {
-          color: '#322f2f',
-        }
-      }],
     },
     plugins: {
       filler: {
@@ -291,21 +191,24 @@ $(function () {
       }
     },
     elements: {
+      line: {
+        tension: 0.5
+      },
       point: {
         radius: 0
       }
     },
     scales: {
-      xAxes: [{
+      x: {
         gridLines: {
           display: false
         }
-      }],
-      yAxes: [{
+      },
+      y: {
         gridLines: {
           display: false
         }
-      }]
+      }
     }
   }
 
@@ -367,89 +270,12 @@ $(function () {
     ]
   }
 
-  var scatterChartDataDark = {
-    datasets: [{
-      label: 'First Dataset',
-      data: [{
-        x: -10,
-        y: 0
-      },
-      {
-        x: 0,
-        y: 3
-      },
-      {
-        x: -25,
-        y: 5
-      },
-      {
-        x: 40,
-        y: 5
-      }
-      ],
-      backgroundColor: [
-        'rgba(255, 99, 132, 0.2)'
-      ],
-      borderColor: [
-        'rgba(255,99,132,1)'
-      ],
-      borderWidth: 1
-    },
-    {
-      label: 'Second Dataset',
-      data: [{
-        x: 10,
-        y: 5
-      },
-      {
-        x: 20,
-        y: -30
-      },
-      {
-        x: -25,
-        y: 15
-      },
-      {
-        x: -10,
-        y: 5
-      }
-      ],
-      backgroundColor: [
-        'rgba(54, 162, 235, 0.2)',
-      ],
-      borderColor: [
-        'rgba(54, 162, 235, 1)',
-      ],
-      borderWidth: 1
-    }
-    ]
-  }
-
   var scatterChartOptions = {
     scales: {
-      xAxes: [{
+      x: {
         type: 'linear',
         position: 'bottom'
-      }]
-    }
-  }
-
-  var scatterChartOptionsDark = {
-    scales: {
-      xAxes: [{
-        type: 'linear',
-        position: 'bottom',
-        gridLines: {
-          color: '#322f2f',
-          zeroLineColor: '#322f2f'
-        }
-      }],
-      yAxes: [{
-        gridLines: {
-          color: '#322f2f',
-          zeroLineColor: '#322f2f'
-        }
-      }]
+      }
     }
   }
   // Get context with jQuery - using jQuery's .get() method.
@@ -463,31 +289,12 @@ $(function () {
     });
   }
 
-  if ($("#barChartDark").length) {
-    var barChartCanvasDark = $("#barChartDark").get(0).getContext("2d");
-    // This will get the first returned node in the jQuery collection.
-    var barChartDark = new Chart(barChartCanvasDark, {
-      type: 'bar',
-      data: dataDark,
-      options: optionsDark
-    });
-  }
-
   if ($("#lineChart").length) {
     var lineChartCanvas = $("#lineChart").get(0).getContext("2d");
     var lineChart = new Chart(lineChartCanvas, {
       type: 'line',
       data: data,
       options: options
-    });
-  }
-
-  if ($("#lineChartDark").length) {
-    var lineChartCanvasDark = $("#lineChartDark").get(0).getContext("2d");
-    var lineChartDark = new Chart(lineChartCanvasDark, {
-      type: 'line',
-      data: dataDark,
-      options: optionsDark
     });
   }
 
@@ -536,30 +343,12 @@ $(function () {
     });
   }
 
-  if ($("#areaChartDark").length) {
-    var areaChartCanvas = $("#areaChartDark").get(0).getContext("2d");
-    var areaChart = new Chart(areaChartCanvas, {
-      type: 'line',
-      data: areaDataDark,
-      options: areaOptionsDark
-    });
-  }
-
   if ($("#scatterChart").length) {
     var scatterChartCanvas = $("#scatterChart").get(0).getContext("2d");
     var scatterChart = new Chart(scatterChartCanvas, {
       type: 'scatter',
       data: scatterChartData,
       options: scatterChartOptions
-    });
-  }
-
-  if ($("#scatterChartDark").length) {
-    var scatterChartCanvas = $("#scatterChartDark").get(0).getContext("2d");
-    var scatterChart = new Chart(scatterChartCanvas, {
-      type: 'scatter',
-      data: scatterChartDataDark,
-      options: scatterChartOptionsDark
     });
   }
 
@@ -572,3 +361,173 @@ $(function () {
     });
   }
 });
+
+// ============================================================
+// Dashboard calendar
+
+window.addEventListener("DOMContentLoaded", function() {
+
+    const persianMonthNames = ["فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور",
+                               "مهر","آبان","آذر","دی","بهمن","اسفند"];
+
+    const monthSelect = document.getElementById("monthSelect");
+    const yearSelect = document.getElementById("yearSelect");
+    const prevBtn = document.getElementById("prevMonthBtn");
+    const nextBtn = document.getElementById("nextMonthBtn");
+    const todayBtn = document.getElementById("gotoTodayBtn");
+
+    const noteModal = document.getElementById("noteModal");
+    const noteText = document.getElementById("noteText");
+    const selectedDayTitle = document.getElementById("selectedDayTitle");
+    const saveNoteBtn = document.getElementById("saveNoteBtn");
+    const closeNoteBtn = document.getElementById("closeNoteBtn");
+    const deleteNoteBtn = document.getElementById("deleteNoteBtn");
+
+    let selectedFullKey = null;
+
+    // شناسه کاربر از سرور (Django)
+    const USER_ID = "{{ request.user.id }}"; // باید از context ارسال شود
+
+    function persianToGregorian(jy, jm, jd) {
+        const jalaali = window.jalaali || {};
+        if(jalaali.toGregorian){
+            const g = jalaali.toGregorian(jy, jm, jd);
+            return new Date(g.gy, g.gm - 1, g.gd);
+        }
+        return new Date(jy, jm - 1, jd);
+    }
+
+    function isLeapYearPersian(y){
+        return (((y-474)%2820)+474+38)*682%2816<682;
+    }
+
+    function getPersianMonthLength(m, y){
+        if(m <= 6) return 31;
+        if(m <= 11) return 30;
+        return isLeapYearPersian(y) ? 30 : 29;
+    }
+
+    const todayParts = new Intl.DateTimeFormat('fa-IR-u-nu-latn',{year:'numeric',month:'numeric',day:'numeric',calendar:'persian'}).formatToParts(new Date());
+    let currentYear = parseInt(todayParts.find(p=>p.type==='year').value);
+    let currentMonth = parseInt(todayParts.find(p=>p.type==='month').value);
+    let currentDay = parseInt(todayParts.find(p=>p.type==='day').value);
+
+    // --- رندر تقویم ---
+    function renderCalendar(){
+        const tbody = document.querySelector("#calendar tbody");
+        tbody.innerHTML = "";
+
+        const daysInMonth = getPersianMonthLength(currentMonth, currentYear);
+        const firstDay = persianToGregorian(currentYear, currentMonth, 1);
+        const startWeek = (firstDay.getDay() + 1) % 7;
+
+        let row = document.createElement("tr");
+        for(let i=0;i<startWeek;i++) row.appendChild(document.createElement("td"));
+
+        for(let d=1; d<=daysInMonth; d++){
+            if(row.children.length === 7){ tbody.appendChild(row); row=document.createElement("tr"); }
+
+            let td = document.createElement("td");
+            td.innerText = d;
+
+            let key = `${USER_ID}-${currentYear}-${currentMonth}-${d}`;
+            let savedNote = localStorage.getItem("note-"+key);
+
+            if(savedNote){
+                td.classList.add("has-note");
+                let preview = document.createElement("div");
+                preview.classList.add("note-preview");
+                preview.innerText = savedNote.length>8 ? savedNote.substring(0,8)+"…" : savedNote;
+                td.appendChild(preview);
+            }
+
+            if(d===currentDay && currentMonth===parseInt(todayParts.find(p=>p.type==='month').value)
+               && currentYear===parseInt(todayParts.find(p=>p.type==='year').value)){
+                td.classList.add("today");
+            }
+
+            td.onclick = ()=>openModal(currentYear, currentMonth, d);
+            row.appendChild(td);
+        }
+        if(row.children.length>0) tbody.appendChild(row);
+
+        monthSelect.value = currentMonth;
+        yearSelect.value = currentYear;
+
+        // همیشه 6 ردیف برای ثابت بودن ارتفاع
+        while(tbody.children.length<6){
+            let emptyRow = document.createElement("tr");
+            for(let i=0;i<7;i++) emptyRow.appendChild(document.createElement("td"));
+            tbody.appendChild(emptyRow);
+        }
+    }
+
+    // --- مودال یادداشت ---
+    function openModal(y,m,d){
+        selectedFullKey = `${USER_ID}-${y}-${m}-${d}`;
+        selectedDayTitle.innerText = `یادداشت ${y}/${m}/${d}`;
+        noteText.value = localStorage.getItem("note-"+selectedFullKey) || "";
+        noteModal.style.display = "flex";
+    }
+
+    function closeModal(){ noteModal.style.display = "none"; }
+
+    function saveNote(){
+        const text = noteText.value.trim();
+        if(text.length>0) localStorage.setItem("note-"+selectedFullKey,text);
+        else localStorage.removeItem("note-"+selectedFullKey);
+        closeModal();
+        renderCalendar();
+    }
+
+    deleteNoteBtn.onclick = ()=>{
+        localStorage.removeItem(selectedFullKey);
+        closeModal();
+        renderCalendar();
+    }
+
+    function changeMonth(step){
+        currentMonth += step;
+        if(currentMonth<1){ currentMonth=12; currentYear--; }
+        if(currentMonth>12){ currentMonth=1; currentYear++; }
+        renderCalendar();
+    }
+
+    function initMonthYearSelect(){
+        persianMonthNames.forEach((name,i)=>{
+            let opt = document.createElement("option");
+            opt.value = i+1;
+            opt.text = name;
+            monthSelect.appendChild(opt);
+        });
+        for(let y=1390; y<=1450; y++){
+            let opt = document.createElement("option");
+            opt.value = y;
+            opt.text = y;
+            yearSelect.appendChild(opt);
+        }
+
+        monthSelect.onchange = yearSelect.onchange = ()=>{
+            currentMonth = parseInt(monthSelect.value);
+            currentYear = parseInt(yearSelect.value);
+            renderCalendar();
+        };
+    }
+
+    prevBtn.onclick = ()=>changeMonth(-1);
+    nextBtn.onclick = ()=>changeMonth(1);
+    todayBtn.onclick = ()=>{
+        const t = new Intl.DateTimeFormat('fa-IR-u-nu-latn',{year:'numeric',month:'numeric',day:'numeric',calendar:'persian'}).formatToParts(new Date());
+        currentYear = parseInt(t.find(p=>p.type==='year').value);
+        currentMonth = parseInt(t.find(p=>p.type==='month').value);
+        currentDay = parseInt(t.find(p=>p.type==='day').value);
+        renderCalendar();
+    };
+
+    saveNoteBtn.onclick = saveNote;
+    closeNoteBtn.onclick = closeModal;
+
+    initMonthYearSelect();
+    renderCalendar();
+});
+

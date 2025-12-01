@@ -1,4 +1,4 @@
-{% extends 'shared/base_template.html' %}
+{% extends 'middleShared/base_template.html' %}
 {% load static %}
 {% load poll_extras %}
 {% load jalali_tags %}
@@ -10,12 +10,6 @@
 {% block main_content %}
     <hr/>
 <div class="container mt-3">
-{#     <div class="col-12 mb-2">#}
-{#                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong3">#}
-{#                        <img src="/static/middle_admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">>#}
-{#                    افزودن حساب بانکی#}
-{#                </button>#}
-{#                 </div>#}
       <div class="table-responsive">
                             <table class="table table-bordered">
                                 <thead class="text-center">
@@ -27,8 +21,6 @@
                                         <th>بدهکار</th>
                                         <th>بستانکار</th>
                                         <th>موجودی نهایی</th>
-{#                                        <th>فعال/غیرفعال</th>#}
-{#                                        <th>دستورات</th>#}
                                     </tr>
                                 </thead>
                             {% if funds %}
@@ -52,7 +44,6 @@
                                 {% endif %}
                             </table>
                </div>
-
     <hr>
 </div>
 

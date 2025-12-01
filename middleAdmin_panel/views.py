@@ -40,7 +40,7 @@ from admin_panel.models import Announcement, ExpenseCategory, Expense, Fund, Exp
     FixAreaCharge, FixAreaChargeCalc, FixPersonCharge, FixPersonChargeCalc, ChargeByPersonArea, ChargeByPersonAreaCalc, \
     ChargeByFixPersonArea, ChargeByFixPersonAreaCalc, ChargeFixVariable, ChargeFixVariableCalc, SmsManagement
 from admin_panel.views import admin_required
-from notifications.models import Notification
+from notifications.models import Notification, SupportUser
 
 from user_app.models import Bank, Unit, User, Renter, MyHouse
 
@@ -55,9 +55,14 @@ def middle_admin_required(view_func):
 @middle_admin_required
 def middle_admin_dashboard(request):
     announcements = Announcement.objects.filter(is_active=True, user=request.user).order_by('-created_at')[:3]
+    unit_count = Unit.objects.filter(user__manager=request.user).count()
+    fund_amount = Fund.objects.filter(user__manager=request.user)
+    tickets = SupportUser.objects.filter(user__manager=request.user).order_by('-created_at')[:5]
     context = {
-
-        'announcements': announcements
+        'announcements': announcements,
+        'unit_count': unit_count,
+        'fund_amount': fund_amount,
+        'tickets': tickets
     }
     return render(request, 'middleShared/home_template.html', context)
 
@@ -146,7 +151,6 @@ class MiddleAnnouncementListView(ListView):
         context['query'] = self.request.GET.get('q', '')
         context['paginate'] = self.request.GET.get('paginate', '20')
         return context
-
 
 
 @method_decorator(middle_admin_required, name='dispatch')
@@ -2652,7 +2656,16 @@ def export_maintenance_excel(request):
 # ======================== Charge Views ======================================
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_charge_view(request):
-    return render(request, 'middleCharge/add_charge.html')
+    user = request.user
+
+    allowed_methods = list(
+        user.charge_methods.values_list('id', flat=True)
+    )
+
+    context = {
+        'allowed_methods': allowed_methods
+    }
+    return render(request, 'middleCharge/add_charge.html', context)
 
 
 @method_decorator(middle_admin_required, name='dispatch')
@@ -5249,9 +5262,9 @@ def middle_remove_send_notification_fix_variable(request, pk):
 @method_decorator(middle_admin_required, name='dispatch')
 class MiddleSmsManagementView(CreateView):
     model = SmsManagement
-    template_name = 'middle_admin/middle_sms_management.html'
+    template_name = 'middle_admin/middle_register_sms.html'
     form_class = SmsForm
-    success_url = reverse_lazy('middle_sms_management')
+    success_url = reverse_lazy('middle_register_sms')
 
     def form_valid(self, form):
         sms = form.save(commit=False)
@@ -5267,7 +5280,8 @@ class MiddleSmsManagementView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['all_sms'] = SmsManagement.objects.filter(user=self.request.user).order_by('-created_at')
+        context['all_sms'] = SmsManagement.objects.filter(user=self.request.user, send_notification=False).order_by(
+            '-created_at')
         context['units'] = Unit.objects.all()
 
         return context
@@ -5276,9 +5290,9 @@ class MiddleSmsManagementView(CreateView):
 @method_decorator(middle_admin_required, name='dispatch')
 class MiddleSmsUpdateView(UpdateView):
     model = SmsManagement
-    template_name = 'middle_admin/middle_sms_management.html'
+    template_name = 'middle_admin/middle_register_sms.html'
     form_class = SmsForm
-    success_url = reverse_lazy('middle_sms_management')
+    success_url = reverse_lazy('middle_register_sms')
 
     def form_valid(self, form):
         edit_instance = form.instance
@@ -5288,7 +5302,11 @@ class MiddleSmsUpdateView(UpdateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['all_sms'] = SmsManagement.objects.filter(is_active=True, user=self.request.user).order_by('-created_at')
+        context['all_sms'] = SmsManagement.objects.filter(
+            is_active=True,
+            user=self.request.user,
+            send_notification=False
+        ).order_by('-created_at')
         return context
 
 
@@ -5302,7 +5320,7 @@ def middle_sms_delete(request, pk):
         messages.success(request, 'پیامک با موفقیت حذف گردید!')
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
-    return redirect(reverse('middle_sms_management'))
+    return redirect(reverse('middle_register_sms'))
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -5333,7 +5351,7 @@ def middle_send_sms(request, pk):
         selected_units = request.POST.getlist('units')
         if not selected_units:
             messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
-            return redirect('middle_sms_management')
+            return redirect('middle_register_sms')
 
         units_qs = Unit.objects.filter(is_active=True, user__manager=request.user)
         if 'all' in selected_units:
@@ -5343,7 +5361,7 @@ def middle_send_sms(request, pk):
 
         if not units_to_notify.exists():
             messages.warning(request, 'هیچ واحد معتبری برای ارسال پیامک پیدا نشد.')
-            return redirect('middle_sms_management')
+            return redirect('middle_register_sms')
 
         notified_units = []
         with transaction.atomic():
@@ -5367,7 +5385,7 @@ def middle_send_sms(request, pk):
         else:
             messages.info(request, 'پیامکی ارسال نشد؛ ممکن است شماره موبایل واحدها موجود نباشد.')
 
-        return redirect('middle_sms_management')
+        return redirect('middle_register_sms')
 
     # اگر GET بود، فرم را رندر کن
     units_with_details = Unit.objects.filter(is_active=True)
@@ -5377,3 +5395,33 @@ def middle_send_sms(request, pk):
     })
 
 
+class MiddleSmsListView(ListView):
+    model = SmsManagement
+    template_name = 'middle_admin/middle_sms_management.html'
+    context_object_name = 'all_sms'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+        queryset = SmsManagement.objects.filter(
+            user=self.request.user,
+            is_active=True,
+            send_notification=True,
+        )
+        if query:
+            queryset = queryset.filter(
+                Q(subject__icontains=query) |
+                Q(message__icontains=query)
+            )
+        return queryset.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        return context

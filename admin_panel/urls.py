@@ -97,7 +97,10 @@ urlpatterns = [
     path('maintenance/export/pdf/', views.export_maintenance_pdf, name='export_maintenance_pdf'),
 
     # Charge Urls
-    path('add-charge', views.charge_view, name='add_charge'),
+    path('add-charge-category', views.ChargeCategoryCreateView.as_view(), name='add_charge_category'),
+    path('edit/chrage/category/<int:pk>/', views.ChargeCategoryUpdateView.as_view(), name='edit_charge_category'),
+    path('charge-category-delete/<int:pk>/', views.charge_category_delete, name='delete_charge_category'),
+    path('charges-method', views.charge_view, name='charges_method'),
 
     path('add-fixed-Charge', views.FixChargeCreateView.as_view(), name='add_fixed_charge'),
     path('charge/edit/<int:pk>/', views.fix_charge_edit, name='charge_edit'),
