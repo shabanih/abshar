@@ -1,4 +1,5 @@
 import io
+import json
 import os
 
 import sweetify
@@ -38,7 +39,8 @@ from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDo
     FixPersonChargeCalc, ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
     FixPersonCharge, FixAreaCharge, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariable, \
     ChargeFixVariableCalc, SmsManagement, Fund
-from user_app.models import Unit, Bank, Renter, User, MyHouse, ChargeMethod
+from notifications.models import AdminTicket
+from user_app.models import Unit, Bank, Renter, User, MyHouse, ChargeMethod, CalendarNote
 from django.contrib.auth import get_user_model
 
 
@@ -133,10 +135,15 @@ def middleAdmin_delete(request, pk):
 @login_required
 @admin_required
 def admin_dashboard(request):
-    announcements = Announcement.objects.filter(is_active=True, user=request.user)
+    announcements = Announcement.objects.filter(is_active=True).order_by('-created_at')[:4]
+    tickets = AdminTicket.objects.filter(user__manager=request.user).order_by('-created_at')[:5]
+    middle_count = User.objects.filter(is_middle_admin=True).count()
+    tickets_count = AdminTicket.objects.all().count()
     context = {
-
-        'announcements': announcements
+        'announcements': announcements,
+        'tickets': tickets,
+        'middle_count': middle_count,
+        'tickets_count': tickets_count,
     }
     return render(request, 'shared/home_template.html', context)
 
@@ -176,24 +183,36 @@ def site_header_component(request):
 
 
 @method_decorator(admin_required, name='dispatch')
-class AnnouncementView(CreateView):
+class AnnouncementView(ListView):
     model = Announcement
     template_name = 'admin_panel/announcement.html'
-    form_class = announcementForm
-    success_url = reverse_lazy('announcement')
+    context_object_name = 'announcements'
 
-    def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.user = self.request.user  # 👈 اضافه کن
-        self.object.save()
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
 
-        # announce_instance = form.instance
-        messages.success(self.request, 'اطلاعیه با موفقیت ثبت گردید!')
-        return super(AnnouncementView, self).form_valid(form)
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+        queryset = Announcement.objects.filter(
+            is_active=True,
+        )
+        if query:
+            queryset = queryset.filter(
+                Q(user__full_name__icontains=query) |
+                Q(title__icontains=query) |
+                Q(user__myhouse__name__icontains=query)
+            ).distinct()
+        return queryset.order_by('-created_at')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['announcements'] = Announcement.objects.all().order_by('-created_at')
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '1')
+        house = MyHouse.objects.filter(user=self.request.user).first()
+        context['house'] = house
         return context
 
 
@@ -5504,5 +5523,43 @@ def send_sms(request, pk):
     })
 
 
+@login_required
+def get_notes(request, year, month):
+    notes = CalendarNote.objects.filter(user=request.user, year=year, month=month)
+    data = {note.day: note.note for note in notes}
+    return JsonResponse(data)
 
+
+@login_required
+@csrf_exempt
+def save_note(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        year = data.get('year')
+        month = data.get('month')
+        day = data.get('day')
+        note_text = data.get('note', '').strip()
+        note, created = CalendarNote.objects.get_or_create(
+            user=request.user, year=year, month=month, day=day
+        )
+        if note_text:
+            note.note = note_text
+            note.save()
+        else:
+            note.delete()
+        return JsonResponse({'success': True})
+    return JsonResponse({'success': False}, status=400)
+
+
+@csrf_exempt
+@login_required
+def delete_note(request):
+    if request.method == "POST":
+        payload = json.loads(request.body)
+        year = payload.get("year")
+        month = payload.get("month")
+        day = payload.get("day")
+        CalendarNote.objects.filter(user=request.user, year=year, month=month, day=day).delete()
+        return JsonResponse({"status": "ok"})
+    return JsonResponse({"status": "error"}, status=400)
 

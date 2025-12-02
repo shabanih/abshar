@@ -363,12 +363,14 @@ $(function () {
 });
 
 // ============================================================
-// Dashboard calendar
 
-window.addEventListener("DOMContentLoaded", function() {
 
-    const persianMonthNames = ["فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور",
-                               "مهر","آبان","آذر","دی","بهمن","اسفند"];
+window.addEventListener("DOMContentLoaded", function () {
+
+    const persianMonthNames = [
+        "فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور",
+        "مهر","آبان","آذر","دی","بهمن","اسفند"
+    ];
 
     const monthSelect = document.getElementById("monthSelect");
     const yearSelect = document.getElementById("yearSelect");
@@ -383,61 +385,72 @@ window.addEventListener("DOMContentLoaded", function() {
     const closeNoteBtn = document.getElementById("closeNoteBtn");
     const deleteNoteBtn = document.getElementById("deleteNoteBtn");
 
-    let selectedFullKey = null;
+    let selectedYear, selectedMonth, selectedDay;
 
-    // شناسه کاربر از سرور (Django)
-    const USER_ID = "{{ request.user.id }}"; // باید از context ارسال شود
+    const todayParts = new Intl.DateTimeFormat("fa-IR-u-nu-latn", {
+        year: "numeric", month: "numeric", day: "numeric", calendar: "persian"
+    }).formatToParts(new Date());
 
-    function persianToGregorian(jy, jm, jd) {
-        const jalaali = window.jalaali || {};
-        if(jalaali.toGregorian){
-            const g = jalaali.toGregorian(jy, jm, jd);
-            return new Date(g.gy, g.gm - 1, g.gd);
+    let currentYear = parseInt(todayParts.find(p => p.type === "year").value);
+    let currentMonth = parseInt(todayParts.find(p => p.type === "month").value);
+    let currentDay = parseInt(todayParts.find(p => p.type === "day").value);
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
         }
-        return new Date(jy, jm - 1, jd);
+        return cookieValue;
     }
+    const csrftoken = getCookie('csrftoken');
 
-    function isLeapYearPersian(y){
-        return (((y-474)%2820)+474+38)*682%2816<682;
-    }
+    // سلکت‌ها
+    persianMonthNames.forEach((name,i)=>{ monthSelect.appendChild(new Option(name,i+1)); });
+    for(let y=currentYear-5;y<=currentYear+5;y++){ yearSelect.appendChild(new Option(y,y)); }
+    monthSelect.value=currentMonth; yearSelect.value=currentYear;
 
-    function getPersianMonthLength(m, y){
-        if(m <= 6) return 31;
-        if(m <= 11) return 30;
-        return isLeapYearPersian(y) ? 30 : 29;
-    }
+    async function renderCalendar(){
+        const tbody=document.querySelector("#calendar tbody");
+        tbody.innerHTML="";
 
-    const todayParts = new Intl.DateTimeFormat('fa-IR-u-nu-latn',{year:'numeric',month:'numeric',day:'numeric',calendar:'persian'}).formatToParts(new Date());
-    let currentYear = parseInt(todayParts.find(p=>p.type==='year').value);
-    let currentMonth = parseInt(todayParts.find(p=>p.type==='month').value);
-    let currentDay = parseInt(todayParts.find(p=>p.type==='day').value);
+        // گرفتن نوت‌ها از سرور
+        let notes = {};
+        try{
+            const res = await fetch(`/admin-panel/calendar/notes/${currentYear}/${currentMonth}/`);
+            notes = await res.json();
+            console.log("Notes from server:", notes);
+        }catch(e){ console.error(e); }
 
-    // --- رندر تقویم ---
-    function renderCalendar(){
-        const tbody = document.querySelector("#calendar tbody");
-        tbody.innerHTML = "";
-
-        const daysInMonth = getPersianMonthLength(currentMonth, currentYear);
-        const firstDay = persianToGregorian(currentYear, currentMonth, 1);
-        const startWeek = (firstDay.getDay() + 1) % 7;
+        const daysInMonth = new Date(currentYear, currentMonth<=6?currentMonth:currentMonth+1,0).getDate();
+        const firstDayGregorian = new Date(currentYear, currentMonth-1,1);
+        const weekDay = (firstDayGregorian.getDay()+1)%7;
 
         let row = document.createElement("tr");
-        for(let i=0;i<startWeek;i++) row.appendChild(document.createElement("td"));
+        for(let i=0;i<weekDay;i++){ row.appendChild(document.createElement("td")); }
 
         for(let d=1; d<=daysInMonth; d++){
-            if(row.children.length === 7){ tbody.appendChild(row); row=document.createElement("tr"); }
+            if(row.children.length===7){ tbody.appendChild(row); row=document.createElement("tr"); }
 
-            let td = document.createElement("td");
-            td.innerText = d;
+            const td=document.createElement("td");
+            td.textContent=d;
 
-            let key = `${USER_ID}-${currentYear}-${currentMonth}-${d}`;
-            let savedNote = localStorage.getItem("note-"+key);
+            const noteKey = String(d);
 
-            if(savedNote){
+            if(notes[noteKey]) {
                 td.classList.add("has-note");
-                let preview = document.createElement("div");
+
+                // اضافه کردن پیش‌نمایش نوت
+                const preview = document.createElement("div");
                 preview.classList.add("note-preview");
-                preview.innerText = savedNote.length>8 ? savedNote.substring(0,8)+"…" : savedNote;
+                // نمایش فقط 8 کاراکتر اول
+                preview.textContent = notes[noteKey].length > 8 ? notes[noteKey].substring(0,8) + "…" : notes[noteKey];
                 td.appendChild(preview);
             }
 
@@ -446,88 +459,269 @@ window.addEventListener("DOMContentLoaded", function() {
                 td.classList.add("today");
             }
 
-            td.onclick = ()=>openModal(currentYear, currentMonth, d);
+            td.onclick=()=>{
+                selectedYear=currentYear;
+                selectedMonth=currentMonth;
+                selectedDay=d;
+                selectedDayTitle.textContent=`یادداشت ${d} ${persianMonthNames[currentMonth-1]}`;
+                noteText.value=notes[noteKey] || "";
+                noteModal.style.display="flex";
+            };
+
             row.appendChild(td);
         }
+
+
         if(row.children.length>0) tbody.appendChild(row);
-
-        monthSelect.value = currentMonth;
-        yearSelect.value = currentYear;
-
-        // همیشه 6 ردیف برای ثابت بودن ارتفاع
-        while(tbody.children.length<6){
-            let emptyRow = document.createElement("tr");
-            for(let i=0;i<7;i++) emptyRow.appendChild(document.createElement("td"));
-            tbody.appendChild(emptyRow);
-        }
     }
-
-    // --- مودال یادداشت ---
-    function openModal(y,m,d){
-        selectedFullKey = `${USER_ID}-${y}-${m}-${d}`;
-        selectedDayTitle.innerText = `یادداشت ${y}/${m}/${d}`;
-        noteText.value = localStorage.getItem("note-"+selectedFullKey) || "";
-        noteModal.style.display = "flex";
-    }
-
-    function closeModal(){ noteModal.style.display = "none"; }
 
     function saveNote(){
-        const text = noteText.value.trim();
-        if(text.length>0) localStorage.setItem("note-"+selectedFullKey,text);
-        else localStorage.removeItem("note-"+selectedFullKey);
-        closeModal();
-        renderCalendar();
+        const noteValue = noteText.value.trim();
+        fetch('/admin-panel/calendar/save-note/', {
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRFToken':csrftoken},
+            body:JSON.stringify({year:selectedYear,month:selectedMonth,day:selectedDay,note:noteValue})
+        }).then(()=>{ noteModal.style.display="none"; renderCalendar(); });
     }
 
-    deleteNoteBtn.onclick = ()=>{
-        localStorage.removeItem(selectedFullKey);
-        closeModal();
-        renderCalendar();
+    function deleteNote(){
+        fetch('/admin-panel/calendar/delete-note/', {
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRFToken':csrftoken},
+            body:JSON.stringify({year:selectedYear,month:selectedMonth,day:selectedDay})
+        }).then(()=>{ noteModal.style.display="none"; renderCalendar(); });
     }
 
-    function changeMonth(step){
-        currentMonth += step;
-        if(currentMonth<1){ currentMonth=12; currentYear--; }
-        if(currentMonth>12){ currentMonth=1; currentYear++; }
+    saveNoteBtn.addEventListener("click", saveNote);
+    deleteNoteBtn.addEventListener("click", deleteNote);
+    closeNoteBtn.addEventListener("click",()=>{ noteModal.style.display="none"; });
+
+    prevBtn.addEventListener("click",()=>{
+        currentMonth--; if(currentMonth<1){ currentMonth=12; currentYear--; }
+        monthSelect.value=currentMonth; yearSelect.value=currentYear;
         renderCalendar();
-    }
-
-    function initMonthYearSelect(){
-        persianMonthNames.forEach((name,i)=>{
-            let opt = document.createElement("option");
-            opt.value = i+1;
-            opt.text = name;
-            monthSelect.appendChild(opt);
-        });
-        for(let y=1390; y<=1450; y++){
-            let opt = document.createElement("option");
-            opt.value = y;
-            opt.text = y;
-            yearSelect.appendChild(opt);
-        }
-
-        monthSelect.onchange = yearSelect.onchange = ()=>{
-            currentMonth = parseInt(monthSelect.value);
-            currentYear = parseInt(yearSelect.value);
-            renderCalendar();
-        };
-    }
-
-    prevBtn.onclick = ()=>changeMonth(-1);
-    nextBtn.onclick = ()=>changeMonth(1);
-    todayBtn.onclick = ()=>{
-        const t = new Intl.DateTimeFormat('fa-IR-u-nu-latn',{year:'numeric',month:'numeric',day:'numeric',calendar:'persian'}).formatToParts(new Date());
-        currentYear = parseInt(t.find(p=>p.type==='year').value);
-        currentMonth = parseInt(t.find(p=>p.type==='month').value);
-        currentDay = parseInt(t.find(p=>p.type==='day').value);
+    });
+    nextBtn.addEventListener("click",()=>{
+        currentMonth++; if(currentMonth>12){ currentMonth=1; currentYear++; }
+        monthSelect.value=currentMonth; yearSelect.value=currentYear;
         renderCalendar();
-    };
+    });
+    todayBtn.addEventListener("click",()=>{
+        currentYear=parseInt(todayParts.find(p=>p.type==='year').value);
+        currentMonth=parseInt(todayParts.find(p=>p.type==='month').value);
+        monthSelect.value=currentMonth; yearSelect.value=currentYear;
+        renderCalendar();
+    });
+    monthSelect.addEventListener("change",()=>{ currentMonth=parseInt(monthSelect.value); renderCalendar(); });
+    yearSelect.addEventListener("change",()=>{ currentYear=parseInt(yearSelect.value); renderCalendar(); });
 
-    saveNoteBtn.onclick = saveNote;
-    closeNoteBtn.onclick = closeModal;
-
-    initMonthYearSelect();
     renderCalendar();
 });
 
+
+
+// window.addEventListener("DOMContentLoaded", function () {
+//
+//     const persianMonthNames = [
+//         "فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور",
+//         "مهر","آبان","آذر","دی","بهمن","اسفند"
+//     ];
+//
+//     const monthSelect = document.getElementById("monthSelect");
+//     const yearSelect = document.getElementById("yearSelect");
+//     const prevBtn = document.getElementById("prevMonthBtn");
+//     const nextBtn = document.getElementById("nextMonthBtn");
+//     const todayBtn = document.getElementById("gotoTodayBtn");
+//
+//     const noteModal = document.getElementById("noteModal");
+//     const noteText = document.getElementById("noteText");
+//     const selectedDayTitle = document.getElementById("selectedDayTitle");
+//     const saveNoteBtn = document.getElementById("saveNoteBtn");
+//     const closeNoteBtn = document.getElementById("closeNoteBtn");
+//     const deleteNoteBtn = document.getElementById("deleteNoteBtn");
+//
+//     let selectedFullKey = null;
+//
+//     // شناسه کاربر
+//     const USER_ID = "{{ request.user.id }}";
+//
+//     function persianToGregorian(jy, jm, jd) {
+//         if (window.jalaali?.toGregorian) {
+//             const g = window.jalaali.toGregorian(jy, jm, jd);
+//             return new Date(g.gy, g.gm - 1, g.gd);
+//         }
+//         return new Date(jy, jm - 1, jd);
+//     }
+//
+//     function isLeapYearPersian(y) {
+//         return (((y - 474) % 2820) + 474 + 38) * 682 % 2816 < 682;
+//     }
+//
+//     function getPersianMonthLength(m, y) {
+//         if (m <= 6) return 31;
+//         if (m <= 11) return 30;
+//         return isLeapYearPersian(y) ? 30 : 29;
+//     }
+//
+//     // تاریخ امروز شمسی
+//     const todayParts = new Intl.DateTimeFormat("fa-IR-u-nu-latn", {
+//         year: "numeric",
+//         month: "numeric",
+//         day: "numeric",
+//         calendar: "persian"
+//     }).formatToParts(new Date());
+//
+//     let currentYear = parseInt(todayParts.find(p => p.type === "year").value);
+//     let currentMonth = parseInt(todayParts.find(p => p.type === "month").value);
+//     let todayDay = parseInt(todayParts.find(p => p.type === "day").value);
+//
+//     // پر کردن سلکت‌ها
+//     persianMonthNames.forEach((m, i) => {
+//         const opt = document.createElement("option");
+//         opt.value = i + 1;
+//         opt.textContent = m;
+//         monthSelect.appendChild(opt);
+//     });
+//
+//     for (let y = currentYear - 20; y <= currentYear + 20; y++) {
+//         const opt = document.createElement("option");
+//         opt.value = y;
+//         opt.textContent = y;
+//         yearSelect.appendChild(opt);
+//     }
+//
+//     monthSelect.value = currentMonth;
+//     yearSelect.value = currentYear;
+//
+//     function renderCalendar() {
+//         const tbody = document.querySelector("#calendar tbody");
+//         tbody.innerHTML = "";
+//
+//         const daysInMonth = getPersianMonthLength(currentMonth, currentYear);
+//
+//         const firstDate = persianToGregorian(currentYear, currentMonth, 1);
+//         let firstWeekday = firstDate.getDay();
+//         if (firstWeekday === 6) firstWeekday = 0;
+//         else firstWeekday += 1;
+//
+//         let dayCounter = 1;
+//
+//         for (let row = 0; row < 6; row++) {
+//             const tr = document.createElement("tr");
+//
+//             for (let col = 0; col < 7; col++) {
+//                 const td = document.createElement("td");
+//
+//                 if (row === 0 && col < firstWeekday) {
+//                     td.textContent = "";
+//                 } else if (dayCounter > daysInMonth) {
+//                     td.textContent = "";
+//                 } else {
+//
+//                     td.textContent = dayCounter;
+//
+//                     const fullKey = `${USER_ID}-${currentYear}-${currentMonth}-${dayCounter}`;
+//                     const note = localStorage.getItem(fullKey);
+//
+//                     if (note) {
+//                         td.classList.add("has-note");
+//
+//                         const preview = document.createElement("div");
+//                         preview.className = "note-preview";
+//                         preview.textContent = note.substring(0, 10);
+//                         td.appendChild(preview);
+//                     }
+//
+//                     if (
+//                         currentYear === parseInt(yearSelect.value) &&
+//                         currentMonth === parseInt(monthSelect.value) &&
+//                         dayCounter === todayDay
+//                     ) {
+//                         td.classList.add("today");
+//                     }
+//
+//                     td.onclick = () => openNote(fullKey, dayCounter);
+//                     dayCounter++;
+//                 }
+//
+//                 tr.appendChild(td);
+//             }
+//
+//             tbody.appendChild(tr);
+//         }
+//     }
+//
+//     function openNote(key, dayNum) {
+//         selectedFullKey = key;
+//         selectedDayTitle.textContent = "یادداشت روز " + dayNum;
+//
+//         const note = localStorage.getItem(selectedFullKey);
+//         noteText.value = note ? note : "";
+//
+//         noteModal.style.display = "flex";
+//     }
+//
+//     saveNoteBtn.onclick = () => {
+//         if (selectedFullKey) {
+//             localStorage.setItem(selectedFullKey, noteText.value);
+//             noteModal.style.display = "none";
+//             renderCalendar();
+//         }
+//     };
+//
+//     deleteNoteBtn.onclick = () => {
+//         if (selectedFullKey) {
+//             localStorage.removeItem(selectedFullKey);
+//             noteModal.style.display = "none";
+//             renderCalendar();
+//         }
+//     };
+//
+//     closeNoteBtn.onclick = () => noteModal.style.display = "none";
+//
+//     prevBtn.onclick = () => {
+//         currentMonth--;
+//         if (currentMonth < 1) {
+//             currentMonth = 12;
+//             currentYear--;
+//         }
+//         monthSelect.value = currentMonth;
+//         yearSelect.value = currentYear;
+//         renderCalendar();
+//     };
+//
+//     nextBtn.onclick = () => {
+//         currentMonth++;
+//         if (currentMonth > 12) {
+//             currentMonth = 1;
+//             currentYear++;
+//         }
+//         monthSelect.value = currentMonth;
+//         yearSelect.value = currentYear;
+//         renderCalendar();
+//     };
+//
+//     todayBtn.onclick = () => {
+//         currentYear = parseInt(todayParts.find(p => p.type === "year").value);
+//         currentMonth = parseInt(todayParts.find(p => p.type === "month").value);
+//         todayDay = parseInt(todayParts.find(p => p.type === "day").value);
+//
+//         monthSelect.value = currentMonth;
+//         yearSelect.value = currentYear;
+//         renderCalendar();
+//     };
+//
+//     monthSelect.onchange = () => {
+//         currentMonth = parseInt(monthSelect.value);
+//         renderCalendar();
+//     };
+//
+//     yearSelect.onchange = () => {
+//         currentYear = parseInt(yearSelect.value);
+//         renderCalendar();
+//     };
+//
+//     renderCalendar();
+// });
+
+// Dashboard calendar

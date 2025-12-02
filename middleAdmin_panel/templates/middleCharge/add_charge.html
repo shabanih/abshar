@@ -19,6 +19,7 @@
             <div class="card bg-secondary card-img-holder text-white" style="opacity:0.4; cursor:not-allowed;">
             {% endif %}
                 <div class="py-4">
+            <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">
                     <h4 class="text-center text-white"><span class="chargeCircle">1</span> شارژ ثابت واحدی</h4>
                 </div>
             </div>
@@ -29,11 +30,12 @@
         <div class="col-md-4 grid-margin">
             {% if 2 in allowed_methods %}
             <a href="{% url 'middle_add_area_charge' %}">
-            <div class="card bg-gradient-dark card-img-holder text-white">
+            <div class="card bg-gradient-info card-img-holder text-white">
             {% else %}
             <div class="card bg-secondary card-img-holder text-muted" style="opacity:0.4; cursor:not-allowed;">
             {% endif %}
                 <div class="py-4">
+                     <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">
                     <h4 class="text-center text-white"><span class="chargeCircle">2</span> شارژ متراژی</h4>
                 </div>
             </div>
@@ -49,6 +51,7 @@
             <div class="card bg-secondary card-img-holder text-muted" style="opacity:0.4; cursor:not-allowed;">
             {% endif %}
                 <div class="py-4">
+                     <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">
                     <h4 class="text-center text-white"><span class="chargeCircle">3</span> شارژ نفری</h4>
                 </div>
             </div>
@@ -66,6 +69,7 @@
             <div class="card bg-secondary card-img-holder text-muted" style="opacity:0.4; cursor:not-allowed;">
             {% endif %}
                 <div class="py-4">
+                <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">
                     <h4 class="text-center text-white"><span class="chargeCircle">4</span> شارژ واحدی متراژی</h4>
                 </div>
             </div>
@@ -81,6 +85,7 @@
             <div class="card bg-secondary card-img-holder text-muted" style="opacity:0.4; cursor:not-allowed;">
             {% endif %}
                 <div class="py-4">
+                   <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">
                     <h4 class="text-center text-white"><span class="chargeCircle">5</span> شارژ واحدی نفری</h4>
                 </div>
             </div>
@@ -91,11 +96,12 @@
         <div class="col-md-4 grid-margin">
             {% if 6 in allowed_methods %}
             <a href="{% url 'middle_add_person_area_charge' %}">
-            <div class="card bg-secondary card-img-holder text-white">
+            <div class="card bg-gradient-dark card-img-holder text-white">
             {% else %}
             <div class="card bg-secondary card-img-holder text-muted" style="opacity:0.4; cursor:not-allowed;">
             {% endif %}
                 <div class="py-4">
+                <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">
                     <h4 class="text-center text-white"><span class="chargeCircle">6</span> شارژ نفری متراژی</h4>
                 </div>
             </div>
@@ -113,6 +119,7 @@
             <div class="card bg-secondary card-img-holder text-muted" style="opacity:0.4; cursor:not-allowed;">
             {% endif %}
                 <div class="py-4">
+               <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">
                     <h4 class="text-center text-white"><span class="chargeCircle">7</span> شارژ واحدی نفری متراژی</h4>
                 </div>
             </div>
@@ -123,11 +130,12 @@
         <div class="col-md-4 grid-margin">
             {% if 8 in allowed_methods %}
             <a href="{% url 'middle_add_variable_fix_charge' %}">
-            <div class="card bg-gradient-dark card-img-holder text-white">
+            <div class="card bg-green-gradient card-img-holder text-white">
             {% else %}
             <div class="card bg-secondary card-img-holder text-muted" style="opacity:0.4; cursor:not-allowed;">
             {% endif %}
                 <div class="py-4">
+          <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">
                     <h4 class="text-center text-white"><span class="chargeCircle">8</span> شارژ ثابت و متغیر</h4>
                 </div>
             </div>
@@ -143,90 +151,13 @@
             <div class="card bg-secondary card-img-holder text-muted" style="opacity:0.4; cursor:not-allowed;">
             {% endif %}
                 <div class="py-4">
+                 <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">
                     <h4 class="text-center text-white"><span class="chargeCircle">9</span> شارژ بر اساس هزینه‌های ساختمان</h4>
                 </div>
             </div>
             {% if 9 in allowed_methods %}</a>{% endif %}
         </div>
     </div>
-{#    <div class="row">#}
-{#        <div class="col-md-4 grid-margin">#}
-{#            <a href="{% url 'middle_add_fixed_charge' %}">#}
-{#            <div class="card bg-gradient-danger card-img-holder text-white">#}
-{#                <div class="py-4">#}
-{#                    <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">#}
-{#                     <h4 class="text-center text-white"><span class="chargeCircle">1</span>#}
-{#                   محاسبه شارژ ثابت واحدی</h4></div></div></a></div>#}
-{#        #}
-{#        <div class="col-md-4 grid-margin text-white">#}
-{#            <a href="{% url 'middle_add_area_charge' %}">#}
-{#            <div class="card bg-gradient-dark card-img-holder text-white">#}
-{#            <div class="py-4">#}
-{#                <img src="/static/admin_panel/images/circle.png" class="card-img-absolute" alt="circle">#}
-{#                   <h4 class="text-center text-white"><span class="chargeCircle">2</span>#}
-{#                  محاسبه شارژ متراژی</h4></div></div></a></div>#}
-{#        #}
-{#        <div class="col-md-4 grid-margin text-white">#}
-{#            <a href="{% url 'middle_add_person_charge' %}">#}
-{#            <div class="card bg-gradient-success card-img-holder text-white">#}
-{#            <div class="py-4">#}
-{#                <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">#}
-{#                 <h4 class="text-center text-white p-0">#}
-{#                     <span class="chargeCircle">3</span>#}
-{#                     محاسبه شارژ نفری#}
-{#                     #}
-{#                 </h4></div></div></a></div>#}
-{#             </div>#}
-{#    <div class="row">#}
-{#        <div class="col-md-4 grid-margin">#}
-{#            <a href="{% url 'middle_add_fix_area_charge' %}">#}
-{#            <div class="card bg-secondary card-img-holder text-white">#}
-{#                <div class="py-4">#}
-{#                    <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">#}
-{#                     <h4 class="text-center text-white"><span class="chargeCircle">4</span>#}
-{#                   محاسبه شارژ واحدی متراژی</h4></div></div></a></div>#}
-{#        #}
-{#        <div class="col-md-4 grid-margin text-white">#}
-{#            <a href="{% url 'middle_add_fix_person_charge' %}">#}
-{#            <div class="card bg-gradient-primary card-img-holder text-white">#}
-{#            <div class="py-4">#}
-{#                <img src="/static/admin_panel/images/circle.png" class="card-img-absolute" alt="circle">#}
-{#                   <h4 class="text-center text-white"><span class="chargeCircle">5</span>#}
-{#                  محاسبه شارژ واحدی نفری</h4></div></div></a></div>#}
-{#        #}
-{#        <div class="col-md-4 grid-margin text-white">#}
-{#            <a href="{% url 'middle_add_person_area_charge' %}">#}
-{#            <div class="card bg-secondary card-img-holder text-white">#}
-{#            <div class="py-4">#}
-{#                <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">#}
-{#                 <h4 class="text-center text-white p-0"><span class="chargeCircle">6</span>#}
-{#                   محاسبه شارژ نفری متراژی</h4></div></div></a></div>#}
-{#             </div>#}
-{#    <div class="row">#}
-{#        <div class="col-md-4 grid-margin text-white">#}
-{#            <a href="{%  url 'middle_add_person_area_fix_charge' %}">#}
-{#            <div class="card bg-gradient-warning card-img-holder text-white">#}
-{#            <div class="py-4">#}
-{#                <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">#}
-{#                 <h4 class="text-center text-white p-0"><span class="chargeCircle">7</span>#}
-{#                  محاسبه شارژ واحدی نفری متراژی</h4></div></div></a></div>#}
-{#        #}
-{#        <div class="col-md-4 grid-margin text-white">#}
-{#            <a href="{% url 'middle_add_variable_fix_charge' %}">#}
-{#            <div class="card bg-gradient-dark card-img-holder text-white">#}
-{#            <div class="py-4">#}
-{#                <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">#}
-{#                 <h4 class="text-center text-white p-0"><span class="chargeCircle">8</span>#}
-{#                     #}
-{#                  محاسبه شارژ بر اساس شارژ ثابت و متغیر</h4></div></div></a></div>#}
-{#        <div class="col-md-4 grid-margin text-white">#}
-{#            <a href="">#}
-{#            <div class="card bg-gradient-info card-img-holder text-white">#}
-{#            <div class="py-4">#}
-{#                <img src="/static/admin_panel/images/circle.svg" class="card-img-absolute" alt="circle">#}
-{#                 <h4 class="text-center text-white p-0"><span class="chargeCircle">9</span>#}
-{#                 محاسبه شارژ بر اساس هزینه های ساختمان</h4></div></div></a></div>#}
-{#             </div>#}
 
       </div>
     
@@ -262,15 +193,6 @@
     
       </div>
 </div>
-    
-{#    <div class="d-flex justify-content-between">#}
-{#                                  <a class="btn btn-outline-info btn-md"#}
-{#                                     href="">مرحله قبل</a>#}
-{#                                #}
-{#                                  <a class="btn btn-outline-info btn-md"#}
-{#                                     href=""> تایید و ادامه</a>#}
-{#                              </div>#}
-
     
 {% endblock %}
 

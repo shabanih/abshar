@@ -193,3 +193,16 @@ class Renter(models.Model):
     def __str__(self):
         return self.renter_name
 
+
+class CalendarNote(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    year = models.IntegerField()
+    month = models.IntegerField()
+    day = models.IntegerField()
+    note = models.TextField(blank=True)
+
+    class Meta:
+        unique_together = ('user', 'year', 'month', 'day')
+
+    def __str__(self):
+        return f"{self.user} - {self.year}/{self.month}/{self.day}"

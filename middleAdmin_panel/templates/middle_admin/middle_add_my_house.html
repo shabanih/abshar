@@ -3,7 +3,7 @@
 {% load poll_extras %}
 
 {% block page_title %}
-مدیریت ساختمان
+افزودن ساختمان
 {% endblock page_title %}
 
 {% block main_content %}
@@ -25,7 +25,7 @@
                                 <thead class="text-center">
                                     <tr>
                                         <th>#</th>
-                                        <th>مدیر ساختمان</th>
+{#                                        <th>مدیر ساختمان</th>#}
                                         <th>نام ساختمان</th>
                                         <th> کاربری</th>
                                         <th>شهر</th>
@@ -39,7 +39,7 @@
                                     <tbody class="text-center">
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
-                                            <td>{{ house.user.full_name }}</td>
+{#                                            <td>{{ house.user.full_name }}</td>#}
                                             <td>{{house.name }}</td>
                                             <td>{{house.user_type }}</td>
                                             <td>{{house.city }}</td>
@@ -142,8 +142,6 @@
                         <button type="submit" name="submit_bank" id="account_holder_name" class="btn btn-gradient-success px-4 py-2">ثبت اطلاعات ساختمان</button>
                            <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
                      </div>
-        
-
           </form>
       </div>
 

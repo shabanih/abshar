@@ -11,13 +11,11 @@
                     <img src="{% static 'admin_panel/icone8/icons8-home.gif' %}" alt="profile">
                     <span class="login-status online"></span>
                 </div>
-                            <div class="nav-profile-text ms-auto mt-3">
-                              {% if house and house.name %}
-                                <h6 class="mb-2"> {{ house.name }}</h6>
-                              {% else %}
-                                <h6 class="mb-1">ساختمان من</h6>
-                              {% endif %}
-                            </div>
+                     <div class="nav-profile-text ms-auto mt-3">
+    <h6 class="mb-2">
+        {{ house.name|default:"ساختمان من" }}
+    </h6>
+</div>
             </a>
         </li>
 
@@ -76,8 +74,8 @@
 
         <!-- نظرسنجی -->
         <li class="nav-item mt-0">
-            <a class="nav-link {% if request.resolver_match.url_name == 'sms_management' %}active{% endif %}"
-               href="{% url 'sms_management' %}">
+            <a class="nav-link"
+               href="">
                 <i class="menu-title">نظرسنجی</i>
                 <i class="fas fa-send menu-icon"></i>
             </a>

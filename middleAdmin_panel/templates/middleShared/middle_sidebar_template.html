@@ -18,10 +18,11 @@
                       {% endif %}
                       <small class="text-muted p-2">افزودن / ویرایش</small>
                     </div>
-{#                <i class="mdi mdi-home text-secondary nav-profile-badge" style="font-size: 2.125rem;"></i>#}
 
               </a>
             </li>
+{% if house.id %}
+
 
             <li class="nav-item border-top">
                {% url 'middle_admin_dashboard' as address_url %}
@@ -236,7 +237,7 @@
 
             </li>
 
-          
+         {% endif %}
              
 
           </ul>

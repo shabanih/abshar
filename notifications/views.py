@@ -369,10 +369,8 @@ class MiddleAdminTicketCreateView(CreateView):
         obj.is_sent = True
         # 👇 اختصاص ادمین (فرض می‌کنیم تنها یک ادمین داریم)
         obj.assigned_admin = User.objects.filter(is_superuser=True).first()
-        print("Middle admin:", self.request.user)
         obj.middle_admin = self.request.user
         obj.save()
-        print("Saved ticket middle_admin:", obj.middle_admin)
 
         # 2️⃣ ذخیره فایل‌ها
         files = self.request.FILES.getlist('file')

@@ -9,7 +9,6 @@
 {% block main_content %}
    <div class="container">
 
-
      <div class="row g-2 mt-2">
               <div class="col-md-3">
                 <div class="card bg-gradient-danger card-img-holder text-white">
@@ -60,15 +59,15 @@
                   </a>
               </div>
             </div>
-
 {#   # announcement#}
-  <div class="card shadow-lg mt-3 p-4">
+   <div class="row mt-4">
+       <div class="col-12">
+     <div class="card  p-4">
     <h1 class="header-style text-center mb-4">اطلاعیه‌های ساختمان</h1>
-
     {% if announcements %}
       {% for announcement in announcements %}
-        <div class="row align-items-center border-bottom py-3">
-          <div class="col-12 d-flex align-items-center">
+        <div class="row align-items-end border-bottom py-3">
+          <div class="col-12 d-flex align-items-start">
             <i class="fas fa-bell ms-2" style="color: rgba(98,112,204,0.98); font-size: 1.3rem;"></i>
             <p class="info-text mb-0 mt-2 ">{{ announcement.title|safe }}</p>
           </div>
@@ -81,9 +80,9 @@
       </div>
     {% endif %}
   </div>
+      </div>
+    </div>
 {## charts#}
-
-
       <div class="row mt-4">
             <div class="col-lg-6 grid-margin stretch-card">
                 <div class="card">
@@ -128,11 +127,8 @@
                             </div>
                         </div>
               </div>
-
-
          </div>
-         <div class="row mt-1">
-            <div class="col-lg-12 grid-margin stretch-card">
+      <div class="row mt-1">
               <div class="col-lg-12 grid-margin stretch-card">
                 <div class="card p-0">
                       <div class="card-header bg-gradient-light">
@@ -143,13 +139,9 @@
                   </div>
                 </div>
               </div>
-
-
          </div>
-
-
-{#   # last tickets#}
-   <div class="row">
+   {#   # last tickets#}
+      <div class="row mt-1">
        <div class="col-12">
              <table class="table table-bordered">
       <thead>
@@ -205,7 +197,7 @@
     {% else %}
            <tbody>
            <tr>
-            <td colspan="7">
+            <td colspan="8">
                     هیچ تیکتی ثبت نشده است.
         </td>
            </tr>
@@ -215,7 +207,6 @@
   </table>
        </div>
    </div>
-</div>
    </div>
 
 {% endblock main_content %}

@@ -3,187 +3,53 @@ $('#myForm').on('submit', function(e){
   e.preventDefault();
 });
 // ====================
-function updateClock() {
-    var sundte = new Date();
-    var hours = sundte.getHours();
-    var minutes = sundte.getMinutes();
-    var seconds = sundte.getSeconds();
+function toJalaali(gy, gm, gd) {
+    var g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
+    var gy2 = (gm > 2) ? (gy + 1) : gy;
+    var days = 355666 + (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) + gd + g_d_m[gm - 1];
 
-    document.getElementById("time").innerHTML = "ساعت " + hours + ":" + minutes + ":" + seconds;
-}
-
-// Call updateClock every second (1000 milliseconds)
-setInterval(updateClock, 1000);
-
-
-var sundte = new Date();
-var yeardte = sundte.getFullYear();
-var monthdte = sundte.getMonth();
-var dtedte = sundte.getDate();
-var daydte = sundte.getDay();
-var sunyear;
-
-switch (daydte) {
-    case 0:
-        var today = "يکشنبه";
-        break;
-    case 1:
-        var today = "دوشنبه";
-        break;
-    case 2:
-        var today = "سه شنبه";
-        break;
-    case 3:
-        var today = "چهارشنبه";
-        break;
-    case 4:
-        var today = "پنجشنبه";
-        break;
-    case 5:
-        var today = "جمعه";
-        break;
-    case 6:
-        var today = "شنبه";
-        break;
-}
-switch (monthdte) {
-    case 0:
-        sunyear = yeardte - 622;
-        if (dtedte <= 20) {
-            var sunmonth = "دي";
-            var daysun = dtedte + 10;
-        } else {
-            var sunmonth = "بهمن";
-            var daysun = dtedte - 20;
-        }
-        break;
-    case 1:
-        sunyear = yeardte - 622;
-        if (dtedte <= 19) {
-            var sunmonth = "بهمن";
-            var daysun = dtedte + 11;
-        } else {
-            var sunmonth = "اسفند";
-            var daysun = dtedte - 19;
-        }
-        break;
-    case 2: {
-        if ((yeardte - 621) % 4 == 0) var i = 10;
-        else var i = 9;
-        if (dtedte <= 20) {
-            sunyear = yeardte - 622;
-            var sunmonth = "اسفند";
-            var daysun = dtedte + i;
-        } else {
-            sunyear = yeardte - 621;
-            var sunmonth = "فروردين";
-            var daysun = dtedte - 20;
-        }
+    var jy = -1595 + (33 * Math.floor(days / 12053));
+    days %= 12053;
+    jy += 4 * Math.floor(days / 1461);
+    days %= 1461;
+    if (days > 365) {
+        jy += Math.floor((days - 1)/365);
+        days = (days - 1) % 365;
     }
-        break;
-    case 3:
-        sunyear = yeardte - 621;
-        if (dtedte <= 20) {
-            var sunmonth = "فروردين";
-            var daysun = dtedte + 10;
-        } else {
-            var sunmonth = "ارديبهشت";
-            var daysun = dtedte - 20;
-        }
-        break;
-    case 4:
-        sunyear = yeardte - 621;
-        if (dtedte <= 21) {
-            var sunmonth = "ارديبهشت";
-            var daysun = dtedte + 10;
-        } else {
-            var sunmonth = "خرداد";
-            var daysun = dtedte - 21;
-        }
-
-        break;
-    case 5:
-        sunyear = yeardte - 621;
-        if (dtedte <= 21) {
-            var sunmonth = "خرداد";
-            var daysun = dtedte + 10;
-        } else {
-            var sunmonth = "تير";
-            var daysun = dtedte - 21;
-        }
-        break;
-    case 6:
-        sunyear = yeardte - 621;
-        if (dtedte <= 22) {
-            var sunmonth = "تير";
-            var daysun = dtedte + 9;
-        } else {
-            var sunmonth = "مرداد";
-            var daysun = dtedte - 22;
-        }
-        break;
-    case 7:
-        sunyear = yeardte - 621;
-        if (dtedte <= 22) {
-            var sunmonth = "مرداد";
-            var daysun = dtedte + 9;
-        } else {
-            var sunmonth = "شهريور";
-            var daysun = dtedte - 22;
-        }
-        break;
-    case 8:
-        sunyear = yeardte - 621;
-        if (dtedte <= 22) {
-            var sunmonth = "شهريور";
-            var daysun = dtedte + 9;
-        } else {
-            var sunmonth = "مهر";
-            var daysun = dtedte - 22;
-        }
-        break;
-    case 9:
-        sunyear = yeardte - 621;
-        if (dtedte <= 22) {
-            var sunmonth = "مهر";
-            var daysun = dtedte + 8;
-        } else {
-            var sunmonth = "آبان";
-            var daysun = dtedte - 22;
-        }
-        break;
-    case 10:
-        sunyear = yeardte - 621;
-        if (dtedte <= 21) {
-            var sunmonth = "آبان";
-            var daysun = dtedte + 9;
-        } else {
-            var sunmonth = "آذر";
-            var daysun = dtedte - 21;
-        }
-
-        break;
-    case 11:
-        sunyear = yeardte - 621;
-        if (dtedte <= 19) {
-            var sunmonth = "آذر";
-            var daysun = dtedte + 9;
-        } else {
-            var sunmonth = "دي";
-            var daysun = dtedte - 21;
-        }
-        break;
+    var jm, jd;
+    if (days < 186) {
+        jm = 1 + Math.floor(days/31);
+        jd = 1 + (days % 31);
+    } else {
+        jm = 7 + Math.floor((days - 186)/30);
+        jd = 1 + ((days - 186) % 30);
+    }
+    return {jy: jy, jm: jm, jd: jd};
 }
-document.getElementById("demo").innerHTML =
-    "امروز: " +
-    today +
-    "&nbsp;" +
-    [daysun + 1] +
-    "&nbsp;" +
-    sunmonth +
-    "&nbsp;" +
-    sunyear +
-    " ";
+
+function updateClockAndDate() {
+    let now = new Date();
+
+    // ساعت
+    let hours = now.getHours().toString().padStart(2,'0');
+    let minutes = now.getMinutes().toString().padStart(2,'0');
+    let seconds = now.getSeconds().toString().padStart(2,'0');
+    document.getElementById("time").innerHTML = "ساعت " + hours + ":" + minutes + ":" + seconds;
+
+    // تاریخ شمسی دقیق
+    let jDate = toJalaali(now.getFullYear(), now.getMonth()+1, now.getDate());
+    let weekDays = ["یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه","شنبه"];
+    let todayName = weekDays[now.getDay()];
+
+    let jMonths = ["فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور",
+                   "مهر","آبان","آذر","دی","بهمن","اسفند"];
+
+    document.getElementById("date").innerHTML =
+        "امروز: " + todayName + " " + jDate.jd + " " + jMonths[jDate.jm - 1] + " " + jDate.jy;
+}
+
+setInterval(updateClockAndDate, 1000);
+updateClockAndDate();
 // ======================================================
 
 $(document).on('click', '.edit-expense-btn', function (e) {

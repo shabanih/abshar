@@ -5,7 +5,7 @@ from django.urls import path
 from middleAdmin_panel import views
 
 urlpatterns = [
-    path('', views.middle_admin_dashboard, name='middle_admin_dashboard'),
+    path('middle-dashboard', views.middle_admin_dashboard, name='middle_admin_dashboard'),
     path('login-middleAdmin/', views.middle_admin_login_view, name='login_middle_admin'),
     path('log-out/', views.logout__middle_admin, name='logout_middle_admin'),
 
@@ -17,7 +17,7 @@ urlpatterns = [
 
     # House Urls
 
-    path('middle-manage-house', views.MiddleAddMyHouseView.as_view(), name='middle_manage_house'),
+    path('middle-house/', views.MiddleAddMyHouseView.as_view(), name='middle_manage_house'),
     path('middle/house/edit/<int:pk>/', views.MiddleMyHouseUpdateView.as_view(), name='middle_edit_house'),
     path('middle/delete/house/<int:pk>/', views.middle_house_delete, name='middle_delete_house'),
 

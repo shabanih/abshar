@@ -77,7 +77,7 @@ def middle_admin_login_view(request):
             if user.is_middle_admin:
                 login(request, user)
                 sweetify.success(request, f"{user.full_name} عزیز، با موفقیت وارد بخش مدیر ساختمان شدید!")
-                return redirect(reverse('middle_admin_dashboard'))
+                return redirect(reverse('middle_manage_house'))
             else:
                 logout(request)  # Log out any non-superuser who authenticated successfully
                 messages.error(request, 'شما مجوز دسترسی به بخش مدیر ساختمان را ندارید!')
@@ -99,6 +99,60 @@ def site_header_component(request):
         'user': request.user,
     }
     return render(request, 'middleShared/notification_template.html', context)
+
+
+# ========================== My House Views ========================
+@method_decorator(middle_admin_required, name='dispatch')
+class MiddleAddMyHouseView(CreateView):
+    model = MyHouse
+    template_name = 'middle_admin/middle_add_my_house.html'
+    form_class = MyHouseForm
+    success_url = reverse_lazy('middle_admin_dashboard')
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.user = self.request.user
+        self.object.save()
+        self.object.residents.add(self.request.user)
+
+        messages.success(self.request, 'اطلاعات ساختمان با موفقیت ثبت گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['houses'] = MyHouse.objects.filter(user=self.request.user)
+        return context
+
+
+@method_decorator(middle_admin_required, name='dispatch')
+class MiddleMyHouseUpdateView(UpdateView):
+    model = MyHouse
+    form_class = MyHouseForm
+    success_url = reverse_lazy('middle_manage_house')
+    template_name = 'middle_admin/middle_add_my_house.html'
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.user = self.request.user
+        messages.success(self.request, 'اطلاعات ساختمان با موفقیت ویرایش گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['houses'] = MyHouse.objects.filter(user=self.request.user)
+        return context
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def middle_house_delete(request, pk):
+    house = get_object_or_404(MyHouse, id=pk)
+    try:
+        house.delete()
+        messages.success(request, 'ساختمان با موفقیت حذف گردید!')
+        return redirect(reverse('middle_manage_house'))
+    except Bank.DoesNotExist:
+        messages.info(request, 'خطا در حذف')
+        return redirect(reverse('middle_manage_house'))
 
 
 # ============================= Announcement ====================
@@ -184,57 +238,6 @@ def middle_announcement_delete(request, pk):
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
     return redirect(reverse('middle_announcement'))
-
-
-# ========================== My House Views ========================
-@method_decorator(middle_admin_required, name='dispatch')
-class MiddleAddMyHouseView(CreateView):
-    model = MyHouse
-    template_name = 'middle_admin/middle_add_my_house.html'
-    form_class = MyHouseForm
-    success_url = reverse_lazy('middle_manage_house')
-
-    def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.user = self.request.user
-        messages.success(self.request, 'اطلاعات ساختمان با موفقیت ثبت گردید!')
-        return super().form_valid(form)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['houses'] = MyHouse.objects.filter(user=self.request.user)
-        return context
-
-
-@method_decorator(middle_admin_required, name='dispatch')
-class MiddleMyHouseUpdateView(UpdateView):
-    model = MyHouse
-    template_name = 'middle_admin/middle_add_my_house.html'
-    form_class = MyHouseForm
-    success_url = reverse_lazy('middle_manage_house')
-
-    def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.user = self.request.user
-        messages.success(self.request, 'اطلاعات ساختمان با موفقیت ویرایش گردید!')
-        return super().form_valid(form)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['houses'] = MyHouse.objects.filter(user=self.request.user)
-        return context
-
-
-@login_required(login_url=settings.LOGIN_URL_ADMIN)
-def middle_house_delete(request, pk):
-    house = get_object_or_404(MyHouse, id=pk)
-    try:
-        house.delete()
-        messages.success(request, 'ساختمان با موفقیت حذف گردید!')
-        return redirect(reverse('middle_manage_house'))
-    except Bank.DoesNotExist:
-        messages.info(request, 'خطا در حذف')
-        return redirect(reverse('middle_manage_house'))
 
 
 # ========================== Bank Views ========================
@@ -325,6 +328,9 @@ class MiddleUnitRegisterView(CreateView):
                     'owner_name')
                 user.manager = self.request.user  # ثبت مدیر سطح میانی
                 user.save()
+                house = MyHouse.objects.filter(user=self.request.user).first()
+                if house:
+                    house.residents.add(user)  # اضافه کردن کاربر جدید به ساکنین
 
                 # ساخت واحد و اتصال به کاربر جدید
                 unit = form.save(commit=False)
@@ -383,13 +389,19 @@ class MiddleUnitUpdateView(LoginRequiredMixin, UpdateView):
                     unit_owner.mobile = new_mobile
                     unit_owner.username = new_mobile
                 is_renter = str(form.cleaned_data.get('is_renter')).lower() == 'true'
-                unit_owner.name = form.cleaned_data.get('renter_name') if is_renter else form.cleaned_data.get(
+                unit_owner.full_name = form.cleaned_data.get('renter_name') if is_renter else form.cleaned_data.get(
                     'owner_name')
                 if new_password:
                     unit_owner.set_password(new_password)
 
                 unit_owner.save()
                 self.object.save()  # Save the unit after confirming no issues
+
+                house = MyHouse.objects.filter(user=self.request.user).first()  # یا روش دقیق‌تر برای خانه
+                if house and unit_owner not in house.residents.all():
+                    house.residents.add(unit_owner)
+
+
 
                 # Renter logic...
                 if is_renter:
@@ -499,10 +511,18 @@ class MiddleUnitInfoView(DetailView):
 def middle_unit_delete(request, pk):
     unit = get_object_or_404(Unit, id=pk)
     try:
+        # --- حذف مستاجرها ---
+        unit.renters.all().delete()
+
+        # --- حذف کاربر فقط اگر هیچ واحد دیگری نداشته باشد ---
+        if unit.user and not Unit.objects.filter(user=unit.user).exclude(pk=unit.pk).exists():
+            unit.user.delete()
+
+        # --- حذف خود واحد ---
         unit.delete()
         messages.success(request, 'واحد با موفقیت حذف گردید!')
     except ProtectedError:
-        messages.error(request, " امکان حذف وجود ندارد! ")
+        messages.error(request, "امکان حذف وجود ندارد!")
     return redirect(reverse('middle_manage_unit'))
 
 
@@ -2680,8 +2700,9 @@ class MiddleFixChargeCreateView(CreateView):
         units = Unit.objects.filter(is_active=True, user__manager=self.request.user)
 
         if not units.exists():
-            messages.warning(self.request, 'هیچ واحد فعالی یافت نشد.')
-            return self.form_invalid(form)
+            messages.error(self.request,
+                           'هیچ واحد فعالی یافت نشد. لطفا ابتدا واحدهای ساختمان را ثبت کنید و مجددا تلاش نمایید.')
+            return redirect('middle_manage_unit')
 
         fix_charge = form.save(commit=False)
         fix_charge.name = charge_name
@@ -2954,6 +2975,13 @@ class MiddleAreaChargeCreateView(CreateView):
     success_url = reverse_lazy('middle_add_area_charge')
 
     def form_valid(self, form):
+        units = Unit.objects.filter(is_active=True, user__manager=self.request.user)
+
+        if not units.exists():
+            messages.error(self.request,
+                           'هیچ واحد فعالی یافت نشد. لطفا ابتدا واحدهای ساختمان را ثبت کنید و مجددا تلاش نمایید.')
+            return redirect('middle_manage_unit')
+
         area_charge = form.save(commit=False)
         area_charge.name = form.cleaned_data.get('name') or 'بدون عنوان'
         area_charge.user = self.request.user
@@ -3290,6 +3318,12 @@ class MiddlePersonChargeCreateView(CreateView):
     success_url = reverse_lazy('middle_add_person_charge')
 
     def form_valid(self, form):
+        units = Unit.objects.filter(is_active=True, user__manager=self.request.user)
+
+        if not units.exists():
+            messages.error(self.request,
+                           'هیچ واحد فعالی یافت نشد. لطفا ابتدا واحدهای ساختمان را ثبت کنید و مجددا تلاش نمایید.')
+            return redirect('middle_manage_unit')
         person_charge = form.save(commit=False)
         charge_name = form.cleaned_data.get('name') or 0
         person_charge.name = charge_name
@@ -3610,6 +3644,12 @@ class MiddleFixAreaChargeCreateView(CreateView):
     success_url = reverse_lazy('middle_add_fix_area_charge')
 
     def form_valid(self, form):
+        units = Unit.objects.filter(is_active=True, user__manager=self.request.user)
+
+        if not units.exists():
+            messages.error(self.request,
+                           'هیچ واحد فعالی یافت نشد. لطفا ابتدا واحدهای ساختمان را ثبت کنید و مجددا تلاش نمایید.')
+            return redirect('middle_manage_unit')
         fix_area_charge = form.save(commit=False)
 
         charge_name = form.cleaned_data.get('name') or 0
@@ -3931,6 +3971,12 @@ class MiddleFixPersonChargeCreateView(CreateView):
     success_url = reverse_lazy('middle_add_fix_person_charge')
 
     def form_valid(self, form):
+        units = Unit.objects.filter(is_active=True, user__manager=self.request.user)
+
+        if not units.exists():
+            messages.error(self.request,
+                           'هیچ واحد فعالی یافت نشد. لطفا ابتدا واحدهای ساختمان را ثبت کنید و مجددا تلاش نمایید.')
+            return redirect('middle_manage_unit')
         fix_person_charge = form.save(commit=False)
 
         charge_name = form.cleaned_data.get('name') or 0
@@ -4251,7 +4297,12 @@ class MiddlePersonAreaChargeCreateView(CreateView):
     success_url = reverse_lazy('middle_add_person_area_charge')
 
     def form_valid(self, form):
+        units = Unit.objects.filter(is_active=True, user__manager=self.request.user)
 
+        if not units.exists():
+            messages.error(self.request,
+                           'هیچ واحد فعالی یافت نشد. لطفا ابتدا واحدهای ساختمان را ثبت کنید و مجددا تلاش نمایید.')
+            return redirect('middle_manage_unit')
         person_area_charge = form.save(commit=False)
 
         charge_name = form.cleaned_data.get('name') or 0
@@ -4580,7 +4631,12 @@ class MiddlePersonAreaFixChargeCreateView(CreateView):
     success_url = reverse_lazy('middle_add_person_area_fix_charge')
 
     def form_valid(self, form):
+        units = Unit.objects.filter(is_active=True, user__manager=self.request.user)
 
+        if not units.exists():
+            messages.error(self.request,
+                           'هیچ واحد فعالی یافت نشد. لطفا ابتدا واحدهای ساختمان را ثبت کنید و مجددا تلاش نمایید.')
+            return redirect('middle_manage_unit')
         fix_person_area_charge = form.save(commit=False)
 
         charge_name = form.cleaned_data.get('name') or 0
@@ -4913,6 +4969,12 @@ class MiddleVariableFixChargeCreateView(CreateView):
     success_url = reverse_lazy('middle_add_variable_fix_charge')
 
     def form_valid(self, form):
+        units = Unit.objects.filter(is_active=True, user__manager=self.request.user)
+
+        if not units.exists():
+            messages.error(self.request,
+                           'هیچ واحد فعالی یافت نشد. لطفا ابتدا واحدهای ساختمان را ثبت کنید و مجددا تلاش نمایید.')
+            return redirect('middle_manage_unit')
         fix_variable_charge = form.save(commit=False)
         charge_name = form.cleaned_data.get('name') or 0
         fix_variable_charge.name = charge_name

@@ -833,3 +833,9 @@ div.d-flex.justify-content-between div{
     height: auto !important;
     font-size: 14px; /* تنظیم سایز دلخواه */
 }
+
+
+.sidebar .nav .nav-item.active > .nav-link .menu-title {
+    color: #b66dff;
+    font-family: "Vazir", sans-serif;
+}

@@ -24,4 +24,5 @@ urlpatterns = [
     path('user-announce/', views.user_announcements, name='user_announce_manage'),
 
 
+
 ]

@@ -190,7 +190,16 @@ urlpatterns = [
     path('edit/sms/<int:pk>/', views.SmsUpdateView.as_view(), name='edit_sms'),
     path('sms-delete/<int:pk>/', views.sms_delete, name='delete_sms'),
     path('sms/send/form/<int:pk>/', views.show_send_sms_form, name='show_send_sms_form'),
-    path('send-sms/<int:pk>/', views.send_sms, name='send_sms')
+    path('send-sms/<int:pk>/', views.send_sms, name='send_sms'),
+
+    # مسیر دریافت نوت‌ها
+    path('calendar/notes/<int:year>/<int:month>/', views.get_notes, name='get_notes'),
+
+    # مسیر ذخیره نوت
+    path('calendar/save-note/', views.save_note, name='save_note'),
+
+    # مسیر حذف نوت
+    path('calendar/delete-note/', views.delete_note, name='delete_note'),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
