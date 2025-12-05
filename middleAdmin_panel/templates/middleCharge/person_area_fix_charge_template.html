@@ -25,8 +25,8 @@
                                         <th> عنوان شارژ </th>
                                         <th> تعداد واحدها </th>
                                         <th> شارژ ثابت </th>
-                                        <th class="p-0"> شارژ به ازای هر نفر(تومان)</th>
-                                        <th class="p-0"> شارژ به ازای هر متر(تومان)</th>
+                                        <th class="px-1"> شارژ به ازای هر نفر</th>
+                                        <th class="px-1"> شارژ به ازای هر متر</th>
                                           <th>توضیحات</th>
                                         <th>تاریخ ثبت</th>
                                         <th>جریمه دیرکرد</th>
@@ -45,7 +45,7 @@
                                             <td>{{charge.fix_charge_amount }}</td>
                                             <td>{{charge.person_amount|three_digit_currency }}</td>
                                             <td>{{charge.area_amount|three_digit_currency }}</td>
-                                        <th>{{ charge.details }}</th>
+                                        <td>{{ charge.details|truncatechars:20 }}</td>
                                                   <td>{{charge.created_at|show_jalali }}</td>
                                             <td>
                                                    {% if charge.payment_penalty_amount %}

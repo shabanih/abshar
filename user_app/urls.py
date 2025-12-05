@@ -20,7 +20,7 @@ urlpatterns = [
     path('charge/fix/person/area/pdf/<int:pk>/', views.export_fix_person_area_charge_pdf,
          name='export_fix_person_area_charge_pdf'),
 
-    path('user-charges/', views.fetch_user_fixed_charges, name='user_charges'),
+    path('user-charges/', views.fetch_user_charges, name='user_charges'),
     path('user-announce/', views.user_announcements, name='user_announce_manage'),
 
 

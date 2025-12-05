@@ -5250,6 +5250,7 @@ def middle_send_notification_fix_variable_to_user(request, pk):
         # )
 
         fix_variable.send_notification = True
+        fix_variable.send_notification_date = timezone.now().date()
         fix_variable.send_sms = True
         fix_variable.save()
 

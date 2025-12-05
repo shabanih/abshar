@@ -11,7 +11,7 @@
 
     <div class="row g-2 mt-2">
               <div class="col-md-3">
-                <div class="card  bg-gradient-success card-img-holder text-white">
+                <div class="card  bg-gradient-success card-img-holder text-white shadow_style">
                   <div class="card-body text-center justify-content-center p-2 m-0">
                     <h4 class="font-weight-normal mb-3">
                         <i class="mdi mdi-city mdi-24px float-right"></i>
@@ -23,7 +23,7 @@
               </div>
               <div class="col-md-3">
                   <a href="">
-                <div class="card bg-gradient-info card-img-holder text-white">
+                <div class="card bg-gradient-info card-img-holder text-white shadow_style">
                <div class="card-body text-center justify-content-center p-2 m-0">
                     <h4 class="font-weight-normal mb-3">
                         <i class="mdi mdi-comment-text mdi-24px float-right"></i>
@@ -36,7 +36,7 @@
               </div>
               <div class="col-md-3">
                   <a href="">
-                <div class="card bg-gradient-danger card-img-holder text-white">
+                <div class="card bg-gradient-danger card-img-holder text-white shadow_style">
                  <div class="card-body text-center p-2 m-0">
                     <h4 class="font-weight-normal mb-3">
                         <i class="mdi mdi-square-inc-cash mdi-24px float-right"></i>
@@ -49,7 +49,7 @@
               </div>
               <div class="col-md-3">
                   <a href="">
-                <div class="card bg-gradient-warning card-img-holder text-white">
+                <div class="card bg-gradient-warning card-img-holder text-white shadow_style">
                   <div class="card-body text-center justify-content-center p-2 m-0">
                     <h4 class="font-weight-normal mb-3">
                         <i class="mdi mdi-account-minus mdi-24px float-right"></i>
@@ -62,12 +62,12 @@
               </div>
             </div>
 
-  <div class="card shadow-lg mt-3 p-4">
+  <div class="card mt-4 p-4">
     <h1 class="header-style text-center mb-4">اطلاعیه‌های ساختمان</h1>
     {% if announcements %}
       {% for announcement in announcements %}
         <div class="row align-items-center border-bottom py-3">
-          <div class="col-12 d-flex align-items-center">
+          <div class="col-12 d-flex align-items-start">
             <i class="fas fa-bell ms-2" style="color: rgba(98,112,204,0.98); font-size: 1.3rem;"></i>
             <p class="info-text mb-0 mt-2 ">{{ announcement.title|safe }}</p>
           </div>
@@ -81,56 +81,87 @@
     {% endif %}
   </div>
 
-  <div class="row mt-4">
-            <div class="col-lg-6 grid-margin stretch-card">
-                <div class="card">
+<div class="row mt-3 g-1"> <!-- فاصله ستون‌ها کمتر شد -->
+    <!-- جدول شارژها -->
+    <div class="col-lg-6 p-0"> <!-- grid-margin حذف شد تا فاصله کمتر شود -->
+        <div class="table-responsive w-100" style="border-radius: 7px;">
+            <table class="table table-bordered" id="expenseTable" style="width:100%; table-layout: fixed;">
+                <thead class="text-center p-3">
+                    <tr class="p-3">
+                        <th>عنوان</th>
+                        <th>مبلغ شارژ</th>
+                        <th>تاریخ ارسال اطلاعیه</th>
+                        <th>مهلت پرداخت</th>
+                        <th>وضعیت پرداخت</th>
+                    </tr>
+                </thead>
+                {% if last_charges %}
+                    {% for charge in last_charges %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td class="p-2">{{ charge.description }}</td>
+                                <td class="p-2">{{ charge.amount|three_digit_currency }}</td>
+                                <td class="p-2">{{ charge.send_notification_date|show_jalali }}</td>
+                                <td class="p-2">{{ charge.payment_deadline_date|show_jalali }}</td>
+                                <td class="p-2">
+                                    {% if charge.is_paid %}
+                                        <span class="badge badge-success p-2">پرداخت شده</span>
+                                    {% else %}
+                                        <span class="badge badge-danger p-2">پرداخت نشده</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center">هیچ اطلاعیه شارژی برای نمایش وجود ندارد.</td>
+                    </tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
 
-                      <div class="card-header bg-gradient-light">
-                        <h5 style="margin-top: 0.5rem"> تقاضاها به تفکیک آخرین وضعیت </h5>
-                          </div>
+    <!-- تقویم -->
+    <div class="col-lg-6 p-0">
+        <div class="calendar-dashboard">
+            <div class="calendar-header shadow_style">
+                <button id="prevMonthBtn">&#9654;</button>
+                <select id="monthSelect"></select>
+                <select id="yearSelect"></select>
+                <button id="nextMonthBtn">&#9664;</button>
+                <button id="gotoTodayBtn">امروز</button>
+            </div>
+            <table id="calendar">
+                <thead>
+                    <tr>
+                        <th>ش</th><th>ی</th><th>د</th><th>س</th><th>چ</th><th>پ</th><th>ج</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
 
-                  <div class="card-body">
-                    <canvas id="doughnutChart" style="width: 150px; height: 90px; margin-top: 1rem"></canvas>
-                  </div>
+        <div class="note-modal" id="noteModal">
+            <div class="note-box">
+                <h3 id="selectedDayTitle">یادداشت</h3>
+                <textarea id="noteText"></textarea>
+                <div class="note-buttons">
+                    <button id="saveNoteBtn">ذخیره</button>
+                    <button id="deleteNoteBtn">پاک کردن</button>
+                    <button id="closeNoteBtn">بستن</button>
                 </div>
-              </div>
-              <div class="col-lg-6 grid-margin stretch-card">
-                        <div class="calendar-dashboard">
-                            <div class="calendar-header shadow_style">
-                                <button id="prevMonthBtn">&#9654;</button>
-                                <select id="monthSelect"></select>
-                                <select id="yearSelect"></select>
-                                <button id="nextMonthBtn">&#9664;</button>
-                                <button id="gotoTodayBtn">امروز</button>
-                            </div>
-                            <table id="calendar">
-                                <thead>
-                                    <tr>
-                                        <th>ش</th><th>ی</th><th>د</th><th>س</th><th>چ</th><th>پ</th><th>ج</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-                        <div class="note-modal" id="noteModal">
-                            <div class="note-box">
-                                <h3 id="selectedDayTitle">یادداشت</h3>
-                                <textarea id="noteText"></textarea>
-                                <div class="note-buttons">
-                                    <button id="saveNoteBtn">ذخیره</button>
-                                     <button id="deleteNoteBtn">پاک کردن</button> <!-- اضافه شد -->
-                                    <button id="closeNoteBtn">بستن</button>
-                                </div>
-                            </div>
-                        </div>
-              </div>
-         </div>
 
 {#   # last tickets#}
-   <div class="row mt-3">
+   <div class="row mt-4">
        <div class="col-12">
-             <table class="table table-bordered">
+          <div class="table-responsive w-100" style="border-radius: 7px;">
+             <table class="table table-bordered" >
       <thead>
       <tr>
           <th>#</th>
@@ -192,6 +223,7 @@
            </tbody>
     {% endif %}
   </table>
+          </div>
        </div>
    </div>
 </div>

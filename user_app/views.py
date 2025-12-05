@@ -21,7 +21,7 @@ from notifications.models import Notification, SupportUser
 from user_app import helper
 from admin_panel.models import Announcement, FixedChargeCalc, AreaChargeCalc, PersonCharge, PersonChargeCalc, \
     FixPersonChargeCalc, FixAreaChargeCalc, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariableCalc, \
-    FixCharge, AreaCharge, FixPersonCharge, FixAreaCharge, ChargeByPersonArea, ChargeByFixPersonArea
+    FixCharge, AreaCharge, FixPersonCharge, FixAreaCharge, ChargeByPersonArea, ChargeByFixPersonArea, UnifiedCharge
 from user_app.forms import LoginForm, MobileLoginForm
 from user_app.models import User, Unit, Bank, MyHouse, CalendarNote
 
@@ -153,14 +153,27 @@ def site_header_component(request):
     return render(request, 'partials/notification_template.html', context)
 
 
+def get_user_charges(model, user):
+    return model.objects.filter(
+        user=user,
+        send_notification=True
+    ).select_related('unit').order_by('-created_at')
+
+def get_unpaid_charges(model, user):
+    return model.objects.filter(user=user, send_notification=True, is_paid=False).select_related('unit').order_by('-created_at')
+
+
 def user_panel(request):
     user = request.user
 
+    # --- LAST CHARGES FROM UNIFIED ---
+    last_charges = UnifiedCharge.objects.filter(user=user).order_by('-created_at')[:8]
+
     # --- TICKETS ---
     tickets = SupportUser.objects.filter(user=user).order_by('-created_at')[:5]
-    ticket_count = SupportUser.objects.filter(user=user).count()
+    ticket_count = tickets.count()
 
-    # --- CALCULATIONS (one pass counts) ---
+    # --- CALCULATIONS ---
     calculation_models = [
         FixedChargeCalc,
         AreaChargeCalc,
@@ -179,36 +192,45 @@ def user_panel(request):
     for model in calculation_models:
         qs = model.objects.filter(user=user)
         total_charge += qs.count()
-        total_charge_unpaid += qs.filter(is_paid=False).count()
 
-        result = model.objects.filter(
-            user=request.user,
-            is_paid=False
-        ).aggregate(total=Sum("total_charge_month"))
+        unpaid_qs = qs.filter(is_paid=False)
+        total_charge_unpaid += unpaid_qs.count()
+        total_unpaid_amount += unpaid_qs.aggregate(total=Sum("total_charge_month"))["total"] or 0
 
-        total_unpaid_amount += result["total"] or 0
-
-    # --- UNITS & ANNOUNCEMENTS ---
+    # --- UNITS ---
     if user.is_middle_admin:
         units = Unit.objects.filter(user__manager=user, is_active=True).prefetch_related('renters')
         announcements = Announcement.objects.filter(user=user, is_active=True).order_by('-created_at')[:5]
-
     else:
         units = Unit.objects.filter(user=user, is_active=True).prefetch_related('renters')
-        announcements = Announcement.objects.filter(
-            is_active=True,
-            user=user.manager
-        ).order_by('-created_at')[:5]
+        announcements = Announcement.objects.filter(user=user.manager, is_active=True).order_by('-created_at')[:5]
 
     # --- ACTIVE RENTERS PER UNIT ---
-    units_with_details = []
-    for unit in units:
-        active_renter = unit.renters.filter(renter_is_active=True).first()
-        units_with_details.append({
-            "unit": unit,
-            "active_renter": active_renter
-        })
+    units_with_details = [
+        {"unit": unit, "active_renter": unit.renters.filter(renter_is_active=True).first()}
+        for unit in units
+    ]
 
+    # --- ONLY UNPAID CHARGES ---
+    charge_models = {
+        'charges': FixedChargeCalc,
+        'area_charges': AreaChargeCalc,
+        'person_charges': PersonChargeCalc,
+        'fix_person_charges': FixPersonChargeCalc,
+        'fix_area_charges': FixAreaChargeCalc,
+        'person_area_charges': ChargeByPersonAreaCalc,
+        'fix_person_area_charges': ChargeByFixPersonAreaCalc,
+        'fix_variable_charges': ChargeFixVariableCalc,
+    }
+
+    unpaid_charges_dict = {name: get_unpaid_charges(model, user) for name, model in charge_models.items()}
+
+    # --- SAVE CHANGES ---
+    for charge_list in unpaid_charges_dict.values():
+        for charge in charge_list:
+            charge.save()
+
+    # --- CONTEXT ---
     context = {
         "user": user,
         "units": units,
@@ -218,23 +240,21 @@ def user_panel(request):
         "units_with_details": units_with_details,
         "total_charge": total_charge,
         "total_charge_unpaid": total_charge_unpaid,
-        'total_unpaid_amount': total_unpaid_amount
+        "total_unpaid_amount": total_unpaid_amount,
+
+        # ✔ ADD LAST CHARGES HERE
+        "last_charges": last_charges,
     }
+
+    context.update(unpaid_charges_dict)
 
     return render(request, 'partials/home_template.html', context)
 
 
 # ==================================
 
-def get_user_charges(model, user):
-    return model.objects.filter(
-        user=user,
-        send_notification=True
-    ).select_related('unit').order_by('-created_at')
-
-
 @login_required
-def fetch_user_fixed_charges(request):
+def fetch_user_charges(request):
     unit = Unit.objects.filter(user=request.user, is_active=True).first()
 
     charges = get_user_charges(FixedChargeCalc, request.user)
@@ -245,6 +265,12 @@ def fetch_user_fixed_charges(request):
     person_area_charges = get_user_charges(ChargeByPersonAreaCalc, request.user)
     fix_person_area_charges = get_user_charges(ChargeByFixPersonAreaCalc, request.user)
     fix_variable_charges = get_user_charges(ChargeFixVariableCalc, request.user)
+
+    for charge_list in [charges, area_charges, person_charges, fix_person_charges,
+                        fix_area_charges, person_area_charges, fix_person_area_charges,
+                        fix_variable_charges]:
+        for c in charge_list:
+            c.save()  # با این کار jریمه دیرکرد و total_charge_month بروز می‌شود
 
     context = {
         'unit': unit,

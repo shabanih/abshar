@@ -29,7 +29,7 @@
     direction: rtl;
     margin: auto;
     padding: 10px;
-    border-radius: 12px;
+    border-radius: 5px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
@@ -92,7 +92,7 @@
     transition: background 0.2s;
     cursor: pointer;
      /*width: 40px;          !* عرض دلخواه *!*/
-    height: 63px;         /* ارتفاع ثابت */
+    height: 57px;         /* ارتفاع ثابت */
     vertical-align: top;  /* محتوا از بالا شروع شود */
     position: relative;
 }

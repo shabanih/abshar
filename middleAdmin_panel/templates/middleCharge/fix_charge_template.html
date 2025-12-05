@@ -41,7 +41,7 @@
                                             <td class="p-0">{{charge.name }}</td>
                                             <td>{{unit_count }}</td>
                                             <td class="bg-gradient-light p-0"><strong>{{charge.total_charge_month|three_digit_currency }}</strong></td>
-                                        <td class="col-2">{{charge.details }}</td>
+                                                <td>{{ charge.details|truncatechars:20 }}</td>
                                             	  <td>
                                                    {% if charge.payment_penalty_amount %}
                                                       % {{charge.payment_penalty_amount }}

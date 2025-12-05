@@ -40,7 +40,7 @@
                                             <td>{{charge.name }}</td>
                                             <td>{{total_people }}</td>
                                             <td class="bg-gradient-light">{{charge.person_amount|three_digit_currency }}</td>
-                                         <td>{{charge.details }}</td>
+                                        <td>{{ charge.details|truncatechars:20 }}</td>
                                               <td>{{charge.created_at|show_jalali }}</td>
                                               	  <td>
                                                    {% if charge.payment_penalty_amount %}

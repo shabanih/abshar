@@ -20,10 +20,11 @@
                         <thead class="text-center">
                            <tr>
                             <th>عنوان</th>
-                            <th> جمع کل قابل پرداخت(تومان)</th>
+                            <th> مبلغ قابل پرداخت</th>
                             <th> توضیحات</th>
                             <th>تاریخ ارسال اطلاعیه</th>
                             <th>مهلت پرداخت</th>
+                            <th>جریمه دیرکرد</th>
                             <th>وضعیت پرداخت</th>
                             <th>تاریخ پرداخت</th>
                             <th>مشاهده/دستورات</th>
@@ -35,9 +36,24 @@
                            <tr>
                             <td>{{ charge.charge_name }}</td>
                             <td>{{ charge.total_charge_month|three_digit_currency }} </td>
-                            <td class="col-3">{{ charge.details }} </td>
+                                     <td class="col-3">
+                             {% if charge.details %}
+                                    {{ charge.details|truncatechars:35 }}
+
+                                        {% else %}
+                                        توضیحات ثبت نشده است
+                                    {% endif %} 
+                                </td>
                             <td>{{ charge.send_notification_date|show_jalali }}</td>
                             <td>{{ charge.payment_deadline_date|show_jalali }}</td>
+                              <td>
+                               {% if charge.payment_penalty_price %}
+                                  {{ charge.payment_penalty_price|three_digit_currency }}
+                                      {% else %} 
+                                    ----
+                                   {% endif %} 
+                              </td>
+
                             <td>
                                 {% if charge.is_paid %}
                                     <span class="badge badge-success p-2">پرداخت شده</span>
@@ -45,9 +61,14 @@
                                     <span class="badge badge-danger p-2">پرداخت نشده</span>
                                 {% endif %}
                             </td>
-                             <td>{{ charge.payment_date|show_jalali_date_only }}</td>
+                             <td>       {% if charge.payment_date %}
+                                        {{ charge.payment_date|show_jalali }}
+                                    {% else %} 
+                                    ----
+                                   {% endif %} 
+                             </td>
 {#                             <td>{{ charge.tr }}</td>#}
-                              <td class="shadow_style p-0">
+                              <td class="shadow_style p-1">
                                  <a  href="{% url 'export_fix_charge_pdf' charge.id %}">
                           <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
                                style="width: 35px; height: 33px">
@@ -62,7 +83,7 @@
                 </button> | 
                         	 <a href="{% url 'request_pay_fix' charge.id %}"
                           class="btn btn-gradient-primary p-2">
-                       پرداخت شارژ
+                       پرداخت 
                     </a>
                         {% endif %} 
 
@@ -81,8 +102,16 @@
                                 <p><strong>متراژ واحد:</strong> {{ charge.unit.area}}</p>
                                 <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.amount|three_digit_currency }} تومان</p>
                             <hr/>
+                              {% if charge.civil_charge %}
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
-                                <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                            {% endif %}
+                            {% if charge.other_cost %}
+                            	 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                                {% endif %}
+                                 {% if charge.payment_penalty_price %}
+                                <p><strong>جریمه دیرکرد:</strong> {{ charge.payment_penalty_price|three_digit_currency }} تومان</p>
+                            {% endif %} 
+                               
                                 <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                             <hr/>
                                 <p class=" bg-warning text-wrap"><strong>توضیحات:</strong> 
@@ -94,8 +123,11 @@
                                     
                                 </p>
                                 <p><strong>تاریخ ارسال اطلاعیه:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>
+                                <hr>
+                           {% if charge.transaction_reference %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ charge.payment_date|show_jalali_date_only }}</p>
                                 <p><strong> کد پیگیری:</strong> {{ charge.transaction_reference }}</p>
+                            {% endif %}
                                     <p><strong>وضعیت:</strong> 
                                     {% if charge.is_paid %}
                                     	<span class="badge bg-success">پرداخت شده</span>
@@ -114,7 +146,7 @@
                                {% endfor %}
                             {% else %}
                             <tr>
-                                <td colspan="11" class="text-center">هیچ اطلاعیه ای برای نمایش وجود ندارد.</td>
+                                <td colspan="11" class="text-center">هیچ اطلاعیه شارژی برای نمایش وجود ندارد.</td>
                             </tr>
                          <tbody>
                         {% endif %}
@@ -132,11 +164,13 @@
                 <table class="table table-bordered ">
                     <thead class="text-center">
                          <tr>
+                              <tr>
                             <th>عنوان</th>
-                            <th> جمع کل قابل پرداخت(تومان)</th>
+                            <th> مبلغ قابل پرداخت</th>
                             <th> توضیحات</th>
                             <th>تاریخ ارسال اطلاعیه</th>
                             <th>مهلت پرداخت</th>
+                            <th>جریمه دیرکرد</th>
                             <th>وضعیت پرداخت</th>
                             <th>تاریخ پرداخت</th>
                             <th>مشاهده/دستورات</th>
@@ -150,13 +184,20 @@
                     <td>{{ charge.total_charge_month|three_digit_currency }} </td>
                     <td class="col-3">
                              {% if charge.details %}
-                                        {{ charge.details }} 
+                                          {{ charge.details|truncatechars:35 }}
                                         {% else %}
                                         توضیحات ثبت نشده است
                                     {% endif %} 
                     </td>
                     <td>{{ charge.send_notification_date|show_jalali }}</td>
                     <td>{{ charge.payment_deadline_date|show_jalali }}</td>
+                            <td>
+                               {% if charge.payment_penalty_price %}
+                                  {{ charge.payment_penalty_price }}
+                                      {% else %} 
+                                    ----
+                                   {% endif %} 
+                              </td>
                        <td>
                             {% if charge.is_paid %}
                                 <span class="badge badge-success p-2">پرداخت شده</span>
@@ -172,7 +213,7 @@
                    {% endif %} 
                 </td>
 
-                     <td class="shadow_style p-0">
+                     <td class="shadow_style p-1">
                         <a  href="{% url 'export_area_charge_pdf' charge.id %}">
                           <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
                                style="width: 35px; height: 33px">
@@ -187,7 +228,7 @@
                 </button> | 
                         	 <a href="{% url 'request_pay_area' charge.id %}"
                           class="btn btn-gradient-primary p-2">
-                       پرداخت شارژ
+                       پرداخت 
                     </a>
                         {% endif %} 
 
@@ -207,8 +248,15 @@
                                  <p><strong>مبلغ شارژ به ازای هر متر:</strong> {{ charge.amount|three_digit_currency }} تومان</p>
                                 <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_area_amount|three_digit_currency }} تومان</p>
                             <hr/>
+                                       {% if charge.civil_charge %}
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
-                                <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                            {% endif %}
+                            {% if charge.other_cost %}
+                            	 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                                {% endif %}
+                                 {% if charge.payment_penalty_price %}
+                                <p><strong>جریمه دیرکرد:</strong> {{ charge.payment_penalty_price|three_digit_currency }} تومان</p>
+                            {% endif %} 
                                 <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                             <hr/>
                                 <p class="bg-warning text-wrap"><strong>توضیحات:</strong> 
@@ -220,15 +268,17 @@
                                     
                                 </p>
                                 <p><strong>تاریخ ارسال اطلاعیه:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>
+                                <hr>
+                           {% if charge.transaction_reference %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ charge.payment_date|show_jalali_date_only }}</p>
                                 <p><strong> کد پیگیری:</strong> {{ charge.transaction_reference }}</p>
+                            {% endif %}
                                     <p><strong>وضعیت:</strong> 
                                     {% if charge.is_paid %}
                                     	<span class="badge bg-success">پرداخت شده</span>
                                         {% else %}
                                         <span class="badge bg-danger">پرداخت نشده</span></p>
-                                    {% endif %} 
-                                    
+                                    {% endif %}
                             </div>
                             <div class="modal-footer">
                                 <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>
@@ -240,7 +290,7 @@
                         {% endfor %}
                             {% else %}
                             <tr>
-                                <td colspan="11" class="text-center">هیچ اطلاعیه ای برای نمایش وجود ندارد.</td>
+                                <td colspan="11" class="text-center">هیچ اطلاعیه شارژی برای نمایش وجود ندارد.</td>
                             </tr>
                      <tbody>
                     {% endif %}
@@ -256,12 +306,13 @@
      <div class="table-responsive p-0">
                 <table class="table table-bordered" >
                       <thead>
-                               <tr>
+                          <tr>
                             <th>عنوان</th>
-                            <th> جمع کل قابل پرداخت(تومان)</th>
+                            <th> مبلغ قابل پرداخت</th>
                             <th> توضیحات</th>
                             <th>تاریخ ارسال اطلاعیه</th>
                             <th>مهلت پرداخت</th>
+                            <th>جریمه دیرکرد</th>
                             <th>وضعیت پرداخت</th>
                             <th>تاریخ پرداخت</th>
                             <th>مشاهده/دستورات</th>
@@ -273,16 +324,23 @@
                         <tr>
                     <td>{{ charge.charge_name}}</td>
                     <td>{{ charge.total_charge_month|three_digit_currency }} </td>
-                    <td class="col-3">
-                             {% if charge.details %}
-                                        {{ charge.details }} 
+                    <td class="col-3 ">
+                           {% if charge.details %}
+                            {{ charge.details|truncatechars:35 }}
                                         {% else %}
                                         توضیحات ثبت نشده است
                                     {% endif %} 
                     </td>
                     <td>{{ charge.send_notification_date|show_jalali }}</td>
                     <td>{{ charge.payment_deadline_date|show_jalali }}</td>
-                       <td>
+                     <td>
+                               {% if charge.payment_penalty_price %}
+                                  {{ charge.payment_penalty_price }}
+                                      {% else %} 
+                                    ----
+                                   {% endif %} 
+                              </td>
+                        <td>
                             {% if charge.is_paid %}
                                 <span class="badge badge-success p-2">پرداخت شده</span>
                             {% else %}
@@ -297,7 +355,7 @@
                    {% endif %} 
                 </td>
 
-                     <td class="shadow_style p-0">
+                     <td class="shadow_style p-1">
                         <a  href="{% url 'export_person_charge_pdf' charge.id %}">
                           <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
                                style="width: 35px; height: 33px">
@@ -312,7 +370,7 @@
                 </button> | 
                         	 <a href="{% url 'request_pay_person' charge.id %}"
                           class="btn btn-gradient-primary p-2">
-                       پرداخت شارژ
+                       پرداخت 
                     </a>
                         {% endif %} 
 
@@ -332,8 +390,15 @@
                                  <p><strong>مبلغ شارژ به ازای هر نفر:</strong> {{ charge.amount|three_digit_currency }} تومان</p>
                                 <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
                             <hr/>
+                                        {% if charge.civil_charge %}
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
-                                <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                            {% endif %}
+                            {% if charge.other_cost %}
+                            	 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                                {% endif %}
+                                 {% if charge.payment_penalty_price %}
+                                <p><strong>جریمه دیرکرد:</strong> {{ charge.payment_penalty_price|three_digit_currency }} تومان</p>
+                            {% endif %} 
                                 <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                             <hr/>
                                 <p class="badge bg-warning"><strong>توضیحات:</strong> 
@@ -345,8 +410,11 @@
                                     
                                 </p>
                                 <p><strong>تاریخ ارسال اطلاعیه:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>
+                                <hr>
+                           {% if charge.transaction_reference %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ charge.payment_date|show_jalali_date_only }}</p>
                                 <p><strong> کد پیگیری:</strong> {{ charge.transaction_reference }}</p>
+                            {% endif %}
                                     <p><strong>وضعیت:</strong> 
                                     {% if charge.is_paid %}
                                     	<span class="badge bg-success">پرداخت شده</span>
@@ -365,7 +433,7 @@
                   {% endfor %}
                             {% else %}
                             <tr>
-                                <td colspan="10" class="text-center">هیچ اطلاعیه ای برای نمایش وجود ندارد.</td>
+                                <td colspan="10" class="text-center">هیچ اطلاعیه شارژی برای نمایش وجود ندارد.</td>
                             </tr>
                      <tbody>
                     {% endif %}
@@ -381,12 +449,13 @@
                <div class="table-responsive p-0 mt-3">
                 <table class="table table-bordered" >
                       <thead>
-                             <tr>
+                        <tr>
                             <th>عنوان</th>
-                            <th> جمع کل قابل پرداخت(تومان)</th>
+                            <th> مبلغ قابل پرداخت</th>
                             <th> توضیحات</th>
                             <th>تاریخ ارسال اطلاعیه</th>
                             <th>مهلت پرداخت</th>
+                            <th>جریمه دیرکرد</th>
                             <th>وضعیت پرداخت</th>
                             <th>تاریخ پرداخت</th>
                             <th>مشاهده/دستورات</th>
@@ -400,13 +469,20 @@
                     <td>{{ charge.total_charge_month|three_digit_currency }} </td>
                     <td class="col-3">
                              {% if charge.details %}
-                                        {{ charge.details }} 
+                                       {{ charge.details|truncatechars:35 }}
                                         {% else %}
                                         توضیحات ثبت نشده است
                                     {% endif %} 
                     </td>
                     <td>{{ charge.send_notification_date|show_jalali }}</td>
                     <td>{{ charge.payment_deadline_date|show_jalali }}</td>
+                    <td>
+                               {% if charge.payment_penalty_price %}
+                                  {{ charge.payment_penalty_price }}
+                                      {% else %} 
+                                    ----
+                                   {% endif %} 
+                              </td>
                        <td>
                             {% if charge.is_paid %}
                                 <span class="badge badge-success p-2">پرداخت شده</span>
@@ -422,7 +498,7 @@
                    {% endif %} 
                 </td>
            
-                  <td class="shadow_style p-0">
+                  <td class="shadow_style p-1">
                        <a  href="{% url 'export_fix_person_charge_pdf' charge.id %}">
                           <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
                                style="width: 35px; height: 33px">
@@ -437,7 +513,7 @@
                 </button> | 
                         	 <a href="{% url 'request_pay_fix_person' charge.id %}"
                           class="btn btn-gradient-primary p-2">
-                       پرداخت شارژ
+                       پرداخت 
                     </a>
                         {% endif %} 
 
@@ -457,8 +533,15 @@
                                  <p><strong>مبلغ شارژ به ازای هر نفر:</strong> {{ charge.amount|three_digit_currency }} تومان</p>
                                 <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
                             <hr/>
+                                       {% if charge.civil_charge %}
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
-                                <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                            {% endif %}
+                            {% if charge.other_cost %}
+                            	 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                                {% endif %}
+                                 {% if charge.payment_penalty_price %}
+                                <p><strong>جریمه دیرکرد:</strong> {{ charge.payment_penalty_price|three_digit_currency }} تومان</p>
+                            {% endif %} 
                                 <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                             <hr>
                                 <p class="bg-warning"><strong>توضیحات:</strong> 
@@ -469,9 +552,14 @@
                                     {% endif %} 
                                     
                                 </p>
+                                  <p><strong>تاریخ ارسال اطلاعیه:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>
+
+                              <hr>
+                           {% if charge.transaction_reference %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ charge.payment_date|show_jalali_date_only }}</p>
                                 <p><strong> کد پیگیری:</strong> {{ charge.transaction_reference }}</p>
-                                 <p><strong>وضعیت:</strong> 
+                            {% endif %}
+                                    <p><strong>وضعیت:</strong> 
                                     {% if charge.is_paid %}
                                     	<span class="badge bg-success">پرداخت شده</span>
                                         {% else %}
@@ -491,7 +579,7 @@
                   {% endfor %}
                             {% else %}
                             <tr>
-                                <td colspan="11" class="text-center">هیچ اطلاعیه ای برای نمایش وجود ندارد.</td>
+                                <td colspan="11" class="text-center">هیچ اطلاعیه شارژی برای نمایش وجود ندارد.</td>
                             </tr>
                      <tbody>
                     {% endif %}
@@ -506,12 +594,13 @@
                <div class="table-responsive p-0">
                 <table class="table table-bordered" >
                       <thead>
-                          <tr>
+                        <tr>
                             <th>عنوان</th>
-                            <th> جمع کل قابل پرداخت(تومان)</th>
+                            <th> مبلغ قابل پرداخت</th>
                             <th> توضیحات</th>
                             <th>تاریخ ارسال اطلاعیه</th>
                             <th>مهلت پرداخت</th>
+                            <th>جریمه دیرکرد</th>
                             <th>وضعیت پرداخت</th>
                             <th>تاریخ پرداخت</th>
                             <th>مشاهده/دستورات</th>
@@ -525,13 +614,20 @@
                     <td>{{ charge.total_charge_month|three_digit_currency }} </td>
                     <td class="col-3">
                              {% if charge.details %}
-                                        {{ charge.details }} 
+                                        {{ charge.details|truncatechars:35 }}
                                         {% else %}
                                         توضیحات ثبت نشده است
                                     {% endif %} 
                     </td>
                     <td>{{ charge.send_notification_date|show_jalali }}</td>
                  <td>{{ charge.payment_deadline_date|show_jalali }}</td>
+                    <td>
+                               {% if charge.payment_penalty_price %}
+                                  {{ charge.payment_penalty_price }}
+                                      {% else %} 
+                                    ----
+                                   {% endif %} 
+                              </td>
                        <td>
                             {% if charge.is_paid %}
                                 <span class="badge badge-success p-2">پرداخت شده</span>
@@ -547,7 +643,7 @@
                    {% endif %} 
                 </td>
            
-                  <td class="shadow_style p-0">
+                  <td class="shadow_style p-1">
                        <a  href="{% url 'export_fix_area_charge_pdf' charge.id %}">
                           <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
                                style="width: 35px; height: 33px">
@@ -562,7 +658,7 @@
                 </button> | 
                         	 <a href="{% url 'request_pay_fix_area' charge.id %}"
                           class="btn btn-gradient-primary p-2">
-                       پرداخت شارژ
+                       پرداخت 
                     </a>
                         {% endif %} 
 
@@ -582,8 +678,15 @@
                                  <p><strong>مبلغ شارژ به ازای هر متر:</strong> {{ charge.amount|three_digit_currency }} تومان</p>
                                 <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
                                <hr/>
+                                   {% if charge.civil_charge %}
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
-                                <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                            {% endif %}
+                            {% if charge.other_cost %}
+                            	 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                                {% endif %}
+                                 {% if charge.payment_penalty_price %}
+                                <p><strong>جریمه دیرکرد:</strong> {{ charge.payment_penalty_price|three_digit_currency }} تومان</p>
+                            {% endif %} 
                                 <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                             <hr>
                                 <p class="badge bg-warning"><strong>توضیحات:</strong> 
@@ -594,11 +697,16 @@
                                     {% endif %} 
                                     
                                 </p>
+                                    <p><strong>تاریخ ارسال اطلاعیه:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>
+
+                              <hr>
+                           {% if charge.transaction_reference %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ charge.payment_date|show_jalali_date_only }}</p>
                                 <p><strong> کد پیگیری:</strong> {{ charge.transaction_reference }}</p>
-                                 <p><strong>وضعیت:</strong> 
+                            {% endif %}
+                                    <p><strong>وضعیت:</strong> 
                                     {% if charge.is_paid %}
-                                    	<span class="badge bg-success">پرداخت شده</span></p>
+                                    	<span class="badge bg-success">پرداخت شده</span>
                                         {% else %}
                                         <span class="badge bg-danger">پرداخت نشده</span></p>
                                     {% endif %} 
@@ -631,12 +739,13 @@
                <div class="table-responsive p-0">
                 <table class="table table-bordered" >
                       <thead>
-                          <tr>
+                 <tr>
                             <th>عنوان</th>
-                            <th> جمع کل قابل پرداخت(تومان)</th>
+                            <th> مبلغ قابل پرداخت</th>
                             <th> توضیحات</th>
                             <th>تاریخ ارسال اطلاعیه</th>
                             <th>مهلت پرداخت</th>
+                            <th>جریمه دیرکرد</th>
                             <th>وضعیت پرداخت</th>
                             <th>تاریخ پرداخت</th>
                             <th>مشاهده/دستورات</th>
@@ -650,13 +759,20 @@
                     <td>{{ charge.total_charge_month|three_digit_currency }} </td>
                     <td class="col-3">
                              {% if charge.details %}
-                                        {{ charge.details }} 
+                                      {{ charge.details|truncatechars:35 }}
                                         {% else %}
                                         توضیحات ثبت نشده است
                                     {% endif %} 
                     </td>
                     <td>{{ charge.send_notification_date|show_jalali }}</td>
                   <td>{{ charge.payment_deadline_date|show_jalali }}</td>
+                        <td>
+                               {% if charge.payment_penalty_price %}
+                                  {{ charge.payment_penalty_price }}
+                                      {% else %} 
+                                    ----
+                                   {% endif %} 
+                              </td>
                        <td>
                             {% if charge.is_paid %}
                                 <span class="badge badge-success p-2">پرداخت شده</span>
@@ -672,7 +788,7 @@
                    {% endif %} 
                 </td>
            
-                  <td class="shadow_style p-0">
+                  <td class="shadow_style p-1">
                        <a  href="{% url 'export_person_area_charge_pdf' charge.id %}">
                           <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
                                style="width: 35px; height: 33px">
@@ -687,7 +803,7 @@
                 </button> | 
                         	 <a href="{% url 'request_pay_person_area' charge.id %}"
                           class="btn btn-gradient-primary p-2">
-                       پرداخت شارژ
+                       پرداخت 
                     </a>
                         {% endif %} 
 
@@ -708,8 +824,15 @@
                                  <p><strong>مبلغ شارژ به ازای هر متر:</strong> {{ charge.area_charge|three_digit_currency }} تومان</p>
                                 <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
                             <hr/>
+                                       {% if charge.civil_charge %}
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
-                                <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                            {% endif %}
+                            {% if charge.other_cost %}
+                            	 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                                {% endif %}
+                                 {% if charge.payment_penalty_price %}
+                                <p><strong>جریمه دیرکرد:</strong> {{ charge.payment_penalty_price|three_digit_currency }} تومان</p>
+                            {% endif %} 
                                 <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                                 <hr>
                                 <p class="bg-warning"><strong>توضیحات:</strong> 
@@ -720,11 +843,16 @@
                                     {% endif %} 
                                     
                                 </p>
+                                    <p><strong>تاریخ ارسال اطلاعیه:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>
+
+                              <hr>
+                           {% if charge.transaction_reference %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ charge.payment_date|show_jalali_date_only }}</p>
                                 <p><strong> کد پیگیری:</strong> {{ charge.transaction_reference }}</p>
+                            {% endif %}
                                     <p><strong>وضعیت:</strong> 
                                     {% if charge.is_paid %}
-                                    	<span class="badge bg-success">پرداخت شده</span></p>
+                                    	<span class="badge bg-success">پرداخت شده</span>
                                         {% else %}
                                         <span class="badge bg-danger">پرداخت نشده</span></p>
                                     {% endif %} 
@@ -741,7 +869,7 @@
                   {% endfor %}
                             {% else %}
                             <tr>
-                                <td colspan="11" class="text-center">هیچ اطلاعیه ای برای نمایش وجود ندارد.</td>
+                                <td colspan="11" class="text-center">هیچ اطلاعیه شارژی برای نمایش وجود ندارد.</td>
                             </tr>
                      <tbody>
                     {% endif %}
@@ -756,12 +884,13 @@
                <div class="table-responsive p-0">
                 <table class="table table-bordered" >
                       <thead>
-                         <tr>
+                     <tr>
                             <th>عنوان</th>
-                            <th> جمع کل قابل پرداخت(تومان)</th>
+                            <th> مبلغ قابل پرداخت</th>
                             <th> توضیحات</th>
                             <th>تاریخ ارسال اطلاعیه</th>
-                               <th>مهلت پرداخت</th>
+                            <th>مهلت پرداخت</th>
+                            <th>جریمه دیرکرد</th>
                             <th>وضعیت پرداخت</th>
                             <th>تاریخ پرداخت</th>
                             <th>مشاهده/دستورات</th>
@@ -775,13 +904,20 @@
                     <td>{{ charge.total_charge_month|three_digit_currency }} </td>
                     <td class="col-3">
                              {% if charge.details %}
-                                        {{ charge.details }} 
+                                         {{ charge.details|truncatechars:35 }}
                                         {% else %}
                                         توضیحات ثبت نشده است
                                     {% endif %} 
                     </td>
                     <td>{{ charge.send_notification_date|show_jalali }}</td>
                <td>{{ charge.payment_deadline_date|show_jalali }}</td>
+                    <td>
+                               {% if charge.payment_penalty_price %}
+                                  {{ charge.payment_penalty_price }}
+                                      {% else %} 
+                                    ----
+                                   {% endif %} 
+                              </td>
                        <td>
                             {% if charge.is_paid %}
                                 <span class="badge badge-success p-2">پرداخت شده</span>
@@ -797,7 +933,7 @@
                    {% endif %} 
                 </td>
            
-                  <td class="shadow_style p-0">
+                  <td class="shadow_style p-1">
                        <a  href="{% url 'export_fix_person_area_charge_pdf' charge.id %}">
                           <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
                                style="width: 35px; height: 33px">
@@ -812,7 +948,7 @@
                 </button> | 
                         	 <a href="{% url 'request_pay_fix_person_area' charge.id %}"
                           class="btn btn-gradient-primary p-2">
-                       پرداخت شارژ
+                       پرداخت 
                     </a>
                         {% endif %} 
 
@@ -834,8 +970,15 @@
                                  <p><strong>مبلغ شارژ به ازای هر متر:</strong> {{ charge.area_charge|three_digit_currency }} تومان</p>
                                 <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
                             <hr/>
+                                        {% if charge.civil_charge %}
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
-                                <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                            {% endif %}
+                            {% if charge.other_cost %}
+                            	 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                                {% endif %}
+                                 {% if charge.payment_penalty_price %}
+                                <p><strong>جریمه دیرکرد:</strong> {{ charge.payment_penalty_price|three_digit_currency }} تومان</p>
+                            {% endif %} 
                                 <p class="text-dark shadow_style"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                             <hr/>
                                 <p class="bg-warning"><strong>توضیحات:</strong> 
@@ -846,8 +989,13 @@
                                     {% endif %} 
                                     
                                 </p>
+                                     <p><strong>تاریخ ارسال اطلاعیه:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>
+
+                              <hr>
+                           {% if charge.transaction_reference %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ charge.payment_date|show_jalali_date_only }}</p>
                                 <p><strong> کد پیگیری:</strong> {{ charge.transaction_reference }}</p>
+                            {% endif %}
                                     <p><strong>وضعیت:</strong> 
                                     {% if charge.is_paid %}
                                     	<span class="badge bg-success">پرداخت شده</span>
@@ -867,7 +1015,7 @@
                   {% endfor %}
                             {% else %}
                             <tr>
-                                <td colspan="11" class="text-center">هیچ اطلاعیه ای برای نمایش وجود ندارد.</td>
+                                <td colspan="11" class="text-center">هیچ اطلاعیه شارژی برای نمایش وجود ندارد.</td>
                             </tr>
                      <tbody>
                     {% endif %}
@@ -882,12 +1030,13 @@
                <div class="table-responsive p-0">
                 <table class="table table-bordered" >
                       <thead>
-                               <tr>
+                           <tr>
                             <th>عنوان</th>
-                            <th> جمع کل قابل پرداخت(تومان)</th>
+                            <th> مبلغ قابل پرداخت</th>
                             <th> توضیحات</th>
                             <th>تاریخ ارسال اطلاعیه</th>
                             <th>مهلت پرداخت</th>
+                            <th>جریمه دیرکرد</th>
                             <th>وضعیت پرداخت</th>
                             <th>تاریخ پرداخت</th>
                             <th>مشاهده/دستورات</th>
@@ -901,7 +1050,7 @@
                     <td>{{ charge.total_charge_month|three_digit_currency }} </td>
                     <td class="col-3">
                              {% if charge.details %}
-                                        {{ charge.details }} 
+                                   {{ charge.details|truncatechars:35 }}
                                         {% else %}
                                         توضیحات ثبت نشده است
                                     {% endif %} 
@@ -909,6 +1058,13 @@
                
                     <td>{{ charge.send_notification_date|show_jalali }}</td>
                 <td>{{ charge.payment_deadline_date|show_jalali }}</td>
+                       <td>
+                               {% if charge.payment_penalty_price %}
+                                  {{ charge.payment_penalty_price }}
+                                      {% else %} 
+                                    ----
+                                   {% endif %} 
+                              </td>
                        <td>
                             {% if charge.is_paid %}
                                 <span class="badge badge-success p-2">پرداخت شده</span>
@@ -925,7 +1081,7 @@
                    {% endif %} 
                 </td>
            
-                  <td class="shadow_style p-0">
+                  <td class="shadow_style p-1">
                       <a  href="{% url 'export_fix_variable_charge_pdf' charge.id %}">
                           <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
                                style="width: 35px; height: 33px">
@@ -940,7 +1096,7 @@
                 </button> | 
                         	 <a href="{% url 'request_pay_fix_variable' charge.id %}"
                           class="btn btn-gradient-primary p-2">
-                       پرداخت شارژ
+                       پرداخت 
                     </a>
                         {% endif %} 
 
@@ -963,11 +1119,21 @@
                                  <p><strong>مبلغ شارژ به ازای هر متر:</strong> {{ charge.unit_variable_area_charge|three_digit_currency }} تومان</p>
                                 <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.final_person_amount|three_digit_currency }} تومان</p>
                             <hr/>
+                           
+                                       {% if charge.civil_charge %}
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
-                                <p><strong>اجاره پارکینگ اضافه({{ charge.unit.parking_count }} ):</strong> 
+                            {% endif %}
+                                  {% if extra_parking_charges %}
+                                 <p><strong>اجاره پارکینگ اضافه({{ charge.unit.parking_count }} ):</strong> 
                                     {{ charge.extra_parking_charges|three_digit_currency }} تومان
                                 </p>
-                                <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                                   {% endif %}
+                            {% if charge.other_cost %}
+                            	 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+                                {% endif %}
+                                 {% if charge.payment_penalty_price %}
+                                <p><strong>جریمه دیرکرد:</strong> {{ charge.payment_penalty_price|three_digit_currency }} تومان</p>
+                            {% endif %} 
                                 <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                               <hr>
                                 <p class="bg-warning"><strong>توضیحات:</strong> 
@@ -978,8 +1144,13 @@
                                     {% endif %} 
                                     
                                 </p>
+                                   <p><strong>تاریخ ارسال اطلاعیه:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>
+
+                              <hr>
+                           {% if charge.transaction_reference %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ charge.payment_date|show_jalali_date_only }}</p>
                                 <p><strong> کد پیگیری:</strong> {{ charge.transaction_reference }}</p>
+                            {% endif %}
                                     <p><strong>وضعیت:</strong> 
                                     {% if charge.is_paid %}
                                     	<span class="badge bg-success">پرداخت شده</span>
@@ -999,7 +1170,7 @@
                   {% endfor %}
                             {% else %}
                             <tr>
-                                <td colspan="11" class="text-center">هیچ اطلاعیه ای برای نمایش وجود ندارد.</td>
+                                <td colspan="11" class="text-center">هیچ اطلاعیه شارژی برای نمایش وجود ندارد.</td>
                             </tr>
                      <tbody>
                     {% endif %}

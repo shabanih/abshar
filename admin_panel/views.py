@@ -38,7 +38,7 @@ from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDo
     MaintenanceDocument, FixedChargeCalc, ChargeByPersonArea, AreaChargeCalc, PersonChargeCalc, FixAreaChargeCalc, \
     FixPersonChargeCalc, ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
     FixPersonCharge, FixAreaCharge, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariable, \
-    ChargeFixVariableCalc, SmsManagement, Fund
+    ChargeFixVariableCalc, SmsManagement, Fund, UnifiedCharge
 from notifications.models import AdminTicket
 from user_app.models import Unit, Bank, Renter, User, MyHouse, ChargeMethod, CalendarNote
 from django.contrib.auth import get_user_model
@@ -3350,6 +3350,10 @@ def send_notification_area_charge_to_user(request, pk):
                     fixed_calc.send_notification = True
                     fixed_calc.send_notification_date = timezone.now()
                     fixed_calc.save()
+                    UnifiedCharge.objects.filter(
+                        related_object_type='area',
+                        related_object_id=fixed_calc.id
+                    ).update(send_notification_date=fixed_calc.send_notification_date)
                     notified_units.append(str(unit))
             else:
                 notified_units.append(str(unit))
@@ -3365,6 +3369,7 @@ def send_notification_area_charge_to_user(request, pk):
         area_charge.send_notification = True
         area_charge.send_sms = True
         area_charge.save()
+
 
     if notified_units:
         messages.success(request, 'اطلاعیه برای واحدهای انتخابی ارسال شد!')
