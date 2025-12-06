@@ -38,7 +38,8 @@ from admin_panel.models import Announcement, ExpenseCategory, Expense, Fund, Exp
     IncomeDocument, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, FixCharge, FixedChargeCalc, AreaCharge, AreaChargeCalc, PersonCharge, PersonChargeCalc, \
     FixAreaCharge, FixAreaChargeCalc, FixPersonCharge, FixPersonChargeCalc, ChargeByPersonArea, ChargeByPersonAreaCalc, \
-    ChargeByFixPersonArea, ChargeByFixPersonAreaCalc, ChargeFixVariable, ChargeFixVariableCalc, SmsManagement
+    ChargeByFixPersonArea, ChargeByFixPersonAreaCalc, ChargeFixVariable, ChargeFixVariableCalc, SmsManagement, \
+    UnifiedCharge
 from admin_panel.views import admin_required
 from notifications.models import Notification, SupportUser
 
@@ -2860,9 +2861,13 @@ def middle_send_notification_fix_charge_to_user(request, pk):
         return redirect('middle_show_notification_fix_charge_form', pk=pk)
 
     notified_units = []
+    charge_type = 'fixed'
+
+    charge_type = 'fixed'  # نوع شارژ (با سیستم شما هماهنگ است)
 
     with transaction.atomic():
         for unit in units_to_notify:
+
             fixed_calc, created = FixedChargeCalc.objects.get_or_create(
                 unit=unit,
                 fix_charge=fix_charge,
@@ -2881,14 +2886,28 @@ def middle_send_notification_fix_charge_to_user(request, pk):
                 }
             )
 
-            if not created:
-                if not fixed_calc.send_notification:
-                    fixed_calc.send_notification = True
-                    fixed_calc.send_notification_date = timezone.now().date()
-                    fixed_calc.save()
-                    notified_units.append(str(unit))
-            else:
-                notified_units.append(str(unit))
+            # اگر قبلاً بوده ولی notify نشده بود → فعالش کن
+            if not created and not fixed_calc.send_notification:
+                fixed_calc.send_notification = True
+                fixed_calc.send_notification_date = timezone.now().date()
+                fixed_calc.save()
+
+            # ثبت این واحد در لیست ارسال‌شده‌ها
+            notified_units.append(str(unit))
+
+            # ---- ساخت یا آپدیت UnifiedCharge ----
+            UnifiedCharge.objects.update_or_create(
+                related_object_id=fixed_calc.id,
+                related_object_type=charge_type,
+                defaults={
+                    'user': fixed_calc.user,
+                    'charge_type': charge_type,
+                    'amount': fixed_calc.total_charge_month or 0,
+                    'description': fixed_calc.charge_name,
+                    'send_notification_date': fixed_calc.send_notification_date,
+                    'payment_deadline_date': fixed_calc.payment_deadline_date,
+                }
+            )
 
         # total_charge = fixed_calc.total_charge_month or 0
         # helper.send_notify_user_by_sms(
@@ -2917,42 +2936,76 @@ def middle_remove_send_notification_fix(request, pk):
 
     charge = get_object_or_404(FixCharge, id=pk)
     selected_units = request.POST.getlist('units[]')
+    charge_type = 'fixed'   # نوع شارژ مطابق سیستم شما
 
     if not selected_units:
         return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
 
     try:
+        # =========================
+        # ✔ حالت انتخاب همه واحدها
+        # =========================
         if selected_units == ['all']:
-            deleted_count, _ = FixedChargeCalc.objects.filter(
+
+            # تمام رکوردهای FixedChargeCalc قابل حذف
+            qs = FixedChargeCalc.objects.filter(
                 fix_charge=charge,
                 is_paid=False
+            )
+
+            # گرفتن ID ها قبل از حذف
+            calc_ids = list(qs.values_list('id', flat=True))
+
+            deleted_count = qs.count()
+            qs.delete()
+
+            # حذف UnifiedCharge های مربوط به این رکوردها
+            UnifiedCharge.objects.filter(
+                related_object_id__in=calc_ids,
+                related_object_type=charge_type
             ).delete()
 
-            # غیر فعال کردن ارسال اطلاعیه
-            charge.send_notification = False
-            charge.save()
+            # اگر هیچ رکوردی باقی نماند → خاموش کردن اعلان
+            if not FixedChargeCalc.objects.filter(fix_charge=charge).exists():
+                charge.send_notification = False
+                charge.save()
 
             if deleted_count:
                 return JsonResponse({'success': f'{deleted_count} اطلاعیه با موفقیت حذف شد.'})
             else:
                 return JsonResponse({'info': 'اطلاعیه‌ای برای حذف یافت نشد.'})
 
-        # در غیر این صورت، حذف براساس واحدهای انتخاب‌شده
-        selected_unit_ids = [int(uid) for uid in selected_units if uid.isdigit()]
-        if not selected_unit_ids:
-            return JsonResponse({'error': 'شناسه‌های واحد نامعتبر هستند.'}, status=400)
+        # ============================
+        # ✔ حذف براساس واحدهای انتخاب‌شده
+        # ============================
+
+        try:
+            selected_unit_ids = [int(uid) for uid in selected_units]
+        except ValueError:
+            return JsonResponse({'error': 'شناسه واحد نامعتبر است.'}, status=400)
 
         units_qs = Unit.objects.filter(id__in=selected_unit_ids, is_active=True)
+
         if not units_qs.exists():
             return JsonResponse({'warning': 'هیچ واحد معتبری یافت نشد.'})
 
-        deleted_count, _ = FixedChargeCalc.objects.filter(
+        qs = FixedChargeCalc.objects.filter(
             fix_charge=charge,
             unit__in=units_qs,
             is_paid=False
+        )
+
+        calc_ids = list(qs.values_list('id', flat=True))
+        deleted_count = qs.count()
+        qs.delete()
+
+        # حذف UnifiedCharge
+        UnifiedCharge.objects.filter(
+            related_object_id__in=calc_ids,
+            related_object_type=charge_type
         ).delete()
 
-        # بررسی اینکه آیا رکوردی باقی مانده یا نه
+        # اگر تمام رکوردها حذف شدند → ارسال اعلان غیرفعال شود
         if not FixedChargeCalc.objects.filter(fix_charge=charge).exists():
             charge.send_notification = False
             charge.save()
@@ -3204,10 +3257,12 @@ def middle_send_notification_area_charge_to_user(request, pk):
         return redirect('middle_show_notification_area_charge_form', pk=pk)
 
     notified_units = []
+    charge_type = 'area'  # برای UnifiedCharge
 
     with transaction.atomic():
         for unit in units_to_notify:
-            fixed_calc, created = AreaChargeCalc.objects.get_or_create(
+
+            calc_obj, created = AreaChargeCalc.objects.get_or_create(
                 unit=unit,
                 area_charge=area_charge,
                 defaults={
@@ -3218,27 +3273,36 @@ def middle_send_notification_area_charge_to_user(request, pk):
                     'details': area_charge.details,
                     'payment_deadline_date': area_charge.payment_deadline,
                     'send_notification': True,
-                    'send_notification_date': timezone.now().date()
+                    'send_notification_date': timezone.now().date(),
                 }
             )
 
+            # اگر قبلاً ایجاد شده بود ولی اطلاع‌رسانی نشده بود → فعال کن
             if not created:
-                if not fixed_calc.send_notification:
-                    fixed_calc.send_notification = True
-                    fixed_calc.send_notification_date = timezone.now().date()
-                    fixed_calc.save()
-                    notified_units.append(str(unit))
-            else:
-                notified_units.append(str(unit))
+                if not calc_obj.send_notification:
+                    calc_obj.send_notification = True
+                    calc_obj.send_notification_date = timezone.now().date()
+                    calc_obj.save()
 
-        # total_charge = fixed_calc.total_charge_month or 0
-        # helper.send_notify_user_by_sms(
-        #     unit.user.username,
-        #     fix_charge=total_charge,
-        #     name=unit.user.name,
-        #     otp=None
-        # )
+            notified_units.append(str(unit))
 
+            # ===========================
+            # ✔ ایجاد یا آپدیت UnifiedCharge
+            # ===========================
+            UnifiedCharge.objects.update_or_create(
+                related_object_id=calc_obj.id,
+                related_object_type=charge_type,
+                defaults={
+                    'user': calc_obj.user,
+                    'charge_type': charge_type,
+                    'amount': getattr(calc_obj, 'total_charge_month', calc_obj.amount),
+                    'description': calc_obj.charge_name,
+                    'send_notification_date': calc_obj.send_notification_date,
+                    'payment_deadline_date': calc_obj.payment_deadline_date,
+                }
+            )
+
+        # به‌روزرسانی خود AreaCharge
         area_charge.send_notification = True
         area_charge.send_sms = True
         area_charge.save()
@@ -3250,63 +3314,102 @@ def middle_send_notification_area_charge_to_user(request, pk):
 
     return redirect('middle_show_notification_area_charge_form', pk=pk)
 
-
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_remove_send_notification_area(request, pk):
-    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        unit_ids = request.POST.getlist('units[]')
-        if not unit_ids:
-            return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
+    if request.method != 'POST' or request.headers.get('x-requested-with') != 'XMLHttpRequest':
+        return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
 
-        charge = get_object_or_404(AreaCharge, id=pk)
+    charge = get_object_or_404(AreaCharge, id=pk)
+    unit_ids = request.POST.getlist('units[]')
+    charge_type = 'area'  # نوع برای UnifiedCharge
 
+    if not unit_ids:
+        return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
+
+    try:
+        # ================================
+        # ✔ حالت حذف همه
+        # ================================
         if 'all' in unit_ids:
-            deleted_count, _ = AreaChargeCalc.objects.filter(
+
+            qs = AreaChargeCalc.objects.filter(
                 area_charge=charge,
                 is_paid=False
+            )
+
+            calc_ids = list(qs.values_list('id', flat=True))
+            deleted_count = qs.count()
+
+            # حذف AreaChargeCalc
+            qs.delete()
+
+            # حذف UnifiedCharge مرتبط
+            UnifiedCharge.objects.filter(
+                related_object_id__in=calc_ids,
+                related_object_type=charge_type
             ).delete()
-            charge.send_notification = False
-            charge.save()
+
+            # اگر هیچ رکوردی نماند → اعلان غیرفعال شود
+            if not AreaChargeCalc.objects.filter(area_charge=charge).exists():
+                charge.send_notification = False
+                charge.save()
 
             return JsonResponse({'success': f'{deleted_count} اطلاعیه با موفقیت حذف شد.'})
 
+        # ================================
+        # ✔ حالت حذف انتخابی
+        # ================================
         try:
-            selected_ids = [int(uid) for uid in unit_ids if uid.isdigit()]
+            selected_ids = [int(uid) for uid in unit_ids]
         except ValueError:
             return JsonResponse({'error': 'شناسه‌های ارسال‌شده معتبر نیستند.'}, status=400)
 
-        not_send_notifications = AreaChargeCalc.objects.filter(
+        # اطلاعیه صادر نشده
+        not_send = AreaChargeCalc.objects.filter(
             area_charge=charge,
             unit_id__in=selected_ids,
             send_notification=False
         )
-        if not_send_notifications.exists():
-            return JsonResponse({'error': 'اطلاعیه برای این واحد صادر نشده است.'}, status=400)
+        if not_send.exists():
+            return JsonResponse({'error': 'اطلاعیه برای برخی واحدها صادر نشده است.'})
 
-        paid_notifications = AreaChargeCalc.objects.filter(
+        # پرداخت شده → قابل حذف نیست
+        paid_qs = AreaChargeCalc.objects.filter(
             area_charge=charge,
             unit_id__in=selected_ids,
             is_paid=True
         )
-        if paid_notifications.exists():
-            return JsonResponse({'error': 'اطلاعیه به‌دلیل ثبت پرداخت توسط واحد قابل حذف نیست.'}, status=400)
+        if paid_qs.exists():
+            return JsonResponse({'error': 'برخی واحدها پرداخت انجام داده‌اند؛ حذف ممکن نیست.'})
 
-        notifications = AreaChargeCalc.objects.filter(
+        # حذف رکوردهای انتخاب‌شده
+        qs = AreaChargeCalc.objects.filter(
             area_charge=charge,
             unit_id__in=selected_ids,
             is_paid=False
         )
-        deleted_count = notifications.count()
-        notifications.delete()
 
-        # اگر هیچ اطلاعیه‌ای باقی نماند، اطلاع‌رسانی غیرفعال شود
+        calc_ids = list(qs.values_list('id', flat=True))
+        deleted_count = qs.count()
+
+        qs.delete()
+
+        # حذف UnifiedCharge مربوط
+        UnifiedCharge.objects.filter(
+            related_object_id__in=calc_ids,
+            related_object_type=charge_type
+        ).delete()
+
+        # اگر همه رکوردها حذف شدند → اعلان غیرفعال شود
         if not AreaChargeCalc.objects.filter(area_charge=charge).exists():
             charge.send_notification = False
             charge.save()
 
         return JsonResponse({'success': f'{deleted_count} اطلاعیه حذف شد.'})
 
-    return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
+
 
 
 # ======================= Person Charge ===============
@@ -3514,6 +3617,7 @@ def middle_show_person_charge_notification_form(request, pk):
 def middle_send_notification_person_charge_to_user(request, pk):
     person_charge = get_object_or_404(PersonCharge, id=pk)
     selected_units = request.POST.getlist('units')
+    charge_type = 'person'
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
@@ -3533,8 +3637,10 @@ def middle_send_notification_person_charge_to_user(request, pk):
     notified_units = []
 
     with transaction.atomic():
+
         for unit in units_to_notify:
-            fixed_calc, created = PersonChargeCalc.objects.get_or_create(
+
+            calc_obj, created = PersonChargeCalc.objects.get_or_create(
                 unit=unit,
                 person_charge=person_charge,
                 defaults={
@@ -3543,28 +3649,35 @@ def middle_send_notification_person_charge_to_user(request, pk):
                     'civil_charge': person_charge.civil,
                     'charge_name': person_charge.name,
                     'details': person_charge.details,
+                    'payment_deadline_date': person_charge.payment_deadline,
                     'send_notification': True,
                     'send_notification_date': timezone.now().date(),
                 }
             )
 
-            if not created:
-                if not fixed_calc.send_notification:
-                    fixed_calc.send_notification = True
-                    fixed_calc.send_notification_date = timezone.now().date()
-                    fixed_calc.save()
-                    notified_units.append(str(unit))
-            else:
-                notified_units.append(str(unit))
+            # اگر قبلاً بوده اما send_notification=False بوده
+            if not created and not calc_obj.send_notification:
+                calc_obj.send_notification = True
+                calc_obj.send_notification_date = timezone.now().date()
+                calc_obj.save()
 
-        # total_charge = fixed_calc.total_charge_month or 0
-        # helper.send_notify_user_by_sms(
-        #     unit.user.username,
-        #     fix_charge=total_charge,
-        #     name=unit.user.name,
-        #     otp=None
-        # )
+                # ===========================
+                UnifiedCharge.objects.update_or_create(
+                    related_object_id=calc_obj.id,
+                    related_object_type=charge_type,
+                    defaults={
+                        'user': calc_obj.user,
+                        'charge_type': charge_type,
+                        'amount': getattr(calc_obj, 'total_charge_month', calc_obj.amount),
+                        'description': calc_obj.charge_name,
+                        'send_notification_date': calc_obj.send_notification_date,
+                        'payment_deadline_date': calc_obj.payment_deadline_date,
+                    }
+                )
 
+            notified_units.append(str(unit))
+
+        # فعال‌سازی وضعیت ارسال اطلاعیه
         person_charge.send_notification = True
         person_charge.send_sms = True
         person_charge.save()
@@ -3572,67 +3685,101 @@ def middle_send_notification_person_charge_to_user(request, pk):
     if notified_units:
         messages.success(request, 'اطلاعیه برای واحدهای انتخابی ارسال شد!')
     else:
-        messages.info(request, 'اطلاعیه‌ای ارسال نشد؛ ممکن است قبلاً برای واحد انتخابی ثبت شده باشد.')
+        messages.info(request, 'اطلاعیه‌ای ارسال نشد.')
 
     return redirect('middle_show_notification_person_charge_form', pk=pk)
 
 
+
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_remove_send_notification_person(request, pk):
-    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        unit_ids = request.POST.getlist('units[]')
-        if not unit_ids:
-            return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
+    if request.method != 'POST' or request.headers.get('x-requested-with') != 'XMLHttpRequest':
+        return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
 
-        charge = get_object_or_404(PersonCharge, id=pk)
+    charge = get_object_or_404(PersonCharge, id=pk)
+    unit_ids = request.POST.getlist('units[]')
+    charge_type = 'person'  # نوع برای UnifiedCharge
 
+    if not unit_ids:
+        return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
+
+    try:
+        # ================================
+        # ✔ حالت حذف همه
+        # ================================
         if 'all' in unit_ids:
-            deleted_count, _ = PersonChargeCalc.objects.filter(
+
+            qs = PersonChargeCalc.objects.filter(
                 person_charge=charge,
                 is_paid=False
+            )
+            calc_ids = list(qs.values_list('id', flat=True))
+            deleted_count = qs.count()
+
+            qs.delete()
+
+            # حذف UnifiedCharge مرتبط
+            UnifiedCharge.objects.filter(
+                related_object_id__in=calc_ids,
+                related_object_type=charge_type
             ).delete()
-            charge.send_notification = False
-            charge.save()
+
+            # اگر هیچ رکوردی نماند → اعلان غیرفعال شود
+            if not PersonChargeCalc.objects.filter(person_charge=charge).exists():
+                charge.send_notification = False
+                charge.save()
 
             return JsonResponse({'success': f'{deleted_count} اطلاعیه با موفقیت حذف شد.'})
 
-        try:
-            selected_ids = [int(uid) for uid in unit_ids if uid.isdigit()]
-        except ValueError:
-            return JsonResponse({'error': 'شناسه‌های ارسال‌شده معتبر نیستند.'}, status=400)
+        # ================================
+        # ✔ حالت حذف انتخابی
+        # ================================
+        selected_ids = [int(uid) for uid in unit_ids if uid.isdigit()]
 
-        not_send_notifications = PersonChargeCalc.objects.filter(
+        # اطلاعیه صادر نشده
+        not_send = PersonChargeCalc.objects.filter(
             person_charge=charge,
             unit_id__in=selected_ids,
             send_notification=False
         )
-        if not_send_notifications.exists():
-            return JsonResponse({'error': 'اطلاعیه برای این واحد صادر نشده است.'}, status=400)
+        if not_send.exists():
+            return JsonResponse({'error': 'اطلاعیه برای برخی واحدها صادر نشده است.'})
 
-        paid_notifications = PersonChargeCalc.objects.filter(
+        # پرداخت شده → قابل حذف نیست
+        paid_qs = PersonChargeCalc.objects.filter(
             person_charge=charge,
             unit_id__in=selected_ids,
             is_paid=True
         )
-        if paid_notifications.exists():
-            return JsonResponse({'error': 'اطلاعیه به‌دلیل ثبت پرداخت توسط واحد قابل حذف نیست.'}, status=400)
+        if paid_qs.exists():
+            return JsonResponse({'error': 'برخی واحدها پرداخت انجام داده‌اند؛ حذف ممکن نیست.'})
 
-        notifications = PersonChargeCalc.objects.filter(
+        # حذف رکوردهای انتخاب‌شده
+        qs = PersonChargeCalc.objects.filter(
             person_charge=charge,
             unit_id__in=selected_ids,
             is_paid=False
         )
-        deleted_count = notifications.count()
-        notifications.delete()
+        calc_ids = list(qs.values_list('id', flat=True))
+        deleted_count = qs.count()
+        qs.delete()
 
-        # اگر هیچ اطلاعیه‌ای باقی نماند، اطلاع‌رسانی غیرفعال شود
+        # حذف UnifiedCharge مربوط
+        UnifiedCharge.objects.filter(
+            related_object_id__in=calc_ids,
+            related_object_type=charge_type
+        ).delete()
+
+        # اگر همه رکوردها حذف شدند → اعلان غیرفعال شود
         if not PersonChargeCalc.objects.filter(person_charge=charge).exists():
             charge.send_notification = False
             charge.save()
 
         return JsonResponse({'success': f'{deleted_count} اطلاعیه حذف شد.'})
 
-    return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
+
 
 
 # ==================== Fix Area Charge    =============================
@@ -3841,28 +3988,25 @@ def middle_show_fix_area_charge_notification_form(request, pk):
 @require_POST
 def middle_send_notification_fix_area_charge_to_user(request, pk):
     fix_area_charge = get_object_or_404(FixAreaCharge, id=pk)
-    selected_units = request.POST.getlist('units')
+    selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
+    charge_type = 'fix_area'
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
         return redirect('middle_show_notification_fix_area_charge_form', pk=pk)
 
     units_qs = Unit.objects.filter(is_active=True)
-
-    if 'all' in selected_units:
-        units_to_notify = units_qs
-    else:
-        units_to_notify = units_qs.filter(id__in=selected_units)
+    units_to_notify = units_qs if 'all' in request.POST.getlist('units') else units_qs.filter(id__in=selected_units)
 
     if not units_to_notify.exists():
         messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
-        return redirect('middle_send_notification_fix_area_charge_to_user', pk=pk)
+        return redirect('middle_show_notification_fix_area_charge_form', pk=pk)
 
     notified_units = []
 
     with transaction.atomic():
         for unit in units_to_notify:
-            fixed_calc, created = FixAreaChargeCalc.objects.get_or_create(
+            fixed_calc, created = FixAreaChargeCalc.objects.update_or_create(
                 unit=unit,
                 fix_area=fix_area_charge,
                 defaults={
@@ -3871,26 +4015,26 @@ def middle_send_notification_fix_area_charge_to_user(request, pk):
                     'civil_charge': fix_area_charge.civil,
                     'charge_name': fix_area_charge.name,
                     'details': fix_area_charge.details,
+                    'payment_deadline_date': fix_area_charge.payment_deadline,
                     'send_notification': True,
+                    'send_notification_date': timezone.now().date(),
                 }
             )
 
-            if not created:
-                if not fixed_calc.send_notification:
-                    fixed_calc.send_notification = True
-                    fixed_calc.send_notification_date = timezone.now().date()
-                    fixed_calc.save()
-                    notified_units.append(str(unit))
-            else:
-                notified_units.append(str(unit))
+            UnifiedCharge.objects.update_or_create(
+                related_object_id=fixed_calc.id,
+                related_object_type=charge_type,
+                defaults={
+                    'user': fixed_calc.user,
+                    'charge_type': charge_type,
+                    'amount': getattr(fixed_calc, 'total_charge_month', fixed_calc.amount),
+                    'description': fixed_calc.charge_name,
+                    'send_notification_date': fixed_calc.send_notification_date,
+                    'payment_deadline_date': fixed_calc.payment_deadline_date,
+                }
+            )
 
-        # total_charge = fixed_calc.total_charge_month or 0
-        # helper.send_notify_user_by_sms(
-        #     unit.user.username,
-        #     fix_charge=total_charge,
-        #     name=unit.user.name,
-        #     otp=None
-        # )
+            notified_units.append(str(unit))
 
         fix_area_charge.send_notification = True
         fix_area_charge.send_sms = True
@@ -3904,62 +4048,63 @@ def middle_send_notification_fix_area_charge_to_user(request, pk):
     return redirect('middle_show_notification_fix_area_charge_form', pk=pk)
 
 
+
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_remove_send_notification_fix_area(request, pk):
-    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        unit_ids = request.POST.getlist('units[]')
-        if not unit_ids:
-            return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
+    if request.method != 'POST' or request.headers.get('x-requested-with') != 'XMLHttpRequest':
+        return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
 
-        charge = get_object_or_404(FixAreaCharge, id=pk)
+    unit_ids = request.POST.getlist('units[]')
+    if not unit_ids:
+        return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
 
+    charge = get_object_or_404(FixAreaCharge, id=pk)
+    charge_type = 'fix_area'
+
+    def delete_calc(qs):
+        calc_ids = list(qs.values_list('id', flat=True))
+        deleted_count = qs.count()
+        qs.delete()
+        UnifiedCharge.objects.filter(
+            related_object_id__in=calc_ids,
+            related_object_type=charge_type
+        ).delete()
+        return deleted_count
+
+    try:
+        # حالت حذف همه
         if 'all' in unit_ids:
-            deleted_count, _ = FixAreaChargeCalc.objects.filter(
-                fix_area=charge,
-                is_paid=False
-            ).delete()
+            qs = FixAreaChargeCalc.objects.filter(fix_area=charge, is_paid=False)
+            deleted_count = delete_calc(qs)
+
             charge.send_notification = False
             charge.save()
-
             return JsonResponse({'success': f'{deleted_count} اطلاعیه با موفقیت حذف شد.'})
 
-        try:
-            selected_ids = [int(uid) for uid in unit_ids if uid.isdigit()]
-        except ValueError:
-            return JsonResponse({'error': 'شناسه‌های ارسال‌شده معتبر نیستند.'}, status=400)
+        # حالت حذف انتخابی
+        selected_ids = [int(uid) for uid in unit_ids if uid.isdigit()]
+        if not selected_ids:
+            return JsonResponse({'error': 'هیچ واحد معتبری انتخاب نشده است.'})
 
-        not_send_notifications = FixAreaChargeCalc.objects.filter(
-            fix_area=charge,
-            unit_id__in=selected_ids,
-            send_notification=False
-        )
-        if not_send_notifications.exists():
-            return JsonResponse({'error': 'اطلاعیه برای این واحد صادر نشده است.'}, status=400)
+        not_send = FixAreaChargeCalc.objects.filter(fix_area=charge, unit_id__in=selected_ids, send_notification=False)
+        if not_send.exists():
+            return JsonResponse({'error': 'اطلاعیه برای برخی واحدها صادر نشده است.'})
 
-        paid_notifications = FixAreaChargeCalc.objects.filter(
-            fix_area=charge,
-            unit_id__in=selected_ids,
-            is_paid=True
-        )
-        if paid_notifications.exists():
-            return JsonResponse({'error': 'اطلاعیه به‌دلیل ثبت پرداخت توسط واحد قابل حذف نیست.'}, status=400)
+        paid_qs = FixAreaChargeCalc.objects.filter(fix_area=charge, unit_id__in=selected_ids, is_paid=True)
+        if paid_qs.exists():
+            return JsonResponse({'error': 'برخی واحدها پرداخت انجام داده‌اند؛ حذف ممکن نیست.'})
 
-        notifications = FixAreaChargeCalc.objects.filter(
-            fix_area=charge,
-            unit_id__in=selected_ids,
-            is_paid=False
-        )
-        deleted_count = notifications.count()
-        notifications.delete()
+        qs = FixAreaChargeCalc.objects.filter(fix_area=charge, unit_id__in=selected_ids, is_paid=False)
+        deleted_count = delete_calc(qs)
 
-        # اگر هیچ اطلاعیه‌ای باقی نماند، اطلاع‌رسانی غیرفعال شود
         if not FixAreaChargeCalc.objects.filter(fix_area=charge).exists():
             charge.send_notification = False
             charge.save()
 
         return JsonResponse({'success': f'{deleted_count} اطلاعیه حذف شد.'})
 
-    return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
+    except Exception:
+        return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
 
 
 # ======================= Fix Person Charge  ==========================
@@ -4167,18 +4312,15 @@ def middle_show_fix_person_charge_notification_form(request, pk):
 @require_POST
 def middle_send_notification_fix_person_charge_to_user(request, pk):
     fix_person_charge = get_object_or_404(FixPersonCharge, id=pk)
-    selected_units = request.POST.getlist('units')
+    selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
+    charge_type = 'fix_person'
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
         return redirect('middle_show_notification_fix_person_charge_form', pk=pk)
 
     units_qs = Unit.objects.filter(is_active=True)
-
-    if 'all' in selected_units:
-        units_to_notify = units_qs
-    else:
-        units_to_notify = units_qs.filter(id__in=selected_units)
+    units_to_notify = units_qs if 'all' in request.POST.getlist('units') else units_qs.filter(id__in=selected_units)
 
     if not units_to_notify.exists():
         messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
@@ -4188,7 +4330,7 @@ def middle_send_notification_fix_person_charge_to_user(request, pk):
 
     with transaction.atomic():
         for unit in units_to_notify:
-            fixed_calc, created = FixPersonChargeCalc.objects.get_or_create(
+            fixed_calc, created = FixPersonChargeCalc.objects.update_or_create(
                 unit=unit,
                 fix_person=fix_person_charge,
                 defaults={
@@ -4197,26 +4339,26 @@ def middle_send_notification_fix_person_charge_to_user(request, pk):
                     'civil_charge': fix_person_charge.civil,
                     'charge_name': fix_person_charge.name,
                     'details': fix_person_charge.details,
+                    'payment_deadline_date': fix_person_charge.payment_deadline,
                     'send_notification': True,
+                    'send_notification_date': timezone.now().date(),
                 }
             )
 
-            if not created:
-                if not fixed_calc.send_notification:
-                    fixed_calc.send_notification = True
-                    fixed_calc.send_notification_date = timezone.now().date()
-                    fixed_calc.save()
-                    notified_units.append(str(unit))
-            else:
-                notified_units.append(str(unit))
+            UnifiedCharge.objects.update_or_create(
+                related_object_id=fixed_calc.id,
+                related_object_type=charge_type,
+                defaults={
+                    'user': fixed_calc.user,
+                    'charge_type': charge_type,
+                    'amount': getattr(fixed_calc, 'total_charge_month', fixed_calc.amount),
+                    'description': fixed_calc.charge_name,
+                    'send_notification_date': fixed_calc.send_notification_date,
+                    'payment_deadline_date': fixed_calc.payment_deadline_date,
+                }
+            )
 
-        # total_charge = fixed_calc.total_charge_month or 0
-        # helper.send_notify_user_by_sms(
-        #     unit.user.username,
-        #     fix_charge=total_charge,
-        #     name=unit.user.name,
-        #     otp=None
-        # )
+        notified_units.append(str(unit))
 
         fix_person_charge.send_notification = True
         fix_person_charge.send_sms = True
@@ -4229,63 +4371,85 @@ def middle_send_notification_fix_person_charge_to_user(request, pk):
 
     return redirect('middle_show_notification_fix_person_charge_form', pk=pk)
 
-
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_remove_send_notification_fix_person(request, pk):
-    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        unit_ids = request.POST.getlist('units[]')
-        if not unit_ids:
-            return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
+    if request.method != 'POST' or request.headers.get('x-requested-with') != 'XMLHttpRequest':
+        return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
 
-        charge = get_object_or_404(FixPersonCharge, id=pk)
+    unit_ids = request.POST.getlist('units[]')
+    if not unit_ids:
+        return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
 
+    charge = get_object_or_404(FixPersonCharge, id=pk)
+    charge_type = 'fix_person'
+
+    try:
+        # حالت حذف همه
         if 'all' in unit_ids:
-            deleted_count, _ = FixPersonChargeCalc.objects.filter(
-                fix_person=charge,
-                is_paid=False
+            qs = FixPersonChargeCalc.objects.filter(fix_person=charge, is_paid=False)
+            calc_ids = list(qs.values_list('id', flat=True))
+            deleted_count = qs.count()
+            qs.delete()
+
+            # حذف UnifiedCharge مرتبط
+            UnifiedCharge.objects.filter(
+                related_object_id__in=calc_ids,
+                related_object_type=charge_type
             ).delete()
+
             charge.send_notification = False
             charge.save()
-
             return JsonResponse({'success': f'{deleted_count} اطلاعیه با موفقیت حذف شد.'})
 
-        try:
-            selected_ids = [int(uid) for uid in unit_ids if uid.isdigit()]
-        except ValueError:
-            return JsonResponse({'error': 'شناسه‌های ارسال‌شده معتبر نیستند.'}, status=400)
+        # حذف انتخابی
+        selected_ids = [int(uid) for uid in unit_ids if uid.isdigit()]
+        if not selected_ids:
+            return JsonResponse({'error': 'هیچ واحد معتبری انتخاب نشده است.'})
 
-        not_send_notifications = FixPersonChargeCalc.objects.filter(
+        # اطلاعیه صادر نشده
+        not_send = FixPersonChargeCalc.objects.filter(
             fix_person=charge,
             unit_id__in=selected_ids,
             send_notification=False
         )
-        if not_send_notifications.exists():
-            return JsonResponse({'error': 'اطلاعیه برای این واحد صادر نشده است.'}, status=400)
+        if not_send.exists():
+            return JsonResponse({'error': 'اطلاعیه برای برخی واحدها صادر نشده است.'})
 
-        paid_notifications = FixPersonChargeCalc.objects.filter(
+        # پرداخت شده → قابل حذف نیست
+        paid_qs = FixPersonChargeCalc.objects.filter(
             fix_person=charge,
             unit_id__in=selected_ids,
             is_paid=True
         )
-        if paid_notifications.exists():
-            return JsonResponse({'error': 'اطلاعیه به‌دلیل ثبت پرداخت توسط واحد قابل حذف نیست.'}, status=400)
+        if paid_qs.exists():
+            return JsonResponse({'error': 'برخی واحدها پرداخت انجام داده‌اند؛ حذف ممکن نیست.'})
 
-        notifications = FixPersonChargeCalc.objects.filter(
+        # حذف رکوردهای انتخابی
+        qs = FixPersonChargeCalc.objects.filter(
             fix_person=charge,
             unit_id__in=selected_ids,
             is_paid=False
         )
-        deleted_count = notifications.count()
-        notifications.delete()
+        calc_ids = list(qs.values_list('id', flat=True))
+        deleted_count = qs.count()
+        qs.delete()
 
-        # اگر هیچ اطلاعیه‌ای باقی نماند، اطلاع‌رسانی غیرفعال شود
+        # حذف UnifiedCharge مرتبط
+        UnifiedCharge.objects.filter(
+            related_object_id__in=calc_ids,
+            related_object_type=charge_type
+        ).delete()
+
+        # اگر همه رکوردها حذف شدند → اعلان غیرفعال شود
         if not FixPersonChargeCalc.objects.filter(fix_person=charge).exists():
             charge.send_notification = False
             charge.save()
 
         return JsonResponse({'success': f'{deleted_count} اطلاعیه حذف شد.'})
 
-    return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
+    except Exception:
+        return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
+
 
 
 # ============================== Person Area Charge ============================
@@ -4497,21 +4661,17 @@ def middle_show_person_area_charge_notification_form(request, pk):
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-@require_POST
 def middle_send_notification_person_area_charge_to_user(request, pk):
     person_area = get_object_or_404(ChargeByPersonArea, id=pk)
-    selected_units = request.POST.getlist('units')
+    selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
+    charge_type = 'person_area'
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
         return redirect('middle_show_notification_person_area_charge_form', pk=pk)
 
     units_qs = Unit.objects.filter(is_active=True)
-
-    if 'all' in selected_units:
-        units_to_notify = units_qs
-    else:
-        units_to_notify = units_qs.filter(id__in=selected_units)
+    units_to_notify = units_qs if 'all' in request.POST.getlist('units') else units_qs.filter(id__in=selected_units)
 
     if not units_to_notify.exists():
         messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
@@ -4521,7 +4681,7 @@ def middle_send_notification_person_area_charge_to_user(request, pk):
 
     with transaction.atomic():
         for unit in units_to_notify:
-            fixed_calc, created = ChargeByPersonAreaCalc.objects.get_or_create(
+            calc, created = ChargeByPersonAreaCalc.objects.update_or_create(
                 unit=unit,
                 person_area_charge=person_area,
                 defaults={
@@ -4531,26 +4691,27 @@ def middle_send_notification_person_area_charge_to_user(request, pk):
                     'civil_charge': person_area.civil,
                     'charge_name': person_area.name,
                     'details': person_area.details,
+                    'payment_deadline_date': person_area.payment_deadline,
                     'send_notification': True,
+                    'send_notification_date': timezone.now().date(),
                 }
             )
 
-            if not created:
-                if not fixed_calc.send_notification:
-                    fixed_calc.send_notification = True
-                    fixed_calc.send_notification_date = timezone.now().date()
-                    fixed_calc.save()
-                    notified_units.append(str(unit))
-            else:
-                notified_units.append(str(unit))
+            # ثبت یا به‌روزرسانی UnifiedCharge
+            UnifiedCharge.objects.update_or_create(
+                related_object_id=calc.id,
+                related_object_type=charge_type,
+                defaults={
+                    'user': calc.user,
+                    'charge_type': charge_type,
+                    'amount': getattr(calc, 'total_charge_month', calc.area_charge + calc.person_charge),
+                    'description': calc.charge_name,
+                    'send_notification_date': calc.send_notification_date,
+                    'payment_deadline_date': getattr(calc, 'payment_deadline_date', None),
+                }
+            )
 
-        # total_charge = fixed_calc.total_charge_month or 0
-        # helper.send_notify_user_by_sms(
-        #     unit.user.username,
-        #     fix_charge=total_charge,
-        #     name=unit.user.name,
-        #     otp=None
-        # )
+            notified_units.append(str(unit))
 
         person_area.send_notification = True
         person_area.send_sms = True
@@ -4566,60 +4727,86 @@ def middle_send_notification_person_area_charge_to_user(request, pk):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_remove_send_notification_person_area(request, pk):
-    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        unit_ids = request.POST.getlist('units[]')
-        if not unit_ids:
-            return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
+    if request.method != 'POST' or request.headers.get('x-requested-with') != 'XMLHttpRequest':
+        return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
 
-        charge = get_object_or_404(ChargeByPersonArea, id=pk)
+    unit_ids = request.POST.getlist('units[]')
+    if not unit_ids:
+        return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
 
+    charge = get_object_or_404(ChargeByPersonArea, id=pk)
+    charge_type = 'person_area'
+
+    try:
+        # ================================
+        # حذف همه
+        # ================================
         if 'all' in unit_ids:
-            deleted_count, _ = ChargeByPersonAreaCalc.objects.filter(
-                person_area_charge=charge,
-                is_paid=False
+            qs = ChargeByPersonAreaCalc.objects.filter(person_area_charge=charge, is_paid=False)
+            calc_ids = list(qs.values_list('id', flat=True))
+            deleted_count = qs.count()
+            qs.delete()
+
+            # حذف UnifiedCharge مرتبط
+            UnifiedCharge.objects.filter(
+                related_object_id__in=calc_ids,
+                related_object_type=charge_type
             ).delete()
+
             charge.send_notification = False
             charge.save()
-
             return JsonResponse({'success': f'{deleted_count} اطلاعیه با موفقیت حذف شد.'})
 
-        try:
-            selected_ids = [int(uid) for uid in unit_ids if uid.isdigit()]
-        except ValueError:
-            return JsonResponse({'error': 'شناسه‌های ارسال‌شده معتبر نیستند.'}, status=400)
+        # ================================
+        # حذف انتخابی
+        # ================================
+        selected_ids = [int(uid) for uid in unit_ids if uid.isdigit()]
+        if not selected_ids:
+            return JsonResponse({'error': 'هیچ واحد معتبری انتخاب نشده است.'})
 
-        not_send_notifications = ChargeByPersonAreaCalc.objects.filter(
+        # اطلاعیه صادر نشده
+        not_send = ChargeByPersonAreaCalc.objects.filter(
             person_area_charge=charge,
             unit_id__in=selected_ids,
             send_notification=False
         )
-        if not_send_notifications.exists():
-            return JsonResponse({'error': 'اطلاعیه برای این واحد صادر نشده است.'}, status=400)
+        if not_send.exists():
+            return JsonResponse({'error': 'اطلاعیه برای برخی واحدها صادر نشده است.'})
 
-        paid_notifications = ChargeByPersonAreaCalc.objects.filter(
+        # پرداخت شده → قابل حذف نیست
+        paid_qs = ChargeByPersonAreaCalc.objects.filter(
             person_area_charge=charge,
             unit_id__in=selected_ids,
             is_paid=True
         )
-        if paid_notifications.exists():
-            return JsonResponse({'error': 'اطلاعیه به‌دلیل ثبت پرداخت توسط واحد قابل حذف نیست.'}, status=400)
+        if paid_qs.exists():
+            return JsonResponse({'error': 'برخی واحدها پرداخت انجام داده‌اند؛ حذف ممکن نیست.'})
 
-        notifications = ChargeByPersonAreaCalc.objects.filter(
+        # حذف رکوردهای انتخابی
+        qs = ChargeByPersonAreaCalc.objects.filter(
             person_area_charge=charge,
             unit_id__in=selected_ids,
             is_paid=False
         )
-        deleted_count = notifications.count()
-        notifications.delete()
+        calc_ids = list(qs.values_list('id', flat=True))
+        deleted_count = qs.count()
+        qs.delete()
 
-        # اگر هیچ اطلاعیه‌ای باقی نماند، اطلاع‌رسانی غیرفعال شود
+        # حذف UnifiedCharge مربوط
+        UnifiedCharge.objects.filter(
+            related_object_id__in=calc_ids,
+            related_object_type=charge_type
+        ).delete()
+
+        # اگر همه رکوردها حذف شدند → اعلان غیرفعال شود
         if not ChargeByPersonAreaCalc.objects.filter(person_area_charge=charge).exists():
             charge.send_notification = False
             charge.save()
 
         return JsonResponse({'success': f'{deleted_count} اطلاعیه حذف شد.'})
 
-    return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
+    except Exception:
+        return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
 
 
 # ==========================Fix Person Area Charge ================================
@@ -4832,22 +5019,20 @@ def middle_show_fix_person_area_charge_notification_form(request, pk):
     return render(request, 'middleCharge/notify_fix_person_area_charge_template.html', context)
 
 
+
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 @require_POST
 def middle_send_notification_fix_person_area_charge_to_user(request, pk):
     fix_person_area = get_object_or_404(ChargeByFixPersonArea, id=pk)
-    selected_units = request.POST.getlist('units')
+    selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
+    charge_type = 'fix_person_area'
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
         return redirect('middle_show_notification_fix_person_area_charge_form', pk=pk)
 
     units_qs = Unit.objects.filter(is_active=True)
-
-    if 'all' in selected_units:
-        units_to_notify = units_qs
-    else:
-        units_to_notify = units_qs.filter(id__in=selected_units)
+    units_to_notify = units_qs if 'all' in request.POST.getlist('units') else units_qs.filter(id__in=selected_units)
 
     if not units_to_notify.exists():
         messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
@@ -4857,7 +5042,7 @@ def middle_send_notification_fix_person_area_charge_to_user(request, pk):
 
     with transaction.atomic():
         for unit in units_to_notify:
-            fixed_calc, created = ChargeByFixPersonAreaCalc.objects.get_or_create(
+            calc, created = ChargeByFixPersonAreaCalc.objects.update_or_create(
                 unit=unit,
                 fix_person_area=fix_person_area,
                 defaults={
@@ -4868,26 +5053,27 @@ def middle_send_notification_fix_person_area_charge_to_user(request, pk):
                     'civil_charge': fix_person_area.civil,
                     'charge_name': fix_person_area.name,
                     'details': fix_person_area.details,
+                    'payment_deadline_date': fix_person_area.payment_deadline,
                     'send_notification': True,
+                    'send_notification_date': timezone.now().date(),
                 }
             )
 
-            if not created:
-                if not fixed_calc.send_notification:
-                    fixed_calc.send_notification = True
-                    fixed_calc.send_notification_date = timezone.now().date()
-                    fixed_calc.save()
-                    notified_units.append(str(unit))
-            else:
-                notified_units.append(str(unit))
+            # ثبت یا به‌روزرسانی UnifiedCharge
+            UnifiedCharge.objects.update_or_create(
+                related_object_id=calc.id,
+                related_object_type=charge_type,
+                defaults={
+                    'user': calc.user,
+                    'charge_type': charge_type,
+                    'amount': getattr(calc, 'total_charge_month', calc.fix_charge + calc.area_charge + calc.person_charge),
+                    'description': calc.charge_name,
+                    'send_notification_date': calc.send_notification_date,
+                    'payment_deadline_date': getattr(calc, 'payment_deadline_date', None),
+                }
+            )
 
-        # total_charge = fixed_calc.total_charge_month or 0
-        # helper.send_notify_user_by_sms(
-        #     unit.user.username,
-        #     fix_charge=total_charge,
-        #     name=unit.user.name,
-        #     otp=None
-        # )
+            notified_units.append(str(unit))
 
         fix_person_area.send_notification = True
         fix_person_area.send_notification_date = timezone.now().date()
@@ -4904,60 +5090,86 @@ def middle_send_notification_fix_person_area_charge_to_user(request, pk):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_remove_send_notification_fix_person_area(request, pk):
-    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        unit_ids = request.POST.getlist('units[]')
-        if not unit_ids:
-            return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
+    if request.method != 'POST' or request.headers.get('x-requested-with') != 'XMLHttpRequest':
+        return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
 
-        charge = get_object_or_404(ChargeByFixPersonArea, id=pk)
+    unit_ids = request.POST.getlist('units[]')
+    if not unit_ids:
+        return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
 
+    charge = get_object_or_404(ChargeByFixPersonArea, id=pk)
+    charge_type = 'fix_person_area'
+
+    try:
+        # ================================
+        # حذف همه
+        # ================================
         if 'all' in unit_ids:
-            deleted_count, _ = ChargeByFixPersonAreaCalc.objects.filter(
-                fix_person_area=charge,
-                is_paid=False
+            qs = ChargeByFixPersonAreaCalc.objects.filter(fix_person_area=charge, is_paid=False)
+            calc_ids = list(qs.values_list('id', flat=True))
+            deleted_count = qs.count()
+            qs.delete()
+
+            # حذف UnifiedCharge مرتبط
+            UnifiedCharge.objects.filter(
+                related_object_id__in=calc_ids,
+                related_object_type=charge_type
             ).delete()
+
             charge.send_notification = False
             charge.save()
-
             return JsonResponse({'success': f'{deleted_count} اطلاعیه با موفقیت حذف شد.'})
 
-        try:
-            selected_ids = [int(uid) for uid in unit_ids if uid.isdigit()]
-        except ValueError:
-            return JsonResponse({'error': 'شناسه‌های ارسال‌شده معتبر نیستند.'}, status=400)
+        # ================================
+        # حذف انتخابی
+        # ================================
+        selected_ids = [int(uid) for uid in unit_ids if uid.isdigit()]
+        if not selected_ids:
+            return JsonResponse({'error': 'هیچ واحد معتبری انتخاب نشده است.'})
 
-        not_send_notifications = ChargeByFixPersonAreaCalc.objects.filter(
+        # اطلاعیه صادر نشده
+        not_send = ChargeByFixPersonAreaCalc.objects.filter(
             fix_person_area=charge,
             unit_id__in=selected_ids,
             send_notification=False
         )
-        if not_send_notifications.exists():
-            return JsonResponse({'error': 'اطلاعیه برای این واحد صادر نشده است.'}, status=400)
+        if not_send.exists():
+            return JsonResponse({'error': 'اطلاعیه برای برخی واحدها صادر نشده است.'})
 
-        paid_notifications = ChargeByFixPersonAreaCalc.objects.filter(
+        # پرداخت شده → قابل حذف نیست
+        paid_qs = ChargeByFixPersonAreaCalc.objects.filter(
             fix_person_area=charge,
             unit_id__in=selected_ids,
             is_paid=True
         )
-        if paid_notifications.exists():
-            return JsonResponse({'error': 'اطلاعیه به‌دلیل ثبت پرداخت توسط واحد قابل حذف نیست.'}, status=400)
+        if paid_qs.exists():
+            return JsonResponse({'error': 'برخی واحدها پرداخت انجام داده‌اند؛ حذف ممکن نیست.'})
 
-        notifications = ChargeByFixPersonAreaCalc.objects.filter(
+        # حذف رکوردهای انتخابی
+        qs = ChargeByFixPersonAreaCalc.objects.filter(
             fix_person_area=charge,
             unit_id__in=selected_ids,
             is_paid=False
         )
-        deleted_count = notifications.count()
-        notifications.delete()
+        calc_ids = list(qs.values_list('id', flat=True))
+        deleted_count = qs.count()
+        qs.delete()
 
-        # اگر هیچ اطلاعیه‌ای باقی نماند، اطلاع‌رسانی غیرفعال شود
+        # حذف UnifiedCharge مربوط
+        UnifiedCharge.objects.filter(
+            related_object_id__in=calc_ids,
+            related_object_type=charge_type
+        ).delete()
+
+        # اگر همه رکوردها حذف شدند → اعلان غیرفعال شود
         if not ChargeByFixPersonAreaCalc.objects.filter(fix_person_area=charge).exists():
             charge.send_notification = False
             charge.save()
 
         return JsonResponse({'success': f'{deleted_count} اطلاعیه حذف شد.'})
 
-    return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
+    except Exception:
+        return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
 
 
 # =========================ّFix Variable Charge =================================
@@ -5196,18 +5408,15 @@ def middle_show_fix_variable_notification_form(request, pk):
 @require_POST
 def middle_send_notification_fix_variable_to_user(request, pk):
     fix_variable = get_object_or_404(ChargeFixVariable, id=pk)
-    selected_units = request.POST.getlist('units')
+    selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
+    charge_type = 'fix_variable'
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
         return redirect('middle_show_notification_fix_variable_charge_form', pk=pk)
 
     units_qs = Unit.objects.filter(is_active=True)
-
-    if 'all' in selected_units:
-        units_to_notify = units_qs
-    else:
-        units_to_notify = units_qs.filter(id__in=selected_units)
+    units_to_notify = units_qs if 'all' in request.POST.getlist('units') else units_qs.filter(id__in=selected_units)
 
     if not units_to_notify.exists():
         messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
@@ -5217,7 +5426,7 @@ def middle_send_notification_fix_variable_to_user(request, pk):
 
     with transaction.atomic():
         for unit in units_to_notify:
-            fixed_calc, created = ChargeFixVariableCalc.objects.get_or_create(
+            calc, created = ChargeFixVariableCalc.objects.update_or_create(
                 unit=unit,
                 fix_variable_charge=fix_variable,
                 defaults={
@@ -5228,26 +5437,27 @@ def middle_send_notification_fix_variable_to_user(request, pk):
                     'civil_charge': fix_variable.civil,
                     'charge_name': fix_variable.name,
                     'details': fix_variable.details,
+                    'payment_deadline_date': fix_variable.payment_deadline,
                     'send_notification': True,
+                    'send_notification_date': timezone.now().date(),
                 }
             )
 
-            if not created:
-                if not fixed_calc.send_notification:
-                    fixed_calc.send_notification = True
-                    fixed_calc.send_notification_date = timezone.now().date()
-                    fixed_calc.save()
-                    notified_units.append(str(unit))
-            else:
-                notified_units.append(str(unit))
+            # ایجاد یا به‌روزرسانی UnifiedCharge
+            UnifiedCharge.objects.update_or_create(
+                related_object_id=calc.id,
+                related_object_type=charge_type,
+                defaults={
+                    'user': calc.user,
+                    'charge_type': charge_type,
+                    'amount': getattr(calc, 'total_charge_month', calc.unit_variable_area_charge + calc.unit_variable_person_charge + calc.unit_fix_charge_per_unit),
+                    'description': calc.charge_name,
+                    'send_notification_date': calc.send_notification_date,
+                    'payment_deadline_date': getattr(calc, 'payment_deadline_date', None),
+                }
+            )
 
-        # total_charge = fixed_calc.total_charge_month or 0
-        # helper.send_notify_user_by_sms(
-        #     unit.user.username,
-        #     fix_charge=total_charge,
-        #     name=unit.user.name,
-        #     otp=None
-        # )
+            notified_units.append(str(unit))
 
         fix_variable.send_notification = True
         fix_variable.send_notification_date = timezone.now().date()
@@ -5264,60 +5474,86 @@ def middle_send_notification_fix_variable_to_user(request, pk):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_remove_send_notification_fix_variable(request, pk):
-    if request.method == 'POST' and request.headers.get('x-requested-with') == 'XMLHttpRequest':
-        unit_ids = request.POST.getlist('units[]')
-        if not unit_ids:
-            return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
+    if request.method != 'POST' or request.headers.get('x-requested-with') != 'XMLHttpRequest':
+        return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
 
-        charge = get_object_or_404(ChargeFixVariable, id=pk)
+    unit_ids = request.POST.getlist('units[]')
+    if not unit_ids:
+        return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
 
+    charge = get_object_or_404(ChargeFixVariable, id=pk)
+    charge_type = 'fix_variable'
+
+    try:
+        # ================================
+        # حذف همه
+        # ================================
         if 'all' in unit_ids:
-            deleted_count, _ = ChargeFixVariableCalc.objects.filter(
-                fix_variable_charge=charge,
-                is_paid=False
+            qs = ChargeFixVariableCalc.objects.filter(fix_variable_charge=charge, is_paid=False)
+            calc_ids = list(qs.values_list('id', flat=True))
+            deleted_count = qs.count()
+            qs.delete()
+
+            # حذف UnifiedCharge مرتبط
+            UnifiedCharge.objects.filter(
+                related_object_id__in=calc_ids,
+                related_object_type=charge_type
             ).delete()
+
             charge.send_notification = False
             charge.save()
-
             return JsonResponse({'success': f'{deleted_count} اطلاعیه با موفقیت حذف شد.'})
 
-        try:
-            selected_ids = [int(uid) for uid in unit_ids if uid.isdigit()]
-        except ValueError:
-            return JsonResponse({'error': 'شناسه‌های ارسال‌شده معتبر نیستند.'}, status=400)
+        # ================================
+        # حذف انتخابی
+        # ================================
+        selected_ids = [int(uid) for uid in unit_ids if uid.isdigit()]
+        if not selected_ids:
+            return JsonResponse({'error': 'هیچ واحد معتبری انتخاب نشده است.'})
 
-        not_send_notifications = ChargeFixVariableCalc.objects.filter(
+        # اطلاعیه صادر نشده
+        not_send = ChargeFixVariableCalc.objects.filter(
             fix_variable_charge=charge,
             unit_id__in=selected_ids,
             send_notification=False
         )
-        if not_send_notifications.exists():
-            return JsonResponse({'error': 'اطلاعیه برای این واحد صادر نشده است.'}, status=400)
+        if not_send.exists():
+            return JsonResponse({'error': 'اطلاعیه برای برخی واحدها صادر نشده است.'})
 
-        paid_notifications = ChargeFixVariableCalc.objects.filter(
+        # پرداخت شده → قابل حذف نیست
+        paid_qs = ChargeFixVariableCalc.objects.filter(
             fix_variable_charge=charge,
             unit_id__in=selected_ids,
             is_paid=True
         )
-        if paid_notifications.exists():
-            return JsonResponse({'error': 'اطلاعیه به‌دلیل ثبت پرداخت توسط واحد قابل حذف نیست.'}, status=400)
+        if paid_qs.exists():
+            return JsonResponse({'error': 'برخی واحدها پرداخت انجام داده‌اند؛ حذف ممکن نیست.'})
 
-        notifications = ChargeFixVariableCalc.objects.filter(
+        # حذف رکوردهای انتخابی
+        qs = ChargeFixVariableCalc.objects.filter(
             fix_variable_charge=charge,
             unit_id__in=selected_ids,
             is_paid=False
         )
-        deleted_count = notifications.count()
-        notifications.delete()
+        calc_ids = list(qs.values_list('id', flat=True))
+        deleted_count = qs.count()
+        qs.delete()
 
-        # اگر هیچ اطلاعیه‌ای باقی نماند، اطلاع‌رسانی غیرفعال شود
+        # حذف UnifiedCharge مربوط
+        UnifiedCharge.objects.filter(
+            related_object_id__in=calc_ids,
+            related_object_type=charge_type
+        ).delete()
+
+        # اگر همه رکوردها حذف شدند → اعلان غیرفعال شود
         if not ChargeFixVariableCalc.objects.filter(fix_variable_charge=charge).exists():
             charge.send_notification = False
             charge.save()
 
         return JsonResponse({'success': f'{deleted_count} اطلاعیه حذف شد.'})
 
-    return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
+    except Exception:
+        return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
 
 
 # --------------------------------------------------------

@@ -1,3 +1,5 @@
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.shortcuts import render
 
 from admin_panel.models import Fund
@@ -17,15 +19,41 @@ def unit_reports(request):
 
 def fund_turnover_user(request):
     user = request.user
+    query = request.GET.get('q', '').strip()
+    paginate = request.GET.get('paginate', '20')  # پیش‌فرض 20
 
-    if not user.manager:
-        funds = []
+    if not getattr(user, 'manager', False):
+        funds = Fund.objects.none()
     else:
-        # فقط اطلاعیه‌های مدیر میانی کاربر
-        funds = Fund.objects.filter(
-            user=user,
-        ).order_by('-created_at')
+        funds = Fund.objects.filter(user=user)
+
+        # جستجو روی payment_description، transaction_no و doc_number
+        if query:
+            funds = funds.filter(
+                Q(payment_description__icontains=query) |
+                Q(transaction_no__icontains=query) |
+                Q(doc_number__icontains=query)
+            )
+
+        funds = funds.order_by('-created_at')
+
+    # پیجینیشن
+    try:
+        paginate = int(paginate)
+    except ValueError:
+        paginate = 20
+
+    if paginate <= 0:
+        paginate = 20
+
+    paginator = Paginator(funds, paginate)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     context = {
-        'funds': funds
+        'funds': page_obj,
+        'query': query,
+        'paginate': paginate,
+        'page_obj': page_obj,  # برای template
     }
     return render(request, 'fund_turnover_user.html', context)

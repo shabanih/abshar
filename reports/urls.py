@@ -6,7 +6,7 @@ from reports import views
 
 urlpatterns = [
     path('fund/turnover', views.fund_turnover, name='fund_turn_over'),
-    path('fund/turnover/user', views.fund_turnover_user, name='fund_turn_over_user'),
+    path('tarakonesh', views.fund_turnover_user, name='fund_turn_over_user'),
     path('report/unit', views.unit_reports, name='unit_reports')
 ]
 if settings.DEBUG:

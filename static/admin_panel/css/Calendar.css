@@ -30,6 +30,7 @@
     margin: auto;
     padding: 10px;
     border-radius: 5px;
+    border: 1px dashed #ced4da;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 

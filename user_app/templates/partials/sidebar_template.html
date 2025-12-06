@@ -45,7 +45,7 @@
                {% if request.resolver_match.url_name == 'user_announce_manage' or request.resolver_match.url_name == 'fund_turn_over_user' %}active{% endif %}"
                data-bs-toggle="collapse"
                href="#general2">
-        
+
                 <i class="menu-title">گزارشات</i>
                 <i class="menu-arrow"></i>
                 <i class="mdi mdi-clipboard-text menu-icon"></i>
@@ -54,19 +54,19 @@
             <div class="collapse
                 {% if request.resolver_match.url_name == 'user_announce_manage' or request.resolver_match.url_name == 'fund_turn_over_user' %}show{% endif %}"
                 id="general2">
-        
+
                 <ul class="nav flex-column sub-menu">
-        
+
                     <li class="nav-item mt-0">
                         <a class="nav-link {% if request.resolver_match.url_name == 'user_announce_manage' %}active{% endif %}"
                            href="{% url 'user_announce_manage' %}">اطلاعیه ها</a>
                     </li>
-        
+
                     <li class="nav-item mt-0">
                         <a class="nav-link {% if request.resolver_match.url_name == 'fund_turn_over_user' %}active{% endif %}"
                            href="{% url 'fund_turn_over_user' %}">تراکنش مالی</a>
                     </li>
-        
+
                 </ul>
             </div>
         </li>
