@@ -23,7 +23,7 @@
                                       <tr>
                                         <th>#</th>
                                         <th> عنوان شارژ </th>
-                                        <th> تعداد واحدها </th>
+{#                                        <th> تعداد واحدها </th>#}
                                         <th> شارژ ثابت </th>
                                         <th class="px-1"> شارژ به ازای هر نفر</th>
                                         <th class="px-1"> شارژ به ازای هر متر</th>
@@ -41,7 +41,7 @@
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
                                             <td>{{charge.name }}</td>
-                                            <td>{{charge.unit_count }}</td>
+{#                                            <td>{{charge.unit_count }}</td>#}
                                             <td>{{charge.fix_charge_amount }}</td>
                                             <td>{{charge.person_amount|three_digit_currency }}</td>
                                             <td>{{charge.area_amount|three_digit_currency }}</td>

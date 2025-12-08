@@ -402,8 +402,6 @@ class MiddleUnitUpdateView(LoginRequiredMixin, UpdateView):
                 if house and unit_owner not in house.residents.all():
                     house.residents.add(unit_owner)
 
-
-
                 # Renter logic...
                 if is_renter:
                     current_renter = Renter.objects.filter(unit=self.object, renter_is_active=True).first()
@@ -2861,8 +2859,6 @@ def middle_send_notification_fix_charge_to_user(request, pk):
         return redirect('middle_show_notification_fix_charge_form', pk=pk)
 
     notified_units = []
-    charge_type = 'fixed'
-
     charge_type = 'fixed'  # نوع شارژ (با سیستم شما هماهنگ است)
 
     with transaction.atomic():
@@ -2880,6 +2876,7 @@ def middle_send_notification_fix_charge_to_user(request, pk):
                     'charge_name': fix_charge.name,
                     'unit_count': fix_charge.unit_count,
                     'details': fix_charge.details,
+                    'base_charge': fix_charge.total_charge_month,
                     'other_cost': fix_charge.other_cost_amount,
                     'send_notification': True,
                     'send_notification_date': timezone.now().date()
@@ -2896,14 +2893,22 @@ def middle_send_notification_fix_charge_to_user(request, pk):
             notified_units.append(str(unit))
 
             # ---- ساخت یا آپدیت UnifiedCharge ----
+            fixed_calc_ct = ContentType.objects.get_for_model(FixedChargeCalc)
+
             UnifiedCharge.objects.update_or_create(
-                related_object_id=fixed_calc.id,
-                related_object_type=charge_type,
+                content_type=fixed_calc_ct,
+                object_id=fixed_calc.id,
                 defaults={
                     'user': fixed_calc.user,
+                    'unit': fixed_calc.unit,  # اضافه شد
                     'charge_type': charge_type,
-                    'amount': fixed_calc.total_charge_month or 0,
-                    'description': fixed_calc.charge_name,
+                    'amount': fixed_calc.base_charge or 0,  # شارژ اصلی
+                    'penalty_amount': fixed_calc.payment_penalty_price or 0,  # جریمه
+                    'total_charge_month': fixed_calc.total_charge_month or 0,  # شارژ ماهانه
+                    'title': fixed_calc.charge_name,
+                    'details': fix_charge.details,
+                    'civil': fixed_calc.civil_charge,
+                    'other_cost_amount': fixed_calc.other_cost,
                     'send_notification_date': fixed_calc.send_notification_date,
                     'payment_deadline_date': fixed_calc.payment_deadline_date,
                 }
@@ -2936,87 +2941,75 @@ def middle_remove_send_notification_fix(request, pk):
 
     charge = get_object_or_404(FixCharge, id=pk)
     selected_units = request.POST.getlist('units[]')
-    charge_type = 'fixed'   # نوع شارژ مطابق سیستم شما
 
     if not selected_units:
         return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
 
+    charge_type_ct = ContentType.objects.get_for_model(FixedChargeCalc)
+
     try:
-        # =========================
-        # ✔ حالت انتخاب همه واحدها
-        # =========================
-        if selected_units == ['all']:
+        with transaction.atomic():
+            # =========================
+            # حذف همه واحدها
+            # =========================
+            if selected_units == ['all']:
+                qs = FixedChargeCalc.objects.filter(
+                    fix_charge=charge,
+                    is_paid=False
+                )
 
-            # تمام رکوردهای FixedChargeCalc قابل حذف
-            qs = FixedChargeCalc.objects.filter(
-                fix_charge=charge,
-                is_paid=False
-            )
+                calc_ids = list(qs.values_list('id', flat=True))
+                deleted_count = qs.count()
+                qs.delete()
 
-            # گرفتن ID ها قبل از حذف
-            calc_ids = list(qs.values_list('id', flat=True))
+                # حذف UnifiedCharge مربوطه
+                UnifiedCharge.objects.filter(
+                    content_type=charge_type_ct,
+                    object_id__in=calc_ids
+                ).delete()
 
-            deleted_count = qs.count()
-            qs.delete()
+            else:
+                # =========================
+                # حذف واحدهای مشخص
+                # =========================
+                try:
+                    selected_unit_ids = [int(uid) for uid in selected_units]
+                except ValueError:
+                    return JsonResponse({'error': 'شناسه واحد نامعتبر است.'}, status=400)
 
-            # حذف UnifiedCharge های مربوط به این رکوردها
-            UnifiedCharge.objects.filter(
-                related_object_id__in=calc_ids,
-                related_object_type=charge_type
-            ).delete()
+                units_qs = Unit.objects.filter(id__in=selected_unit_ids, is_active=True)
 
-            # اگر هیچ رکوردی باقی نماند → خاموش کردن اعلان
+                if not units_qs.exists():
+                    return JsonResponse({'warning': 'هیچ واحد معتبری یافت نشد.'})
+
+                qs = FixedChargeCalc.objects.filter(
+                    fix_charge=charge,
+                    unit__in=units_qs,
+                    is_paid=False
+                )
+
+                calc_ids = list(qs.values_list('id', flat=True))
+                deleted_count = qs.count()
+                qs.delete()
+
+                # حذف UnifiedCharge مربوطه
+                UnifiedCharge.objects.filter(
+                    content_type=charge_type_ct,
+                    object_id__in=calc_ids
+                ).delete()
+
+            # اگر هیچ رکوردی باقی نماند → اعلان غیرفعال شود
             if not FixedChargeCalc.objects.filter(fix_charge=charge).exists():
                 charge.send_notification = False
                 charge.save()
 
-            if deleted_count:
-                return JsonResponse({'success': f'{deleted_count} اطلاعیه با موفقیت حذف شد.'})
-            else:
-                return JsonResponse({'info': 'اطلاعیه‌ای برای حذف یافت نشد.'})
-
-        # ============================
-        # ✔ حذف براساس واحدهای انتخاب‌شده
-        # ============================
-
-        try:
-            selected_unit_ids = [int(uid) for uid in selected_units]
-        except ValueError:
-            return JsonResponse({'error': 'شناسه واحد نامعتبر است.'}, status=400)
-
-        units_qs = Unit.objects.filter(id__in=selected_unit_ids, is_active=True)
-
-        if not units_qs.exists():
-            return JsonResponse({'warning': 'هیچ واحد معتبری یافت نشد.'})
-
-        qs = FixedChargeCalc.objects.filter(
-            fix_charge=charge,
-            unit__in=units_qs,
-            is_paid=False
-        )
-
-        calc_ids = list(qs.values_list('id', flat=True))
-        deleted_count = qs.count()
-        qs.delete()
-
-        # حذف UnifiedCharge
-        UnifiedCharge.objects.filter(
-            related_object_id__in=calc_ids,
-            related_object_type=charge_type
-        ).delete()
-
-        # اگر تمام رکوردها حذف شدند → ارسال اعلان غیرفعال شود
-        if not FixedChargeCalc.objects.filter(fix_charge=charge).exists():
-            charge.send_notification = False
-            charge.save()
-
         if deleted_count:
-            return JsonResponse({'success': f'{deleted_count} اطلاعیه برای واحدهای انتخاب‌شده حذف شد.'})
+            return JsonResponse({'success': f'{deleted_count} اطلاعیه حذف شد.'})
         else:
             return JsonResponse({'info': 'رکوردی برای حذف یافت نشد.'})
 
     except Exception as e:
-        return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
+        return JsonResponse({'error': f'خطایی هنگام حذف اطلاعیه‌ها رخ داد: {str(e)}'}, status=500)
 
 
 # ========================================== Area Charge =======================
@@ -3211,7 +3204,7 @@ def middle_show_area_charge_notification_form(request, pk):
                 area_charge=charge,
                 payment_penalty=charge.payment_penalty_amount,
                 payment_deadline_date=charge.payment_deadline,
-                total_charge_month=int(total_charge),
+                base_charge=int(total_charge),
                 final_area_amount=int(charge.area_amount or 0) * int(unit.area or 0)
             )
 
@@ -3245,22 +3238,25 @@ def middle_send_notification_area_charge_to_user(request, pk):
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
         return redirect('middle_show_notification_area_charge_form', pk=pk)
 
-    units_qs = Unit.objects.filter(is_active=True)
+    # 🔥 مهم: فقط واحدهای این مدیر
+    units_qs = Unit.objects.filter(is_active=True, user__manager=request.user)
 
-    if 'all' in selected_units:
-        units_to_notify = units_qs
-    else:
-        units_to_notify = units_qs.filter(id__in=selected_units)
+    units_to_notify = (
+        units_qs if 'all' in selected_units
+        else units_qs.filter(id__in=selected_units)
+    )
 
     if not units_to_notify.exists():
         messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
         return redirect('middle_show_notification_area_charge_form', pk=pk)
 
-    notified_units = []
-    charge_type = 'area'  # برای UnifiedCharge
+    charge_type = 'area'
+    calc_ct = ContentType.objects.get_for_model(AreaChargeCalc)
 
     with transaction.atomic():
         for unit in units_to_notify:
+
+            total_charge = middle_calculate_total_charge_area(unit, area_charge)
 
             calc_obj, created = AreaChargeCalc.objects.get_or_create(
                 unit=unit,
@@ -3269,50 +3265,55 @@ def middle_send_notification_area_charge_to_user(request, pk):
                     'user': unit.user,
                     'amount': area_charge.area_amount,
                     'civil_charge': area_charge.civil,
+                    'other_cost': area_charge.other_cost_amount,
                     'charge_name': area_charge.name,
                     'details': area_charge.details,
+                    'base_charge': total_charge,
+                    'final_area_amount': float(area_charge.area_amount or 0) * float(unit.area or 0),
                     'payment_deadline_date': area_charge.payment_deadline,
+                    'payment_penalty_price': area_charge.payment_penalty_amount,
                     'send_notification': True,
                     'send_notification_date': timezone.now().date(),
                 }
             )
 
-            # اگر قبلاً ایجاد شده بود ولی اطلاع‌رسانی نشده بود → فعال کن
-            if not created:
-                if not calc_obj.send_notification:
-                    calc_obj.send_notification = True
-                    calc_obj.send_notification_date = timezone.now().date()
-                    calc_obj.save()
+            # اگر قبلاً وجود داشته اما notify نشده
+            if not created and not calc_obj.send_notification:
+                calc_obj.send_notification = True
+                calc_obj.send_notification_date = timezone.now().date()
+                calc_obj.base_charge = total_charge
+                calc_obj.final_area_amount = float(area_charge.area_amount or 0) * float(unit.area or 0)
 
-            notified_units.append(str(unit))
+            # اجرای محاسبه‌های مدل
+            calc_obj.save()
 
-            # ===========================
-            # ✔ ایجاد یا آپدیت UnifiedCharge
-            # ===========================
+            # بروزرسانی UnifiedCharge
             UnifiedCharge.objects.update_or_create(
-                related_object_id=calc_obj.id,
-                related_object_type=charge_type,
+                content_type=calc_ct,
+                object_id=calc_obj.id,
                 defaults={
                     'user': calc_obj.user,
+                    'unit': calc_obj.unit,
                     'charge_type': charge_type,
-                    'amount': getattr(calc_obj, 'total_charge_month', calc_obj.amount),
-                    'description': calc_obj.charge_name,
+                    'amount': calc_obj.base_charge or 0,
+                    'penalty_amount': calc_obj.payment_penalty_price or 0,
+                    'total_charge_month': calc_obj.total_charge_month or 0,
+                    'title': calc_obj.charge_name,
+                    'details': calc_obj.details,
+                    'civil': calc_obj.civil_charge,
+                    'other_cost_amount': calc_obj.other_cost,
                     'send_notification_date': calc_obj.send_notification_date,
                     'payment_deadline_date': calc_obj.payment_deadline_date,
                 }
             )
 
-        # به‌روزرسانی خود AreaCharge
         area_charge.send_notification = True
         area_charge.send_sms = True
         area_charge.save()
 
-    if notified_units:
-        messages.success(request, 'اطلاعیه برای واحدهای انتخابی ارسال شد!')
-    else:
-        messages.info(request, 'اطلاعیه‌ای ارسال نشد؛ ممکن است قبلاً برای واحد انتخابی ثبت شده باشد.')
-
+    messages.success(request, 'اطلاعیه برای واحدهای انتخابی ارسال شد!')
     return redirect('middle_show_notification_area_charge_form', pk=pk)
+
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_remove_send_notification_area(request, pk):
@@ -3321,7 +3322,7 @@ def middle_remove_send_notification_area(request, pk):
 
     charge = get_object_or_404(AreaCharge, id=pk)
     unit_ids = request.POST.getlist('units[]')
-    charge_type = 'area'  # نوع برای UnifiedCharge
+    charge_type_ct = ContentType.objects.get_for_model(AreaChargeCalc)
 
     if not unit_ids:
         return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
@@ -3345,8 +3346,8 @@ def middle_remove_send_notification_area(request, pk):
 
             # حذف UnifiedCharge مرتبط
             UnifiedCharge.objects.filter(
-                related_object_id__in=calc_ids,
-                related_object_type=charge_type
+                content_type=charge_type_ct,
+                object_id__in=calc_ids
             ).delete()
 
             # اگر هیچ رکوردی نماند → اعلان غیرفعال شود
@@ -3396,8 +3397,8 @@ def middle_remove_send_notification_area(request, pk):
 
         # حذف UnifiedCharge مربوط
         UnifiedCharge.objects.filter(
-            related_object_id__in=calc_ids,
-            related_object_type=charge_type
+            content_type=charge_type_ct,
+            object_id__in=calc_ids
         ).delete()
 
         # اگر همه رکوردها حذف شدند → اعلان غیرفعال شود
@@ -3409,7 +3410,6 @@ def middle_remove_send_notification_area(request, pk):
 
     except Exception as e:
         return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
-
 
 
 # ======================= Person Charge ===============
@@ -3588,7 +3588,7 @@ def middle_show_person_charge_notification_form(request, pk):
                 person_charge=charge,
                 payment_penalty=charge.payment_penalty_amount,
                 payment_deadline_date=charge.payment_deadline,
-                total_charge_month=int(total_charge),
+                base_charge=int(total_charge),
                 final_person_amount=int(charge.person_amount or 0) * int(unit.people_count or 0)
             )
 
@@ -3618,6 +3618,8 @@ def middle_send_notification_person_charge_to_user(request, pk):
     person_charge = get_object_or_404(PersonCharge, id=pk)
     selected_units = request.POST.getlist('units')
     charge_type = 'person'
+    calc_ct = ContentType.objects.get_for_model(PersonChargeCalc)
+
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
@@ -3663,13 +3665,19 @@ def middle_send_notification_person_charge_to_user(request, pk):
 
                 # ===========================
                 UnifiedCharge.objects.update_or_create(
-                    related_object_id=calc_obj.id,
-                    related_object_type=charge_type,
+                    content_type=calc_ct,
+                    object_id=calc_obj.id,
                     defaults={
                         'user': calc_obj.user,
+                        'unit': calc_obj.unit,
                         'charge_type': charge_type,
-                        'amount': getattr(calc_obj, 'total_charge_month', calc_obj.amount),
-                        'description': calc_obj.charge_name,
+                        'amount': calc_obj.base_charge or 0,
+                        'penalty_amount': calc_obj.payment_penalty_price or 0,
+                        'total_charge_month': calc_obj.total_charge_month or 0,
+                        'title': calc_obj.charge_name,
+                        'details': calc_obj.details,
+                        'civil': calc_obj.civil_charge,
+                        'other_cost_amount': calc_obj.other_cost,
                         'send_notification_date': calc_obj.send_notification_date,
                         'payment_deadline_date': calc_obj.payment_deadline_date,
                     }
@@ -3690,7 +3698,6 @@ def middle_send_notification_person_charge_to_user(request, pk):
     return redirect('middle_show_notification_person_charge_form', pk=pk)
 
 
-
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_remove_send_notification_person(request, pk):
     if request.method != 'POST' or request.headers.get('x-requested-with') != 'XMLHttpRequest':
@@ -3699,6 +3706,8 @@ def middle_remove_send_notification_person(request, pk):
     charge = get_object_or_404(PersonCharge, id=pk)
     unit_ids = request.POST.getlist('units[]')
     charge_type = 'person'  # نوع برای UnifiedCharge
+    charge_type_ct = ContentType.objects.get_for_model(PersonChargeCalc)
+
 
     if not unit_ids:
         return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
@@ -3720,8 +3729,8 @@ def middle_remove_send_notification_person(request, pk):
 
             # حذف UnifiedCharge مرتبط
             UnifiedCharge.objects.filter(
-                related_object_id__in=calc_ids,
-                related_object_type=charge_type
+                content_type=charge_type_ct,
+                object_id__in=calc_ids
             ).delete()
 
             # اگر هیچ رکوردی نماند → اعلان غیرفعال شود
@@ -3766,8 +3775,8 @@ def middle_remove_send_notification_person(request, pk):
 
         # حذف UnifiedCharge مربوط
         UnifiedCharge.objects.filter(
-            related_object_id__in=calc_ids,
-            related_object_type=charge_type
+            content_type=charge_type_ct,
+            object_id__in=calc_ids
         ).delete()
 
         # اگر همه رکوردها حذف شدند → اعلان غیرفعال شود
@@ -3779,7 +3788,6 @@ def middle_remove_send_notification_person(request, pk):
 
     except Exception as e:
         return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
-
 
 
 # ==================== Fix Area Charge    =============================
@@ -3959,7 +3967,7 @@ def middle_show_fix_area_charge_notification_form(request, pk):
                 fix_charge=int(charge.fix_charge_amount),
                 payment_penalty=charge.payment_penalty_amount,
                 payment_deadline_date=charge.payment_deadline,
-                total_charge_month=int(total_charge),
+                base_charge=int(total_charge),
                 final_person_amount=int((charge.area_amount or 0) * int(unit.people_count or 0)) + int(
                     charge.fix_charge_amount or 0)
             )
@@ -3990,6 +3998,8 @@ def middle_send_notification_fix_area_charge_to_user(request, pk):
     fix_area_charge = get_object_or_404(FixAreaCharge, id=pk)
     selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
     charge_type = 'fix_area'
+    calc_ct = ContentType.objects.get_for_model(FixAreaChargeCalc)
+
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
@@ -4006,7 +4016,7 @@ def middle_send_notification_fix_area_charge_to_user(request, pk):
 
     with transaction.atomic():
         for unit in units_to_notify:
-            fixed_calc, created = FixAreaChargeCalc.objects.update_or_create(
+            calc_obj, created = FixAreaChargeCalc.objects.update_or_create(
                 unit=unit,
                 fix_area=fix_area_charge,
                 defaults={
@@ -4020,17 +4030,27 @@ def middle_send_notification_fix_area_charge_to_user(request, pk):
                     'send_notification_date': timezone.now().date(),
                 }
             )
+            if not created and not calc_obj.send_notification:
+                calc_obj.send_notification = True
+                calc_obj.send_notification_date = timezone.now().date()
+                calc_obj.save()
 
             UnifiedCharge.objects.update_or_create(
-                related_object_id=fixed_calc.id,
-                related_object_type=charge_type,
+                content_type=calc_ct,
+                object_id=calc_obj.id,
                 defaults={
-                    'user': fixed_calc.user,
+                    'user': calc_obj.user,
+                    'unit': calc_obj.unit,
                     'charge_type': charge_type,
-                    'amount': getattr(fixed_calc, 'total_charge_month', fixed_calc.amount),
-                    'description': fixed_calc.charge_name,
-                    'send_notification_date': fixed_calc.send_notification_date,
-                    'payment_deadline_date': fixed_calc.payment_deadline_date,
+                    'amount': calc_obj.base_charge or 0,
+                    'penalty_amount': calc_obj.payment_penalty_price or 0,
+                    'total_charge_month': calc_obj.total_charge_month or 0,
+                    'title': calc_obj.charge_name,
+                    'details': calc_obj.details,
+                    'civil': calc_obj.civil_charge,
+                    'other_cost_amount': calc_obj.other_cost,
+                    'send_notification_date': calc_obj.send_notification_date,
+                    'payment_deadline_date': calc_obj.payment_deadline_date,
                 }
             )
 
@@ -4048,62 +4068,94 @@ def middle_send_notification_fix_area_charge_to_user(request, pk):
     return redirect('middle_show_notification_fix_area_charge_form', pk=pk)
 
 
-
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_remove_send_notification_fix_area(request, pk):
     if request.method != 'POST' or request.headers.get('x-requested-with') != 'XMLHttpRequest':
         return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
 
+    charge = get_object_or_404(FixAreaCharge, id=pk)
     unit_ids = request.POST.getlist('units[]')
+    charge_type = 'fix_area'  # نوع برای UnifiedCharge
+    charge_type_ct = ContentType.objects.get_for_model(FixAreaChargeCalc)
+
     if not unit_ids:
         return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
 
-    charge = get_object_or_404(FixAreaCharge, id=pk)
-    charge_type = 'fix_area'
-
-    def delete_calc(qs):
-        calc_ids = list(qs.values_list('id', flat=True))
-        deleted_count = qs.count()
-        qs.delete()
-        UnifiedCharge.objects.filter(
-            related_object_id__in=calc_ids,
-            related_object_type=charge_type
-        ).delete()
-        return deleted_count
-
     try:
-        # حالت حذف همه
+        # ================================
+        # ✔ حالت حذف همه
+        # ================================
         if 'all' in unit_ids:
-            qs = FixAreaChargeCalc.objects.filter(fix_area=charge, is_paid=False)
-            deleted_count = delete_calc(qs)
 
-            charge.send_notification = False
-            charge.save()
+            qs = FixAreaChargeCalc.objects.filter(
+                fix_area=charge,
+                is_paid=False
+            )
+            calc_ids = list(qs.values_list('id', flat=True))
+            deleted_count = qs.count()
+
+            qs.delete()
+
+            # حذف UnifiedCharge مرتبط
+            UnifiedCharge.objects.filter(
+                content_type=charge_type_ct,
+                object_id__in=calc_ids
+            ).delete()
+
+            # اگر هیچ رکوردی نماند → اعلان غیرفعال شود
+            if not FixAreaChargeCalc.objects.filter(fix_area=charge).exists():
+                charge.send_notification = False
+                charge.save()
+
             return JsonResponse({'success': f'{deleted_count} اطلاعیه با موفقیت حذف شد.'})
 
-        # حالت حذف انتخابی
+        # ================================
+        # ✔ حالت حذف انتخابی
+        # ================================
         selected_ids = [int(uid) for uid in unit_ids if uid.isdigit()]
-        if not selected_ids:
-            return JsonResponse({'error': 'هیچ واحد معتبری انتخاب نشده است.'})
 
-        not_send = FixAreaChargeCalc.objects.filter(fix_area=charge, unit_id__in=selected_ids, send_notification=False)
+        # اطلاعیه صادر نشده
+        not_send = FixAreaChargeCalc.objects.filter(
+            fix_area=charge,
+            unit_id__in=selected_ids,
+            send_notification=False
+        )
         if not_send.exists():
             return JsonResponse({'error': 'اطلاعیه برای برخی واحدها صادر نشده است.'})
 
-        paid_qs = FixAreaChargeCalc.objects.filter(fix_area=charge, unit_id__in=selected_ids, is_paid=True)
+        # پرداخت شده → قابل حذف نیست
+        paid_qs = FixAreaChargeCalc.objects.filter(
+            fix_area=charge,
+            unit_id__in=selected_ids,
+            is_paid=True
+        )
         if paid_qs.exists():
             return JsonResponse({'error': 'برخی واحدها پرداخت انجام داده‌اند؛ حذف ممکن نیست.'})
 
-        qs = FixAreaChargeCalc.objects.filter(fix_area=charge, unit_id__in=selected_ids, is_paid=False)
-        deleted_count = delete_calc(qs)
+        # حذف رکوردهای انتخاب‌شده
+        qs = FixAreaChargeCalc.objects.filter(
+            fix_area=charge,
+            unit_id__in=selected_ids,
+            is_paid=False
+        )
+        calc_ids = list(qs.values_list('id', flat=True))
+        deleted_count = qs.count()
+        qs.delete()
 
+        # حذف UnifiedCharge مربوط
+        UnifiedCharge.objects.filter(
+            content_type=charge_type_ct,
+            object_id__in=calc_ids
+        ).delete()
+
+        # اگر همه رکوردها حذف شدند → اعلان غیرفعال شود
         if not FixAreaChargeCalc.objects.filter(fix_area=charge).exists():
             charge.send_notification = False
             charge.save()
 
         return JsonResponse({'success': f'{deleted_count} اطلاعیه حذف شد.'})
 
-    except Exception:
+    except Exception as e:
         return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
 
 
@@ -4281,7 +4333,7 @@ def middle_show_fix_person_charge_notification_form(request, pk):
                 fix_person=charge,
                 total_people=int(charge.total_people),
                 fix_charge=int(charge.fix_charge_amount),
-                total_charge_month=int(total_charge),
+                base_charge=int(total_charge),
                 payment_penalty=charge.payment_penalty_amount,
                 payment_deadline_date=charge.payment_deadline,
                 final_person_amount=int((charge.person_amount or 0) * int(unit.people_count or 0)) + int(
@@ -4314,23 +4366,24 @@ def middle_send_notification_fix_person_charge_to_user(request, pk):
     fix_person_charge = get_object_or_404(FixPersonCharge, id=pk)
     selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
     charge_type = 'fix_person'
+    calc_ct = ContentType.objects.get_for_model(FixPersonChargeCalc)
 
     if not selected_units:
-        messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
+        messages.error(request, 'هیچ واحدی انتخاب نشده است.')
         return redirect('middle_show_notification_fix_person_charge_form', pk=pk)
 
     units_qs = Unit.objects.filter(is_active=True)
     units_to_notify = units_qs if 'all' in request.POST.getlist('units') else units_qs.filter(id__in=selected_units)
 
     if not units_to_notify.exists():
-        messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
+        messages.error(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
         return redirect('middle_show_notification_fix_person_charge_form', pk=pk)
 
     notified_units = []
 
     with transaction.atomic():
         for unit in units_to_notify:
-            fixed_calc, created = FixPersonChargeCalc.objects.update_or_create(
+            calc_obj, created = FixPersonChargeCalc.objects.update_or_create(
                 unit=unit,
                 fix_person=fix_person_charge,
                 defaults={
@@ -4345,16 +4398,27 @@ def middle_send_notification_fix_person_charge_to_user(request, pk):
                 }
             )
 
+            if not created and not calc_obj.send_notification:
+                calc_obj.send_notification = True
+                calc_obj.send_notification_date = timezone.now().date()
+                calc_obj.save()
+
             UnifiedCharge.objects.update_or_create(
-                related_object_id=fixed_calc.id,
-                related_object_type=charge_type,
+                content_type=calc_ct,
+                object_id=calc_obj.id,
                 defaults={
-                    'user': fixed_calc.user,
+                    'user': calc_obj.user,
+                    'unit': calc_obj.unit,
                     'charge_type': charge_type,
-                    'amount': getattr(fixed_calc, 'total_charge_month', fixed_calc.amount),
-                    'description': fixed_calc.charge_name,
-                    'send_notification_date': fixed_calc.send_notification_date,
-                    'payment_deadline_date': fixed_calc.payment_deadline_date,
+                    'amount': calc_obj.base_charge or 0,
+                    'penalty_amount': calc_obj.payment_penalty_price or 0,
+                    'total_charge_month': calc_obj.total_charge_month or 0,
+                    'title': calc_obj.charge_name,
+                    'details': calc_obj.details,
+                    'civil': calc_obj.civil_charge,
+                    'other_cost_amount': calc_obj.other_cost,
+                    'send_notification_date': calc_obj.send_notification_date,
+                    'payment_deadline_date': calc_obj.payment_deadline_date,
                 }
             )
 
@@ -4371,6 +4435,7 @@ def middle_send_notification_fix_person_charge_to_user(request, pk):
 
     return redirect('middle_show_notification_fix_person_charge_form', pk=pk)
 
+
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_remove_send_notification_fix_person(request, pk):
     if request.method != 'POST' or request.headers.get('x-requested-with') != 'XMLHttpRequest':
@@ -4382,6 +4447,8 @@ def middle_remove_send_notification_fix_person(request, pk):
 
     charge = get_object_or_404(FixPersonCharge, id=pk)
     charge_type = 'fix_person'
+    charge_type_ct = ContentType.objects.get_for_model(FixPersonChargeCalc)
+
 
     try:
         # حالت حذف همه
@@ -4393,8 +4460,8 @@ def middle_remove_send_notification_fix_person(request, pk):
 
             # حذف UnifiedCharge مرتبط
             UnifiedCharge.objects.filter(
-                related_object_id__in=calc_ids,
-                related_object_type=charge_type
+                content_type=charge_type_ct,
+                object_id__in=calc_ids
             ).delete()
 
             charge.send_notification = False
@@ -4436,8 +4503,8 @@ def middle_remove_send_notification_fix_person(request, pk):
 
         # حذف UnifiedCharge مرتبط
         UnifiedCharge.objects.filter(
-            related_object_id__in=calc_ids,
-            related_object_type=charge_type
+            content_type=charge_type_ct,
+            object_id__in=calc_ids
         ).delete()
 
         # اگر همه رکوردها حذف شدند → اعلان غیرفعال شود
@@ -4449,7 +4516,6 @@ def middle_remove_send_notification_fix_person(request, pk):
 
     except Exception:
         return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
-
 
 
 # ============================== Person Area Charge ============================
@@ -4637,7 +4703,7 @@ def middle_show_person_area_charge_notification_form(request, pk):
                 person_area_charge=charge,
                 payment_penalty=charge.payment_penalty_amount,
                 payment_deadline_date=charge.payment_deadline,
-                total_charge_month=int(total_charge),
+                base_charge=int(total_charge),
             )
 
         units_with_details.append((unit, active_renter, is_paid, total_charge))
@@ -4665,6 +4731,8 @@ def middle_send_notification_person_area_charge_to_user(request, pk):
     person_area = get_object_or_404(ChargeByPersonArea, id=pk)
     selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
     charge_type = 'person_area'
+    calc_ct = ContentType.objects.get_for_model(ChargeByPersonAreaCalc)
+
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
@@ -4681,7 +4749,7 @@ def middle_send_notification_person_area_charge_to_user(request, pk):
 
     with transaction.atomic():
         for unit in units_to_notify:
-            calc, created = ChargeByPersonAreaCalc.objects.update_or_create(
+            calc_obj, created = ChargeByPersonAreaCalc.objects.update_or_create(
                 unit=unit,
                 person_area_charge=person_area,
                 defaults={
@@ -4698,16 +4766,27 @@ def middle_send_notification_person_area_charge_to_user(request, pk):
             )
 
             # ثبت یا به‌روزرسانی UnifiedCharge
+            if not created and not calc_obj.send_notification:
+                calc_obj.send_notification = True
+                calc_obj.send_notification_date = timezone.now().date()
+                calc_obj.save()
+
             UnifiedCharge.objects.update_or_create(
-                related_object_id=calc.id,
-                related_object_type=charge_type,
+                content_type=calc_ct,
+                object_id=calc_obj.id,
                 defaults={
-                    'user': calc.user,
+                    'user': calc_obj.user,
+                    'unit': calc_obj.unit,
                     'charge_type': charge_type,
-                    'amount': getattr(calc, 'total_charge_month', calc.area_charge + calc.person_charge),
-                    'description': calc.charge_name,
-                    'send_notification_date': calc.send_notification_date,
-                    'payment_deadline_date': getattr(calc, 'payment_deadline_date', None),
+                    'amount': calc_obj.base_charge or 0,
+                    'penalty_amount': calc_obj.payment_penalty_price or 0,
+                    'total_charge_month': calc_obj.total_charge_month or 0,
+                    'title': calc_obj.charge_name,
+                    'details': calc_obj.details,
+                    'civil': calc_obj.civil_charge,
+                    'other_cost_amount': calc_obj.other_cost,
+                    'send_notification_date': calc_obj.send_notification_date,
+                    'payment_deadline_date': calc_obj.payment_deadline_date,
                 }
             )
 
@@ -4736,6 +4815,8 @@ def middle_remove_send_notification_person_area(request, pk):
 
     charge = get_object_or_404(ChargeByPersonArea, id=pk)
     charge_type = 'person_area'
+    charge_type_ct = ContentType.objects.get_for_model(ChargeByPersonAreaCalc)
+
 
     try:
         # ================================
@@ -4749,8 +4830,8 @@ def middle_remove_send_notification_person_area(request, pk):
 
             # حذف UnifiedCharge مرتبط
             UnifiedCharge.objects.filter(
-                related_object_id__in=calc_ids,
-                related_object_type=charge_type
+                content_type=charge_type_ct,
+                object_id__in=calc_ids
             ).delete()
 
             charge.send_notification = False
@@ -4794,8 +4875,8 @@ def middle_remove_send_notification_person_area(request, pk):
 
         # حذف UnifiedCharge مربوط
         UnifiedCharge.objects.filter(
-            related_object_id__in=calc_ids,
-            related_object_type=charge_type
+            content_type=charge_type_ct,
+            object_id__in=calc_ids
         ).delete()
 
         # اگر همه رکوردها حذف شدند → اعلان غیرفعال شود
@@ -4996,7 +5077,7 @@ def middle_show_fix_person_area_charge_notification_form(request, pk):
                 payment_penalty=charge.payment_penalty_amount,
                 payment_deadline_date=charge.payment_deadline,
                 fix_person_area=charge,
-                total_charge_month=int(total_charge),
+                base_charge=int(total_charge),
             )
 
         units_with_details.append((unit, active_renter, is_paid, total_charge))
@@ -5019,13 +5100,14 @@ def middle_show_fix_person_area_charge_notification_form(request, pk):
     return render(request, 'middleCharge/notify_fix_person_area_charge_template.html', context)
 
 
-
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 @require_POST
 def middle_send_notification_fix_person_area_charge_to_user(request, pk):
     fix_person_area = get_object_or_404(ChargeByFixPersonArea, id=pk)
     selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
     charge_type = 'fix_person_area'
+    calc_ct = ContentType.objects.get_for_model(ChargeByFixPersonAreaCalc)
+
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
@@ -5042,7 +5124,7 @@ def middle_send_notification_fix_person_area_charge_to_user(request, pk):
 
     with transaction.atomic():
         for unit in units_to_notify:
-            calc, created = ChargeByFixPersonAreaCalc.objects.update_or_create(
+            calc_obj, created = ChargeByFixPersonAreaCalc.objects.update_or_create(
                 unit=unit,
                 fix_person_area=fix_person_area,
                 defaults={
@@ -5060,16 +5142,27 @@ def middle_send_notification_fix_person_area_charge_to_user(request, pk):
             )
 
             # ثبت یا به‌روزرسانی UnifiedCharge
+            if not created and not calc_obj.send_notification:
+                calc_obj.send_notification = True
+                calc_obj.send_notification_date = timezone.now().date()
+                calc_obj.save()
+
             UnifiedCharge.objects.update_or_create(
-                related_object_id=calc.id,
-                related_object_type=charge_type,
+                content_type=calc_ct,
+                object_id=calc_obj.id,
                 defaults={
-                    'user': calc.user,
+                    'user': calc_obj.user,
+                    'unit': calc_obj.unit,
                     'charge_type': charge_type,
-                    'amount': getattr(calc, 'total_charge_month', calc.fix_charge + calc.area_charge + calc.person_charge),
-                    'description': calc.charge_name,
-                    'send_notification_date': calc.send_notification_date,
-                    'payment_deadline_date': getattr(calc, 'payment_deadline_date', None),
+                    'amount': calc_obj.base_charge or 0,
+                    'penalty_amount': calc_obj.payment_penalty_price or 0,
+                    'total_charge_month': calc_obj.total_charge_month or 0,
+                    'title': calc_obj.charge_name,
+                    'details': calc_obj.details,
+                    'civil': calc_obj.civil_charge,
+                    'other_cost_amount': calc_obj.other_cost,
+                    'send_notification_date': calc_obj.send_notification_date,
+                    'payment_deadline_date': calc_obj.payment_deadline_date,
                 }
             )
 
@@ -5099,6 +5192,8 @@ def middle_remove_send_notification_fix_person_area(request, pk):
 
     charge = get_object_or_404(ChargeByFixPersonArea, id=pk)
     charge_type = 'fix_person_area'
+    charge_type_ct = ContentType.objects.get_for_model(ChargeByFixPersonAreaCalc)
+
 
     try:
         # ================================
@@ -5112,8 +5207,8 @@ def middle_remove_send_notification_fix_person_area(request, pk):
 
             # حذف UnifiedCharge مرتبط
             UnifiedCharge.objects.filter(
-                related_object_id__in=calc_ids,
-                related_object_type=charge_type
+                content_type=charge_type_ct,
+                object_id__in=calc_ids
             ).delete()
 
             charge.send_notification = False
@@ -5157,8 +5252,8 @@ def middle_remove_send_notification_fix_person_area(request, pk):
 
         # حذف UnifiedCharge مربوط
         UnifiedCharge.objects.filter(
-            related_object_id__in=calc_ids,
-            related_object_type=charge_type
+            content_type=charge_type_ct,
+            object_id__in=calc_ids
         ).delete()
 
         # اگر همه رکوردها حذف شدند → اعلان غیرفعال شود
@@ -5377,7 +5472,7 @@ def middle_show_fix_variable_notification_form(request, pk):
                 payment_deadline_date=charge.payment_deadline,
                 extra_parking_charges=extra_parking_charge,
                 other_cost=charge.other_cost_amount,
-                total_charge_month=int(total_charge),
+                base_charge=int(total_charge),
                 final_person_amount=(
                         int((charge.unit_variable_person_amount or 0) * (unit.people_count or 0)) +
                         int((charge.unit_variable_area_amount or 0) * (unit.area or 0)) +
@@ -5410,6 +5505,8 @@ def middle_send_notification_fix_variable_to_user(request, pk):
     fix_variable = get_object_or_404(ChargeFixVariable, id=pk)
     selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
     charge_type = 'fix_variable'
+    calc_ct = ContentType.objects.get_for_model(ChargeFixVariableCalc)
+
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
@@ -5426,7 +5523,7 @@ def middle_send_notification_fix_variable_to_user(request, pk):
 
     with transaction.atomic():
         for unit in units_to_notify:
-            calc, created = ChargeFixVariableCalc.objects.update_or_create(
+            calc_obj, created = ChargeFixVariableCalc.objects.update_or_create(
                 unit=unit,
                 fix_variable_charge=fix_variable,
                 defaults={
@@ -5444,16 +5541,27 @@ def middle_send_notification_fix_variable_to_user(request, pk):
             )
 
             # ایجاد یا به‌روزرسانی UnifiedCharge
+            if not created and not calc_obj.send_notification:
+                calc_obj.send_notification = True
+                calc_obj.send_notification_date = timezone.now().date()
+                calc_obj.save()
+
             UnifiedCharge.objects.update_or_create(
-                related_object_id=calc.id,
-                related_object_type=charge_type,
+                content_type=calc_ct,
+                object_id=calc_obj.id,
                 defaults={
-                    'user': calc.user,
+                    'user': calc_obj.user,
+                    'unit': calc_obj.unit,
                     'charge_type': charge_type,
-                    'amount': getattr(calc, 'total_charge_month', calc.unit_variable_area_charge + calc.unit_variable_person_charge + calc.unit_fix_charge_per_unit),
-                    'description': calc.charge_name,
-                    'send_notification_date': calc.send_notification_date,
-                    'payment_deadline_date': getattr(calc, 'payment_deadline_date', None),
+                    'amount': calc_obj.base_charge or 0,
+                    'penalty_amount': calc_obj.payment_penalty_price or 0,
+                    'total_charge_month': calc_obj.total_charge_month or 0,
+                    'title': calc_obj.charge_name,
+                    'details': calc_obj.details,
+                    'civil': calc_obj.civil_charge,
+                    'other_cost_amount': calc_obj.other_cost,
+                    'send_notification_date': calc_obj.send_notification_date,
+                    'payment_deadline_date': calc_obj.payment_deadline_date,
                 }
             )
 
@@ -5483,6 +5591,8 @@ def middle_remove_send_notification_fix_variable(request, pk):
 
     charge = get_object_or_404(ChargeFixVariable, id=pk)
     charge_type = 'fix_variable'
+    charge_type_ct = ContentType.objects.get_for_model(ChargeFixVariableCalc)
+
 
     try:
         # ================================
@@ -5496,8 +5606,8 @@ def middle_remove_send_notification_fix_variable(request, pk):
 
             # حذف UnifiedCharge مرتبط
             UnifiedCharge.objects.filter(
-                related_object_id__in=calc_ids,
-                related_object_type=charge_type
+                content_type=charge_type_ct,
+                object_id__in=calc_ids
             ).delete()
 
             charge.send_notification = False
@@ -5541,8 +5651,8 @@ def middle_remove_send_notification_fix_variable(request, pk):
 
         # حذف UnifiedCharge مربوط
         UnifiedCharge.objects.filter(
-            related_object_id__in=calc_ids,
-            related_object_type=charge_type
+            content_type=charge_type_ct,
+            object_id__in=calc_ids
         ).delete()
 
         # اگر همه رکوردها حذف شدند → اعلان غیرفعال شود

@@ -7,7 +7,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 
 from admin_panel.models import FixedChargeCalc, AreaChargeCalc, PersonChargeCalc, FixPersonChargeCalc, \
-    FixAreaChargeCalc, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariableCalc, Fund
+    FixAreaChargeCalc, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariableCalc, Fund, UnifiedCharge
 
 MERCHANT = "3d6d6a26-c139-49ac-9d8d-b03a8cdf0fdd"
 
@@ -91,9 +91,6 @@ def verify_pay_fix(request: HttpRequest):
         return JsonResponse({"error": "FixedChargeCalc not found"}, status=404)
 
     total_fix_charge = payment_charge.total_charge_month
-    payment_charge.is_paid = True
-    payment_charge.payment_date = timezone.now()
-    payment_charge.save()
 
     t_authority = request.GET.get('Authority')
 
@@ -114,6 +111,8 @@ def verify_pay_fix(request: HttpRequest):
                 if t_status == 100:
                     ref_str = req_data['data']['ref_id']
                     payment_charge.transaction_reference = req_data['data']['ref_id']
+                    payment_charge.is_paid = True
+                    payment_charge.payment_date = timezone.now()
                     payment_charge.save()
 
                     content_type = ContentType.objects.get_for_model(payment_charge)
@@ -127,6 +126,16 @@ def verify_pay_fix(request: HttpRequest):
                         payment_date=payment_charge.payment_date,
                         payment_description=f"{payment_charge.charge_name}",
                         transaction_no=payment_charge.transaction_reference,
+                    )
+
+                    UnifiedCharge.objects.update_or_create(
+                        related_object_id=payment_charge.id,
+                        related_object_type='fixed',  # نوع شارژ ثابت
+                        defaults={
+                            'user': request.user,
+                            'charge_type': 'fixed',
+                            'is_paid': True,
+                        }
                     )
 
                     return render(request, 'payment_done.html', {
@@ -172,7 +181,7 @@ def request_pay_area(request: HttpRequest, charge_id):
             return HttpResponse("مبلغ شارژ نامعتبر است.", status=400)
 
         total_area_charge = charge.total_charge_month
-        charge.save()
+
         callback_url = f"{CallbackURLArea}?charge_id={charge.id}"  # اضافه کردن charge_id
 
         req_data = {
@@ -216,9 +225,6 @@ def verify_pay_area(request: HttpRequest):
         return JsonResponse({"error": "FixedChargeCalc not found"}, status=404)
 
     total_area_charge = payment_charge.total_charge_month
-    payment_charge.is_paid = True
-    payment_charge.payment_date = timezone.now()
-    payment_charge.save()
 
     t_authority = request.GET.get('Authority')
 
@@ -239,7 +245,10 @@ def verify_pay_area(request: HttpRequest):
                 if t_status == 100:
                     ref_str = req_data['data']['ref_id']
                     payment_charge.transaction_reference = req_data['data']['ref_id']
+                    payment_charge.is_paid = True
+                    payment_charge.payment_date = timezone.now()
                     payment_charge.save()
+
                     content_type = ContentType.objects.get_for_model(payment_charge)
                     Fund.objects.create(
                         content_type=content_type,
@@ -250,6 +259,16 @@ def verify_pay_area(request: HttpRequest):
                         user=request.user,
                         payment_date=payment_charge.payment_date,
                         payment_description=f"{payment_charge.charge_name}",
+                    )
+                    UnifiedCharge.objects.update_or_create(
+                        related_object_id=payment_charge.id,
+                        related_object_type='area',  # نوع شارژ ثابت
+                        defaults={
+                            'user': request.user,
+                            'charge_type': 'area',
+                            'is_paid': True,
+                            'amount': payment_charge.total_charge_month
+                        }
                     )
                     return render(request, 'payment_done.html', {
                         'success': f'تراکنش شما با کد پیگیری {ref_str} با موفقیت انجام و پرداخت شارژ شما ثبت گردید. سپاس از شما'

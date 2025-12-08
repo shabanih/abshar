@@ -226,9 +226,9 @@ def user_panel(request):
     unpaid_charges_dict = {name: get_unpaid_charges(model, user) for name, model in charge_models.items()}
 
     # --- SAVE CHANGES ---
-    for charge_list in unpaid_charges_dict.values():
-        for charge in charge_list:
-            charge.save()
+    # for charge_list in unpaid_charges_dict.values():
+    #     for charge in charge_list:
+    #         charge.save()
 
     # --- CONTEXT ---
     context = {
@@ -255,33 +255,13 @@ def user_panel(request):
 
 @login_required
 def fetch_user_charges(request):
+    user = request.user
+    last_charges = UnifiedCharge.objects.filter(user=user).order_by('-created_at')[:8]
     unit = Unit.objects.filter(user=request.user, is_active=True).first()
-
-    charges = get_user_charges(FixedChargeCalc, request.user)
-    area_charges = get_user_charges(AreaChargeCalc, request.user)
-    person_charges = get_user_charges(PersonChargeCalc, request.user)
-    fix_person_charges = get_user_charges(FixPersonChargeCalc, request.user)
-    fix_area_charges = get_user_charges(FixAreaChargeCalc, request.user)
-    person_area_charges = get_user_charges(ChargeByPersonAreaCalc, request.user)
-    fix_person_area_charges = get_user_charges(ChargeByFixPersonAreaCalc, request.user)
-    fix_variable_charges = get_user_charges(ChargeFixVariableCalc, request.user)
-
-    for charge_list in [charges, area_charges, person_charges, fix_person_charges,
-                        fix_area_charges, person_area_charges, fix_person_area_charges,
-                        fix_variable_charges]:
-        for c in charge_list:
-            c.save()  # با این کار jریمه دیرکرد و total_charge_month بروز می‌شود
 
     context = {
         'unit': unit,
-        'charges': charges,
-        'area_charges': area_charges,
-        'person_charges': person_charges,
-        'fix_person_charges': fix_person_charges,
-        'fix_area_charges': fix_area_charges,
-        'person_area_charges': person_area_charges,
-        'fix_person_area_charges': fix_person_area_charges,
-        'fix_variable_charges': fix_variable_charges,
+        'last_charges': last_charges,
     }
 
     return render(request, 'manage_charges.html', context)

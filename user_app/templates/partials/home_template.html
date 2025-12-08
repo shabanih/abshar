@@ -100,8 +100,8 @@
                     {% for charge in last_charges %}
                         <tbody class="text-center">
                             <tr>
-                                <td class="p-2">{{ charge.description }}</td>
-                                <td class="p-2">{{ charge.amount|three_digit_currency }}</td>
+                                <td class="p-2">{{ charge.title }}</td>
+                                <td class="p-2">{{ charge.total_charge_month|three_digit_currency }}</td>
                                 <td class="p-2">{{ charge.send_notification_date|show_jalali }}</td>
                                 <td class="p-2">{{ charge.payment_deadline_date|show_jalali }}</td>
                                 <td class="p-2">

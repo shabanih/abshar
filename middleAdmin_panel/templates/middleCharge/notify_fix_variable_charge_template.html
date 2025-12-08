@@ -89,7 +89,12 @@
                                     {% else %}
                                       مالک: {{ unit.owner_name }}
                                     {% endif %}<br>مبلغ شارژ: {{ total_charge|three_digit_currency }} تومان
-                                    <br>تعداد پارکینگ اضافه: {{ unit.parking_count }} 
+                                    <br>تعداد پارکینگ اضافه: 
+                                    {% if unit.parking_counts %}
+                                        {{ unit.parking_counts }}
+                                        {% else %}
+                                        <span>ندارد</span
+                                        {% endif %}
                                 ">
                  {% if unit.parking_counts %}
                  	    <input class="form-check-input unit-checkbox mx-2" 
