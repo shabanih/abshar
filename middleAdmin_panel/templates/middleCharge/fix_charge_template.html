@@ -105,7 +105,7 @@
                                 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost_amount|three_digit_currency }} تومان</p>
                                 <p><strong>تاریخ ثبت :</strong> {{ charge.created_at|show_jalali_date_only }} </p>
                                 <p><strong>مهلت پرداخت :</strong> {{ charge.payment_deadline|show_jalali_date_only }} </p>
-                                <p><strong>جریمه دیرکرد:</strong> {{ charge.payment_penalty_amount|three_digit_currency }} تومان</p>
+                                <p><strong>جریمه دیرکرد:</strong> {{ charge.payment_penalty_amount|three_digit_currency }} درصد</p>
                                 <p><strong>توضیحات:</strong>
                                     {% if charge.details %}
                                         <span class="badge bg-warning">{{ charge.details }} </span>

@@ -84,40 +84,55 @@
 <div class="row mt-3 g-1"> <!-- فاصله ستون‌ها کمتر شد -->
     <!-- جدول شارژها -->
 {% if last_charges %}
-	<div class="col-lg-6 p-0"> <!-- grid-margin حذف شد تا فاصله کمتر شود -->
-        <div class="table-responsive w-100" style="border-radius: 7px;">
-            <table class="table table-bordered" id="expenseTable" style="width:100%; table-layout: fixed;">
-                <thead class="text-center p-3">
-                    <tr class="p-3">
+<div class="col-lg-6 p-0">
+
+    <div class="card" style="border-radius: 12px; overflow: hidden;">
+        <!-- جدول شارژها -->
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0" id="expenseTable" style="width:100%; table-layout: fixed;">
+                <thead class="text-center">
+                    <tr>
                         <th>عنوان</th>
                         <th>مبلغ شارژ</th>
-                        <th>تاریخ ارسال اطلاعیه</th>
+                        <th>تاریخ ارسال</th>
                         <th>مهلت پرداخت</th>
-                        <th>وضعیت پرداخت</th>
+                        <th>وضعیت</th>
                     </tr>
                 </thead>
-            
-                    {% for charge in last_charges %}
-                        <tbody class="text-center">
-                            <tr>
-                                <td class="p-2">{{ charge.title }}</td>
-                                <td class="p-2">{{ charge.total_charge_month|three_digit_currency }}</td>
-                                <td class="p-2">{{ charge.send_notification_date|show_jalali }}</td>
-                                <td class="p-2">{{ charge.payment_deadline_date|show_jalali }}</td>
-                                <td class="p-2">
-                                    {% if charge.is_paid %}
-                                        <span class="badge badge-success p-2">پرداخت شده</span>
-                                    {% else %}
-                                        <span class="badge badge-danger p-2">پرداخت نشده</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        </tbody>
-                    {% endfor %}
-            
+
+                <tbody class="text-center">
+                {% for charge in last_charges %}
+                    <tr>
+                        <td class="p-2">{{ charge.title }}</td>
+                        <td class="p-2">{{ charge.total_charge_month|three_digit_currency }}</td>
+                        <td class="p-2">{{ charge.send_notification_date|show_jalali }}</td>
+                        <td class="p-2">{{ charge.payment_deadline_date|show_jalali }}</td>
+                        <td class="p-2">
+                            {% if charge.is_paid %}
+                                <span class="badge badge-success p-2">پرداخت شده</span>
+                            {% else %}
+                                <span class="badge badge-danger p-2">پرداخت نشده</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+
             </table>
         </div>
+
+        <!-- فوتر کارت: دکمه مشاهده همه -->
+    
+        <div class="card-footer text-start bg-light py-3">
+            <a href="" class="btn btn-outline-secondary btn-sm px-4">
+                مشاهده همه 
+            </a>
+        </div>
+      
+
     </div>
+
+</div>
     {% else %}
 <div class="col-lg-6 p-0">
     <div class="card text-center p-4 no-charge-card">
@@ -130,6 +145,7 @@
 </div>
     
 {% endif %} 
+
     
 
     <!-- تقویم -->

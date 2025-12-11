@@ -2730,7 +2730,7 @@ class MiddleFixChargeCreateView(CreateView):
                 filter=Q(fix_charge_amount__send_notification=True)
             ),
             total_units=Count('fix_charge_amount')
-        )
+        ).order_by('-created_at')
         context['charges'] = charges
         return context
 
@@ -2752,6 +2752,19 @@ def middle_fix_charge_edit(request, pk):
         if form.is_valid():
             charge = form.save(commit=False)
             charge.save()
+
+            FixedChargeCalc.objects.filter(fix_charge=charge).update(
+                amount=charge.fix_amount,
+                civil_charge=charge.civil,
+                payment_deadline_date=charge.payment_deadline,
+                payment_penalty=charge.payment_penalty_amount,
+                charge_name=charge.name,
+                unit_count=charge.unit_count,
+                details=charge.details,
+                base_charge=charge.total_charge_month,
+                other_cost=charge.other_cost_amount,
+                total_charge_month=charge.total_charge_month
+            )
             messages.success(request, 'شارژ با موفقیت ویرایش شد.')
             return redirect('middle_add_fixed_charge')
         else:
@@ -2813,8 +2826,9 @@ def middle_show_fix_charge_notification_form(request, pk):
     for unit in units:
         active_renter = unit.renters.filter(renter_is_active=True).first()
         calc = calc_map.get(unit.id)
+        total_charge = charge.total_charge_month
         is_paid = calc.is_paid if calc else False
-        units_with_active_renter.append((unit, active_renter, is_paid))
+        units_with_active_renter.append((unit, active_renter, is_paid, total_charge))
 
     # Pagination
     per_page = request.GET.get('per_page', 30)
@@ -2887,7 +2901,9 @@ def middle_send_notification_fix_charge_to_user(request, pk):
             if not created and not fixed_calc.send_notification:
                 fixed_calc.send_notification = True
                 fixed_calc.send_notification_date = timezone.now().date()
-                fixed_calc.save()
+                fixed_calc.save()  # ⚡ محاسبه total و penalty انجام می‌شود
+
+            fixed_calc.save()
 
             # ثبت این واحد در لیست ارسال‌شده‌ها
             notified_units.append(str(unit))
@@ -3158,13 +3174,21 @@ def middle_calculate_total_charge_area(unit, charge):
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_show_area_charge_notification_form(request, pk):
     charge = get_object_or_404(AreaCharge, id=pk)
-    units = Unit.objects.filter(is_active=True, user__manager=request.user).order_by('unit')
 
-    notified_ids = AreaChargeCalc.objects.filter(
-        area_charge=charge,
-        send_notification=True
-    ).values_list('unit_id', flat=True)
+    units = Unit.objects.filter(
+        is_active=True,
+        user__manager=request.user
+    ).order_by('unit')
 
+    # واحدهایی که نوتیفیکیشن گرفته‌اند
+    notified_ids = list(
+        AreaChargeCalc.objects.filter(
+            area_charge=charge,
+            send_notification=True
+        ).values_list('unit_id', flat=True)
+    )
+
+    # سرچ
     search_query = request.GET.get('search', '').strip()
     if search_query:
         units = units.filter(
@@ -3173,57 +3197,57 @@ def middle_show_area_charge_notification_form(request, pk):
             Q(renters__renter_name__icontains=search_query)
         ).distinct()
 
+    # تمام رکوردهای calc یک‌باره گرفته شوند
     calc_map = {
-        calc.unit_id: calc
-        for calc in AreaChargeCalc.objects.filter(area_charge=charge)
+        c.unit_id: c for c in AreaChargeCalc.objects.filter(area_charge=charge)
     }
 
     units_with_details = []
+
     for unit in units:
         active_renter = unit.renters.filter(renter_is_active=True).first()
+
         calc = calc_map.get(unit.id)
         total_charge = middle_calculate_total_charge_area(unit, charge)
         is_paid = calc.is_paid if calc else False
 
-        # ایجاد یا به‌روزرسانی AreaChargeCalc و ذخیره مقدار شارژ
-        if calc:
-            if calc.total_charge_month != int(total_charge):
-                calc.total_charge_month = int(total_charge)
-                calc.save()
-        else:
-            AreaChargeCalc.objects.create(
-                user=unit.user,
-                unit=unit,
-                civil_charge=charge.civil,
-                total_area=charge.total_area,
-                unit_count=charge.unit_count,
-                details=charge.details,
-                other_cost=charge.other_cost_amount,
-                charge_name=charge.name,
-                amount=int(charge.area_amount or 0),
-                area_charge=charge,
-                payment_penalty=charge.payment_penalty_amount,
-                payment_deadline_date=charge.payment_deadline,
-                base_charge=int(total_charge),
-                final_area_amount=int(charge.area_amount or 0) * int(unit.area or 0)
-            )
+        defaults = {
+            'civil_charge': charge.civil,
+            'total_area': charge.total_area,
+            'unit_count': charge.unit_count,
+            'details': charge.details,
+            'other_cost': charge.other_cost_amount,
+            'charge_name': charge.name,
+            'amount': int(charge.area_amount or 0),
+            'payment_penalty': charge.payment_penalty_amount,
+            'payment_deadline_date': charge.payment_deadline,
+            'base_charge': int(total_charge),
+            'final_area_amount': int(charge.area_amount or 0) * int(unit.area or 0),
+        }
+
+        AreaChargeCalc.objects.update_or_create(
+            user=unit.user,
+            unit=unit,
+            area_charge=charge,
+            defaults=defaults
+        )
 
         units_with_details.append((unit, active_renter, is_paid, total_charge))
 
+    # pagination
     try:
         per_page = int(request.GET.get('per_page', 30))
     except ValueError:
         per_page = 30
 
     paginator = Paginator(units_with_details, per_page)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    page_obj = paginator.get_page(request.GET.get('page'))
 
     context = {
         'page_obj': page_obj,
         'charge': charge,
         'pk': pk,
-        'notified_ids': list(notified_ids),
+        'notified_ids': notified_ids,
     }
     return render(request, 'middleCharge/notify_area_charge_template.html', context)
 
@@ -3545,11 +3569,13 @@ def middle_show_person_charge_notification_form(request, pk):
     charge = get_object_or_404(PersonCharge, id=pk)
     units = Unit.objects.filter(is_active=True, user__manager=request.user).order_by('unit')
 
+    # لیست واحدهایی که قبلاً اعلان دریافت کرده‌اند
     notified_ids = PersonChargeCalc.objects.filter(
         person_charge=charge,
         send_notification=True
     ).values_list('unit_id', flat=True)
 
+    # فیلتر جستجو
     search_query = request.GET.get('search', '').strip()
     if search_query:
         units = units.filter(
@@ -3558,42 +3584,61 @@ def middle_show_person_charge_notification_form(request, pk):
             Q(renters__renter_name__icontains=search_query)
         ).distinct()
 
-    calc_map = {
-        calc.unit_id: calc
-        for calc in PersonChargeCalc.objects.filter(person_charge=charge)
-    }
+    # گرفتن رکوردهای موجود در دیتابیس
+    existing_calcs = PersonChargeCalc.objects.filter(person_charge=charge, unit__in=units)
+    calc_map = {calc.unit_id: calc for calc in existing_calcs}
+
+    # آماده‌سازی لیست برای bulk_create و bulk_update
+    to_create = []
+    to_update = []
 
     units_with_details = []
+
     for unit in units:
         active_renter = unit.renters.filter(renter_is_active=True).first()
-        calc = calc_map.get(unit.id)
         total_charge = middle_calculate_total_charge_person(unit, charge)
-        is_paid = calc.is_paid if calc else False
+
+        calc = calc_map.get(unit.id)
+
+        defaults = {
+            'unit_count': charge.unit_count,
+            'details': charge.details,
+            'other_cost': charge.other_cost_amount,
+            'civil_charge': charge.civil,
+            'charge_name': charge.name,
+            'total_people': charge.total_people,
+            'amount': int(charge.person_amount or 0),
+            'payment_penalty': charge.payment_penalty_amount,
+            'payment_deadline_date': charge.payment_deadline,
+            'base_charge': int(total_charge),
+            'final_person_amount': int(charge.person_amount or 0) * int(unit.people_count or 0),
+        }
 
         if calc:
-            if calc.total_charge_month != int(total_charge):
-                calc.total_charge_month = int(total_charge)
-                calc.save()
+            # آپدیت رکورد موجود
+            for field, value in defaults.items():
+                setattr(calc, field, value)
+            to_update.append(calc)
+            is_paid = calc.is_paid
         else:
-            PersonChargeCalc.objects.create(
+            # ایجاد رکورد جدید
+            to_create.append(PersonChargeCalc(
                 user=unit.user,
                 unit=unit,
-                unit_count=charge.unit_count,
-                details=charge.details,
-                other_cost=charge.other_cost_amount,
-                civil_charge=charge.civil,
-                charge_name=charge.name,
-                total_people=charge.total_people,
-                amount=int(charge.person_amount or 0),
                 person_charge=charge,
-                payment_penalty=charge.payment_penalty_amount,
-                payment_deadline_date=charge.payment_deadline,
-                base_charge=int(total_charge),
-                final_person_amount=int(charge.person_amount or 0) * int(unit.people_count or 0)
-            )
+                **defaults
+            ))
+            is_paid = False
 
         units_with_details.append((unit, active_renter, is_paid, total_charge))
 
+    # bulk_update و bulk_create
+    if to_update:
+        PersonChargeCalc.objects.bulk_update(to_update, fields=list(defaults.keys()))
+    if to_create:
+        PersonChargeCalc.objects.bulk_create(to_create)
+
+    # Pagination
     try:
         per_page = int(request.GET.get('per_page', 30))
     except ValueError:
@@ -3609,6 +3654,7 @@ def middle_show_person_charge_notification_form(request, pk):
         'pk': pk,
         'notified_ids': list(notified_ids),
     }
+
     return render(request, 'middleCharge/notify_person_charge_template.html', context)
 
 
@@ -3617,30 +3663,32 @@ def middle_show_person_charge_notification_form(request, pk):
 def middle_send_notification_person_charge_to_user(request, pk):
     person_charge = get_object_or_404(PersonCharge, id=pk)
     selected_units = request.POST.getlist('units')
-    charge_type = 'person'
-    calc_ct = ContentType.objects.get_for_model(PersonChargeCalc)
-
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
         return redirect('middle_show_notification_person_charge_form', pk=pk)
 
-    units_qs = Unit.objects.filter(is_active=True)
+    # فقط واحدهای زیرمجموعه این مدیر
+    units_qs = Unit.objects.filter(is_active=True, user__manager=request.user)
 
-    if 'all' in selected_units:
-        units_to_notify = units_qs
-    else:
-        units_to_notify = units_qs.filter(id__in=selected_units)
+    units_to_notify = (
+        units_qs if 'all' in selected_units
+        else units_qs.filter(id__in=selected_units)
+    )
 
     if not units_to_notify.exists():
         messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
         return redirect('middle_show_notification_person_charge_form', pk=pk)
 
-    notified_units = []
+    calc_ct = ContentType.objects.get_for_model(PersonChargeCalc)
+    charge_type = 'person'
 
     with transaction.atomic():
 
         for unit in units_to_notify:
+
+            # 🔥 محاسبه پایه شارژ بدون جریمه
+            total_charge = middle_calculate_total_charge_person(unit, person_charge)
 
             calc_obj, created = PersonChargeCalc.objects.get_or_create(
                 unit=unit,
@@ -3648,53 +3696,55 @@ def middle_send_notification_person_charge_to_user(request, pk):
                 defaults={
                     'user': unit.user,
                     'amount': person_charge.person_amount,
+                    'final_person_amount': float(person_charge.person_amount or 0) * float(unit.people_count or 0),
                     'civil_charge': person_charge.civil,
+                    'other_cost': person_charge.other_cost_amount,
                     'charge_name': person_charge.name,
                     'details': person_charge.details,
+                    'base_charge': total_charge,
                     'payment_deadline_date': person_charge.payment_deadline,
+                    'payment_penalty': person_charge.payment_penalty_amount,
                     'send_notification': True,
                     'send_notification_date': timezone.now().date(),
                 }
             )
 
-            # اگر قبلاً بوده اما send_notification=False بوده
+            # اگر قبلاً وجود داشته ولی notify نشده بود
             if not created and not calc_obj.send_notification:
                 calc_obj.send_notification = True
                 calc_obj.send_notification_date = timezone.now().date()
-                calc_obj.save()
+                calc_obj.base_charge = total_charge
+                calc_obj.final_person_amount = float(person_charge.person_amount or 0) * float(unit.people_count or 0)
 
-                # ===========================
-                UnifiedCharge.objects.update_or_create(
-                    content_type=calc_ct,
-                    object_id=calc_obj.id,
-                    defaults={
-                        'user': calc_obj.user,
-                        'unit': calc_obj.unit,
-                        'charge_type': charge_type,
-                        'amount': calc_obj.base_charge or 0,
-                        'penalty_amount': calc_obj.payment_penalty_price or 0,
-                        'total_charge_month': calc_obj.total_charge_month or 0,
-                        'title': calc_obj.charge_name,
-                        'details': calc_obj.details,
-                        'civil': calc_obj.civil_charge,
-                        'other_cost_amount': calc_obj.other_cost,
-                        'send_notification_date': calc_obj.send_notification_date,
-                        'payment_deadline_date': calc_obj.payment_deadline_date,
-                    }
-                )
+            # 🔥 save() مدل → محاسبه total_charge_month و جریمه
+            calc_obj.save()
 
-            notified_units.append(str(unit))
+            # بروزرسانی UnifiedCharge
+            UnifiedCharge.objects.update_or_create(
+                content_type=calc_ct,
+                object_id=calc_obj.id,
+                defaults={
+                    'user': calc_obj.user,
+                    'unit': calc_obj.unit,
+                    'charge_type': charge_type,
+                    'amount': calc_obj.base_charge or 0,
+                    'penalty_amount': calc_obj.payment_penalty_price or 0,
+                    'total_charge_month': calc_obj.total_charge_month or 0,
+                    'title': calc_obj.charge_name,
+                    'details': calc_obj.details,
+                    'civil': calc_obj.civil_charge,
+                    'other_cost_amount': calc_obj.other_cost,
+                    'send_notification_date': calc_obj.send_notification_date,
+                    'payment_deadline_date': calc_obj.payment_deadline_date,
+                }
+            )
 
         # فعال‌سازی وضعیت ارسال اطلاعیه
         person_charge.send_notification = True
         person_charge.send_sms = True
         person_charge.save()
 
-    if notified_units:
-        messages.success(request, 'اطلاعیه برای واحدهای انتخابی ارسال شد!')
-    else:
-        messages.info(request, 'اطلاعیه‌ای ارسال نشد.')
-
+    messages.success(request, 'اطلاعیه برای واحدهای انتخابی ارسال شد!')
     return redirect('middle_show_notification_person_charge_form', pk=pk)
 
 
@@ -3707,7 +3757,6 @@ def middle_remove_send_notification_person(request, pk):
     unit_ids = request.POST.getlist('units[]')
     charge_type = 'person'  # نوع برای UnifiedCharge
     charge_type_ct = ContentType.objects.get_for_model(PersonChargeCalc)
-
 
     if not unit_ids:
         return JsonResponse({'error': 'هیچ واحدی انتخاب نشده است.'})
@@ -3936,26 +3985,41 @@ def middle_show_fix_area_charge_notification_form(request, pk):
             Q(renters__renter_name__icontains=search_query)
         ).distinct()
 
-    calc_map = {
-        calc.unit_id: calc
-        for calc in FixAreaChargeCalc.objects.filter(fix_area=charge)
-    }
+    existing_calcs = FixAreaChargeCalc.objects.filter(fix_area=charge, unit__in=units)
+    calc_map = {calc.unit_id: calc for calc in existing_calcs}
 
     units_with_details = []
+
     for unit in units:
         active_renter = unit.renters.filter(renter_is_active=True).first()
-        calc = calc_map.get(unit.id)
         total_charge = middle_calculate_total_charge_fix_area(unit, charge)
-        is_paid = calc.is_paid if calc else False
+
+        calc = calc_map.get(unit.id)
 
         if calc:
-            if calc.total_charge_month != int(total_charge):
-                calc.total_charge_month = int(total_charge)
-                calc.save()
+            # به روزرسانی رکورد موجود
+            calc.unit_count = charge.unit_count
+            calc.details = charge.details
+            calc.other_cost = charge.other_cost_amount
+            calc.civil_charge = charge.civil
+            calc.charge_name = charge.name
+            calc.amount = int(charge.area_amount or 0)
+            calc.total_area = int(charge.total_area)
+            calc.fix_charge = int(charge.fix_charge_amount or 0)
+            calc.payment_penalty = charge.payment_penalty_amount
+            calc.payment_deadline_date = charge.payment_deadline
+            calc.base_charge = int(total_charge)
+            calc.final_person_amount = int((charge.area_amount or 0) * int(unit.people_count or 0)) + int(
+                charge.fix_charge_amount or 0)
+
+            calc.save()  # اینجا save فراخوانی می‌شود و total_charge_month محاسبه می‌شود
+            is_paid = calc.is_paid
         else:
-            FixAreaChargeCalc.objects.create(
+            # ایجاد رکورد جدید
+            calc = FixAreaChargeCalc(
                 user=unit.user,
                 unit=unit,
+                fix_area=charge,
                 unit_count=charge.unit_count,
                 details=charge.details,
                 other_cost=charge.other_cost_amount,
@@ -3963,17 +4027,19 @@ def middle_show_fix_area_charge_notification_form(request, pk):
                 charge_name=charge.name,
                 amount=int(charge.area_amount or 0),
                 total_area=int(charge.total_area),
-                fix_area=charge,
-                fix_charge=int(charge.fix_charge_amount),
+                fix_charge=int(charge.fix_charge_amount or 0),
                 payment_penalty=charge.payment_penalty_amount,
                 payment_deadline_date=charge.payment_deadline,
                 base_charge=int(total_charge),
                 final_person_amount=int((charge.area_amount or 0) * int(unit.people_count or 0)) + int(
-                    charge.fix_charge_amount or 0)
+                    charge.fix_charge_amount or 0),
             )
+            calc.save()  # save محاسبات را انجام می‌دهد
+            is_paid = False
 
         units_with_details.append((unit, active_renter, is_paid, total_charge))
 
+    # Pagination
     try:
         per_page = int(request.GET.get('per_page', 30))
     except ValueError:
@@ -3999,7 +4065,6 @@ def middle_send_notification_fix_area_charge_to_user(request, pk):
     selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
     charge_type = 'fix_area'
     calc_ct = ContentType.objects.get_for_model(FixAreaChargeCalc)
-
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
@@ -4303,45 +4368,61 @@ def middle_show_fix_person_charge_notification_form(request, pk):
             Q(renters__renter_name__icontains=search_query)
         ).distinct()
 
-    calc_map = {
-        calc.unit_id: calc
-        for calc in FixPersonChargeCalc.objects.filter(fix_person=charge)
-    }
+    existing_calcs = FixPersonChargeCalc.objects.filter(fix_person=charge, unit__in=units)
+    calc_map = {calc.unit_id: calc for calc in existing_calcs}
 
     units_with_details = []
+
     for unit in units:
         active_renter = unit.renters.filter(renter_is_active=True).first()
-        calc = calc_map.get(unit.id)
         total_charge = middle_calculate_total_charge_fix_person(unit, charge)
-        is_paid = calc.is_paid if calc else False
+
+        calc = calc_map.get(unit.id)
 
         if calc:
-            if calc.total_charge_month != int(total_charge):
-                calc.total_charge_month = int(total_charge)
-                calc.save()
+            # آپدیت رکورد موجود
+            calc.unit_count = charge.unit_count
+            calc.details = charge.details
+            calc.other_cost = charge.other_cost_amount
+            calc.civil_charge = charge.civil
+            calc.charge_name = charge.name
+            calc.amount = int(charge.person_amount or 0)
+            calc.total_people = int(charge.total_people)
+            calc.fix_charge = int(charge.fix_charge_amount or 0)
+            calc.payment_penalty = charge.payment_penalty_amount
+            calc.payment_deadline_date = charge.payment_deadline
+            calc.base_charge = int(total_charge)
+            calc.final_person_amount = int((charge.person_amount or 0) * int(unit.people_count or 0)) + int(
+                charge.fix_charge_amount or 0)
+
+            calc.save()  # save محاسبات total_charge_month و jریمه را انجام می‌دهد
+            is_paid = calc.is_paid
         else:
-            FixPersonChargeCalc.objects.create(
+            # ایجاد رکورد جدید
+            calc = FixPersonChargeCalc(
                 user=unit.user,
                 unit=unit,
-
+                fix_person=charge,
                 unit_count=charge.unit_count,
                 details=charge.details,
                 other_cost=charge.other_cost_amount,
                 civil_charge=charge.civil,
                 charge_name=charge.name,
                 amount=int(charge.person_amount or 0),
-                fix_person=charge,
                 total_people=int(charge.total_people),
-                fix_charge=int(charge.fix_charge_amount),
-                base_charge=int(total_charge),
+                fix_charge=int(charge.fix_charge_amount or 0),
                 payment_penalty=charge.payment_penalty_amount,
                 payment_deadline_date=charge.payment_deadline,
+                base_charge=int(total_charge),
                 final_person_amount=int((charge.person_amount or 0) * int(unit.people_count or 0)) + int(
-                    charge.fix_charge_amount or 0)
+                    charge.fix_charge_amount or 0),
             )
+            calc.save()
+            is_paid = False
 
         units_with_details.append((unit, active_renter, is_paid, total_charge))
 
+    # Pagination
     try:
         per_page = int(request.GET.get('per_page', 30))
     except ValueError:
@@ -4448,7 +4529,6 @@ def middle_remove_send_notification_fix_person(request, pk):
     charge = get_object_or_404(FixPersonCharge, id=pk)
     charge_type = 'fix_person'
     charge_type_ct = ContentType.objects.get_for_model(FixPersonChargeCalc)
-
 
     try:
         # حالت حذف همه
@@ -4671,26 +4751,40 @@ def middle_show_person_area_charge_notification_form(request, pk):
             Q(renters__renter_name__icontains=search_query)
         ).distinct()
 
-    calc_map = {
-        calc.unit_id: calc
-        for calc in ChargeByPersonAreaCalc.objects.filter(person_area_charge=charge)
-    }
+    # گرفتن رکوردهای موجود
+    existing_calcs = ChargeByPersonAreaCalc.objects.filter(person_area_charge=charge, unit__in=units)
+    calc_map = {calc.unit_id: calc for calc in existing_calcs}
 
     units_with_details = []
+
     for unit in units:
         active_renter = unit.renters.filter(renter_is_active=True).first()
-        calc = calc_map.get(unit.id)
         total_charge = middle_calculate_total_charge_person_area(unit, charge)
-        is_paid = calc.is_paid if calc else False
+        calc = calc_map.get(unit.id)
 
         if calc:
-            if calc.total_charge_month != int(total_charge):
-                calc.total_charge_month = int(total_charge)
-                calc.save()
+            # آپدیت رکورد موجود
+            calc.unit_count = charge.unit_count
+            calc.details = charge.details
+            calc.other_cost = charge.other_cost_amount
+            calc.civil_charge = charge.civil
+            calc.charge_name = charge.name
+            calc.area_charge = int(charge.area_amount or 0)
+            calc.person_charge = int(charge.person_amount or 0)
+            calc.total_area = int(charge.total_area)
+            calc.total_people = int(charge.total_people)
+            calc.payment_penalty = charge.payment_penalty_amount
+            calc.payment_deadline_date = charge.payment_deadline
+            calc.base_charge = int(total_charge)
+
+            calc.save()  # save محاسبات total_charge_month و سایر مقادیر را انجام می‌دهد
+            is_paid = calc.is_paid
         else:
-            ChargeByPersonAreaCalc.objects.create(
+            # ایجاد رکورد جدید
+            calc = ChargeByPersonAreaCalc(
                 user=unit.user,
                 unit=unit,
+                person_area_charge=charge,
                 unit_count=charge.unit_count,
                 details=charge.details,
                 other_cost=charge.other_cost_amount,
@@ -4700,14 +4794,16 @@ def middle_show_person_area_charge_notification_form(request, pk):
                 person_charge=int(charge.person_amount or 0),
                 total_area=int(charge.total_area),
                 total_people=int(charge.total_people),
-                person_area_charge=charge,
                 payment_penalty=charge.payment_penalty_amount,
                 payment_deadline_date=charge.payment_deadline,
                 base_charge=int(total_charge),
             )
+            calc.save()
+            is_paid = False
 
         units_with_details.append((unit, active_renter, is_paid, total_charge))
 
+    # Pagination
     try:
         per_page = int(request.GET.get('per_page', 30))
     except ValueError:
@@ -4732,7 +4828,6 @@ def middle_send_notification_person_area_charge_to_user(request, pk):
     selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
     charge_type = 'person_area'
     calc_ct = ContentType.objects.get_for_model(ChargeByPersonAreaCalc)
-
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
@@ -4816,7 +4911,6 @@ def middle_remove_send_notification_person_area(request, pk):
     charge = get_object_or_404(ChargeByPersonArea, id=pk)
     charge_type = 'person_area'
     charge_type_ct = ContentType.objects.get_for_model(ChargeByPersonAreaCalc)
-
 
     try:
         # ================================
@@ -5027,6 +5121,7 @@ def middle_calculate_total_charge_fix_person_area(unit, charge):
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_show_fix_person_area_charge_notification_form(request, pk):
     charge = get_object_or_404(ChargeByFixPersonArea, id=pk)
     units = Unit.objects.filter(is_active=True, user__manager=request.user).order_by('unit')
@@ -5044,26 +5139,41 @@ def middle_show_fix_person_area_charge_notification_form(request, pk):
             Q(renters__renter_name__icontains=search_query)
         ).distinct()
 
-    calc_map = {
-        calc.unit_id: calc
-        for calc in ChargeByFixPersonAreaCalc.objects.filter(fix_person_area=charge)
-    }
+    # گرفتن رکوردهای موجود
+    existing_calcs = ChargeByFixPersonAreaCalc.objects.filter(fix_person_area=charge, unit__in=units)
+    calc_map = {calc.unit_id: calc for calc in existing_calcs}
 
     units_with_details = []
+
     for unit in units:
         active_renter = unit.renters.filter(renter_is_active=True).first()
-        calc = calc_map.get(unit.id)
         total_charge = middle_calculate_total_charge_fix_person_area(unit, charge)
-        is_paid = calc.is_paid if calc else False
+        calc = calc_map.get(unit.id)
 
         if calc:
-            if calc.total_charge_month != int(total_charge):
-                calc.total_charge_month = int(total_charge)
-                calc.save()
+            # آپدیت رکورد موجود
+            calc.unit_count = charge.unit_count
+            calc.details = charge.details
+            calc.other_cost = charge.other_cost_amount
+            calc.civil_charge = charge.civil
+            calc.charge_name = charge.name
+            calc.area_charge = int(charge.area_amount or 0)
+            calc.person_charge = int(charge.person_amount or 0)
+            calc.fix_charge = int(charge.fix_charge_amount or 0)
+            calc.total_area = int(charge.total_area)
+            calc.total_people = int(charge.total_people)
+            calc.payment_penalty = charge.payment_penalty_amount
+            calc.payment_deadline_date = charge.payment_deadline
+            calc.base_charge = int(total_charge)
+
+            calc.save()  # save محاسبات total_charge_month و سایر مقادیر را انجام می‌دهد
+            is_paid = calc.is_paid
         else:
-            ChargeByFixPersonAreaCalc.objects.create(
+            # ایجاد رکورد جدید
+            calc = ChargeByFixPersonAreaCalc(
                 user=unit.user,
                 unit=unit,
+                fix_person_area=charge,
                 unit_count=charge.unit_count,
                 details=charge.details,
                 other_cost=charge.other_cost_amount,
@@ -5076,12 +5186,14 @@ def middle_show_fix_person_area_charge_notification_form(request, pk):
                 total_people=int(charge.total_people),
                 payment_penalty=charge.payment_penalty_amount,
                 payment_deadline_date=charge.payment_deadline,
-                fix_person_area=charge,
                 base_charge=int(total_charge),
             )
+            calc.save()
+            is_paid = False
 
         units_with_details.append((unit, active_renter, is_paid, total_charge))
 
+    # Pagination
     try:
         per_page = int(request.GET.get('per_page', 30))
     except ValueError:
@@ -5107,7 +5219,6 @@ def middle_send_notification_fix_person_area_charge_to_user(request, pk):
     selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
     charge_type = 'fix_person_area'
     calc_ct = ContentType.objects.get_for_model(ChargeByFixPersonAreaCalc)
-
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
@@ -5193,7 +5304,6 @@ def middle_remove_send_notification_fix_person_area(request, pk):
     charge = get_object_or_404(ChargeByFixPersonArea, id=pk)
     charge_type = 'fix_person_area'
     charge_type_ct = ContentType.objects.get_for_model(ChargeByFixPersonAreaCalc)
-
 
     try:
         # ================================
@@ -5329,7 +5439,7 @@ class MiddleVariableFixChargeCreateView(CreateView):
                 filter=Q(fix_variable_charge__send_notification=True)
             ),
             total_units=Count('fix_variable_charge')
-        )
+        ).order_by('-created_at')
         context['charges'] = charges
         return context
 
@@ -5431,33 +5541,49 @@ def middle_show_fix_variable_notification_form(request, pk):
             Q(renters__renter_name__icontains=search_query)
         ).distinct()
 
-    calc_map = {
-        calc.unit_id: calc
-        for calc in ChargeFixVariableCalc.objects.filter(fix_variable_charge=charge)
-    }
+    # گرفتن رکوردهای موجود
+    existing_calcs = ChargeFixVariableCalc.objects.filter(fix_variable_charge=charge, unit__in=units)
+    calc_map = {calc.unit_id: calc for calc in existing_calcs}
 
     units_with_details = []
+
     for unit in units:
         active_renter = unit.renters.filter(renter_is_active=True).first()
-        calc = calc_map.get(unit.id)
         total_charge = middle_calculate_total_charge_fix_variable(unit, charge)
-        is_paid = calc.is_paid if calc else False
-
         extra_parking_charge = (unit.parking_counts or 0) * (charge.extra_parking_amount or 0)
 
+        calc = calc_map.get(unit.id)
+
         if calc:
-            # Update total middleCharge if it has changed
-            if calc.total_charge_month != int(total_charge):
-                calc.total_charge_month = int(total_charge)
-
-            # ✅ Update the extra parking middleCharge
+            # آپدیت رکورد موجود
+            calc.unit_count = charge.unit_count
+            calc.details = charge.details
+            calc.civil_charge = charge.civil
+            calc.charge_name = charge.name
+            calc.unit_variable_person_charge = int(charge.unit_variable_person_amount or 0)
+            calc.unit_variable_area_charge = int(charge.unit_variable_area_amount or 0)
+            calc.unit_fix_charge_per_unit = int(charge.unit_fix_amount or 0)
+            calc.total_area = int(charge.total_area)
+            calc.total_people = int(charge.total_people)
+            calc.payment_penalty = charge.payment_penalty_amount
+            calc.payment_deadline_date = charge.payment_deadline
             calc.extra_parking_charges = extra_parking_charge
+            calc.other_cost = charge.other_cost_amount
+            calc.base_charge = int(total_charge)
+            calc.final_person_amount = (
+                int((charge.unit_variable_person_amount or 0) * (unit.people_count or 0)) +
+                int((charge.unit_variable_area_amount or 0) * (unit.area or 0)) +
+                int(charge.unit_fix_amount or 0)
+            )
 
-            calc.save()
+            calc.save()  # save محاسبات را انجام می‌دهد
+            is_paid = calc.is_paid
         else:
-            ChargeFixVariableCalc.objects.create(
+            # ایجاد رکورد جدید
+            calc = ChargeFixVariableCalc(
                 user=unit.user,
                 unit=unit,
+                fix_variable_charge=charge,
                 unit_count=charge.unit_count,
                 details=charge.details,
                 civil_charge=charge.civil,
@@ -5467,20 +5593,23 @@ def middle_show_fix_variable_notification_form(request, pk):
                 unit_fix_charge_per_unit=int(charge.unit_fix_amount or 0),
                 total_area=int(charge.total_area),
                 total_people=int(charge.total_people),
-                fix_variable_charge=charge,
                 payment_penalty=charge.payment_penalty_amount,
                 payment_deadline_date=charge.payment_deadline,
                 extra_parking_charges=extra_parking_charge,
                 other_cost=charge.other_cost_amount,
                 base_charge=int(total_charge),
                 final_person_amount=(
-                        int((charge.unit_variable_person_amount or 0) * (unit.people_count or 0)) +
-                        int((charge.unit_variable_area_amount or 0) * (unit.area or 0)) +
-                        int(charge.unit_fix_amount or 0)
-                ))
+                    int((charge.unit_variable_person_amount or 0) * (unit.people_count or 0)) +
+                    int((charge.unit_variable_area_amount or 0) * (unit.area or 0)) +
+                    int(charge.unit_fix_amount or 0)
+                )
+            )
+            calc.save()
+            is_paid = False
 
         units_with_details.append((unit, active_renter, is_paid, total_charge))
 
+    # Pagination
     try:
         per_page = int(request.GET.get('per_page', 30))
     except ValueError:
@@ -5499,6 +5628,7 @@ def middle_show_fix_variable_notification_form(request, pk):
     return render(request, 'middleCharge/notify_fix_variable_charge_template.html', context)
 
 
+
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 @require_POST
 def middle_send_notification_fix_variable_to_user(request, pk):
@@ -5506,7 +5636,6 @@ def middle_send_notification_fix_variable_to_user(request, pk):
     selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
     charge_type = 'fix_variable'
     calc_ct = ContentType.objects.get_for_model(ChargeFixVariableCalc)
-
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
@@ -5592,7 +5721,6 @@ def middle_remove_send_notification_fix_variable(request, pk):
     charge = get_object_or_404(ChargeFixVariable, id=pk)
     charge_type = 'fix_variable'
     charge_type_ct = ContentType.objects.get_for_model(ChargeFixVariableCalc)
-
 
     try:
         # ================================

@@ -6,6 +6,7 @@ from channels.layers import get_channel_layer
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -56,6 +57,7 @@ def index(request):
             messages.error(request, 'ورود ناموفق: شماره موبایل یا کلمه عبور نادرست است.')
 
     return render(request, 'index.html', {'form': form})
+
 
 def mobile_login(request):
     form = MobileLoginForm(request.POST or None)
@@ -159,15 +161,17 @@ def get_user_charges(model, user):
         send_notification=True
     ).select_related('unit').order_by('-created_at')
 
+
 def get_unpaid_charges(model, user):
-    return model.objects.filter(user=user, send_notification=True, is_paid=False).select_related('unit').order_by('-created_at')
+    return model.objects.filter(user=user, send_notification=True, is_paid=False).select_related('unit').order_by(
+        '-created_at')
 
 
 def user_panel(request):
     user = request.user
 
     # --- LAST CHARGES FROM UNIFIED ---
-    last_charges = UnifiedCharge.objects.filter(user=user).order_by('-created_at')[:8]
+    last_charges = UnifiedCharge.objects.filter(user=user).order_by('-created_at')[:6]
 
     # --- TICKETS ---
     tickets = SupportUser.objects.filter(user=user).order_by('-created_at')[:5]
@@ -226,9 +230,9 @@ def user_panel(request):
     unpaid_charges_dict = {name: get_unpaid_charges(model, user) for name, model in charge_models.items()}
 
     # --- SAVE CHANGES ---
-    # for charge_list in unpaid_charges_dict.values():
-    #     for charge in charge_list:
-    #         charge.save()
+    for charge_list in unpaid_charges_dict.values():
+        for charge in charge_list:
+            charge.save()
 
     # --- CONTEXT ---
     context = {
@@ -256,18 +260,45 @@ def user_panel(request):
 @login_required
 def fetch_user_charges(request):
     user = request.user
-    last_charges = UnifiedCharge.objects.filter(user=user).order_by('-created_at')[:8]
-    unit = Unit.objects.filter(user=request.user, is_active=True).first()
+    query = request.GET.get('q', '').strip()
+    paginate = request.GET.get('paginate', '20')  # پیش‌فرض 20
+    unit = Unit.objects.filter(user=user, is_active=True).first()
+
+    charges = UnifiedCharge.objects.filter(user=user)  # start with user's charges
+
+    if query:
+        charges = charges.filter(
+            Q(amount__icontains=query) |
+            Q(total_charge_month__icontains=query) |
+            Q(details__icontains=query)|
+            Q(title__icontains=query)
+        )
+
+    last_charges = charges.order_by('-created_at')  # order after filtering
+
+    try:
+        paginate = int(paginate)
+    except ValueError:
+        paginate = 20
+
+    if paginate <= 0:
+        paginate = 20
+
+    paginator = Paginator(last_charges, paginate)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     context = {
         'unit': unit,
-        'last_charges': last_charges,
+        'last_charges': page_obj,
+        'query': query,
+        'paginate': paginate,
+        'page_obj': page_obj,  # برای template
     }
-
     return render(request, 'manage_charges.html', context)
 
 
-# ========================= Pdf Charges ===================
+# ======================== Pdf Charges ===================
 def export_fix_variable_charge_pdf(request, pk, charge_type=None):
     charge = get_object_or_404(ChargeFixVariableCalc, pk=pk)
     user = request.user
@@ -587,6 +618,3 @@ def user_announcements(request):
         'announcements': announcements
     }
     return render(request, 'manage_announcement.html', context)
-
-
-
