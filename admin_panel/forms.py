@@ -6,7 +6,7 @@ from jalali_date.widgets import AdminJalaliDateWidget
 from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, IncomeCategory, ReceiveMoney, PayMoney, \
                                 Property, Maintenance, ChargeByPersonArea, ChargeByFixPersonArea, FixCharge, AreaCharge,
                                 PersonCharge,
-                                FixPersonCharge, FixAreaCharge, ChargeFixVariable, SmsManagement)
+                                FixPersonCharge, FixAreaCharge, ChargeFixVariable, SmsManagement, UnifiedCharge)
 
 from user_app.models import Unit, Bank, User, MyHouse, ChargeMethod
 
@@ -87,8 +87,8 @@ BANK_CHOICES = {
 
 class ChargeCategoryForm(forms.ModelForm):
     name = forms.CharField(error_messages=error_message, required=True,
-                                          widget=forms.TextInput(attrs=attr),
-                                          label='روش شارژ')
+                           widget=forms.TextInput(attrs=attr),
+                           label='روش شارژ')
 
     is_active = forms.ChoiceField(label='فعال /غیرفعال  ', required=True,
                                   error_messages=error_message, choices=CHOICES, widget=forms.Select(attrs=attr))
@@ -1177,6 +1177,22 @@ class VariableFixChargeForm(forms.ModelForm):
         fields = ['name', 'extra_parking_amount', 'unit_fix_amount', 'unit_variable_area_amount',
                   'unit_variable_person_amount', 'civil', 'details', 'other_cost_amount',
                   'payment_penalty_amount', 'payment_deadline']
+
+
+class UnifiedChargePaymentForm(forms.ModelForm):
+    payment_date = JalaliDateField(
+        label='تاریخ پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    transaction_reference = forms.IntegerField(error_messages=error_message,
+                                               widget=forms.TextInput(attrs=attr),
+                                               required=False, min_value=0,
+                                               label='کد پیگیری')
+
+    class Meta:
+        model = UnifiedCharge
+        fields = ['payment_date', 'transaction_reference']
 
 
 class SmsForm(forms.ModelForm):

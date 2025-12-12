@@ -1077,19 +1077,16 @@ class UnifiedCharge(models.Model):
 
         # ---------- ۱: مبلغ پایه دقیقاً مثل FixedChargeCalc ----------
         amount = self.amount or 0
-        civil = self.civil or 0
-        other_cost = self.other_cost_amount or 0
-
-        base_total = amount + civil + other_cost
+        base_total = amount
 
         # ---------- ۲: اگر پرداخت شده → جریمه صفر ----------
-        if self.is_paid:
-            if self.penalty_amount != 0:
-                self.penalty_amount = 0
-                self.total_charge_month = base_total
-                if save:
-                    self.save(update_fields=['penalty_amount', 'total_charge_month'])
-            return
+        # if self.is_paid:
+        #     if self.penalty_amount != 0:
+        #         self.penalty_amount = 0
+        #         self.total_charge_month = base_total
+        #         if save:
+        #             self.save(update_fields=['penalty_amount', 'total_charge_month'])
+        #     return
 
         # ---------- ۳: اگر deadline ندارد ----------
         if not self.payment_deadline_date:
@@ -1120,6 +1117,7 @@ class UnifiedCharge(models.Model):
             self.total_charge_month = base_total + new_penalty
             if save:
                 self.save(update_fields=['penalty_amount', 'total_charge_month'])
+
 
 
 class Fund(models.Model):

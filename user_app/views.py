@@ -14,10 +14,12 @@ from django.template.loader import get_template
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView, CreateView, ListView, DetailView
 from pypdf import PdfWriter
 from weasyprint import CSS, HTML
 
+from admin_panel.forms import UnifiedChargePaymentForm
 from notifications.models import Notification, SupportUser
 from user_app import helper
 from admin_panel.models import Announcement, FixedChargeCalc, AreaChargeCalc, PersonCharge, PersonChargeCalc, \
@@ -234,6 +236,12 @@ def user_panel(request):
         for charge in charge_list:
             charge.save()
 
+    # --- UPDATE PENALTY ON UnifiedCharge ALSO ---
+    user_unified_charges = UnifiedCharge.objects.filter(user=user, is_paid=False)
+
+    for ucharge in user_unified_charges:
+        ucharge.update_penalty()
+
     # --- CONTEXT ---
     context = {
         "user": user,
@@ -299,8 +307,10 @@ def fetch_user_charges(request):
 
 
 # ======================== Pdf Charges ===================
-def export_fix_variable_charge_pdf(request, pk, charge_type=None):
-    charge = get_object_or_404(ChargeFixVariableCalc, pk=pk)
+
+
+def export_charge_pdf(request, pk, charge_type=None):
+    charge = get_object_or_404(UnifiedCharge, pk=pk)
     user = request.user
 
     # دریافت مدیر میانی
@@ -311,7 +321,7 @@ def export_fix_variable_charge_pdf(request, pk, charge_type=None):
 
     # ساختمان‌های ثبت‌شده توسط مدیر
     house = MyHouse.objects.filter(user=manager, is_active=True).first()
-    template = get_template('pdf/fix_variable_pdf.html')
+    template = get_template('pdf/charge_pdf.html')
     html_string = template.render({'charge': charge,
                                    'bank': bank,
                                    'house': house,
@@ -337,268 +347,31 @@ def export_fix_variable_charge_pdf(request, pk, charge_type=None):
     return response
 
 
-def export_person_charge_pdf(request, pk, charge_type=None):
-    charge = get_object_or_404(PersonChargeCalc, pk=pk)
-    user = request.user
+@login_required
+def paymentView(request, pk):
+    charge = get_object_or_404(UnifiedCharge, pk=pk, user=request.user)
 
-    # دریافت مدیر میانی
-    manager = user.manager
-
-    # بانک‌های ثبت‌شده توسط مدیر
-    bank = Bank.objects.filter(user=manager, is_active=True).first()
-
-    # ساختمان‌های ثبت‌شده توسط مدیر
-    house = MyHouse.objects.filter(user=manager, is_active=True).first()
-    template = get_template('pdf/person_charge_pdf.html')
-    html_string = template.render({'charge': charge,
-                                   'bank': bank,
-                                   'house': house,
-                                   })
-    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
-    css = CSS(string=f"""
-        @page {{ size: A5 portrait; margin: 1cm; }}
-        body {{
-            font-family: 'BYekan', sans-serif;
-        }}
-        @font-face {{
-            font-family: 'BYekan';
-            src: url('{font_url}');
-        }}
-    """)
-
-    pdf_file = io.BytesIO()
-    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
-    pdf_file.seek(0)
-
-    response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
-    return response
+    if request.method == "POST":
+        form = UnifiedChargePaymentForm(request.POST, instance=charge)
+        if form.is_valid():
+            charge = form.save(commit=False)
+            charge.is_paid = True
+            charge.update_penalty(save=False)
+            charge.save()
+            messages.success(request,'اطلاعات پرداخت شما با موفقیت ثبت گردید')
+            return redirect('user_charges')
+        else:
+            messages.error(request,'خطا در ثبت اطلاعات')
+            return redirect('payment_gateway')
 
 
-def export_area_charge_pdf(request, pk, charge_type=None):
-    charge = get_object_or_404(AreaChargeCalc, pk=pk)
-    user = request.user
-
-    # دریافت مدیر میانی
-    manager = user.manager
-
-    # بانک‌های ثبت‌شده توسط مدیر
-    bank = Bank.objects.filter(user=manager, is_active=True).first()
-
-    # ساختمان‌های ثبت‌شده توسط مدیر
-    house = MyHouse.objects.filter(user=manager, is_active=True).first()
-    template = get_template('pdf/area_charge_pdf.html')
-    html_string = template.render({'charge': charge,
-                                   'bank': bank,
-                                   'house': house,
-                                   })
-    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
-    css = CSS(string=f"""
-        @page {{ size: A5 portrait; margin: 1cm; }}
-        body {{
-            font-family: 'BYekan', sans-serif;
-        }}
-        @font-face {{
-            font-family: 'BYekan';
-            src: url('{font_url}');
-        }}
-    """)
-
-    pdf_file = io.BytesIO()
-    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
-    pdf_file.seek(0)
-
-    response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
-    return response
-
-
-def export_fix_person_area_charge_pdf(request, pk, charge_type=None):
-    charge = get_object_or_404(ChargeByFixPersonAreaCalc, pk=pk)
-    user = request.user
-
-    # دریافت مدیر میانی
-    manager = user.manager
-
-    # بانک‌های ثبت‌شده توسط مدیر
-    bank = Bank.objects.filter(user=manager, is_active=True).first()
-
-    # ساختمان‌های ثبت‌شده توسط مدیر
-    house = MyHouse.objects.filter(user=manager, is_active=True).first()
-    template = get_template('pdf/fix_person_area_pdf.html')
-    html_string = template.render({'charge': charge,
-                                   'bank': bank,
-                                   'house': house,
-                                   })
-    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
-    css = CSS(string=f"""
-        @page {{ size: A5 portrait; margin: 1cm; }}
-        body {{
-            font-family: 'BYekan', sans-serif;
-        }}
-        @font-face {{
-            font-family: 'BYekan';
-            src: url('{font_url}');
-        }}
-    """)
-
-    pdf_file = io.BytesIO()
-    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
-    pdf_file.seek(0)
-
-    response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
-    return response
-
-
-def export_fix_area_charge_pdf(request, pk, charge_type=None):
-    charge = get_object_or_404(FixAreaChargeCalc, pk=pk)
-    user = request.user
-
-    # دریافت مدیر میانی
-    manager = user.manager
-
-    # بانک‌های ثبت‌شده توسط مدیر
-    bank = Bank.objects.filter(user=manager, is_active=True).first()
-
-    # ساختمان‌های ثبت‌شده توسط مدیر
-    house = MyHouse.objects.filter(user=manager, is_active=True).first()
-    template = get_template('pdf/fix_area_pdf.html')
-    html_string = template.render({'charge': charge,
-                                   'bank': bank,
-                                   'house': house,
-                                   })
-    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
-    css = CSS(string=f"""
-        @page {{ size: A5 portrait; margin: 1cm; }}
-        body {{
-            font-family: 'BYekan', sans-serif;
-        }}
-        @font-face {{
-            font-family: 'BYekan';
-            src: url('{font_url}');
-        }}
-    """)
-
-    pdf_file = io.BytesIO()
-    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
-    pdf_file.seek(0)
-
-    response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
-    return response
-
-
-def export_fix_person_charge_pdf(request, pk, charge_type=None):
-    charge = get_object_or_404(FixPersonChargeCalc, pk=pk)
-    user = request.user
-
-    # دریافت مدیر میانی
-    manager = user.manager
-
-    # بانک‌های ثبت‌شده توسط مدیر
-    bank = Bank.objects.filter(user=manager, is_active=True).first()
-
-    # ساختمان‌های ثبت‌شده توسط مدیر
-    house = MyHouse.objects.filter(user=manager, is_active=True).first()
-    template = get_template('pdf/fix_person_pdf.html')
-    html_string = template.render({'charge': charge,
-                                   'bank': bank,
-                                   'house': house,
-                                   })
-    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
-    css = CSS(string=f"""
-        @page {{ size: A5 portrait; margin: 1cm; }}
-        body {{
-            font-family: 'BYekan', sans-serif;
-        }}
-        @font-face {{
-            font-family: 'BYekan';
-            src: url('{font_url}');
-        }}
-    """)
-
-    pdf_file = io.BytesIO()
-    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
-    pdf_file.seek(0)
-
-    response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
-    return response
-
-
-def export_fix_charge_pdf(request, pk, charge_type=None):
-    charge = get_object_or_404(FixedChargeCalc, pk=pk)
-    user = request.user
-
-    # دریافت مدیر میانی
-    manager = user.manager
-
-    # بانک‌های ثبت‌شده توسط مدیر
-    bank = Bank.objects.filter(user=manager, is_active=True).first()
-
-    # ساختمان‌های ثبت‌شده توسط مدیر
-    house = MyHouse.objects.filter(user=manager, is_active=True).first()
-    # bank = Bank.objects.filter(user__manager=request.user, is_active=True).first()
-    template = get_template('pdf/fix_charge_pdf.html')
-    html_string = template.render({'charge': charge,
-                                   'bank': bank,
-                                   'house': house,
-                                   })
-    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
-    css = CSS(string=f"""
-        @page {{ size: A5 portrait; margin: 1cm; }}
-        body {{
-            font-family: 'BYekan', sans-serif;
-        }}
-        @font-face {{
-            font-family: 'BYekan';
-            src: url('{font_url}');
-        }}
-    """)
-
-    pdf_file = io.BytesIO()
-    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
-    pdf_file.seek(0)
-
-    response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
-    return response
-
-
-def export_person_area_charge_pdf(request, pk, charge_type=None):
-    charge = get_object_or_404(ChargeByPersonAreaCalc, pk=pk)
-    user = request.user
-
-    # دریافت مدیر میانی
-    manager = user.manager
-
-    # بانک‌های ثبت‌شده توسط مدیر
-    bank = Bank.objects.filter(user=manager, is_active=True).first()
-
-    # ساختمان‌های ثبت‌شده توسط مدیر
-    house = MyHouse.objects.filter(user=manager, is_active=True).first()
-    template = get_template('pdf/person_area_pdf.html')
-    html_string = template.render({'charge': charge, 'bank': bank, 'house': house});
-    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
-    css = CSS(string=f"""
-        @page {{ size: A5 portrait; margin: 1cm; }}
-        body {{
-            font-family: 'BYekan', sans-serif;
-        }}
-        @font-face {{
-            font-family: 'BYekan';
-            src: url('{font_url}');
-        }}
-    """)
-
-    pdf_file = io.BytesIO()
-    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
-    pdf_file.seek(0)
-
-    response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
-    return response
+    else:  # GET request
+        form = UnifiedChargePaymentForm(instance=charge)
+        context = {
+            'charge': charge,
+            'form': form
+        }
+        return render(request, 'payment_gateway.html', context)
 
 
 def user_announcements(request):

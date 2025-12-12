@@ -45,8 +45,6 @@
     </div>
 
    <div class="row mt-4">
-{#         <div class="col-12 p-0 mb-3"><img src="/static/admin_panel/icone8/icons8-note-48.png" width="30" alt="">#}
-{#             لیست شارژ ماهانه (مبالغ به تومان می باشد)</div>#}
                <div class="table-responsive p-0">
                 <table class="table table-bordered" >
                       <thead>
@@ -83,12 +81,12 @@
                 <td>{{ charge.payment_deadline_date|show_jalali }}</td>
                        <td>
                                {% if charge.penalty_amount %}
-                                  {{ charge.penalty_amount }}
+                                  {{ charge.penalty_amount|three_digit_currency }}
                                       {% else %} 
                                     ----
                                    {% endif %} 
                               </td>
-                <td  class="fw-bold shadow-sm">{{ charge.total_charge_month }}</td>
+                <td  class="fw-bold shadow-sm">{{ charge.total_charge_month|three_digit_currency }}</td>
                        <td>
                             {% if charge.is_paid %}
                                 <span class="badge badge-success p-2">پرداخت شده</span>
@@ -106,7 +104,7 @@
                 </td>
            
                   <td class="shadow_style p-1">
-                      <a  href="{% url 'export_fix_variable_charge_pdf' charge.id %}">
+                      <a href="{% url 'export_charge_pdf' charge.id %}">
                           <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
                                style="width: 35px; height: 33px">
                       </a>|
@@ -118,7 +116,7 @@
                                    <button data-bs-toggle="modal" data-bs-target="#exampleModalLong77{{ charge.id }}"
                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
                 </button> | 
-                        	 <a href=""
+                        	 <a href="{% url 'payment_gateway' charge.id %}"
                           class="btn btn-gradient-primary p-2">
                        پرداخت 
                     </a>
