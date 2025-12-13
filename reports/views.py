@@ -1,5 +1,5 @@
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.shortcuts import render
 
 from admin_panel.models import Fund
@@ -22,6 +22,8 @@ def fund_turnover_user(request):
     query = request.GET.get('q', '').strip()
     paginate = request.GET.get('paginate', '20')  # پیش‌فرض 20
 
+    total_amount = Fund.objects.filter(user=user).aggregate(sum=Sum('amount'))['sum']
+
     if not getattr(user, 'manager', False):
         funds = Fund.objects.none()
     else:
@@ -32,7 +34,7 @@ def fund_turnover_user(request):
             funds = funds.filter(
                 Q(payment_description__icontains=query) |
                 Q(transaction_no__icontains=query) |
-                Q(doc_number__icontains=query)
+                Q(payment_gateway__icontains=query)
             )
 
         funds = funds.order_by('-created_at')
@@ -54,6 +56,7 @@ def fund_turnover_user(request):
         'funds': page_obj,
         'query': query,
         'paginate': paginate,
-        'page_obj': page_obj,  # برای template
+        'page_obj': page_obj,
+        'total_amount': total_amount
     }
     return render(request, 'fund_turnover_user.html', context)

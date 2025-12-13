@@ -49,8 +49,9 @@
                 <table class="table table-bordered" >
                       <thead>
                            <tr>
+                            <th>#</th>
                             <th>عنوان</th>
-                            <th>type</th>
+{#                            <th>type</th>#}
                             <th>شارژ ماهیانه</th>
                             <th> توضیحات</th>
                             <th>تاریخ ارسال اطلاعیه</th>
@@ -66,8 +67,9 @@
             {% for charge in page_obj %}
                 <tbody>
                 <tr>
+                 <td>{{ forloop.counter}}</td>
                  <td>{{ charge.title}}</td>
-                 <td>{{ charge.charge_type}}</td>
+{#                 <td>{{ charge.charge_type}}</td>#}
                     <td>{{ charge.amount|three_digit_currency }} </td>
                     <td>
                              {% if charge.details %}
@@ -221,7 +223,7 @@
                                         {% else %}
                                         <span class="badge bg-danger">پرداخت نشده</span></p>
                                     {% endif %} 
-                                    
+                                   <p><strong> روش پرداخت:</strong> {{ charge.payment_gateway }}</p>
                             </div>
                             <hr/>
                             <div class="modal-footer">

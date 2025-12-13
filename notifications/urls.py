@@ -37,4 +37,9 @@ urlpatterns = [
     path('admin/ticket/open/<int:pk>/', views.admin_open_ticket, name='admin_open_ticket'),
     path('admin/ticket/waiting/<int:pk>/', views.admin_is_waiting, name='admin_waiting_ticket'),
     path('admin/ticket/continue/<int:pk>/', views.admin_is_continue, name='admin_continue_ticket'),
+
+    path('message/to/user/', views.MessageToUserListCreateView.as_view(), name='message_to_user'),
+    path('edit/message/to/user/<int:pk>/', views.MessageToUserUpdateView.as_view(), name='edit_message_to_user'),
+    path('message-to-user-delete/<int:pk>/', views.message_user_delete, name='delete_message_to_user'),
+    path('ajax/units/', views.ajax_units, name='ajax_units'),
 ]

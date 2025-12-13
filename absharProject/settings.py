@@ -105,6 +105,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'absharProject.context_processors.current_house',
+                'absharProject.context_processors.header_notifications',
             ],
         },
     },

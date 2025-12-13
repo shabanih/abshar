@@ -21,6 +21,19 @@ class Announcement(models.Model):
         return self.title
 
 
+class MessageToUser(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='message_unit', blank=True, null=True)
+    title = models.CharField(max_length=400, null=True, blank=True)
+    message = models.CharField(max_length=400, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
+    is_active = models.BooleanField(default=True, verbose_name='')
+    is_seen = models.BooleanField(default=False, verbose_name='')
+
+    def __str__(self):
+        return self.user.full_name
+
+
 class ExpenseCategory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=100, verbose_name='نام')
@@ -1022,9 +1035,11 @@ class UnifiedCharge(models.Model):
     civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', default=0, null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
     transaction_reference = models.CharField(max_length=20, null=True, blank=True)
+    payment_gateway = models.CharField(max_length=100, null=True, blank=True)
 
     # توضیح
     title = models.TextField(blank=True, null=True)
+    send_notification = models.BooleanField(default=False)
 
     # تاریخ ارسال نوتیفیکیشن
     send_notification_date = models.DateField(
@@ -1119,7 +1134,6 @@ class UnifiedCharge(models.Model):
                 self.save(update_fields=['penalty_amount', 'total_charge_month'])
 
 
-
 class Fund(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     doc_number = models.PositiveIntegerField(unique=True, editable=False, null=True, blank=True)
@@ -1131,6 +1145,7 @@ class Fund(models.Model):
     debtor_amount = models.DecimalField(max_digits=12, decimal_places=0)
     creditor_amount = models.DecimalField(max_digits=12, decimal_places=0)
     final_amount = models.PositiveIntegerField(default=0)
+    payment_gateway = models.CharField(max_length=100, null=True, blank=True)
 
     payment_date = models.DateField()
     transaction_no = models.CharField(max_length=15, null=True, blank=True)

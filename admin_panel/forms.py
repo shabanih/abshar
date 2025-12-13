@@ -1,12 +1,14 @@
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django import forms
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from jalali_date.fields import JalaliDateField
 from jalali_date.widgets import AdminJalaliDateWidget
 from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, IncomeCategory, ReceiveMoney, PayMoney, \
                                 Property, Maintenance, ChargeByPersonArea, ChargeByFixPersonArea, FixCharge, AreaCharge,
                                 PersonCharge,
-                                FixPersonCharge, FixAreaCharge, ChargeFixVariable, SmsManagement, UnifiedCharge)
+                                FixPersonCharge, FixAreaCharge, ChargeFixVariable, SmsManagement, UnifiedCharge,
+                                MessageToUser)
 
 from user_app.models import Unit, Bank, User, MyHouse, ChargeMethod
 
@@ -38,6 +40,60 @@ class announcementForm(forms.ModelForm):
     class Meta:
         model = Announcement
         fields = ['title', 'is_active']
+
+
+class MessageToUserForm(forms.ModelForm):
+    unit = forms.ModelChoiceField(
+        queryset=Unit.objects.none(),
+        required=True,
+        label='واحد / نفر',
+        widget=forms.Select(attrs={'class': 'form-control select2-ajax'})
+    )
+
+    title = forms.CharField(
+        error_messages=error_message,
+        required=True,
+        widget=forms.TextInput(attrs=attr),
+        label='عنوان پیام'
+    )
+    message = forms.CharField(
+        error_messages=error_message,
+        required=True,
+        widget=forms.Textarea(attrs=attr),
+        label='متن پیام'
+    )
+
+    is_active = forms.ChoiceField(
+        label='فعال / غیرفعال نمودن',
+        required=True,
+        error_messages=error_message,
+        choices=CHOICES,
+        widget=forms.Select(attrs=attr)
+    )
+
+    class Meta:
+        model = MessageToUser
+        fields = ['unit', 'title', 'message', 'is_active']
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        if user:
+            # تمام کاربران تحت مدیریت این مدیر + خودش
+            managed_users = User.objects.filter(Q(manager=user) | Q(pk=user.pk))
+            self.fields['unit'].queryset = Unit.objects.filter(
+                is_active=True,
+                user__in=managed_users
+            ).select_related('user')
+
+        # نمایش نام مستاجر فعال یا مالک
+        self.fields['unit'].label_from_instance = lambda obj: (
+            f"واحد {obj.unit} - {obj.get_active_renter().renter_name}"
+            if obj.get_active_renter() else
+            f"واحد {obj.unit} - {obj.owner_name}"
+        )
+
 
 
 RESIDENCE_STATUS_CHOICES = {

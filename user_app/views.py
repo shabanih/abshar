@@ -157,110 +157,119 @@ def site_header_component(request):
     return render(request, 'partials/notification_template.html', context)
 
 
-def get_user_charges(model, user):
-    return model.objects.filter(
-        user=user,
-        send_notification=True
-    ).select_related('unit').order_by('-created_at')
+# def get_user_charges(model, user):
+#     return model.objects.filter(
+#         user=user,
+#         send_notification=True
+#     ).select_related('unit').order_by('-created_at')
+#
+#
+# def get_unpaid_charges(model, user):
+#     return model.objects.filter(user=user, send_notification=True, is_paid=False).select_related('unit').order_by(
+#         '-created_at')
 
 
-def get_unpaid_charges(model, user):
-    return model.objects.filter(user=user, send_notification=True, is_paid=False).select_related('unit').order_by(
-        '-created_at')
+from django.db.models import Sum
+from django.shortcuts import render
 
 
 def user_panel(request):
     user = request.user
 
-    # --- LAST CHARGES FROM UNIFIED ---
-    last_charges = UnifiedCharge.objects.filter(user=user).order_by('-created_at')[:6]
+    # -------------------------
+    # Unified Charges (BASE)
+    # -------------------------
+    unified_qs = UnifiedCharge.objects.filter(user=user)
 
-    # --- TICKETS ---
+    unpaid_unified_qs = unified_qs.filter(is_paid=True)
+
+    # Update penalty for unpaid charges
+    for charge in unpaid_unified_qs:
+        charge.update_penalty()
+
+    # -------------------------
+    # STATISTICS
+    # -------------------------
+    total_charge = unified_qs.count()
+    total_charge_unpaid = unified_qs.filter(is_paid=False).count()
+
+    total_unpaid_amount = (
+        unpaid_unified_qs.aggregate(
+            total=Sum("total_charge_month")
+        )["total"] or 0
+    )
+
+    # -------------------------
+    # LAST CHARGES
+    # -------------------------
+    last_charges = unified_qs.order_by('-created_at')[:6]
+
+    # -------------------------
+    # TICKETS
+    # -------------------------
     tickets = SupportUser.objects.filter(user=user).order_by('-created_at')[:5]
     ticket_count = tickets.count()
 
-    # --- CALCULATIONS ---
-    calculation_models = [
-        FixedChargeCalc,
-        AreaChargeCalc,
-        PersonChargeCalc,
-        FixPersonChargeCalc,
-        FixAreaChargeCalc,
-        ChargeByPersonAreaCalc,
-        ChargeByFixPersonAreaCalc,
-        ChargeFixVariableCalc,
-    ]
-
-    total_charge = 0
-    total_charge_unpaid = 0
-    total_unpaid_amount = 0
-
-    for model in calculation_models:
-        qs = model.objects.filter(user=user)
-        total_charge += qs.count()
-
-        unpaid_qs = qs.filter(is_paid=False)
-        total_charge_unpaid += unpaid_qs.count()
-        total_unpaid_amount += unpaid_qs.aggregate(total=Sum("total_charge_month"))["total"] or 0
-
-    # --- UNITS ---
+    # -------------------------
+    # UNITS & ANNOUNCEMENTS
+    # -------------------------
     if user.is_middle_admin:
-        units = Unit.objects.filter(user__manager=user, is_active=True).prefetch_related('renters')
-        announcements = Announcement.objects.filter(user=user, is_active=True).order_by('-created_at')[:5]
+        units = (
+            Unit.objects
+            .filter(user__manager=user, is_active=True)
+            .prefetch_related('renters')
+        )
+        announcements = (
+            Announcement.objects
+            .filter(user=user, is_active=True)
+            .order_by('-created_at')[:5]
+        )
     else:
-        units = Unit.objects.filter(user=user, is_active=True).prefetch_related('renters')
-        announcements = Announcement.objects.filter(user=user.manager, is_active=True).order_by('-created_at')[:5]
+        units = (
+            Unit.objects
+            .filter(user=user, is_active=True)
+            .prefetch_related('renters')
+        )
+        announcements = (
+            Announcement.objects
+            .filter(user=user.manager, is_active=True)
+            .order_by('-created_at')[:5]
+        )
 
-    # --- ACTIVE RENTERS PER UNIT ---
+    # -------------------------
+    # ACTIVE RENTERS PER UNIT
+    # -------------------------
     units_with_details = [
-        {"unit": unit, "active_renter": unit.renters.filter(renter_is_active=True).first()}
+        {
+            "unit": unit,
+            "active_renter": unit.renters.filter(renter_is_active=True).first()
+        }
         for unit in units
     ]
 
-    # --- ONLY UNPAID CHARGES ---
-    charge_models = {
-        'charges': FixedChargeCalc,
-        'area_charges': AreaChargeCalc,
-        'person_charges': PersonChargeCalc,
-        'fix_person_charges': FixPersonChargeCalc,
-        'fix_area_charges': FixAreaChargeCalc,
-        'person_area_charges': ChargeByPersonAreaCalc,
-        'fix_person_area_charges': ChargeByFixPersonAreaCalc,
-        'fix_variable_charges': ChargeFixVariableCalc,
-    }
-
-    unpaid_charges_dict = {name: get_unpaid_charges(model, user) for name, model in charge_models.items()}
-
-    # --- SAVE CHANGES ---
-    for charge_list in unpaid_charges_dict.values():
-        for charge in charge_list:
-            charge.save()
-
-    # --- UPDATE PENALTY ON UnifiedCharge ALSO ---
-    user_unified_charges = UnifiedCharge.objects.filter(user=user, is_paid=False)
-
-    for ucharge in user_unified_charges:
-        ucharge.update_penalty()
-
-    # --- CONTEXT ---
+    # -------------------------
+    # CONTEXT
+    # -------------------------
     context = {
         "user": user,
         "units": units,
+        "units_with_details": units_with_details,
+
         "tickets": tickets,
         "ticket": ticket_count,
+
         "announcements": announcements,
-        "units_with_details": units_with_details,
+
         "total_charge": total_charge,
         "total_charge_unpaid": total_charge_unpaid,
         "total_unpaid_amount": total_unpaid_amount,
 
-        # ✔ ADD LAST CHARGES HERE
         "last_charges": last_charges,
+        "unpaid_charges": unpaid_unified_qs,
     }
 
-    context.update(unpaid_charges_dict)
-
     return render(request, 'partials/home_template.html', context)
+
 
 
 # ==================================
@@ -345,33 +354,6 @@ def export_charge_pdf(request, pk, charge_type=None):
     response = HttpResponse(pdf_file, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
     return response
-
-
-@login_required
-def paymentView(request, pk):
-    charge = get_object_or_404(UnifiedCharge, pk=pk, user=request.user)
-
-    if request.method == "POST":
-        form = UnifiedChargePaymentForm(request.POST, instance=charge)
-        if form.is_valid():
-            charge = form.save(commit=False)
-            charge.is_paid = True
-            charge.update_penalty(save=False)
-            charge.save()
-            messages.success(request,'اطلاعات پرداخت شما با موفقیت ثبت گردید')
-            return redirect('user_charges')
-        else:
-            messages.error(request,'خطا در ثبت اطلاعات')
-            return redirect('payment_gateway')
-
-
-    else:  # GET request
-        form = UnifiedChargePaymentForm(instance=charge)
-        context = {
-            'charge': charge,
-            'form': form
-        }
-        return render(request, 'payment_gateway.html', context)
 
 
 def user_announcements(request):

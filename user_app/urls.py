@@ -13,9 +13,5 @@ urlpatterns = [
     path('charge/pdf/<int:pk>/', views.export_charge_pdf, name='export_charge_pdf'),
     path('user-charges/', views.fetch_user_charges, name='user_charges'),
     path('user-announce/', views.user_announcements, name='user_announce_manage'),
-    path('payment/gateway/<int:pk>/', views.paymentView, name='payment_gateway'),
-
-
-
 
 ]

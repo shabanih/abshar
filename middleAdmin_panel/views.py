@@ -2927,6 +2927,7 @@ def middle_send_notification_fix_charge_to_user(request, pk):
                     'other_cost_amount': fixed_calc.other_cost,
                     'send_notification_date': fixed_calc.send_notification_date,
                     'payment_deadline_date': fixed_calc.payment_deadline_date,
+                    'send_notification': True
                 }
             )
 
@@ -3328,6 +3329,7 @@ def middle_send_notification_area_charge_to_user(request, pk):
                     'other_cost_amount': calc_obj.other_cost,
                     'send_notification_date': calc_obj.send_notification_date,
                     'payment_deadline_date': calc_obj.payment_deadline_date,
+                    'send_notification': True
                 }
             )
 
@@ -3736,6 +3738,7 @@ def middle_send_notification_person_charge_to_user(request, pk):
                     'other_cost_amount': calc_obj.other_cost,
                     'send_notification_date': calc_obj.send_notification_date,
                     'payment_deadline_date': calc_obj.payment_deadline_date,
+                    'send_notification': True
                 }
             )
 
@@ -4116,6 +4119,7 @@ def middle_send_notification_fix_area_charge_to_user(request, pk):
                     'other_cost_amount': calc_obj.other_cost,
                     'send_notification_date': calc_obj.send_notification_date,
                     'payment_deadline_date': calc_obj.payment_deadline_date,
+                    'send_notification': True
                 }
             )
 
@@ -4500,6 +4504,7 @@ def middle_send_notification_fix_person_charge_to_user(request, pk):
                     'other_cost_amount': calc_obj.other_cost,
                     'send_notification_date': calc_obj.send_notification_date,
                     'payment_deadline_date': calc_obj.payment_deadline_date,
+                    'send_notification': True
                 }
             )
 
@@ -4882,6 +4887,7 @@ def middle_send_notification_person_area_charge_to_user(request, pk):
                     'other_cost_amount': calc_obj.other_cost,
                     'send_notification_date': calc_obj.send_notification_date,
                     'payment_deadline_date': calc_obj.payment_deadline_date,
+                    'send_notification': True
                 }
             )
 
@@ -5274,6 +5280,7 @@ def middle_send_notification_fix_person_area_charge_to_user(request, pk):
                     'other_cost_amount': calc_obj.other_cost,
                     'send_notification_date': calc_obj.send_notification_date,
                     'payment_deadline_date': calc_obj.payment_deadline_date,
+                    'send_notification': True
                 }
             )
 
@@ -5691,6 +5698,7 @@ def middle_send_notification_fix_variable_to_user(request, pk):
                     'other_cost_amount': calc_obj.other_cost,
                     'send_notification_date': calc_obj.send_notification_date,
                     'payment_deadline_date': calc_obj.payment_deadline_date,
+                    'send_notification': True
                 }
             )
 

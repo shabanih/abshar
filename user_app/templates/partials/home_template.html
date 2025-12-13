@@ -40,7 +40,7 @@
                  <div class="card-body text-center p-2 m-0">
                     <h4 class="font-weight-normal mb-3">
                         <i class="mdi mdi-square-inc-cash mdi-24px float-right"></i>
-                         مانده پرداخت نشده
+                         کل هزینه شارژ پرداختی
                     </h4>
                     <h2 class="mb-1">{{ total_unpaid_amount|three_digit_currency }} تومان</h2>
                   </div>
@@ -124,7 +124,7 @@
         <!-- فوتر کارت: دکمه مشاهده همه -->
     
         <div class="card-footer text-start bg-light py-3">
-            <a href="" class="btn btn-outline-secondary btn-sm px-4">
+            <a href="{% url 'user_charges' %}" class="btn btn-outline-secondary btn-sm px-4">
                 مشاهده همه 
             </a>
         </div>

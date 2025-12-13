@@ -50,12 +50,13 @@
                                 <thead class="text-center">
                                     <tr>
                                         <th>#</th>
-                                        <th>شماره سند</th>
+{#                                        <th>شماره سند</th>#}
                                         <th>تاریخ پرداخت</th>
                                         <th>شرح </th>
-                                        <th>مبلغ تراکنش</th>
-{#                                        <th>درگاه پرداخت</th>#}
+                                     
+                                        <th>روش پرداخت</th>
                                         <th>شماره تراکنش</th>
+                                           <th>مبلغ تراکنش</th>
 {#                                        <th>موجودی نهایی</th>#}
 {#                                        <th>فعال/غیرفعال</th>#}
 {#                                        <th>دستورات</th>#}
@@ -66,14 +67,15 @@
                                     <tbody class="text-center">
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
-                                            <td>{{ fund.doc_number }}</td>
+{#                                            <td>{{ fund.doc_number }}</td>#}
                                                <td>{{fund.payment_date|show_jalali }}</td>
                                             <td>بابت {{fund.payment_description }}</td>
 {#                                            <td>{{fund.debtor_amount|three_digit_currency}}</td>#}
 {#                                            <td>{{fund.creditor_amount|three_digit_currency }}</td>#}
-                                            <td class="btn-gradient-success">{{fund.amount|three_digit_currency }}</td>
-{#                                        <td>به پرداخت ملت</td>#}
+                                        <td>{{ fund.payment_gateway }}</td>
                                         <td>{{fund.transaction_no }}</td>
+                                         <td class="btn-gradient-success">{{fund.amount|three_digit_currency }}</td>
+
 
                                         </tr>
                                     {% endfor %}
@@ -83,7 +85,15 @@
                                         </tr>
                                  <tbody>
                                 {% endif %}
+                                   <tfoot>
+        <tr>
+            <th colspan="5" class="text-center">جمع کل</th>
+            <th class="text-center fw-bold">{{ total_amount|three_digit_currency }}</th>
+        </tr>
+    </tfoot>
                             </table>
+    
+        
                </div>
     </div>
 </div>

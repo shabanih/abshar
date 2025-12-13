@@ -1,3 +1,4 @@
+from admin_panel.models import UnifiedCharge, Announcement
 from user_app.models import MyHouse
 
 
@@ -23,3 +24,31 @@ def current_house(request):
     house = houses.first()
 
     return {'house': house}
+
+
+def header_notifications(request):
+    if not request.user.is_authenticated:
+        return {}
+
+    new_charges_count = UnifiedCharge.objects.filter(
+        user=request.user,
+        is_paid=False
+    ).count()
+
+    return {
+        'new_charges_count': new_charges_count,
+    }
+
+
+def announcement_notifications(request):
+    if not request.user.is_authenticated:
+        return {}
+
+    new_announce_count = Announcement.objects.filter(
+        user=request.user,
+        is_paid=False
+    ).count()
+
+    return {
+        'new_announce_count': new_announce_count,
+    }

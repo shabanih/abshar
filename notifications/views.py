@@ -2,16 +2,18 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.db.models import Q
+from django.db.models import Q, ProtectedError
 from django.http import JsonResponse
 from django.shortcuts import redirect, get_object_or_404, render
-from django.urls import reverse_lazy
-from django.views.generic import CreateView, ListView
+from django.urls import reverse_lazy, reverse
+from django.views.generic import CreateView, ListView, UpdateView
 
+from admin_panel.forms import MessageToUserForm
+from admin_panel.models import MessageToUser
 from notifications.models import SupportUser, SupportFile, SupportMessage, Notification, AdminTicket, AdminTicketFile, \
     AdminTicketMessage, MiddleAdminNotification
 from user_app.forms import SupportUserForm, SupportMessageForm, MiddleAdminTicketForm, MiddleAdminMessageForm
-from user_app.models import User
+from user_app.models import User, Unit
 
 
 # class SupportUserCreateView(CreateView):
@@ -515,9 +517,6 @@ def middlAdmin_close_ticket(request, pk):
     return redirect('middleAdmin_ticket_detail', pk=ticket.id)
 
 
-
-
-
 # -------------------------------------------------------------------------------
 class AdminTicketsView(ListView):
     model = AdminTicket
@@ -649,3 +648,97 @@ def admin_is_continue(request, pk):
     ticket.is_waiting = False
     ticket.save()
     return redirect('admin_ticket_detail', pk=ticket.id)
+
+
+# ========================= Message To User ======
+
+
+from django.views.generic import ListView
+from django.views.generic.edit import FormMixin
+
+class MessageToUserListCreateView(FormMixin, ListView):
+    model = MessageToUser
+    form_class = MessageToUserForm
+    template_name = 'message_to_user.html'
+    context_object_name = 'messages'
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+        queryset = MessageToUser.objects.filter(is_active=True)
+        if query:
+            queryset = queryset.filter(
+                Q(user__full_name__icontains=query) |
+                Q(title__icontains=query) |
+                Q(message__icontains=query)
+            ).distinct()
+        return queryset.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = self.get_form()
+        context['query'] = self.request.GET.get('q', '')
+        return context
+
+    def form_valid(self, form):
+        message = form.save(commit=False)
+        message.user = message.unit.user
+        message.save()
+        return super().form_valid(form)
+
+@login_required
+def ajax_units(request):
+    user = request.user
+    query = request.GET.get('q', '')
+    managed_users = User.objects.filter(Q(manager=user) | Q(pk=user.pk))
+    units = Unit.objects.filter(is_active=True, user__in=managed_users)
+
+    if query:
+        units = units.filter(
+            Q(unit__icontains=query) |
+            Q(owner_name__icontains=query) |
+            Q(renters__renter_name__icontains=query)
+        ).distinct()
+
+    results = []
+    for u in units:
+        label = u.get_active_renter().renter_name if u.get_active_renter() else u.owner_name
+        results.append({
+            'id': u.id,
+            'text': f"واحد {u.unit} - {label}"
+        })
+
+    return JsonResponse({'results': results})
+
+
+
+class MessageToUserUpdateView(UpdateView):
+    model = MessageToUser
+    template_name = 'message_to_user.html'
+    form_class = MessageToUserForm
+    success_url = reverse_lazy('message_to_user')
+
+    def form_valid(self, form):
+        edit_instance = form.instance
+        self.object = form.save(commit=False)
+        messages.success(self.request, 'پیام با موفقیت ویرایش گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['messages_list'] = MessageToUser.objects.filter(is_active=True)
+        return context
+
+
+def message_user_delete(request, pk):
+    message = get_object_or_404(MessageToUser, id=pk)
+    try:
+        message.delete()
+        messages.success(request, 'پیام با موفقیت حذف گردید!')
+    except ProtectedError:
+        messages.error(request, " امکان حذف وجود ندارد! ")
+    return redirect(reverse('message_to_user'))
