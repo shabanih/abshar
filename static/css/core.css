@@ -181,3 +181,59 @@ h1, h2, h3, h4, h5, h6 {
     margin: 50px auto;
     display: block;
 }
+
+.profile-image-user {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    width: 100%;       /* اندازه عرض کارت */
+    max-width: 200px;  /* حداکثر اندازه */
+    height: auto;      /* ارتفاع خودکار */
+    display: block;
+    margin: 10px auto 0;  /* فاصله از محتوا و مرکز کردن */
+    border-radius: 10px;  /* گرد کردن گوشه‌ها */
+}
+
+.profile-image {
+    position: absolute;
+    bottom: 40px;
+    left: 0;
+    width: 100%;       /* اندازه عرض کارت */
+    max-width: 200px;  /* حداکثر اندازه */
+    height: auto;      /* ارتفاع خودکار */
+    display: block;
+    margin: 10px auto 0;  /* فاصله از محتوا و مرکز کردن */
+    border-radius: 10px;  /* گرد کردن گوشه‌ها */
+}
+.profile-image-password {
+    position: absolute;
+    bottom: 40px;
+    left: 200px;
+    width: 100%;       /* اندازه عرض کارت */
+    max-width: 250px;  /* حداکثر اندازه */
+    height: auto;      /* ارتفاع خودکار */
+    display: block;
+    margin: 10px auto 0;  /* فاصله از محتوا و مرکز کردن */
+    border-radius: 10px;  /* گرد کردن گوشه‌ها */
+}
+.password-field {
+    position: relative;
+}
+
+.password-field input {
+    padding-left: 40px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 200px;   /* برای RTL */
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 18px;
+    color: #666;
+}
+
+.toggle-password:hover {
+    color: #000;
+}

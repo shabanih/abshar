@@ -142,6 +142,10 @@ class Unit(models.Model):
     def get_active_renter(self):
         return self.renters.filter(renter_is_active=True).first()
 
+    def get_label(self):
+        renter = self.get_active_renter()
+        return f"واحد {self.unit} - {renter.renter_name}" if renter else f"واحد {self.unit} - {self.owner_name}"
+
     def save(self, *args, **kwargs):
         # --- Calculate extra parking count ---
         count = 0

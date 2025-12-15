@@ -6,7 +6,7 @@
 
         <!-- ساختمان من -->
         <li class="nav-item nav-profile bg-light">
-            <a href="{% url 'manage_house' %}" class="nav-link">
+            <a href="" class="nav-link">
                 <div class="nav-profile-image">
                     <img src="{% static 'admin_panel/icone8/icons8-home.gif' %}" alt="profile">
                     <span class="login-status online"></span>
@@ -59,7 +59,11 @@
 
                     <li class="nav-item mt-0">
                         <a class="nav-link {% if request.resolver_match.url_name == 'user_announce_manage' %}active{% endif %}"
-                           href="{% url 'user_announce_manage' %}">اطلاعیه ها</a>
+                           href="{% url 'user_announce_manage' %}">اطلاعیه های من</a>
+                    </li>
+                    <li class="nav-item mt-0">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'user_message' %}active{% endif %}"
+                           href="{% url 'user_message' %}">پیام های من</a>
                     </li>
 
                     <li class="nav-item mt-0">

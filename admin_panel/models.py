@@ -23,7 +23,11 @@ class Announcement(models.Model):
 
 class MessageToUser(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='message_unit', blank=True, null=True)
+    units = models.ManyToManyField(
+        Unit,
+        related_name='messages',
+        verbose_name='واحدها'
+    )
     title = models.CharField(max_length=400, null=True, blank=True)
     message = models.CharField(max_length=400, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
@@ -32,6 +36,19 @@ class MessageToUser(models.Model):
 
     def __str__(self):
         return self.user.full_name
+
+
+class MessageReadStatus(models.Model):
+    message = models.ForeignKey('MessageToUser', on_delete=models.CASCADE, related_name='read_statuses')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    is_read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('message', 'user')
+
+    def __str__(self):
+        return f"{self.user.full_name} - {self.message.title} - {'خوانده شده' if self.is_read else 'خوانده نشده'}"
 
 
 class ExpenseCategory(models.Model):

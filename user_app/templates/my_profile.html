@@ -1,0 +1,117 @@
+{% extends "partials/core_template.html" %}
+{% load static %}
+{% load poll_extras %}
+{% block page_title %}
+پروفایل من
+{% endblock page_title %}
+
+{% block main_content %}
+ 
+<div class="container py-5">
+{% if messages %}
+   <div class="row mb-2">
+
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+    {% endfor %}
+
+</div>
+{% endif %}
+<div class="row mt-2 g-1">
+    <div class="col-6">
+          <!-- مشخصات کاربر -->
+    <div class="card mb-4">
+        <div class="card-header">مشخصات کاربر</div>
+        <div class="card-body">
+            <p><strong>نام:</strong> {{ user_obj.full_name }}</p>
+            <p><strong>ایمیل:</strong> ثبت نشده است</p>
+            <p><strong>شماره موبایل:</strong> {{ user_obj.mobile }}</p>
+            <p><strong>نام کاربری:</strong> {{ user_obj.username }}</p>
+            <p><strong>آخرین ورود:</strong> {{ user_obj.last_login|show_jalali_date_time }}</p>
+              <img src="/static/img/user_profile.jpg" class="profile-image-user" alt="">
+
+        </div>
+    </div>
+    </div>
+    <div class="col-6">
+            <!-- اطلاعات واحد -->
+    <div class="card mb-4">
+        <div class="card-header">اطلاعات واحد</div>
+        <div class="card-body">
+            {% if unit %}
+                <p><strong>شماره واحد:</strong> {{ unit.unit }}</p>
+                <p><strong>طبقه:</strong> {{ unit.floor_number }}</p>
+                <p><strong>متراژ:</strong> {{ unit.area }}متر </p>
+                <p><strong>تعداد خواب:</strong> {{ unit.bedrooms_count }}</p>
+                <p><strong>وضعیت:</strong>
+                    {% if unit.is_renter %} مستاجر {% else %} مالک {% endif %}
+                </p>
+                        <img src="/static/img/home.png" class="profile-image" alt="">
+
+            {% else %}
+                <p class="text-muted">واحدی برای این کاربر ثبت نشده است.</p>
+            {% endif %}
+        </div>
+    </div>
+    </div>
+</div>
+
+    <!-- تغییر رمز عبور -->
+    <div class="card">
+        <div class="card-header">تغییر رمز عبور</div>
+        <div class="card-body">
+            
+            <form method="post">
+                {% csrf_token %}
+                {{ password_form.non_field_errors }}
+
+       <div class="password-wrapper">
+    {{ password_form.old_password.label_tag }}
+    <div class="password-field">
+        {{ password_form.old_password }}
+        <span class="toggle-password" onclick="togglePassword(this)">🙈️</span>
+    </div>
+</div>
+
+<div class="password-wrapper">
+    {{ password_form.new_password1.label_tag }}
+    <div class="password-field">
+        {{ password_form.new_password1 }}
+        <span class="toggle-password" onclick="togglePassword(this)">🙈️</span>
+    </div>
+</div>
+
+<div class="password-wrapper">
+    {{ password_form.new_password2.label_tag }}
+    <div class="password-field">
+        {{ password_form.new_password2 }}
+        <span class="toggle-password" onclick="togglePassword(this)">🙈️</span>
+    </div>
+</div>
+
+
+                <button type="submit" class="btn btn-primary mt-3">
+                    تغییر رمز عبور
+                </button>
+            </form>
+          <img src="/static/img/password_change.png" class="profile-image-password" alt="">
+
+        </div>
+    </div>
+
+</div>
+    <script>
+function togglePassword(element) {
+    const input = element.previousElementSibling;
+    if (input.type === "password") {
+        input.type = "text";
+        element.textContent = "👁️";
+    } else {
+        input.type = "password";
+        element.textContent = "🙈️";
+    }
+}
+</script>
+{% endblock %}

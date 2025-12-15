@@ -180,41 +180,5 @@
 </script>
 
 
-{#<script>#}
-{#    const timerElement = document.getElementById("timer");#}
-{#    const resendLink = document.getElementById("resend-link");#}
-{#    const circle = document.getElementById("circle");#}
-{##}
-{#    let timeLeft = 60;#}
-{#    const radius = circle.r.baseVal.value;#}
-{#    const circumference = 2 * Math.PI * radius;#}
-{##}
-{#    circle.style.strokeDasharray = `${circumference}`;#}
-{#    circle.style.strokeDashoffset = `${circumference}`;#}
-{##}
-{#    function setProgress(percent) {#}
-{#        const offset = circumference - (percent / 100) * circumference;#}
-{#        circle.style.strokeDashoffset = offset;#}
-{#    }#}
-{##}
-{#    function countdown() {#}
-{#        const timer = setInterval(() => {#}
-{#            timeLeft--;#}
-{#            timerElement.textContent = `${timeLeft} ثانیه`;#}
-{#            setProgress(((60 - timeLeft) / 60) * 100);#}
-{##}
-{#            if (timeLeft <= 0) {#}
-{#                clearInterval(timer);#}
-{#                resendLink.style.pointerEvents = "auto";#}
-{#                resendLink.style.color = "#007bff";#}
-{#                timerElement.textContent = "کد منقضی شد!";#}
-{#            }#}
-{#        }, 1000);#}
-{#    }#}
-{##}
-{#    countdown();#}
-{#</script>#}
-
-
 
 </html>

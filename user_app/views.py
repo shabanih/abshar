@@ -4,8 +4,9 @@ import json
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.forms import PasswordChangeForm
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
@@ -24,7 +25,8 @@ from notifications.models import Notification, SupportUser
 from user_app import helper
 from admin_panel.models import Announcement, FixedChargeCalc, AreaChargeCalc, PersonCharge, PersonChargeCalc, \
     FixPersonChargeCalc, FixAreaChargeCalc, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariableCalc, \
-    FixCharge, AreaCharge, FixPersonCharge, FixAreaCharge, ChargeByPersonArea, ChargeByFixPersonArea, UnifiedCharge
+    FixCharge, AreaCharge, FixPersonCharge, FixAreaCharge, ChargeByPersonArea, ChargeByFixPersonArea, UnifiedCharge, \
+    MessageToUser
 from user_app.forms import LoginForm, MobileLoginForm
 from user_app.models import User, Unit, Bank, MyHouse, CalendarNote
 
@@ -108,7 +110,7 @@ def verify_otp(request):
             else:
                 login(request, user)
                 messages.success(request, "ورود موفق")
-                return redirect('admin_dashboard')
+                return redirect('user_panel')
 
         return render(
             request,
@@ -157,22 +159,6 @@ def site_header_component(request):
     return render(request, 'partials/notification_template.html', context)
 
 
-# def get_user_charges(model, user):
-#     return model.objects.filter(
-#         user=user,
-#         send_notification=True
-#     ).select_related('unit').order_by('-created_at')
-#
-#
-# def get_unpaid_charges(model, user):
-#     return model.objects.filter(user=user, send_notification=True, is_paid=False).select_related('unit').order_by(
-#         '-created_at')
-
-
-from django.db.models import Sum
-from django.shortcuts import render
-
-
 def user_panel(request):
     user = request.user
 
@@ -194,9 +180,9 @@ def user_panel(request):
     total_charge_unpaid = unified_qs.filter(is_paid=False).count()
 
     total_unpaid_amount = (
-        unpaid_unified_qs.aggregate(
-            total=Sum("total_charge_month")
-        )["total"] or 0
+            unpaid_unified_qs.aggregate(
+                total=Sum("total_charge_month")
+            )["total"] or 0
     )
 
     # -------------------------
@@ -271,7 +257,6 @@ def user_panel(request):
     return render(request, 'partials/home_template.html', context)
 
 
-
 # ==================================
 
 @login_required
@@ -287,7 +272,7 @@ def fetch_user_charges(request):
         charges = charges.filter(
             Q(amount__icontains=query) |
             Q(total_charge_month__icontains=query) |
-            Q(details__icontains=query)|
+            Q(details__icontains=query) |
             Q(title__icontains=query)
         )
 
@@ -356,20 +341,101 @@ def export_charge_pdf(request, pk, charge_type=None):
     return response
 
 
-def user_announcements(request):
-    user = request.user
+class AnnouncementListView(ListView):
+    model = Announcement
+    template_name = 'manage_announcement.html'
+    context_object_name = 'announcements'
 
-    # اگر کاربر مدیر میانی ندارد، هیچ اطلاعیه‌ای ندارد
-    if not user.manager:
-        announcements = []
-    else:
-        # فقط اطلاعیه‌های مدیر میانی کاربر
-        announcements = Announcement.objects.filter(
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        user = self.request.user
+        if not hasattr(user, 'manager') or not user.manager:
+            return Announcement.objects.none()
+
+        query = self.request.GET.get('q', '')
+        queryset = Announcement.objects.filter(
             user=user.manager,
             is_active=True
-        ).order_by('-created_at')
+        )
+
+        if query:
+            queryset = queryset.filter(
+                Q(title__icontains=query)
+            )
+
+        return queryset.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        return context
+
+
+class MessageListView(ListView):
+    template_name = 'user_message.html'
+    context_object_name = 'user_messages'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        user = self.request.user
+        query = self.request.GET.get('q', '')
+        queryset = MessageToUser.objects.filter(
+            user=user,
+            is_active=True
+        )
+        queryset.update(is_seen=True)
+
+        if query:
+            queryset = queryset.filter(
+                Q(user__full_name__icontains=query) |
+                Q(title__icontains=query) |
+                Q(message__icontains=query)
+            ).distinct()
+
+        return queryset.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        return context
+
+
+@login_required
+def user_profile(request):
+    user = request.user
+
+    # اگر فرم ارسال شد
+    if request.method == 'POST':
+        password_form = PasswordChangeForm(user, request.POST)
+        if password_form.is_valid():
+            password_form.save()
+            update_session_auth_hash(request, user)  # مهم: کاربر بعد از تغییر رمز لاگ‌اوت نشود
+            messages.success(request, 'رمز عبور با موفقیت تغییر کرد!')
+            return redirect('user_profile')  # redirect باعث می‌شود پیام ظاهر شود
+        else:
+            messages.warning(request, 'رمز عبور باید حداقل 8 رقم و شامل حروف و اعداد باشد. مجددا بررسی فرمایید.')
+    else:
+        password_form = PasswordChangeForm(user)
+
+    # اطلاعات واحد
+    unit = Unit.objects.filter(user=user).first()
 
     context = {
-        'announcements': announcements
+        'user_obj': user,
+        'unit': unit,
+        'password_form': password_form,
     }
-    return render(request, 'manage_announcement.html', context)
+    return render(request, 'my_profile.html', context)
+

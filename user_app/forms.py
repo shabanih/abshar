@@ -53,7 +53,7 @@ class MobileLoginForm(forms.ModelForm):
         widget=forms.TextInput(attrs={
             'class': 'form-control w-50 text-center border-1 mb-2',
             'placeholder': 'شماره همراه خود را وارد کنید',
-            'style': 'font-size: 13px;'  # Inline style for placeholder font size
+            # 'style': 'font-size: 13px;'  # Inline style for placeholder font size
         }),
         required=True,
         max_length=11,

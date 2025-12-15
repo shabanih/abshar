@@ -2,6 +2,7 @@ from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django_select2.forms import ModelSelect2MultipleWidget
 from jalali_date.fields import JalaliDateField
 from jalali_date.widgets import AdminJalaliDateWidget
 from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, IncomeCategory, ReceiveMoney, PayMoney, \
@@ -43,11 +44,17 @@ class announcementForm(forms.ModelForm):
 
 
 class MessageToUserForm(forms.ModelForm):
-    unit = forms.ModelChoiceField(
-        queryset=Unit.objects.none(),
+    unit = forms.ModelMultipleChoiceField(
+        queryset=Unit.objects.none(),   # خالی → ajax پرش می‌کنه
         required=True,
-        label='واحد / نفر',
-        widget=forms.Select(attrs={'class': 'form-control select2-ajax'})
+        label='انتخاب واحدها',
+        widget=forms.SelectMultiple(
+            attrs={
+                'class': 'form-control select2-ajax rtl',
+                'style': 'width:100%',
+                # 'data-placeholder': 'واحد / مالک یا مستاجر را انتخاب کنید1'
+            }
+        )
     )
 
     title = forms.CharField(
@@ -93,7 +100,6 @@ class MessageToUserForm(forms.ModelForm):
             if obj.get_active_renter() else
             f"واحد {obj.unit} - {obj.owner_name}"
         )
-
 
 
 RESIDENCE_STATUS_CHOICES = {

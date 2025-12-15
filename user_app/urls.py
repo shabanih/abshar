@@ -12,6 +12,9 @@ urlpatterns = [
 
     path('charge/pdf/<int:pk>/', views.export_charge_pdf, name='export_charge_pdf'),
     path('user-charges/', views.fetch_user_charges, name='user_charges'),
-    path('user-announce/', views.user_announcements, name='user_announce_manage'),
+    path('user-announce/', views.AnnouncementListView.as_view(), name='user_announce_manage'),
+    path('user/messages/', views.MessageListView.as_view(), name='user_message'),
+
+    path('profile/', views.user_profile, name='user_profile'),
 
 ]

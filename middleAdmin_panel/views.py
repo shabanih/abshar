@@ -162,7 +162,7 @@ class MiddleAnnouncementView(CreateView):
     model = Announcement
     template_name = 'middle_admin/middle_send_announcement.html'
     form_class = announcementForm
-    success_url = reverse_lazy('middle_announcement')
+    success_url = reverse_lazy('middle_send_announcement')
 
     def form_valid(self, form):
         self.object = form.save(commit=False)

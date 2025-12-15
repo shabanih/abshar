@@ -5,19 +5,6 @@
                 <i class="mdi mdi-fullscreen" id="fullscreen-button"></i>
               </a>
             </li>
-{#            <li class="nav-item dropdown">#}
-{#              <a class="nav-link count-indicator dropdown-bs-toggle" id="messageDropdown" href="#"#}
-{#                 data-bs-toggle="dropdown" aria-expanded="true">#}
-{#                <i class="far fa-comments"></i>#}
-{#                <span class="count-symbol bg-warning" aria-hidden="true">10</span>#}
-{##}
-{#                  <span class="position-absolute bg-warning rounded-circle d-flex align-items-center justify-content-center text-dark px-1"#}
-{#                        style="top: 20px; left: 20px; height: 20px; min-width: 2px;" >0#}
-{##}
-{#                  </span>#}
-{##}
-{#              </a>#}
-{#            </li>#}
 
             <li class="nav-item dropdown">
               <a class="nav-link count-indicator dropdown-bs-toggle" id="messageDropdown" 
@@ -36,7 +23,7 @@
                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">
 {#                  <h6 class="preview-subject ellipsis mb-1 font-weight-normal">دیدگاه های کالا</h6>#}
                   <p class="text-dark mb-0"> <span class="circleOrangePayment">{{ new_charges_count }}</span>
-                      شارژ جدید </p>
+                      شارژ پرداخت نشده </p>
                  </div>
                 </a>
                   
@@ -49,54 +36,26 @@
                       </a>
               </div>
             </li>
-              <li class="nav-item dropdown">
+              <li class="nav-item dropdown ">
               <a class="nav-link count-indicator dropdown-toggle" id="notificationDropdown" href="#" data-bs-toggle="dropdown">
                 <i class="mdi mdi-bell-outline"></i>
                   <span id="total-count-products" class="position-absolute bg-danger rounded-circle d-flex align-items-center justify-content-center text-dark px-1"
                         style="top: 20px; left: 15px; height: 20px; min-width: 2px;" >
-                      0
+                      {{ new_messages_count }}
                   </span>
               </a>
               <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="notificationDropdown">
-                <h6 class="p-3 mb-0">اعلانات</h6>
+                  {% if new_messages_count %}
+                  	<p class="p-3 mb-0 rtl">{{ new_messages_count }} پیام از طرف مدیر</p>
+                  {% endif %} 
                 <div class="dropdown-divider"></div>
-<!--                <a class="dropdown-item preview-item">-->
-<!--                  <div class="preview-thumbnail">-->
-<!--                    <div class="preview-icon bg-success">-->
-<!--                      <i class="mdi mdi-calendar"></i>-->
-<!--                    </div>-->
-<!--                  </div>-->
-<!--                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">-->
-<!--                    <h6 class="preview-subject font-weight-normal mb-1">رویداد هر روز</h6>-->
-<!--                    <p class="text-gray ellipsis mb-0"> یک ساعت قبل </p>-->
-<!--                  </div>-->
-<!--                </a>-->
+
                 <div class="dropdown-divider"></div>
-<!--                <a class="dropdown-item preview-item">-->
-<!--                  <div class="preview-thumbnail">-->
-<!--                    <div class="preview-icon bg-warning">-->
-<!--                      <i class="mdi mdi-settings"></i>-->
-<!--                    </div>-->
-<!--                  </div>-->
-<!--                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">-->
-<!--                    <h6 class="preview-subject font-weight-normal mb-1">تنظیمات</h6>-->
-<!--                    <p class="text-gray ellipsis mb-0"> اعلان ۲ </p>-->
-<!--                  </div>-->
-<!--                </a>-->
-<!--                <div class="dropdown-divider"></div>-->
-<!--                <a class="dropdown-item preview-item">-->
-<!--                  <div class="preview-thumbnail">-->
-<!--                    <div class="preview-icon bg-info">-->
-<!--                      <i class="mdi mdi-link-variant"></i>-->
-<!--                    </div>-->
-<!--                  </div>-->
-<!--                  <div class="preview-item-content d-flex align-items-start flex-column justify-content-center">-->
-<!--                    <h6 class="preview-subject font-weight-normal mb-1"> ورود کاربر جدید</h6>-->
-<!--                    <p class="text-gray ellipsis mb-0"> اعلان ۳ </p>-->
-<!--                  </div>-->
-<!--                </a>-->
+
                 <div class="dropdown-divider"></div>
-                <h6 class="p-3 mb-0 text-center">نمایش همه اعلانات</h6>
+                  <a href="{% url 'user_message' %}">
+                    <h6 class="p-3 mb-0 text-center">نمایش همه پیام ها</h6>
+                  </a>
               </div>
             </li>
           
@@ -120,8 +79,11 @@
 
               <div class="dropdown-menu navbar-dropdown" aria-labelledby="profileDropdown">
                 <div class="dropdown-divider"></div>
+                   <a class="dropdown-item" href="{% url 'user_profile' %}">
+                  <i class="mdi mdi-account-circle me-2 text-dark"></i> پروفایل من </a>
                 <a class="dropdown-item" href="{% url 'logout_user' %}">
-                  <i class="mdi mdi-logout me-2 text-primary"></i> خروج </a>
+                  <i class="mdi mdi-logout me-2 text-dark"></i> خروج </a>
+                 
               </div>
             </li>
             <li class="nav-item nav-settings d-none d-lg-block">

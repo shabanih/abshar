@@ -7,6 +7,7 @@ from django.http import JsonResponse
 from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView, ListView, UpdateView
+from django.views.generic.edit import FormMixin
 
 from admin_panel.forms import MessageToUserForm
 from admin_panel.models import MessageToUser
@@ -652,87 +653,111 @@ def admin_is_continue(request, pk):
 
 # ========================= Message To User ======
 
-
-from django.views.generic import ListView
-from django.views.generic.edit import FormMixin
-
 class MessageToUserListCreateView(FormMixin, ListView):
     model = MessageToUser
     form_class = MessageToUserForm
     template_name = 'message_to_user.html'
-    context_object_name = 'messages'
+    context_object_name = 'user_messages'
+    success_url = reverse_lazy('message_to_user')  # نام url همین صفحه
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['user'] = self.request.user
         return kwargs
 
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
     def get_queryset(self):
         query = self.request.GET.get('q', '')
         queryset = MessageToUser.objects.filter(is_active=True)
+
         if query:
             queryset = queryset.filter(
                 Q(user__full_name__icontains=query) |
                 Q(title__icontains=query) |
                 Q(message__icontains=query)
             ).distinct()
+
         return queryset.order_by('-created_at')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['form'] = self.get_form()
         context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
         return context
+
+    # ✅ این بخش مهم‌ترین قسمت است
+    def post(self, request, *args, **kwargs):
+        self.object_list = self.get_queryset()
+        form = self.get_form()
+
+        if form.is_valid():
+            messages.success(request, 'پیام با موفقیت ثبت گردید')
+            return self.form_valid(form)
+        else:
+            return self.form_invalid(form)
 
     def form_valid(self, form):
         message = form.save(commit=False)
-        message.user = message.unit.user
-        message.save()
+
+        # اگر چند unit انتخاب شده
+        units = form.cleaned_data['unit']
+
+        for unit in units:
+            MessageToUser.objects.create(
+                user=unit.user,
+                title=message.title,
+                message=message.message,
+                is_active=message.is_active
+            )
+
         return super().form_valid(form)
+
 
 @login_required
 def ajax_units(request):
-    user = request.user
-    query = request.GET.get('q', '')
-    managed_users = User.objects.filter(Q(manager=user) | Q(pk=user.pk))
-    units = Unit.objects.filter(is_active=True, user__in=managed_users)
+    if not request.user.is_authenticated:
+        return JsonResponse({'results': []})
 
-    if query:
+    user = request.user
+    q = request.GET.get('q', '').strip()
+    is_initial = request.GET.get('initial')
+
+    managed_users = User.objects.filter(
+        Q(manager=user) | Q(pk=user.pk)
+    )
+
+    units = Unit.objects.filter(
+        is_active=True,
+        user__in=managed_users
+    )
+
+    # 🔹 اگر سرچ انجام شده
+    if q:
         units = units.filter(
-            Q(unit__icontains=query) |
-            Q(owner_name__icontains=query) |
-            Q(renters__renter_name__icontains=query)
+            Q(unit__icontains=q) |
+            Q(owner_name__icontains=q) |
+            Q(renters__renter_name__icontains=q)
         ).distinct()
 
-    results = []
-    for u in units:
-        label = u.get_active_renter().renter_name if u.get_active_renter() else u.owner_name
-        results.append({
+    # 🔹 اگر فقط کلیک شده (initial load)
+    elif is_initial:
+        units = units[:10]
+
+    results = [
+        {
             'id': u.id,
-            'text': f"واحد {u.unit} - {label}"
-        })
+            'text': u.get_label()
+        }
+        for u in units[:20]  # محدودیت نهایی برای performance
+    ]
 
     return JsonResponse({'results': results})
-
-
-
-class MessageToUserUpdateView(UpdateView):
-    model = MessageToUser
-    template_name = 'message_to_user.html'
-    form_class = MessageToUserForm
-    success_url = reverse_lazy('message_to_user')
-
-    def form_valid(self, form):
-        edit_instance = form.instance
-        self.object = form.save(commit=False)
-        messages.success(self.request, 'پیام با موفقیت ویرایش گردید!')
-        return super().form_valid(form)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['messages_list'] = MessageToUser.objects.filter(is_active=True)
-        return context
-
 
 def message_user_delete(request, pk):
     message = get_object_or_404(MessageToUser, id=pk)

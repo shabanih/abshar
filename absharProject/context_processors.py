@@ -1,4 +1,4 @@
-from admin_panel.models import UnifiedCharge, Announcement
+from admin_panel.models import UnifiedCharge, Announcement, MessageToUser
 from user_app.models import MyHouse
 
 
@@ -35,8 +35,13 @@ def header_notifications(request):
         is_paid=False
     ).count()
 
+    new_messages_count = MessageToUser.objects.filter(
+        user=request.user,
+        is_seen=False
+    ).count()
     return {
         'new_charges_count': new_charges_count,
+        'new_messages_count': new_messages_count,
     }
 
 

@@ -13,6 +13,7 @@ urlpatterns = [
     path('notifications/', include('notifications.urls')),
     path('', include('user_app.urls')),
     path('ckeditor/', include('ckeditor_uploader.urls')),  # this is required
+    path('select2/', include('django_select2.urls')),
     # path('bankgateways/', az_bank_gateways_urls()),
 
 ]

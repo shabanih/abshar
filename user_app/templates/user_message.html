@@ -2,7 +2,7 @@
 {% load poll_extras %}
 
 {% block page_title %}
-مدیریت اطلاعیه {{ unit.unit }}
+مدیریت پیام ها {{ unit.unit }}
 {% endblock page_title %}
 
 {% block main_content %}
@@ -11,7 +11,7 @@
   <div class="container py-5">
 {#  <div class="card shadow-lg p-4">#}
 {#    <h1 class="header-style text-center mb-4">اطلاعیه‌های ساختمان</h1>#}
-  <div class="row mb-2 mt-4">
+       <div class="row mb-2 mt-4">
         <!-- بخش جستجو -->
         <div class="col-12 col-md-10 col-xl-10 align-self-center">
             <form method="get" action="" class="d-flex gap-2 align-items-center">
@@ -48,31 +48,36 @@
   <table class="table table-bordered mt-2">
       <thead>
       <tr>
-          <th>عنوان</th>
-          <th>تاریخ ثبت</th>
+          <th>#</th>
+          <th>موضوع</th>
+          <th>متن پیام</th>
+          <th>تاریخ ارسال</th>
       </tr>
       </thead>
-         {% if announcements %}
-      {% for announcement in announcements %}
+         {% if user_messages %}
+      {% for user_message in user_messages %}
       <tbody>
       <tr>
-          <td class="col-10">{{ announcement.title|safe }}</td>
-          <td class="col-2">{{ announcement.created_at|show_jalali_date_only }}</td>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ user_message.title|safe }}</td>
+          <td class="col-12 col-lg-6 ">{{ user_message.message|safe }}</td>
+          <td>{{ user_message.created_at|show_jalali_date_only }}</td>
       </tr>
       </tbody>
            {% endfor %}
     {% else %}
            <tbody>
            <tr>
-            <td>
-                    هیچ اطلاعیه‌ای ثبت نشده است.
+            <td colspan="4">
+                    هیچ پیامی ارسال نشده است.
         </td> 
            </tr>
  
            </tbody>
     {% endif %}
   </table>
-       <div class="col-12">
+  
+     <div class="col-12">
         <div class="pagination d-flex justify-content-center mt-5">
             {% if page_obj.has_previous %}
                 <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
