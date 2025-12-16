@@ -251,12 +251,11 @@ class middleAddBankView(CreateView):
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user  # ← ارسال user به فرم
+        kwargs['user'] = self.request.user
         return kwargs
 
     def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.user = self.request.user
+        form.instance.user = self.request.user
         messages.success(self.request, 'اطلاعات حساب بانکی با موفقیت ثبت گردید!')
         return super().form_valid(form)
 
@@ -273,12 +272,19 @@ class middleBankUpdateView(UpdateView):
     form_class = BankForm
     success_url = reverse_lazy('middle_manage_bank')
 
+    # ارسال user به فرم
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    # مقدار دادن به user و پیام موفقیت
     def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.user = self.request.user
+        form.instance.user = self.request.user  # ← مستقیم به instance بده
         messages.success(self.request, 'اطلاعات حساب بانکی با موفقیت ویرایش گردید!')
         return super().form_valid(form)
 
+    # اضافه کردن لیست بانک‌ها به context
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['banks'] = Bank.objects.filter(user=self.request.user)
@@ -529,47 +535,68 @@ def middle_unit_delete(request, pk):
 class MiddleUnitListView(ListView):
     model = Unit
     template_name = 'middle_unit_templates/unit_management.html'
-    paginate_by = 50
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None
+        return int(paginate) if paginate and paginate.isdigit() else 20
 
     def get_queryset(self):
-        queryset = Unit.objects.filter(user__manager=self.request.user)
+        user = self.request.user
 
-        unit = self.request.GET.get('unit')
-        owner_name = self.request.GET.get('owner_name')
-        owner_mobile = self.request.GET.get('owner_mobile')
-        area = self.request.GET.get('area')
-        bedrooms_count = self.request.GET.get('bedrooms_count')
-        renter_name = self.request.GET.get('renter_name')
-        renter_mobile = self.request.GET.get('renter_mobile')
-        people_count = self.request.GET.get('people_count')
-        status_residence = self.request.GET.get('status_residence')
+        queryset = (
+            Unit.objects
+            .filter(user__manager=user)
+            .prefetch_related('renters')
+        )
 
-        if unit and unit.isdigit():
-            queryset = queryset.filter(unit=int(unit))
-        if owner_name:
-            queryset = queryset.filter(owner_name__icontains=owner_name)
-        if owner_mobile:
-            queryset = queryset.filter(owner_mobile__icontains=owner_mobile)
-        if area and area.isdigit():
-            queryset = queryset.filter(area=int(area))
-        if bedrooms_count and bedrooms_count.isdigit():
-            queryset = queryset.filter(bedrooms_count=int(bedrooms_count))
-        if renter_name:
-            queryset = queryset.filter(renters__renter_name__icontains=renter_name)
-        if renter_mobile:
-            queryset = queryset.filter(renters__renter_mobile__icontains=renter_mobile)
-        if people_count and people_count.isdigit():
-            queryset = queryset.filter(owner_people_count=int(people_count))
-        if status_residence:
-            queryset = queryset.filter(status_residence=status_residence)
+        filters = Q()
 
-        return queryset.distinct().order_by('unit')
+        params = self.request.GET
+
+        if params.get('unit', '').isdigit():
+            filters &= Q(unit=int(params['unit']))
+
+        if params.get('owner_name'):
+            filters &= Q(owner_name__icontains=params['owner_name'])
+
+        if params.get('owner_mobile'):
+            filters &= Q(owner_mobile__icontains=params['owner_mobile'])
+
+        if params.get('area', '').isdigit():
+            filters &= Q(area=int(params['area']))
+
+        if params.get('bedrooms_count', '').isdigit():
+            filters &= Q(bedrooms_count=int(params['bedrooms_count']))
+
+        if params.get('renter_name'):
+            filters &= Q(renters__renter_name__icontains=params['renter_name'])
+
+        if params.get('renter_mobile'):
+            filters &= Q(renters__renter_mobile__icontains=params['renter_mobile'])
+
+        if params.get('people_count', '').isdigit():
+            filters &= Q(owner_people_count=int(params['people_count']))
+
+        if params.get('status_residence'):
+            filters &= Q(status_residence=params['status_residence'])
+
+        return queryset.filter(filters).distinct().order_by('unit')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['total_units'] = Unit.objects.filter(user__manager=self.request.user).count()
-        context['units'] = context['object_list']
+
+        context.update({
+            'total_units': Unit.objects.filter(
+                user__manager=self.request.user
+            ).count(),
+            'units': context['object_list'],
+            'paginate': self.request.GET.get('paginate', '20'),
+        })
+
         return context
+
 
 
 def to_jalali(date_obj):
@@ -5578,9 +5605,9 @@ def middle_show_fix_variable_notification_form(request, pk):
             calc.other_cost = charge.other_cost_amount
             calc.base_charge = int(total_charge)
             calc.final_person_amount = (
-                int((charge.unit_variable_person_amount or 0) * (unit.people_count or 0)) +
-                int((charge.unit_variable_area_amount or 0) * (unit.area or 0)) +
-                int(charge.unit_fix_amount or 0)
+                    int((charge.unit_variable_person_amount or 0) * (unit.people_count or 0)) +
+                    int((charge.unit_variable_area_amount or 0) * (unit.area or 0)) +
+                    int(charge.unit_fix_amount or 0)
             )
 
             calc.save()  # save محاسبات را انجام می‌دهد
@@ -5606,9 +5633,9 @@ def middle_show_fix_variable_notification_form(request, pk):
                 other_cost=charge.other_cost_amount,
                 base_charge=int(total_charge),
                 final_person_amount=(
-                    int((charge.unit_variable_person_amount or 0) * (unit.people_count or 0)) +
-                    int((charge.unit_variable_area_amount or 0) * (unit.area or 0)) +
-                    int(charge.unit_fix_amount or 0)
+                        int((charge.unit_variable_person_amount or 0) * (unit.people_count or 0)) +
+                        int((charge.unit_variable_area_amount or 0) * (unit.area or 0)) +
+                        int(charge.unit_fix_amount or 0)
                 )
             )
             calc.save()
@@ -5633,7 +5660,6 @@ def middle_show_fix_variable_notification_form(request, pk):
         'notified_ids': list(notified_ids),
     }
     return render(request, 'middleCharge/notify_fix_variable_charge_template.html', context)
-
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -5801,6 +5827,45 @@ def middle_remove_send_notification_fix_variable(request, pk):
     except Exception:
         return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
 
+
+def fetch_middle_charges(request):
+    user = request.user
+    query = request.GET.get('q', '').strip()
+    paginate = request.GET.get('paginate', '20')  # پیش‌فرض 20
+    unit = Unit.objects.filter(user__manager=user, is_active=True).first()
+
+    charges = UnifiedCharge.objects.filter(user__manager=user)
+
+    if query:
+        charges = charges.filter(
+            Q(amount__icontains=query) |
+            Q(total_charge_month__icontains=query) |
+            Q(details__icontains=query) |
+            Q(title__icontains=query)
+        )
+
+    last_charges = charges.order_by('-created_at')  # order after filtering
+
+    try:
+        paginate = int(paginate)
+    except ValueError:
+        paginate = 20
+
+    if paginate <= 0:
+        paginate = 20
+
+    paginator = Paginator(last_charges, paginate)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'unit': unit,
+        'last_charges': page_obj,
+        'query': query,
+        'paginate': paginate,
+        'page_obj': page_obj,  # برای template
+    }
+    return render(request, 'middleCharge/manage_charges.html', context)
 
 # --------------------------------------------------------
 

@@ -210,6 +210,8 @@ urlpatterns = [
          views.middle_remove_send_notification_fix_variable,
          name='middle_remove_send_notification_fix_variable_charge'),
 
+    path('middle/charge/management/', views.fetch_middle_charges, name='middle_charge_management'),
+
     # Sms_Management
     path('middle/sms/register/', views.MiddleSmsManagementView.as_view(), name='middle_register_sms'),
     path('middle/sms/management/', views.MiddleSmsListView.as_view(), name='middle_sms_management'),

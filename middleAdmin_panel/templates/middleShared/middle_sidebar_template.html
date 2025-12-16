@@ -91,13 +91,48 @@
             </li>
 
           
-               <li class="nav-item border-top mt-0">
-                 {% url 'middle_add_charge' as address_url %}
-                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                <i class="menu-title"> مدیریت شارژ</i>
-                <i class="mdi mdi-square-inc-cash menu-icon"></i>
-              </a>
-            </li>
+{#               <li class="nav-item border-top mt-0">#}
+{#                 {% url 'middle_add_charge' as address_url %}#}
+{#                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">#}
+{#                <i class="menu-title"> مدیریت شارژ</i>#}
+{#                <i class="mdi mdi-square-inc-cash menu-icon"></i>#}
+{#              </a>#}
+{#            </li>#}
+
+     {% url 'middle_add_charge' as url_middle_send %}
+                {% url 'middle_charge_management' as url_middle_list %}
+
+                <li class="nav-item mt-0">
+                  <a class="nav-link" data-bs-toggle="collapse"
+                     href="#general67"
+                     aria-expanded="true"
+                     aria-controls="general67">
+                    <i class="menu-title"> مدیریت شارژ </i>
+                    <i class="menu-arrow"></i>
+                    <i class="mdi mdi-square-inc-cash  menu-icon"></i>
+                  </a>
+
+                  <div class="collapse {% if request.path == url_middle_send or request.path == url_middle_list %}show{% endif %}" id="general67">
+                    <ul class="nav flex-column sub-menu">
+
+                      <li class="nav-item mt-0">
+                        <a class="nav-link {% if request.path == url_middle_send %}active{% endif %}"
+                           href="{{ url_middle_send }}">
+                           افزودن شارژ
+                        </a>
+                      </li>
+
+                      <li class="nav-item mt-0">
+                        <a class="nav-link {% if request.path == url_middle_list %}active{% endif %}"
+                           href="{{ url_middle_list }}">
+                           شارژهای من
+                        </a>
+                      </li>
+
+                    </ul>
+                  </div>
+                </li>
+
 
              <li class="nav-item border-top mt-0">
               <a class="nav-link" data-bs-toggle="collapse" href="#general23" aria-expanded="true"

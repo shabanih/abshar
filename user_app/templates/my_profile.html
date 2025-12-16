@@ -19,8 +19,8 @@
 
 </div>
 {% endif %}
-<div class="row mt-2 g-1">
-    <div class="col-6">
+<div class="row mt-2 g-3">
+    <div class="col-12 col-lg-6">
           <!-- مشخصات کاربر -->
     <div class="card mb-4">
         <div class="card-header">مشخصات کاربر</div>
@@ -35,7 +35,7 @@
         </div>
     </div>
     </div>
-    <div class="col-6">
+    <div class="col-12 col-lg-6">
             <!-- اطلاعات واحد -->
     <div class="card mb-4">
         <div class="card-header">اطلاعات واحد</div>
@@ -62,7 +62,7 @@
     <div class="card">
         <div class="card-header">تغییر رمز عبور</div>
         <div class="card-body">
-            
+            <p class="text-danger">توجه: رمز عبور جدید میبایست 8 رقم و شامل اعداد و حروف انگلیسی باشد.</p>
             <form method="post">
                 {% csrf_token %}
                 {{ password_form.non_field_errors }}

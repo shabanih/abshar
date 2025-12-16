@@ -163,13 +163,13 @@ def user_panel(request):
     user = request.user
 
     # -------------------------
-    # Unified Charges (BASE)
+    # Unified Charges
     # -------------------------
     unified_qs = UnifiedCharge.objects.filter(user=user)
 
-    unpaid_unified_qs = unified_qs.filter(is_paid=True)
+    unpaid_unified_qs = unified_qs.filter(is_paid=False)
 
-    # Update penalty for unpaid charges
+    # Update penalty ONLY for unpaid charges
     for charge in unpaid_unified_qs:
         charge.update_penalty()
 
@@ -177,12 +177,12 @@ def user_panel(request):
     # STATISTICS
     # -------------------------
     total_charge = unified_qs.count()
-    total_charge_unpaid = unified_qs.filter(is_paid=False).count()
+    total_charge_unpaid = unpaid_unified_qs.count()
 
     total_unpaid_amount = (
-            unpaid_unified_qs.aggregate(
-                total=Sum("total_charge_month")
-            )["total"] or 0
+        unpaid_unified_qs.aggregate(
+            total=Sum("total_charge_month")
+        )["total"] or 0
     )
 
     # -------------------------
@@ -255,6 +255,7 @@ def user_panel(request):
     }
 
     return render(request, 'partials/home_template.html', context)
+
 
 
 # ==================================

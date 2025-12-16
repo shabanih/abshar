@@ -181,40 +181,33 @@ h1, h2, h3, h4, h5, h6 {
     margin: 50px auto;
     display: block;
 }
-
-.profile-image-user {
-    position: absolute;
-    bottom: 10px;
-    left: 0;
-    width: 100%;       /* اندازه عرض کارت */
-    max-width: 200px;  /* حداکثر اندازه */
-    height: auto;      /* ارتفاع خودکار */
-    display: block;
-    margin: 10px auto 0;  /* فاصله از محتوا و مرکز کردن */
-    border-radius: 10px;  /* گرد کردن گوشه‌ها */
+.card {
+    position: relative;
 }
-
-.profile-image {
-    position: absolute;
-    bottom: 40px;
-    left: 0;
-    width: 100%;       /* اندازه عرض کارت */
-    max-width: 200px;  /* حداکثر اندازه */
-    height: auto;      /* ارتفاع خودکار */
-    display: block;
-    margin: 10px auto 0;  /* فاصله از محتوا و مرکز کردن */
-    border-radius: 10px;  /* گرد کردن گوشه‌ها */
-}
+.profile-image-user,
+.profile-image,
 .profile-image-password {
     position: absolute;
-    bottom: 40px;
-    left: 200px;
-    width: 100%;       /* اندازه عرض کارت */
-    max-width: 250px;  /* حداکثر اندازه */
-    height: auto;      /* ارتفاع خودکار */
-    display: block;
-    margin: 10px auto 0;  /* فاصله از محتوا و مرکز کردن */
-    border-radius: 10px;  /* گرد کردن گوشه‌ها */
+    bottom: 10px;
+    left: 10px;
+    max-width: 180px;
+    width: auto;
+    height: auto;
+    border-radius: 10px;
+    opacity: 0.9;
+}
+@media (max-width: 768px) {
+
+    .profile-image-user,
+    .profile-image,
+    .profile-image-password {
+        position: static;        /* مهم‌ترین خط */
+        display: block;
+        max-width: 120px;
+        margin: 15px auto 0;
+        opacity: 1;
+    }
+
 }
 .password-field {
     position: relative;

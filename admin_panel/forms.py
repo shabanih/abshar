@@ -1,3 +1,4 @@
+import jdatetime
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django import forms
 from django.core.exceptions import ValidationError
@@ -45,7 +46,7 @@ class announcementForm(forms.ModelForm):
 
 class MessageToUserForm(forms.ModelForm):
     unit = forms.ModelMultipleChoiceField(
-        queryset=Unit.objects.none(),   # خالی → ajax پرش می‌کنه
+        queryset=Unit.objects.none(),  # خالی → ajax پرش می‌کنه
         required=True,
         label='انتخاب واحدها',
         widget=forms.SelectMultiple(
@@ -260,7 +261,7 @@ class BankForm(forms.ModelForm):
     account_holder_name = forms.CharField(error_messages=error_message, required=True,
                                           widget=forms.TextInput(attrs=attr),
                                           label='نام صاحب حساب')
-    account_no = forms.CharField(error_messages=error_message, required=True, widget=forms.NumberInput(attrs=attr),
+    account_no = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
                                  label='شماره حساب')
     sheba_number = forms.CharField(error_messages=error_message,
                                    max_length=24,
@@ -270,7 +271,7 @@ class BankForm(forms.ModelForm):
     cart_number = forms.CharField(error_messages=error_message,
                                   max_length=16,
                                   min_length=16,
-                                  required=False, widget=forms.NumberInput(attrs=attr),
+                                  required=False, widget=forms.TextInput(attrs=attr),
                                   label='شماره کارت')
     initial_fund = forms.CharField(error_messages=error_message, required=True, widget=forms.NumberInput(attrs=attr),
                                    label='موجودی اولیه')
@@ -283,14 +284,26 @@ class BankForm(forms.ModelForm):
             'initial_fund', 'is_active')
 
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)  # دریافت کاربر از ویو
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
         if user and user.is_middle_admin:
-            # فقط ساختمان‌هایی که این کاربر مدیرشان است
-            self.fields['house'].queryset = MyHouse.objects.filter(user=user, is_active=True)
+            self.fields['house'].queryset = MyHouse.objects.filter(
+                Q(user=user) | Q(user__manager=user),
+                is_active=True
+            )
         else:
             self.fields['house'].queryset = MyHouse.objects.none()
+
+    def clean_sheba_number(self):
+        sheba = self.cleaned_data.get('sheba_number')
+        if sheba:
+            sheba = sheba.replace(' ', '').upper()
+            if not sheba.startswith('IR'):
+                raise forms.ValidationError('شماره شبا باید با IR شروع شود')
+            if len(sheba) != 24:
+                raise forms.ValidationError('شماره شبا باید ۲۴ کاراکتر باشد')
+        return sheba
 
 
 USER_TYPE_CHOICES = [
@@ -944,6 +957,17 @@ class FixChargeForm(forms.ModelForm):
         fields = ['name', 'fix_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount',
                   'other_cost_amount']
 
+    def clean_payment_deadline(self):
+        deadline = self.cleaned_data.get('payment_deadline')
+
+        if deadline:
+            today = jdatetime.date.today()
+
+            if deadline < today:
+                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+
+        return deadline
+
 
 class AreaChargeForm(forms.ModelForm):
     name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
@@ -986,6 +1010,17 @@ class AreaChargeForm(forms.ModelForm):
         fields = ['name', 'area_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount',
                   'other_cost_amount']
 
+    def clean_payment_deadline(self):
+        deadline = self.cleaned_data.get('payment_deadline')
+
+        if deadline:
+            today = jdatetime.date.today()
+
+            if deadline < today:
+                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+
+        return deadline
+
 
 class PersonChargeForm(forms.ModelForm):
     name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
@@ -1021,6 +1056,17 @@ class PersonChargeForm(forms.ModelForm):
         model = PersonCharge
         fields = ['name', 'person_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount',
                   'other_cost_amount']
+
+    def clean_payment_deadline(self):
+        deadline = self.cleaned_data.get('payment_deadline')
+
+        if deadline:
+            today = jdatetime.date.today()
+
+            if deadline < today:
+                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+
+        return deadline
 
 
 class FixAreaChargeForm(forms.ModelForm):
@@ -1063,6 +1109,17 @@ class FixAreaChargeForm(forms.ModelForm):
                   'payment_penalty_amount',
                   'other_cost_amount']
 
+    def clean_payment_deadline(self):
+        deadline = self.cleaned_data.get('payment_deadline')
+
+        if deadline:
+            today = jdatetime.date.today()
+
+            if deadline < today:
+                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+
+        return deadline
+
 
 class FixPersonChargeForm(forms.ModelForm):
     name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
@@ -1104,6 +1161,17 @@ class FixPersonChargeForm(forms.ModelForm):
         fields = ['name', 'person_amount', 'details', 'civil', 'fix_charge_amount', 'payment_deadline'
             , 'payment_penalty_amount', 'other_cost_amount']
 
+    def clean_payment_deadline(self):
+        deadline = self.cleaned_data.get('payment_deadline')
+
+        if deadline:
+            today = jdatetime.date.today()
+
+            if deadline < today:
+                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+
+        return deadline
+
 
 class PersonAreaChargeForm(forms.ModelForm):
     name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
@@ -1143,6 +1211,18 @@ class PersonAreaChargeForm(forms.ModelForm):
         model = ChargeByPersonArea
         fields = ['name', 'area_amount', 'details', 'person_amount', 'civil', 'payment_deadline',
                   'payment_penalty_amount', 'other_cost_amount']
+
+
+    def clean_payment_deadline(self):
+        deadline = self.cleaned_data.get('payment_deadline')
+
+        if deadline:
+            today = jdatetime.date.today()
+
+            if deadline < today:
+                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+
+        return deadline
 
 
 class PersonAreaFixChargeForm(forms.ModelForm):
@@ -1187,6 +1267,17 @@ class PersonAreaFixChargeForm(forms.ModelForm):
         model = ChargeByFixPersonArea
         fields = ['name', 'area_amount', 'details', 'person_amount', 'civil', 'fix_charge_amount', 'payment_deadline',
                   'payment_penalty_amount', 'other_cost_amount']
+
+    def clean_payment_deadline(self):
+        deadline = self.cleaned_data.get('payment_deadline')
+
+        if deadline:
+            today = jdatetime.date.today()
+
+            if deadline < today:
+                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+
+        return deadline
 
 
 class VariableFixChargeForm(forms.ModelForm):
@@ -1239,6 +1330,17 @@ class VariableFixChargeForm(forms.ModelForm):
         fields = ['name', 'extra_parking_amount', 'unit_fix_amount', 'unit_variable_area_amount',
                   'unit_variable_person_amount', 'civil', 'details', 'other_cost_amount',
                   'payment_penalty_amount', 'payment_deadline']
+
+    def clean_payment_deadline(self):
+        deadline = self.cleaned_data.get('payment_deadline')
+
+        if deadline:
+            today = jdatetime.date.today()
+
+            if deadline < today:
+                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+
+        return deadline
 
 
 class UnifiedChargePaymentForm(forms.ModelForm):
