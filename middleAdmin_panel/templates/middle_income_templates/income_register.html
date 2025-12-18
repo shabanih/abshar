@@ -84,7 +84,7 @@
                             <th>تاریخ سند</th>
                              <th>توضیحات سند</th>
                             <th>تصویر سند</th>
-{#                            <th>تاریخ ایجاد سند</th>#}
+                            <th>حساب بانکی</th>
                             <th>دستورات</th>
                         </tr>
                     </thead>
@@ -108,13 +108,14 @@
                                      !No File
                                     {% endfor %}
                                 </td>
-{#                            <td>{{expense.created_at|show_jalali_date_only }}</td>#}
+                            <td>{{income.bank }}</td>
                             
 
                                    <td class="col-lg-1 col-xl-1 p-0">
                                       <a
-                                           class="btn btn-gradient-warning p-1 edit-Mincome-btn"
+                                           class="btn btn-gradient-warning p-1 edit-m-income"
                                            data-id="{{ income.id }}"
+                                           data-bank="{{ income.bank.id }}"
                                            data-category="{{ income.category.id }}"
                                            data-amount="{{ income.amount }}"
                                            data-doc_date="{{ income.doc_date|show_jalali}}"
@@ -128,7 +129,7 @@
                                         </a>
 
                                               <a href="{% url 'middle_income_delete' income.id %}" class="btn btn-danger p-1"
-                                           onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                           onclick="return confirmDeleteWithSweetAlert(event)">
                                                   <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                 </a>
 
@@ -183,8 +184,13 @@
           <form id="incomeForm" action="" method="POST"
                 enctype="multipart/form-data" novalidate>
               {% csrf_token %}
-                 <div class="row align-items-center p-0">
-                  <div class="col-4 col-lg-12 col-xl-12">
+                 <div class="row align-items-center p-0 g-2">
+                      <div class="col-12 col-lg-6 col-xl-6">
+                      {{ form.bank.label_tag }}
+                      {{ form.bank }}
+                      {{ form.bank.errors }}
+                  </div>
+                  <div class="col-12 col-lg-6 col-xl-6">
                       {{ form.category.label_tag }}
                       {{ form.category }}
                       {{ form.category.errors }}

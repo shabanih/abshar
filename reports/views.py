@@ -6,11 +6,42 @@ from admin_panel.models import Fund
 
 
 def fund_turnover(request):
-    funds = Fund.objects.filter(user__manager=request.user)
-    context = {
-        'funds': funds
-    }
-    return render(request, 'fund_turnover.html', context)
+    manager = request.user
+    query = request.GET.get('q', '').strip()
+    paginate = int(request.GET.get('paginate', 20) or 20)
+    paginate = paginate if paginate > 0 else 20
+
+    funds = (
+        Fund.objects
+        .select_related('bank', 'content_type')
+        .filter(Q(user=manager) | Q(user__manager=manager))
+        .order_by('-id')
+    )
+
+    if query:
+        funds = funds.filter(
+            Q(payment_description__icontains=query) |
+            Q(transaction_no__icontains=query)
+        )
+
+    totals = funds.aggregate(
+        total_income=Sum('creditor_amount'),
+        total_expense=Sum('debtor_amount'),
+    )
+
+    balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
+
+    paginator = Paginator(funds, paginate)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'fund_turnover.html', {
+        'funds': page_obj,
+        'query': query,
+        'paginate': paginate,
+        'page_obj': page_obj,
+        'totals': totals,
+        'balance': balance,
+    })
 
 
 def unit_reports(request):

@@ -75,7 +75,7 @@
                                            <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
                                         </a>
                                                           <a href="{% url 'middle_delete_bank' bank.id %}" class="btn btn-gradient-danger p-1"
-                                                       onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                                        onclick="return confirmDeleteWithSweetAlert(event)">
                                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                             </a>
 

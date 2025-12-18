@@ -128,7 +128,7 @@
                                         </a>
 
                                               <a href="{% url 'middle_property_delete' property.id %}" class="btn btn-danger p-1"
-                                           onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                            onclick="return confirmDeleteWithSweetAlert(event)">
                                                   <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                 </a>
 

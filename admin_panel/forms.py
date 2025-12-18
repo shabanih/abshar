@@ -559,6 +559,14 @@ class UnitForm(forms.ModelForm):
 # ======================== Expense Forms =============================
 
 class ExpenseForm(forms.ModelForm):
+    bank = forms.ModelChoiceField(
+        queryset=Bank.objects.none(),
+        widget=forms.Select(attrs=attr),
+        empty_label="شماره حساب را انتخاب کنید",
+        error_messages=error_message,
+        required=True,
+        label='شماره حساب بانکی'
+    )
     category = forms.ModelChoiceField(
         queryset=ExpenseCategory.objects.none(),
         widget=forms.Select(attrs=attr),
@@ -579,7 +587,7 @@ class ExpenseForm(forms.ModelForm):
     )
     doc_no = forms.CharField(error_messages=error_message, max_length=10, widget=forms.TextInput(attrs=attr),
                              required=True,
-                             label='شماره سند')
+                             label='شماره فاکتور')
     document = forms.FileField(
         required=False,
         error_messages=error_message,
@@ -592,13 +600,14 @@ class ExpenseForm(forms.ModelForm):
 
     class Meta:
         model = Expense
-        fields = ['category', 'amount', 'date', 'description', 'doc_no', 'details', 'document']
+        fields = ['category', 'bank', 'amount', 'date', 'description', 'doc_no', 'details', 'document']
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         if user:
             self.fields['category'].queryset = ExpenseCategory.objects.filter(is_active=True, user=user)
+            self.fields['bank'].queryset = Bank.objects.filter(is_active=True, user=user)
 
 
 class ExpenseCategoryForm(forms.ModelForm):
@@ -642,6 +651,14 @@ class SearchExpenseForm(forms.Form):
 # =============================== Income Forms ===================================
 
 class IncomeForm(forms.ModelForm):
+    bank = forms.ModelChoiceField(
+        queryset=Bank.objects.none(),
+        widget=forms.Select(attrs=attr),
+        empty_label="شماره حساب را انتخاب کنید",
+        error_messages=error_message,
+        required=True,
+        label=' حساب بانکی'
+    )
     category = forms.ModelChoiceField(
         queryset=IncomeCategory.objects.none(),
         widget=forms.Select(attrs=attr),
@@ -664,7 +681,7 @@ class IncomeForm(forms.ModelForm):
     )
     doc_number = forms.CharField(error_messages=error_message, max_length=10, widget=forms.TextInput(attrs=attr),
                                  required=True,
-                                 label='شماره سند')
+                                 label='شماره فاکتور')
     document = forms.FileField(
         required=False,
         error_messages=error_message,
@@ -677,13 +694,14 @@ class IncomeForm(forms.ModelForm):
 
     class Meta:
         model = Income
-        fields = ['category', 'amount', 'doc_date', 'description', 'doc_number', 'details', 'document']
+        fields = ['category', 'bank', 'amount', 'doc_date', 'description', 'doc_number', 'details', 'document']
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         if user:
             self.fields['category'].queryset = IncomeCategory.objects.filter(is_active=True, user=user)
+            self.fields['bank'].queryset = Bank.objects.filter(is_active=True, user=user)
 
 
 class IncomeCategoryForm(forms.ModelForm):
@@ -733,7 +751,7 @@ class ReceiveMoneyForm(forms.ModelForm):
         empty_label="شماره حساب را انتخاب کنید",
         error_messages=error_message,
         required=True,
-        label='شماره حساب بانکی'
+        label=' حساب بانکی'
     )
     payer_name = forms.CharField(
         max_length=200, required=False, label='پرداخت کننده ', widget=forms.TextInput(attrs={'class': 'form-control'})
@@ -780,7 +798,7 @@ class PayerMoneyForm(forms.ModelForm):
     bank = forms.ModelChoiceField(
         queryset=Bank.objects.none(),
         widget=forms.Select(attrs=attr),
-        empty_label="یک گروه انتخاب کنید",
+        empty_label="شماره حساب انتخاب کنید",
         error_messages=error_message,
         required=True,
         label='شماره حساب بانکی'

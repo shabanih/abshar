@@ -1,9 +1,11 @@
 import json
+from decimal import Decimal
 
 from ckeditor_uploader.fields import RichTextUploadingField
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from django.db import models
+from django.core.exceptions import ValidationError
+from django.db import models, transaction
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from datetime import date
@@ -51,6 +53,7 @@ class MessageReadStatus(models.Model):
         return f"{self.user.full_name} - {self.message.title} - {'خوانده شده' if self.is_read else 'خوانده نشده'}"
 
 
+# -------------------- Expense View ------------------------
 class ExpenseCategory(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=100, verbose_name='نام')
@@ -63,6 +66,8 @@ class ExpenseCategory(models.Model):
 
 class Expense(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
+
     category = models.ForeignKey(ExpenseCategory, on_delete=models.CASCADE, verbose_name='گروه',
                                  related_name='expenses')
     date = models.DateField(verbose_name='تاریخ سند')
@@ -103,6 +108,7 @@ class IncomeCategory(models.Model):
 
 class Income(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
     category = models.ForeignKey(IncomeCategory, on_delete=models.CASCADE, verbose_name='گروه', related_name='incomes')
     doc_date = models.DateField(verbose_name='تاریخ سند')
     doc_number = models.IntegerField(verbose_name='شماره سند')
@@ -1150,9 +1156,9 @@ class UnifiedCharge(models.Model):
             if save:
                 self.save(update_fields=['penalty_amount', 'total_charge_month'])
 
-
 class Fund(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
     doc_number = models.PositiveIntegerField(unique=True, editable=False, null=True, blank=True)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
@@ -1161,9 +1167,9 @@ class Fund(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=0, null=True, blank=True)
     debtor_amount = models.DecimalField(max_digits=12, decimal_places=0)
     creditor_amount = models.DecimalField(max_digits=12, decimal_places=0)
-    final_amount = models.PositiveIntegerField(default=0)
-    payment_gateway = models.CharField(max_length=100, null=True, blank=True)
+    final_amount = models.DecimalField(max_digits=12, decimal_places=0, default=0)
 
+    payment_gateway = models.CharField(max_length=100, null=True, blank=True)
     payment_date = models.DateField()
     transaction_no = models.CharField(max_length=15, null=True, blank=True)
     payment_description = models.CharField(max_length=500, blank=True, null=True)
@@ -1172,25 +1178,51 @@ class Fund(models.Model):
     def __str__(self):
         return f"Fund: {self.payment_description} for {self.content_object}"
 
+    def clean(self):
+        """
+        قبل از ذخیره، مطمئن شویم final_amount منفی نمی‌شود
+        """
+        if self.final_amount < 0:
+            raise ValidationError("موجودی صندوق کافی نیست. ثبت این تراکنش باعث منفی شدن موجودی می‌شود.")
+
+    @transaction.atomic
     def save(self, *args, **kwargs):
-        if not self.doc_number:
-            last_doc_number = Fund.objects.aggregate(models.Max('doc_number'))['doc_number__max']
-            self.doc_number = (last_doc_number or 0) + 1
+        # تعیین شماره سند فقط برای رکورد جدید
+        if not self.pk:
+            if not self.doc_number:
+                last_doc_number = Fund.objects.aggregate(models.Max('doc_number'))['doc_number__max']
+                self.doc_number = (last_doc_number or 0) + 1
 
-        # Get the last fund record (the most recent)
-        last_fund = Fund.objects.order_by('-doc_number').first()
+            # محاسبه final_amount فقط برای رکورد جدید
+            last_fund = Fund.objects.order_by('-doc_number').first()
+            previous_final = Decimal(last_fund.final_amount if last_fund and last_fund.final_amount is not None else 0)
+            self.final_amount = previous_final + (self.debtor_amount or 0) - (self.creditor_amount or 0)
 
-        if last_fund:
-            previous_final = last_fund.final_amount
-        else:
-            # No fund records yet — sum all banks' initial funds
-            from user_app.models import Bank  # import your Bank model
-            total_initial = Bank.objects.aggregate(total=models.Sum('initial_fund'))['total'] or 0
-            previous_final = total_initial
+            # بررسی منفی شدن موجودی
+            if self.final_amount < 0:
+                raise ValidationError("موجودی صندوق کافی نیست. ثبت این تراکنش باعث منفی شدن موجودی می‌شود.")
 
-        self.final_amount = previous_final + (self.debtor_amount or 0) - (self.creditor_amount or 0)
-
+        # برای رکوردهای موجود، final_amount با recalc_final_amounts_from به‌روزرسانی می‌شود
         super().save(*args, **kwargs)
+
+    @classmethod
+    def recalc_final_amounts_from(cls, fund):
+        """
+        بازمحاسبه final_amount فقط از Fund داده شده به بعد
+        """
+        with transaction.atomic():
+            # موجودی قبل از fund
+            last_before = cls.objects.filter(doc_number__lt=fund.doc_number).order_by('-doc_number').first()
+            running_total = Decimal(last_before.final_amount if last_before else 0)
+
+            # بروزرسانی این Fund و بعدی‌ها
+            qs = cls.objects.filter(doc_number__gte=fund.doc_number).order_by('doc_number')
+            for f in qs:
+                running_total += (f.debtor_amount or 0) - (f.creditor_amount or 0)
+                if running_total < 0:
+                    raise ValidationError(f"خطا: موجودی صندوق در سند شماره {f.doc_number} منفی شد!")
+                f.final_amount = running_total
+                f.save(update_fields=['final_amount'])
 
 
 class SmsManagement(models.Model):

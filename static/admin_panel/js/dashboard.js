@@ -89,9 +89,6 @@ $(document).on('click', '.edit-expense-btn', function (e) {
         $('#preview').html('<p>تصویری وجود ندارد.</p>');
     }
 });
-
-
-
 $(document).on('click', '.delete-image321-btn', function () {
     var imageUrl = $(this).data('url');  // Image URL
     var expenseId = $(this).data('expense-id');  // Expense ID
@@ -140,37 +137,39 @@ $(document).on('click', '.delete-image321-btn', function () {
 $(document).on('click', '.edit-expense-btn', function () {
     console.log('ویرایش کلیک شد');
 
-    // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
-    // Set the form action URL dynamically
     $('#expenseForm').attr('action', '/admin-panel/expense/edit/' + id + '/');
 
-    // Populate the form with the expense data
-    $('#id_category').val($(this).data('category')).trigger('change');
+    // category
+    var category = $(this).data('category');
+    if ($('#id_category option[value="' + category + '"]').length) {
+        $('#id_category').val(category).trigger('change');
+    }
+
+    // bank
+    var bank = $(this).data('bank');
+    if ($('#id_bank option[value="' + bank + '"]').length) {
+        $('#id_bank').val(bank).trigger('change');
+    }
+
     $('#id_amount').val($(this).data('amount'));
-
-    // Ensure date is in YYYY-MM-DD format before setting it
-    var expenseDate = $(this).data('date');
-    // If the date is in a format other than YYYY-MM-DD, convert it here
-    // You can use moment.js or another library for conversion if necessary
-    $('#id_date').val(expenseDate);  // Assuming it's already in correct format
-
+    $('#id_date').val($(this).data('date'));
     $('#id_doc_no').val($(this).data('doc_no'));
     $('#id_description').val($(this).data('description'));
     $('#id_details').val($(this).data('details'));
 
-    // Update the modal title and submit button text for editing
     $('#exampleModalLongTitle').text('ویرایش هزینه');
     $('#btn-submit-expense').text('ویرایش هزینه');
 });
- document.addEventListener('DOMContentLoaded', function () {
+
+document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('exampleModalLong');
-    const form = document.getElementById('personForm');
+    const form = document.getElementById('expenseForm'); // ✅ اصلاح شد
 
     modal.addEventListener('hidden.bs.modal', function () {
-      form.reset();
+        form.reset();
     });
-  });
+});
 
 // ==========================================
 $(document).on('click', '.edit-income-btn', function (e) {
@@ -256,6 +255,54 @@ $(document).on('click', '.delete-image21-btn', function () {
         }
     });
 });
+
+$(document).on('click', '.edit-income-btn', function () {
+    console.log('ویرایش کلیک شد');
+
+    // Get the expense ID from the clicked button's data attributes
+    var id = $(this).data('id');
+    // Set the form action URL dynamically
+    $('#incomeForm').attr('action', '/admin-panel/income/edit/' + id + '/');
+
+   // category
+    var category = $(this).data('category');
+    if ($('#id_category option[value="' + category + '"]').length) {
+        $('#id_category').val(category).trigger('change');
+    }
+
+    // bank
+    var bank = $(this).data('bank');
+    if ($('#id_bank option[value="' + bank + '"]').length) {
+        $('#id_bank').val(bank).trigger('change');
+    }
+
+
+    $('#id_amount').val($(this).data('amount'));
+
+    // Ensure date is in YYYY-MM-DD format before setting it
+    var expenseDate = $(this).data('doc_date');
+    // If the date is in a format other than YYYY-MM-DD, convert it here
+    // You can use moment.js or another library for conversion if necessary
+    $('#id_doc_date').val(expenseDate);  // Assuming it's already in correct format
+
+    $('#id_doc_number').val($(this).data('doc_number'));
+    $('#id_description').val($(this).data('description'));
+    $('#id_details').val($(this).data('details'));
+
+    // Update the modal title and submit button text for editing
+    $('#exampleModalLongTitle2').text('ویرایش درآمد');
+    $('#btn-submit-expense').text('ویرایش درآمد');
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('exampleModalLong');
+    const form = document.getElementById('incomeForm'); // ✅ اصلاح شد
+
+    modal.addEventListener('hidden.bs.modal', function () {
+        form.reset();
+    });
+});
+
 // ========================================
 $(document).on('click', '.edit-house-btn', function () {
     console.log('ویرایش کلیک شد2');
@@ -723,7 +770,7 @@ $(document).on('click', '.edit-productProperty-btn', function () {
   });
 
 // =============================== Maintenance ==================
-$(document).on('click', '.edit-middleMaintenance-btn', function (e) {
+$(document).on('click', '.edit-maintenance-btn', function (e) {
     e.preventDefault();
 
     var images = $(this).data('images');
@@ -803,7 +850,7 @@ $(document).on('click', '.delete-image-btn', function () {
         }
     });
 });
-$(document).on('click', '.edit-middleMaintenance-btn', function () {
+$(document).on('click', '.edit-maintenance-btn', function () {
     console.log('ویرایش کلیک شد');
 
     // Get the expense ID from the clicked button's data attributes

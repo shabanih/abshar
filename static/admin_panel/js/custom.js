@@ -65,32 +65,7 @@ function searchTable() {
 }
 
 // ==================================
-$(document).on('click', '.edit-income-btn', function () {
-    console.log('ویرایش کلیک شد');
 
-    // Get the expense ID from the clicked button's data attributes
-    var id = $(this).data('id');
-    // Set the form action URL dynamically
-    $('#incomeForm').attr('action', '/admin-panel/income/edit/' + id + '/');
-
-    // Populate the form with the expense data
-    $('#id_category').val($(this).data('category')).trigger('change');
-    $('#id_amount').val($(this).data('amount'));
-
-    // Ensure date is in YYYY-MM-DD format before setting it
-    var expenseDate = $(this).data('doc_date');
-    // If the date is in a format other than YYYY-MM-DD, convert it here
-    // You can use moment.js or another library for conversion if necessary
-    $('#id_doc_date').val(expenseDate);  // Assuming it's already in correct format
-
-    $('#id_doc_number').val($(this).data('doc_number'));
-    $('#id_description').val($(this).data('description'));
-    $('#id_details').val($(this).data('details'));
-
-    // Update the modal title and submit button text for editing
-    $('#exampleModalLongTitle2').text('ویرایش درآمد');
-    $('#btn-submit-expense').text('ویرایش درآمد');
-});
 
 function searchTableIncome() {
   var input = document.getElementById("searchInput");

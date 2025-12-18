@@ -46,10 +46,10 @@ def send_sms_to_user(mobile, message, full_name, otp=None):
         params = {
             'receptor': [mobile],  # List of strings for mobile numbers
 
-            'token': message,
-            'token10': full_name,
-            'token20': message,
-            'template': 'raya',  # Template name (if using a template)
+            'token': full_name,
+            'token10': message,
+            # 'token20': message,
+            'template': 'smsToUser',  # Template name (if using a template)
             'message': otp,  # Custom message
             'type': 'sms'
         }

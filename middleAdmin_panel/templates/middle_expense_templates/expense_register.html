@@ -86,7 +86,7 @@
                             <th>تاریخ سند</th>
                              <th>توضیحات سند</th>
                             <th>تصویر سند</th>
-{#                            <th>تاریخ ایجاد سند</th>#}
+                            <th>حساب بانکی</th>
                             <th>دستورات</th>
                         </tr>
                     </thead>
@@ -110,19 +110,20 @@
                                      !No File
                                     {% endfor %}
                                 </td>
-{#                            <td>{{expense.created_at|show_jalali_date_only }}</td>#}
+                            <td>{{expense.bank }}</td>
                             
 
                                    <td class="col-lg-1 col-xl-1 p-0">
                                       <a
-                                           class="btn btn-gradient-warning p-1 edit-expense-btn"
+                                           class="btn btn-gradient-warning p-1 edit-m-expense"
                                            data-id="{{ expense.id }}"
+                                           data-bank="{{ expense.bank.id }}"
                                            data-category="{{ expense.category.id }}"
                                            data-amount="{{ expense.amount }}"
                                            data-date="{{ expense.date|show_jalali }}"
                                            data-doc_no="{{ expense.doc_no}}"
-                                           data-description="{{ expense.description }}"
-                                           data-details="{{ expense.details }}"
+                                           data-description="{{ expense.description|escape }}"
+                                           data-details="{{ expense.details|escape }}"
                                            data-images='{{ expense.get_image_urls_json|default:"[]" }}'
                                            data-bs-toggle="modal"
                                            data-bs-target="#exampleModalLong">
@@ -130,7 +131,7 @@
                                         </a>
 
                                               <a href="{% url 'middle_expense_delete' expense.id %}" class="btn btn-danger p-1"
-                                           onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                            onclick="return confirmDeleteWithSweetAlert(event)">
                                                   <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                 </a>
 
@@ -185,8 +186,13 @@
           <form id="expenseForm" action="" method="POST"
                 enctype="multipart/form-data" novalidate>
               {% csrf_token %}
-                 <div class="row align-items-center p-0">
-                  <div class="col-4 col-lg-12 col-xl-12">
+                 <div class="row align-items-center p-0 g-2">
+                   <div class="col-12 col-lg-6 col-xl-6">
+                      {{ form.bank.label_tag }}
+                      {{ form.bank }}
+                      {{ form.bank.errors }}
+                  </div>
+                  <div class="col-12 col-lg-6 col-xl-6">
                       {{ form.category.label_tag }}
                       {{ form.category }}
                       {{ form.category.errors }}
@@ -210,7 +216,7 @@
                   </div>
                      </div>
                      <div class="row">
-                  <div class="col-4 col-lg-12 col-xl-12">
+                  <div class="col-12 col-lg-12 col-xl-12">
                       {{ form.description.label_tag }}
                       {{ form.description }}
                       {{ form.description.errors }}

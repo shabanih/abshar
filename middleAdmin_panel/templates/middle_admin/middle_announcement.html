@@ -76,11 +76,15 @@
                                     <a href="{% url 'edit_middle_announcement' announcement.id %}" class="btn btn-primary p-1">
                                         <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
                                     </a>
-                                    <a href="{% url 'delete_middle_announcement' announcement.pk %}" 
-                                       class="btn btn-danger p-1"
-                                       onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
-                                        <i class="mdi mdi-delete" aria-hidden="true"></i>
-                                    </a>
+{#                                    <a href="{% url 'delete_middle_announcement' announcement.pk %}" #}
+{#                                       class="btn btn-danger p-1"#}
+{#                                       onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">#}
+{#                                        <i class="mdi mdi-delete" aria-hidden="true"></i>#}
+{#                                    </a>#}
+                                            <a href="{% url 'delete_middle_announcement' announcement.pk %}" class="btn btn-gradient-danger p-1"
+                                       onclick="return confirmDeleteWithSweetAlert(event)">
+                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                            </a>
                                 </td>
                             </tr>
                         </tbody>

@@ -117,7 +117,7 @@
                                 </td>
                                    <td class="col-lg-1 col-xl-1 p-0">
                                       <a
-                                           class="btn btn-gradient-warning p-1 edit-pay-btn"
+                                           class="btn btn-gradient-warning p-1 edit-m-pay"
                                            data-id="{{ payment.id }}"
                                            data-bank="{{ payment.bank.id}}"
                                            data-amount="{{ payment.amount }}"
@@ -133,7 +133,7 @@
                                         </a>
 
                                               <a href="{% url 'middle_pay_delete' payment.id %}" class="btn btn-danger p-1"
-                                           onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                            onclick="return confirmDeleteWithSweetAlert(event)">
                                                   <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                 </a>
 

@@ -53,11 +53,11 @@
 
                   {% if form.instance.id %}
         	<div class=" col-12 pt-4 text-start">
-                 <button type="submit" class="btn btn-info">ذخیره پیامک</button>
+                 <button type="submit" class="btn btn-gradient-success">ذخیره پیامک</button>
               </div>
              {% else %}
              <div class="col-12  pt-4 text-start">
-                 <button type="submit" class="btn btn-info">ثبت پیامک</button>
+                 <button type="submit" class="btn btn-gradient-success">ثبت پیامک</button>
               </div>
         {% endif %}
 
@@ -121,7 +121,7 @@
                                    <a href="{% url 'middle_edit_sms' sms.id %}" class="btn btn-primary p-1">
                               <i class="mdi mdi-lead-pencil" aria-hidden="true"></i></a>
                                      <a href="{% url 'middle_delete_sms' sms.id %}" class="btn btn-gradient-danger p-1"
-                                       onclick="return confirmDeleteWithSweetAlert(event)">
+                                        onclick="return confirmDeleteWithSweetAlert(event)">
                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
                                             </a>
                              <a href="{% url 'middle_show_send_sms_form' sms.id %}" class="btn btn-gradient-success p-1"
