@@ -230,3 +230,9 @@ h1, h2, h3, h4, h5, h6 {
 .toggle-password:hover {
     color: #000;
 }
+.sticky-summary {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background-color: #fff3cd !important;
+}

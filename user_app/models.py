@@ -84,8 +84,15 @@ class Bank(models.Model):
     sheba_number = models.CharField(max_length=100, verbose_name='شماره شبا')
     cart_number = models.CharField(max_length=100, verbose_name='شماره کارت')
     initial_fund = models.PositiveIntegerField(verbose_name='موجودی اولیه صندوق')
+    is_default = models.BooleanField(default=False, verbose_name='حساب پیش فرض')
     create_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
+
+    def save(self, *args, **kwargs):
+        if self.is_default:
+            # همه بانک‌های دیگر را برای همان کاربر غیرپیش‌فرض می‌کنیم
+            Bank.objects.filter(user=self.user, is_default=True).exclude(id=self.id).update(is_default=False)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.bank_name} - {self.cart_number}"

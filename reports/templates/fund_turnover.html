@@ -44,9 +44,20 @@
             </div>
         </div>
     </div>
-      <div class="table-responsive">
+      <div class="table-responsive mt-3">
                             <table class="table table-bordered">
+                            <thead>
+                                    <tr class="fw-bold sticky-summary">
+                                        <th class="bg-body text-dark" colspan="4">جمع کل</th>
+                                        <th class="bg-warning">{{ totals.total_expense|three_digit_currency }}</th>
+                                        <th class="bg-danger">{{ totals.total_income|three_digit_currency }}</th>
+                                        <th class="{% if balance < 0 %}bg-danger{% else %}bg-success{% endif %}">
+                                            {{ balance|three_digit_currency }}
+                                        </th>
+                                    </tr>
+                            </thead>
                                 <thead class="text-center">
+                          
                                     <tr>
                                         <th>#</th>
                                         <th>بانک</th>

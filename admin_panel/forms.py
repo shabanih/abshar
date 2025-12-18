@@ -248,6 +248,17 @@ class UserRegistrationForm(forms.ModelForm):
         return user
 
 
+IS_CHOICES = (
+    ('', '--- انتخاب کنید ---'),
+    (1, 'بله'),
+    (0, 'خیر'),
+)
+IS_CHOICES_Active = (
+    ('', '--- انتخاب کنید ---'),
+    (1, 'بله'),
+    (0, 'خیر'),
+)
+
 class BankForm(forms.ModelForm):
     house = forms.ModelChoiceField(
         queryset=MyHouse.objects.none(),
@@ -275,13 +286,14 @@ class BankForm(forms.ModelForm):
                                   label='شماره کارت')
     initial_fund = forms.CharField(error_messages=error_message, required=True, widget=forms.NumberInput(attrs=attr),
                                    label='موجودی اولیه')
-    is_active = forms.BooleanField(initial=True, required=False, label='فعال/غیرفعال')
+    is_default = forms.ChoiceField(choices=IS_CHOICES, label='حساب پیش فرض باشد', widget=forms.Select(attrs=attr))
+    is_active = forms.ChoiceField(choices=IS_CHOICES_Active, label='حساب فعال باشد', widget=forms.Select(attrs=attr))
 
     class Meta:
         model = Bank
         fields = (
             'house', 'bank_name', 'account_holder_name', 'account_no', 'sheba_number', 'cart_number',
-            'initial_fund', 'is_active')
+            'initial_fund', 'is_active', 'is_default')
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
@@ -1229,7 +1241,6 @@ class PersonAreaChargeForm(forms.ModelForm):
         model = ChargeByPersonArea
         fields = ['name', 'area_amount', 'details', 'person_amount', 'civil', 'payment_deadline',
                   'payment_penalty_amount', 'other_cost_amount']
-
 
     def clean_payment_deadline(self):
         deadline = self.cleaned_data.get('payment_deadline')

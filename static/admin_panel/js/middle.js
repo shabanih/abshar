@@ -280,7 +280,7 @@ $(document).on('click', '.edit-house-btn', function () {
   });
 
 
- $(document).on('click', '.edit-bank-btn', function () {
+ $(document).on('click', '.edit-m-bank', function () {
     console.log('ویرایش کلیک شد2');
 
     // Get the expense ID from the clicked button's data attributes
@@ -295,8 +295,10 @@ $(document).on('click', '.edit-house-btn', function () {
     $('#id_sheba_number').val($(this).data('sheba_number'));
     $('#id_cart_number').val($(this).data('cart_number'));
     $('#id_initial_fund').val($(this).data('initial_fund').toString().replace(/,/g, ''));
-    let isActive = $(this).data('is_active');
-    $('#editForm select[name="is_active"]').val(isActive.toString());
+
+     // ✅ set select values
+    $('#id_is_active').val($(this).data('is_active'));
+    $('#id_is_default').val($(this).data('is_default'));
 
     // Update the modal title and submit button text for editing
     $('#exampleModalLongTitle3').text('ویرایش اطلاعات ساختمان');
@@ -304,7 +306,7 @@ $(document).on('click', '.edit-house-btn', function () {
 });
  document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('exampleModalLong');
-    const form = document.getElementById('personForm');
+    const form = document.getElementById('bankForm');
 
     modal.addEventListener('hidden.bs.modal', function () {
       form.reset();

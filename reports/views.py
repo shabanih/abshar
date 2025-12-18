@@ -15,7 +15,7 @@ def fund_turnover(request):
         Fund.objects
         .select_related('bank', 'content_type')
         .filter(Q(user=manager) | Q(user__manager=manager))
-        .order_by('-id')
+        .order_by('-payment_date')
     )
 
     if query:

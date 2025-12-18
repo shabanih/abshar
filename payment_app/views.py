@@ -123,12 +123,13 @@ def verify_pay(request: HttpRequest):
                     Fund.objects.create(
                         content_type=content_type,
                         object_id=payment_charge.id,
+                        # bank=payment_charge.bank,  # pass the Bank object
                         debtor_amount=payment_charge.total_charge_month,
                         amount=payment_charge.total_charge_month,
                         creditor_amount=0,
                         user=request.user,
                         payment_date=payment_charge.payment_date,
-                        payment_description=f"{payment_charge.title}",
+                        payment_description=payment_charge.title,
                         transaction_no=payment_charge.transaction_reference,
                         payment_gateway='پرداخت اینترنتی'
                     )

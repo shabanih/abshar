@@ -839,3 +839,10 @@ div.d-flex.justify-content-between div{
     color: #b66dff;
     font-family: "Vazir", sans-serif;
 }
+
+.sticky-summary {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background-color: #fff3cd !important;
+}
