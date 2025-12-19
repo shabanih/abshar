@@ -440,6 +440,7 @@ $(document).on('click', '.edit-Mreceive-btn', function () {
 
     // Populate the form with the expense data
     $('#id_bank').val($(this).data('bank')).trigger('change');
+    $('#id_unit').val($(this).data('unit')).trigger('change');
     $('#id_amount').val($(this).data('amount'));
     $('#id_payer_name').val($(this).data('payer_name'));
 
@@ -559,6 +560,7 @@ $(document).on('click', '.edit-m-pay', function () {
 
     // Populate the form with the expense data
     $('#id_bank').val($(this).data('bank')).trigger('change');
+    $('#id_unit').val($(this).data('unit')).trigger('change');
     $('#id_amount').val($(this).data('amount'));
     $('#id_receiver_name').val($(this).data('receiver_name'));
     $('#id_document_date').val($(this).data('document_date'));

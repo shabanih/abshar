@@ -101,7 +101,14 @@
                                 <td>{{ forloop.counter }}</td>
                                <td>{{ receive.bank.account_no }}-{{ receive.bank.bank_name }}</td>
                               <td>{{receive.amount|three_digit_currency }}</td>
-                                 <td>{{receive.payer_name }}</td>
+                                 <td>
+                                     {% if receive.unit %}
+                                     	{{ receive.unit }}
+                                         {% else %}
+                                           {{receive.payer_name }}
+                                     {% endif %} 
+                                   
+                                 </td>
                                 <td>{{receive.description }}</td>
                                 <td>{{receive.doc_number }}</td>
                                  <td>{{receive.doc_date|show_jalali }}</td>
@@ -120,6 +127,7 @@
                                            class="btn btn-gradient-warning p-1 edit-Mreceive-btn"
                                            data-id="{{ receive.id }}"
                                            data-bank="{{ receive.bank.id}}"
+                                           data-unit="{{ receive.unit.id}}"
                                            data-amount="{{ receive.amount }}"
                                            data-payer_name="{{ receive.payer_name }}"
                                            data-doc_date="{{ receive.doc_date|show_jalali }}"
@@ -173,93 +181,104 @@
 
 {#      ============================= Moda Form ==================#}
     
-    <div class="modal fade" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+<!-- Modal Form -->
+<div class="modal fade" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header" id="exampleModalLongTitle">
         <h5 class="modal-title">ثبت سند جدید</h5>
       </div>
-         <hr>
-      <div class="modal-body" >
-         {{ form.non_field_errors }}
-          <form id="receiveForm" action="" method="POST"
-                enctype="multipart/form-data" novalidate>
-              {% csrf_token %}
-              <div class="row align-items-center p-0">
-                  <div class="col-12 col-lg-6 col-xl-6">
-                      {{ form.bank.label_tag }}
-                      {{ form.bank }}
-                      {{ form.bank.errors }}
-                  </div>
-                     <div class="col-12 col-lg-6 col-xl-6">
-                       {{ form.amount.label_tag }}
-                      {{ form.amount }}
-                      {{ form.amount.errors }}
-                  </div>
-                     </div>
-               <div class="row m-0 g-2">
-                      <div class="col-12 col-lg-4 col-xl-4 p-1">
-                       {{ form.payer_name.label_tag }}
-                      {{ form.payer_name }}
-                      {{ form.payer_name.errors }}
-                  </div>
-                      <div class="col-6 col-lg-4 col-xl-4 p-1">
-                       {{ form.doc_date.label_tag }}
-                      {{ form.doc_date }}
-                      {{ form.doc_date.errors }}
-                  </div>
-                     <div class="col-6 col-lg-4 col-xl-4 p-1">
-                       {{ form.doc_number.label_tag }}
-                      {{ form.doc_number }}
-                      {{ form.doc_number.errors }}
-                  </div>
-                     </div>
-               <div class="row">
-                  <div class="col-12 col-lg-12 col-xl-12">
-                      {{ form.description.label_tag }}
-                      {{ form.description }}
-                      {{ form.description.errors }}
-                  </div>
-                     </div>
-               <div class="row">
-                  <div class="form-group col-12">
-                    {{ form.details.label_tag }}
-                    {{ form.details }}
-                    {{ form.details.errors }}
-                  </div>
-                </div>
-              
-              
-             <div class="row">
-                  <div class="image-item form-group col-12">
-                    <label>تصاویر سند:</label>
-                      <input type="file" name="document" multiple class="form-control" accept="image/*">
-                      <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}" id="{{ receive.id }}">
-                       <div id="preview" class="mt-3"></div> 
-                  </div>
-                </div>
-              
-                   <hr class="mt-2" style="color: #0f1531">
-                <div class="d-flex justify-content-between">
-                        <button type="submit" id="btn-submit-receive" class="btn btn-gradient-success px-4 py-2">ثبت سند</button>
-                           <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
-                     </div>
-        
+      <hr>
+      <div class="modal-body">
+        <form id="receiveForm" action="" method="POST" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+          <div class="row g-2">
+            <!-- بانک -->
+            <div class="col-12 col-lg-6">
+              {{ form.bank.label_tag }}
+              {{ form.bank }}
+              {{ form.bank.errors }}
+            </div>
 
-          </form>
+            <!-- مبلغ -->
+            <div class="col-12 col-lg-6">
+              {{ form.amount.label_tag }}
+              {{ form.amount }}
+              {{ form.amount.errors }}
+            </div>
+          </div>
+
+          <div class="row g-2 mt-2">
+            <!-- انتخاب واحد -->
+            <div class="col-12 col-lg-6">
+              {{ form.unit.label_tag }}
+              {{ form.unit }}
+              {{ form.unit.errors }}
+            </div>
+
+            <!-- پرداخت کننده -->
+            <div class="col-12 col-lg-6">
+              {{ form.payer_name.label_tag }}
+              {{ form.payer_name }}
+              {{ form.payer_name.errors }}
+            </div>
+          </div>
+
+          <div class="row g-2 mt-2">
+            <!-- تاریخ سند -->
+            <div class="col-12 col-lg-6">
+              {{ form.doc_date.label_tag }}
+              {{ form.doc_date }}
+              {{ form.doc_date.errors }}
+            </div>
+
+            <!-- شماره سند -->
+            <div class="col-12 col-lg-6">
+              {{ form.doc_number.label_tag }}
+              {{ form.doc_number }}
+              {{ form.doc_number.errors }}
+            </div>
+          </div>
+
+          <!-- شرح سند -->
+          <div class="row mt-2">
+            <div class="col-12">
+              {{ form.description.label_tag }}
+              {{ form.description }}
+              {{ form.description.errors }}
+            </div>
+          </div>
+
+          <!-- توضیحات -->
+          <div class="row mt-2">
+            <div class="col-12">
+              {{ form.details.label_tag }}
+              {{ form.details }}
+              {{ form.details.errors }}
+            </div>
+          </div>
+
+          <!-- آپلود سند -->
+          <div class="row mt-2">
+            <div class="col-12">
+              <label>تصاویر سند:</label>
+              <input type="file" name="document" multiple class="form-control" accept="image/*">
+              <div id="preview" class="mt-3"></div>
+            </div>
+          </div>
+
+          <hr class="mt-3">
+          <div class="d-flex justify-content-between">
+            <button type="submit" class="btn btn-gradient-success px-4 py-2">ثبت سند</button>
+            <button type="button" class="btn btn-dark" data-bs-dismiss="modal">بستن</button>
+          </div>
+        </form>
       </div>
-
     </div>
   </div>
 </div>
+    
+
 {% endblock %}
-
-
-
-
-
-
-
-
 
 

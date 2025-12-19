@@ -1,5 +1,6 @@
 import io
 import os
+import time
 from datetime import timezone
 from decimal import Decimal
 
@@ -850,7 +851,7 @@ class MiddleExpenseView(CreateView):
                 print(f'Current Final: {current_final}')
 
                 # بررسی موجودی
-                if  current_final - expense_amount < 0:
+                if current_final - expense_amount < 0:
                     messages.error(self.request, "موجودی صندوق کافی نیست. ثبت این هزینه ممکن نیست!")
                     return self.form_invalid(form)
 
@@ -940,7 +941,6 @@ class MiddleExpenseView(CreateView):
         context['page_obj'] = page_obj
         context['total_expense'] = Expense.objects.filter(user=self.request.user).count()
         context['categories'] = ExpenseCategory.objects.filter(user=self.request.user)
-
         return context
 
 
@@ -1015,7 +1015,6 @@ def middle_expense_edit(request, pk):
 
     messages.success(request, 'هزینه با موفقیت ویرایش شد.')
     return redirect('middle_add_expense')
-
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -1425,7 +1424,6 @@ def middle_income_edit(request, pk):
                     payment_description=f"درآمد: {(income.description or '')[:50]}",
                 )
 
-
             # 🔹 ذخیره فایل‌ها
             files = request.FILES.getlist('document')
             for f in files:
@@ -1437,6 +1435,7 @@ def middle_income_edit(request, pk):
     except Exception as e:
         messages.error(request, 'خطا در ویرایش درآمد.')
         return redirect('middle_add_income')
+
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_income_delete(request, pk):
@@ -1652,7 +1651,7 @@ class MiddleReceiveMoneyCreateView(CreateView):
         try:
             self.object = form.save()
             content_type = ContentType.objects.get_for_model(self.object)
-
+            payer_name_for_fund = self.object.payer_name if not self.object.unit else f"{self.object.unit} - {self.object.unit.owner_name}"
             Fund.objects.create(
                 user=self.request.user,
                 content_type=content_type,
@@ -1661,6 +1660,8 @@ class MiddleReceiveMoneyCreateView(CreateView):
                 amount=self.object.amount or 0,
                 debtor_amount=self.object.amount or 0,
                 creditor_amount=0,
+                payer_name=payer_name_for_fund,
+                payment_gateway='کارت به کارت',
                 payment_date=self.object.doc_date,
                 payment_description=f"حسابهای دریافتنی: {self.object.description[:50]}",
             )
@@ -1743,12 +1744,24 @@ def middle_receive_edit(request, pk):
     receive = get_object_or_404(ReceiveMoney, pk=pk)
 
     if request.method == 'POST':
-        form = ReceiveMoneyForm(request.POST, request.FILES, instance=receive, user=request.user)
+        form = ReceiveMoneyForm(
+            request.POST,
+            request.FILES,
+            instance=receive,
+            user=request.user
+        )
 
         if form.is_valid():
             receive = form.save()
-            # 🔹 بروزرسانی سند مالی
+
+            # ✅ تعیین payer_name برای Fund
+            if receive.unit:
+                payer_name_for_fund = str(receive.unit)
+            else:
+                payer_name_for_fund = receive.payer_name
+
             content_type = ContentType.objects.get_for_model(ReceiveMoney)
+
             fund = Fund.objects.filter(
                 content_type=content_type,
                 object_id=receive.id
@@ -1756,42 +1769,49 @@ def middle_receive_edit(request, pk):
 
             if fund:
                 fund.bank = receive.bank
-                fund.debtor_amount = receive.amount
                 fund.amount = receive.amount or 0
+                fund.debtor_amount = receive.amount or 0
                 fund.creditor_amount = 0
                 fund.payment_date = receive.doc_date
-                fund.payment_description = f"حسابهای دریافتنی (ویرایش): {(receive.description or '')[:50]}"
+                fund.payer_name = payer_name_for_fund
+                fund.payment_description = f"حسابهای دریافتنی: {(receive.description or '')[:50]}"
                 fund.save()
+
                 Fund.recalc_final_amounts_from(fund)
+
             else:
-                # اگر قبلاً سند نداشته (حالت غیرمنتظره)
                 Fund.objects.create(
+                    user=request.user,
                     content_type=content_type,
                     object_id=receive.id,
                     bank=receive.bank,
-                    debtor_amount=receive.amount or 0,
                     amount=receive.amount or 0,
+                    debtor_amount=receive.amount or 0,
                     creditor_amount=0,
-                    user=request.user,
                     payment_date=receive.doc_date,
+                    payer_name=payer_name_for_fund,
                     payment_description=f"حسابهای دریافتنی: {(receive.description or '')[:50]}",
                 )
 
-            # Handle multiple file uploads
+            # 📎 ذخیره فایل‌ها
             files = request.FILES.getlist('document')
-            if files:
-                for f in files:
-                    ReceiveDocument.objects.create(receive=receive, document=f)
+            for f in files:
+                ReceiveDocument.objects.create(receive=receive, document=f)
 
             messages.success(request, 'سند با موفقیت ویرایش گردید.')
-            return redirect(reverse('middle_add_receive'))  # Adjust redirect as necessary
+            return redirect(reverse('middle_add_receive'))
 
         else:
-            messages.error(request, 'خطا در ویرایش فرم درآمد. لطفا دوباره تلاش کنید.')
-            return render(request, 'MiddleReceiveMoney/add_receive_money.html', {'form': form, 'receive': receive})
+            messages.error(request, 'خطا در ویرایش فرم. لطفاً دوباره تلاش کنید.')
+
     else:
         form = ReceiveMoneyForm(instance=receive, user=request.user)
-        return render(request, 'MiddleReceiveMoney/add_receive_money.html', {'form': form, 'receive': receive})
+
+    return render(
+        request,
+        'MiddleReceiveMoney/add_receive_money.html',
+        {'form': form, 'receive': receive}
+    )
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -1848,11 +1868,11 @@ def middle_delete_receive_document(request):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def export_receive_pdf(request):
-    receives = ReceiveMoney.objects.all()
+    receives = ReceiveMoney.objects.select_related('bank').filter(user=request.user)
 
     filter_fields = {
         'bank': 'bank__id',
-        'payer_name': 'payer_name',
+        'payer_name': 'payer_name__icontains',
         'amount': 'amount__icontains',
         'doc_number': 'doc_number__icontains',
         'description': 'description__icontains',
@@ -1909,7 +1929,10 @@ def export_receive_pdf(request):
     pdf_merger.append(page_pdf)
     response = HttpResponse(content_type='application/pdf')
 
-    response['Content-Disposition'] = f'attachment; filename="receives.pdf"'
+    # response['Content-Disposition'] = f'attachment; filename="receives.pdf"'
+    response['Content-Disposition'] = (
+        f'attachment; filename="receives_{int(time.time())}.pdf"'
+    )
 
     pdf_merger.write(response)
     return response
@@ -1977,9 +2000,13 @@ def export_receive_excel(request):
         bank_account = ""
         if receive.bank and receive.bank.account_no:
             bank_account = f"{receive.bank.bank_name} - {receive.bank.account_no}"
-
+        payer_name = (
+            str(receive.unit)
+            if receive.unit
+            else receive.payer_name
+        )
         ws.cell(row=row_num, column=2, value=bank_account)
-        ws.cell(row=row_num, column=3, value=receive.payer_name)
+        ws.cell(row=row_num, column=3, value=payer_name)
         ws.cell(row=row_num, column=4, value=receive.description)
         ws.cell(row=row_num, column=5, value=receive.doc_number)
         ws.cell(row=row_num, column=6, value=receive.amount)
@@ -2009,14 +2036,17 @@ class MiddlePaymentMoneyCreateView(CreateView):
         try:
             self.object = form.save()
             content_type = ContentType.objects.get_for_model(self.object)
+            receiver_name_for_fund = self.object.receiver_name if not self.object.unit else f"{self.object.unit} - {self.object.unit.owner_name}"
 
             Fund.objects.create(
                 user=self.request.user,
                 content_type=content_type,
                 object_id=self.object.id,
                 bank=self.object.bank,
+                unit=self.object.unit,
                 amount=self.object.amount,
                 debtor_amount=0,
+                receiver_name=receiver_name_for_fund,
                 creditor_amount=self.object.amount,
                 payment_date=self.object.document_date,
                 payment_description=f"حسابهای پرداختنی: {self.object.description[:50]}",
@@ -2335,8 +2365,14 @@ def export_pay_excel(request):
         if payment.bank and payment.bank.account_no:
             bank_account = f"{payment.bank.bank_name} - {payment.bank.account_no}"
 
+        receiver_name = (
+            str(payment.unit)
+            if payment.unit
+            else payment.receiver_name
+        )
+
         ws.cell(row=row_num, column=2, value=bank_account)
-        ws.cell(row=row_num, column=3, value=payment.receiver_name)
+        ws.cell(row=row_num, column=3, value=receiver_name)
         ws.cell(row=row_num, column=4, value=payment.description)
         ws.cell(row=row_num, column=5, value=payment.document_number)
         ws.cell(row=row_num, column=6, value=payment.amount)
@@ -3131,6 +3167,7 @@ def middle_show_fix_charge_notification_form(request, pk):
 def middle_send_notification_fix_charge_to_user(request, pk):
     fix_charge = get_object_or_404(FixCharge, id=pk)
     selected_units = request.POST.getlist('units')
+    default_bank = Bank.objects.filter(user=request.user, is_default=True, is_active=True).first()
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
@@ -3168,7 +3205,8 @@ def middle_send_notification_fix_charge_to_user(request, pk):
                     'base_charge': fix_charge.total_charge_month,
                     'other_cost': fix_charge.other_cost_amount,
                     'send_notification': True,
-                    'send_notification_date': timezone.now().date()
+                    'send_notification_date': timezone.now().date(),
+                    'bank': default_bank
                 }
             )
 
@@ -3176,6 +3214,7 @@ def middle_send_notification_fix_charge_to_user(request, pk):
             if not created and not fixed_calc.send_notification:
                 fixed_calc.send_notification = True
                 fixed_calc.send_notification_date = timezone.now().date()
+                fixed_calc.bank = default_bank
                 fixed_calc.save()  # ⚡ محاسبه total و penalty انجام می‌شود
 
             fixed_calc.save()
@@ -3202,7 +3241,8 @@ def middle_send_notification_fix_charge_to_user(request, pk):
                     'other_cost_amount': fixed_calc.other_cost,
                     'send_notification_date': fixed_calc.send_notification_date,
                     'payment_deadline_date': fixed_calc.payment_deadline_date,
-                    'send_notification': True
+                    'send_notification': True,
+                    'bank': default_bank
                 }
             )
 
@@ -3552,6 +3592,7 @@ def middle_send_notification_area_charge_to_user(request, pk):
 
     charge_type = 'area'
     calc_ct = ContentType.objects.get_for_model(AreaChargeCalc)
+    default_bank = Bank.objects.filter(user=request.user, is_default=True, is_active=True).first()
 
     with transaction.atomic():
         for unit in units_to_notify:
@@ -3574,6 +3615,7 @@ def middle_send_notification_area_charge_to_user(request, pk):
                     'payment_penalty_price': area_charge.payment_penalty_amount,
                     'send_notification': True,
                     'send_notification_date': timezone.now().date(),
+                    'bank': default_bank
                 }
             )
 
@@ -3583,8 +3625,9 @@ def middle_send_notification_area_charge_to_user(request, pk):
                 calc_obj.send_notification_date = timezone.now().date()
                 calc_obj.base_charge = total_charge
                 calc_obj.final_area_amount = float(area_charge.area_amount or 0) * float(unit.area or 0)
+                calc_obj.bank = default_bank
 
-            # اجرای محاسبه‌های مدل
+                # اجرای محاسبه‌های مدل
             calc_obj.save()
 
             # بروزرسانی UnifiedCharge
@@ -3604,7 +3647,8 @@ def middle_send_notification_area_charge_to_user(request, pk):
                     'other_cost_amount': calc_obj.other_cost,
                     'send_notification_date': calc_obj.send_notification_date,
                     'payment_deadline_date': calc_obj.payment_deadline_date,
-                    'send_notification': True
+                    'send_notification': True,
+                    'bank': default_bank,
                 }
             )
 
@@ -3940,6 +3984,7 @@ def middle_show_person_charge_notification_form(request, pk):
 def middle_send_notification_person_charge_to_user(request, pk):
     person_charge = get_object_or_404(PersonCharge, id=pk)
     selected_units = request.POST.getlist('units')
+    default_bank = Bank.objects.filter(user=request.user, is_default=True, is_active=True).first()
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
@@ -3983,6 +4028,7 @@ def middle_send_notification_person_charge_to_user(request, pk):
                     'payment_penalty': person_charge.payment_penalty_amount,
                     'send_notification': True,
                     'send_notification_date': timezone.now().date(),
+                    'bank': default_bank
                 }
             )
 
@@ -3991,6 +4037,7 @@ def middle_send_notification_person_charge_to_user(request, pk):
                 calc_obj.send_notification = True
                 calc_obj.send_notification_date = timezone.now().date()
                 calc_obj.base_charge = total_charge
+                calc_obj.bank = default_bank
                 calc_obj.final_person_amount = float(person_charge.person_amount or 0) * float(unit.people_count or 0)
 
             # 🔥 save() مدل → محاسبه total_charge_month و جریمه
@@ -4013,7 +4060,8 @@ def middle_send_notification_person_charge_to_user(request, pk):
                     'other_cost_amount': calc_obj.other_cost,
                     'send_notification_date': calc_obj.send_notification_date,
                     'payment_deadline_date': calc_obj.payment_deadline_date,
-                    'send_notification': True
+                    'send_notification': True,
+                    'bank': default_bank
                 }
             )
 
@@ -4343,6 +4391,7 @@ def middle_send_notification_fix_area_charge_to_user(request, pk):
     selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
     charge_type = 'fix_area'
     calc_ct = ContentType.objects.get_for_model(FixAreaChargeCalc)
+    default_bank = Bank.objects.filter(user=request.user, is_default=True, is_active=True).first()
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
@@ -4371,11 +4420,14 @@ def middle_send_notification_fix_area_charge_to_user(request, pk):
                     'payment_deadline_date': fix_area_charge.payment_deadline,
                     'send_notification': True,
                     'send_notification_date': timezone.now().date(),
+                    'bank': default_bank
                 }
             )
             if not created and not calc_obj.send_notification:
                 calc_obj.send_notification = True
                 calc_obj.send_notification_date = timezone.now().date()
+                calc_obj.bank = default_bank
+
                 calc_obj.save()
 
             UnifiedCharge.objects.update_or_create(
@@ -4394,7 +4446,8 @@ def middle_send_notification_fix_area_charge_to_user(request, pk):
                     'other_cost_amount': calc_obj.other_cost,
                     'send_notification_date': calc_obj.send_notification_date,
                     'payment_deadline_date': calc_obj.payment_deadline_date,
-                    'send_notification': True
+                    'send_notification': True,
+                    'bank': default_bank
                 }
             )
 
@@ -4727,6 +4780,7 @@ def middle_send_notification_fix_person_charge_to_user(request, pk):
     selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
     charge_type = 'fix_person'
     calc_ct = ContentType.objects.get_for_model(FixPersonChargeCalc)
+    default_bank = Bank.objects.filter(user=request.user, is_default=True, is_active=True).first()
 
     if not selected_units:
         messages.error(request, 'هیچ واحدی انتخاب نشده است.')
@@ -4755,12 +4809,14 @@ def middle_send_notification_fix_person_charge_to_user(request, pk):
                     'payment_deadline_date': fix_person_charge.payment_deadline,
                     'send_notification': True,
                     'send_notification_date': timezone.now().date(),
+                    'bank': default_bank
                 }
             )
 
             if not created and not calc_obj.send_notification:
                 calc_obj.send_notification = True
                 calc_obj.send_notification_date = timezone.now().date()
+                calc_obj.bank = default_bank
                 calc_obj.save()
 
             UnifiedCharge.objects.update_or_create(
@@ -4779,7 +4835,8 @@ def middle_send_notification_fix_person_charge_to_user(request, pk):
                     'other_cost_amount': calc_obj.other_cost,
                     'send_notification_date': calc_obj.send_notification_date,
                     'payment_deadline_date': calc_obj.payment_deadline_date,
-                    'send_notification': True
+                    'send_notification': True,
+                    'bank': default_bank
                 }
             )
 
@@ -5108,6 +5165,7 @@ def middle_send_notification_person_area_charge_to_user(request, pk):
     selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
     charge_type = 'person_area'
     calc_ct = ContentType.objects.get_for_model(ChargeByPersonAreaCalc)
+    default_bank = Bank.objects.filter(user=request.user, is_default=True, is_active=True).first()
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
@@ -5137,6 +5195,7 @@ def middle_send_notification_person_area_charge_to_user(request, pk):
                     'payment_deadline_date': person_area.payment_deadline,
                     'send_notification': True,
                     'send_notification_date': timezone.now().date(),
+                    'bank': default_bank
                 }
             )
 
@@ -5144,6 +5203,7 @@ def middle_send_notification_person_area_charge_to_user(request, pk):
             if not created and not calc_obj.send_notification:
                 calc_obj.send_notification = True
                 calc_obj.send_notification_date = timezone.now().date()
+                calc_obj.bank = default_bank
                 calc_obj.save()
 
             UnifiedCharge.objects.update_or_create(
@@ -5162,7 +5222,8 @@ def middle_send_notification_person_area_charge_to_user(request, pk):
                     'other_cost_amount': calc_obj.other_cost,
                     'send_notification_date': calc_obj.send_notification_date,
                     'payment_deadline_date': calc_obj.payment_deadline_date,
-                    'send_notification': True
+                    'send_notification': True,
+                    'bank': default_bank
                 }
             )
 
@@ -5402,7 +5463,6 @@ def middle_calculate_total_charge_fix_person_area(unit, charge):
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_show_fix_person_area_charge_notification_form(request, pk):
     charge = get_object_or_404(ChargeByFixPersonArea, id=pk)
     units = Unit.objects.filter(is_active=True, user__manager=request.user).order_by('unit')
@@ -5500,6 +5560,7 @@ def middle_send_notification_fix_person_area_charge_to_user(request, pk):
     selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
     charge_type = 'fix_person_area'
     calc_ct = ContentType.objects.get_for_model(ChargeByFixPersonAreaCalc)
+    default_bank = Bank.objects.filter(user=request.user, is_default=True, is_active=True).first()
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
@@ -5530,6 +5591,7 @@ def middle_send_notification_fix_person_area_charge_to_user(request, pk):
                     'payment_deadline_date': fix_person_area.payment_deadline,
                     'send_notification': True,
                     'send_notification_date': timezone.now().date(),
+                    'bank': default_bank
                 }
             )
 
@@ -5537,6 +5599,7 @@ def middle_send_notification_fix_person_area_charge_to_user(request, pk):
             if not created and not calc_obj.send_notification:
                 calc_obj.send_notification = True
                 calc_obj.send_notification_date = timezone.now().date()
+                calc_obj.bank = default_bank
                 calc_obj.save()
 
             UnifiedCharge.objects.update_or_create(
@@ -5555,7 +5618,8 @@ def middle_send_notification_fix_person_area_charge_to_user(request, pk):
                     'other_cost_amount': calc_obj.other_cost,
                     'send_notification_date': calc_obj.send_notification_date,
                     'payment_deadline_date': calc_obj.payment_deadline_date,
-                    'send_notification': True
+                    'send_notification': True,
+                    'bank': default_bank
                 }
             )
 
@@ -5917,6 +5981,7 @@ def middle_send_notification_fix_variable_to_user(request, pk):
     selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
     charge_type = 'fix_variable'
     calc_ct = ContentType.objects.get_for_model(ChargeFixVariableCalc)
+    default_bank = Bank.objects.filter(user=request.user, is_default=True, is_active=True).first()
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
@@ -5947,6 +6012,7 @@ def middle_send_notification_fix_variable_to_user(request, pk):
                     'payment_deadline_date': fix_variable.payment_deadline,
                     'send_notification': True,
                     'send_notification_date': timezone.now().date(),
+                    'bank': default_bank
                 }
             )
 
@@ -5954,6 +6020,7 @@ def middle_send_notification_fix_variable_to_user(request, pk):
             if not created and not calc_obj.send_notification:
                 calc_obj.send_notification = True
                 calc_obj.send_notification_date = timezone.now().date()
+                calc_obj.bank = default_bank
                 calc_obj.save()
 
             UnifiedCharge.objects.update_or_create(
@@ -5972,7 +6039,8 @@ def middle_send_notification_fix_variable_to_user(request, pk):
                     'other_cost_amount': calc_obj.other_cost,
                     'send_notification_date': calc_obj.send_notification_date,
                     'payment_deadline_date': calc_obj.payment_deadline_date,
-                    'send_notification': True
+                    'send_notification': True,
+                    'bank': default_bank
                 }
             )
 
@@ -6074,6 +6142,7 @@ def middle_remove_send_notification_fix_variable(request, pk):
 
     except Exception:
         return JsonResponse({'error': 'خطایی هنگام حذف اطلاعیه‌ها رخ داد.'}, status=500)
+
 
 # ==============================================================================================
 # def get_user_charges(model, user):

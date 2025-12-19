@@ -1,9 +1,10 @@
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django import forms
 from django.core.validators import RegexValidator
+from django.db.models import Q
 
 from notifications.models import SupportUser, SupportMessage, AdminTicket, AdminTicketMessage
-from user_app.models import User
+from user_app.models import User, Unit
 
 attr = {'class': 'form-control border-1 py-2 mb-2 placeholder-gray', }
 attr1 = {'class': 'form-control border-1 py-1 mb-2 '}
@@ -160,3 +161,40 @@ class MiddleAdminMessageForm(forms.ModelForm):
         widgets = {
             'message': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
         }
+
+
+class UnitReportForm(forms.Form):
+    unit = forms.ModelChoiceField(
+        queryset=Unit.objects.none(),  # خالی → ajax پرش می‌کنه
+        required=True,
+        label='انتخاب واحد',
+        widget=forms.Select(
+            attrs={
+                'class': 'form-control select2-ajax rtl',
+                'style': 'width:100%',
+                # 'data-placeholder': 'واحد / مالک یا مستاجر را انتخاب کنید1'
+            }
+        )
+    )
+    class Meta:
+        model = Unit
+        fields = ['unit']
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        if user:
+            # تمام کاربران تحت مدیریت این مدیر + خودش
+            managed_users = User.objects.filter(Q(manager=user) | Q(pk=user.pk))
+            self.fields['unit'].queryset = Unit.objects.filter(
+                is_active=True,
+                user__in=managed_users
+            ).select_related('user')
+
+        # نمایش نام مستاجر فعال یا مالک
+        self.fields['unit'].label_from_instance = lambda obj: (
+            f"واحد {obj.unit} - {obj.get_active_renter().renter_name}"
+            if obj.get_active_renter() else
+            f"واحد {obj.unit} - {obj.owner_name}"
+        )

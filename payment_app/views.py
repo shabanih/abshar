@@ -10,6 +10,7 @@ from django.utils import timezone
 from admin_panel.forms import UnifiedChargePaymentForm
 from admin_panel.models import FixedChargeCalc, AreaChargeCalc, PersonChargeCalc, FixPersonChargeCalc, \
     FixAreaChargeCalc, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariableCalc, Fund, UnifiedCharge
+from user_app.models import Bank
 
 MERCHANT = "3d6d6a26-c139-49ac-9d8d-b03a8cdf0fdd"
 
@@ -49,6 +50,7 @@ def request_pay(request: HttpRequest, charge_id):
         if not charge.total_charge_month or charge.total_charge_month <= 0:
             return HttpResponse("مبلغ شارژ نامعتبر است.", status=400)
 
+        charge.update_penalty(save=True)
         total_fix_charge = charge.total_charge_month
         # charge.save()
         callback_url = f"{CallbackURLFix}?charge_id={charge.id}"  # اضافه کردن charge_id
@@ -93,6 +95,17 @@ def verify_pay(request: HttpRequest):
     if not payment_charge:
         return JsonResponse({"error": "Charge not found"}, status=404)
 
+    # default_bank = Bank.objects.filter(user=request.user, is_active=True, is_default=True).first()
+    #
+    # if not default_bank:
+    #     default_bank = Bank.objects.filter(user=request.user, is_active=True).first()
+    #
+    # if not default_bank:
+    #     return render(request, 'payment_done.html', {
+    #         'error': 'هیچ حساب بانکی فعالی برای ثبت پرداخت وجود ندارد',
+    #         'charge': payment_charge,
+    #     })
+
     total_fix_charge = payment_charge.total_charge_month
 
     t_authority = request.GET.get('Authority')
@@ -113,6 +126,7 @@ def verify_pay(request: HttpRequest):
                 t_status = req_data['data']['code']
                 if t_status == 100:
                     ref_str = req_data['data']['ref_id']
+                    # payment_charge.bank = default_bank  # ⭐⭐⭐
                     payment_charge.transaction_reference = req_data['data']['ref_id']
                     payment_charge.is_paid = True
                     payment_charge.payment_date = timezone.now()
@@ -123,7 +137,7 @@ def verify_pay(request: HttpRequest):
                     Fund.objects.create(
                         content_type=content_type,
                         object_id=payment_charge.id,
-                        # bank=payment_charge.bank,  # pass the Bank object
+                        bank=payment_charge.bank,
                         debtor_amount=payment_charge.total_charge_month,
                         amount=payment_charge.total_charge_month,
                         creditor_amount=0,
@@ -135,25 +149,30 @@ def verify_pay(request: HttpRequest):
                     )
 
                     return render(request, 'payment_done.html', {
-                        'success': f'تراکنش شما با کد پیگیری {ref_str} با موفقیت انجام و پرداخت شارژ شما ثبت گردید. '
+                        'success': f'تراکنش شما با کد پیگیری {ref_str} با موفقیت انجام و پرداخت شارژ شما ثبت گردید. ',
+                        'charge': payment_charge,  # ← این خط حیاتی است
                     })
                 elif t_status == 101:
                     return render(request, 'payment_done.html', {
-                        'info': 'این تراکنش قبلا ثبت شده است'
+                        'info': 'این تراکنش قبلا ثبت شده است',
+                        'charge': payment_charge,  # ← این خط حیاتی است
                     })
                 else:
-                    return render(request, 'payment_gateway.html', {
-                        'error': str(req_data['data']['message'])
+                    return render(request, 'payment_done.html', {
+                        'error': str(req_data['data']['message']),
+                        'charge': payment_charge,  # ← این خط حیاتی است
                     })
             else:
                 e_code = req_data['errors'].get('code')
                 e_message = req_data['errors'].get('message')
-                return render(request, 'payment_gateway.html', {
-                    'error': f"Error code: {e_code}, Message: {e_message}"
+                return render(request, 'payment_done.html', {
+                    'error': f"Error code: {e_code}, Message: {e_message}",
+                    'charge': payment_charge,  # ← این خط حیاتی است
                 })
         except Exception as e:
-            return render(request, 'payment_gateway.html', {
-                'error': f"An error occurred: {str(e)}"
+            return render(request, 'payment_done.html', {
+                'error': f"An error occurred: {str(e)}",
+                'charge': payment_charge,  # ← این خط حیاتی است
             })
 
     else:
@@ -179,6 +198,7 @@ def paymentView(request, pk):
             Fund.objects.create(
                 content_type=content_type,
                 object_id=charge.id,
+                bank=charge.bank,
                 debtor_amount=charge.total_charge_month,
                 amount=charge.total_charge_month,
                 creditor_amount=0,

@@ -101,7 +101,15 @@
                                 <td>{{ forloop.counter }}</td>
                             <td>{{ payment.bank.account_no }}-{{ payment.bank.bank_name }}</td>
                               <td>{{payment.amount|three_digit_currency }}</td>
-                                 <td>{{payment.receiver_name }}</td>
+                                        <td>
+                                     {% if payment.unit %}
+                                     	{{ payment.unit }}
+                                         {% else %}
+                                     {{payment.receiver_name }}
+                                     {% endif %} 
+                                   
+                                 </td>
+                                  
                                 <td>{{payment.description }}</td>
                                 <td>{{payment.document_number }}</td>
                                  <td>{{payment.document_date|show_jalali }}</td>
@@ -120,6 +128,7 @@
                                            class="btn btn-gradient-warning p-1 edit-m-pay"
                                            data-id="{{ payment.id }}"
                                            data-bank="{{ payment.bank.id}}"
+                                           data-unit="{{ payment.unit.id}}"
                                            data-amount="{{ payment.amount }}"
                                            data-receiver_name="{{ payment.receiver_name }}"
                                            data-document_date="{{ payment.document_date|show_jalali }}"
@@ -198,17 +207,25 @@
                   </div>
                      </div>
                <div class="row m-0 g-2">
-                      <div class="col-12 col-lg-4 col-xl-4 p-1">
+                        <div class="col-6">
+                          {{ form.unit.label_tag }}
+                          {{ form.unit }}
+                          {{ form.unit.errors }}
+                        </div>
+
+                      <div class="col-6 p-1">
                        {{ form.receiver_name.label_tag }}
                       {{ form.receiver_name }}
                       {{ form.receiver_name.errors }}
                   </div>
-                      <div class="col-6 col-lg-4 col-xl-4 p-1">
+               </div>
+              <div class="row m-0 g-2">
+                      <div class="col-6 p-1">
                        {{ form.document_date.label_tag }}
                       {{ form.document_date }}
                       {{ form.document_date.errors }}
                   </div>
-                     <div class="col-6 col-lg-4 col-xl-4 p-1">
+                     <div class="col-6  p-1">
                        {{ form.document_number.label_tag }}
                       {{ form.document_number }}
                       {{ form.document_number.errors }}

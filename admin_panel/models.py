@@ -141,7 +141,8 @@ class IncomeDocument(models.Model):
 class ReceiveMoney(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
-    payer_name = models.CharField(max_length=200, verbose_name='پرداخت کننده')
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
+    payer_name = models.CharField(max_length=400, null=True, blank=True)
     doc_date = models.DateField(verbose_name='تاریخ سند')
     doc_number = models.IntegerField(verbose_name='شماره سند')
     description = models.CharField(max_length=4000, verbose_name='شرح')
@@ -151,13 +152,17 @@ class ReceiveMoney(models.Model):
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 
     def __str__(self):
-        return str(self.payer_name)
+        return str(self.unit.unit)
+
 
     def get_document_json(self):
         # Use the correct attribute to access the file URL in the related `ExpenseDocument` model
         image_urls = [doc.document.url for doc in self.documents.all() if doc.document]
         print(image_urls)
         return mark_safe(json.dumps(image_urls))
+
+    def get_payer_display(self):
+        return str(self.unit) if self.unit else self.payer_name
 
 
 class ReceiveDocument(models.Model):
@@ -172,6 +177,7 @@ class ReceiveDocument(models.Model):
 class PayMoney(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
     receiver_name = models.CharField(max_length=200, verbose_name='دریافت کننده')
     document_date = models.DateField(verbose_name='تاریخ سند')
     document_number = models.IntegerField(verbose_name='شماره سند')
@@ -374,6 +380,8 @@ class AreaCharge(models.Model):
         return str(self.name)
 
 
+
+
 class AreaChargeCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_area')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_area')
@@ -423,6 +431,7 @@ class AreaChargeCalc(models.Model):
         return penalty_amount
 
     def save(self, *args, **kwargs):
+
         # محاسبه مبلغ پایه
         base_total = (self.final_area_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
 
@@ -437,6 +446,7 @@ class AreaChargeCalc(models.Model):
             self.total_charge_month = base_total + (self.payment_penalty_price or 0)
 
         super().save(*args, **kwargs)
+
 
 
 class PersonCharge(models.Model):
@@ -1043,6 +1053,13 @@ class UnifiedCharge(models.Model):
         null=True,
         blank=True
     )
+    bank = models.ForeignKey(
+        Bank,
+        on_delete=models.CASCADE,
+        related_name="unified_charges",
+        null=True,
+        blank=True
+    )
 
     # نوع شارژ (نوع محاسبات)
     charge_type = models.CharField(
@@ -1156,10 +1173,14 @@ class UnifiedCharge(models.Model):
             if save:
                 self.save(update_fields=['penalty_amount', 'total_charge_month'])
 
+
 class Fund(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
     doc_number = models.PositiveIntegerField(unique=True, editable=False, null=True, blank=True)
+    payer_name = models.CharField(max_length=200, null=True, blank=True)
+    receiver_name = models.CharField(max_length=200, null=True, blank=True)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')

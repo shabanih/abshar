@@ -49,8 +49,8 @@
                             <thead>
                                     <tr class="fw-bold sticky-summary">
                                         <th class="bg-body text-dark" colspan="4">جمع کل</th>
-                                        <th class="bg-warning">{{ totals.total_expense|three_digit_currency }}</th>
-                                        <th class="bg-danger">{{ totals.total_income|three_digit_currency }}</th>
+                                        <th class="bg-warning">{{ totals.total_income|three_digit_currency }}</th>
+                                        <th class="bg-danger">{{ totals.total_expense|three_digit_currency }}</th>
                                         <th class="{% if balance < 0 %}bg-danger{% else %}bg-success{% endif %}">
                                             {{ balance|three_digit_currency }}
                                         </th>
@@ -77,13 +77,13 @@
                                                <td>{{fund.payment_date|show_jalali }}</td>
                                             <td>{{fund.payment_description }}</td>
                                             <td>{{fund.debtor_amount|three_digit_currency}}</td>
-                                            <td>{{fund.creditor_amount|three_digit_currency }}</td>
-                                            <td class="btn-gradient-light">{{fund.final_amount|three_digit_currency }}</td>
+                                            <td colspan="1">{{fund.creditor_amount|three_digit_currency }}</td>
+                                            <td class="btn-gradient-light"></td>
                                         </tr>
                                     {% endfor %}
                                         {% else %}
                                         <tr>
-                                            <td colspan="9" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                            <td colspan="9" class="text-center">هیچ تراکنشی برای نمایش وجود ندارد.</td>
                                         </tr>
                                  <tbody>
                                 {% endif %}

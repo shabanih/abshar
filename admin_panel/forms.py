@@ -259,6 +259,7 @@ IS_CHOICES_Active = (
     (0, 'خیر'),
 )
 
+
 class BankForm(forms.ModelForm):
     house = forms.ModelChoiceField(
         queryset=MyHouse.objects.none(),
@@ -614,12 +615,30 @@ class ExpenseForm(forms.ModelForm):
         model = Expense
         fields = ['category', 'bank', 'amount', 'date', 'description', 'doc_no', 'details', 'document']
 
+    # def __init__(self, *args, **kwargs):
+    #     user = kwargs.pop('user', None)
+    #     super().__init__(*args, **kwargs)
+    #     if user:
+    #         self.fields['category'].queryset = ExpenseCategory.objects.filter(is_active=True, user=user)
+    #         self.fields['bank'].queryset = Bank.objects.filter(is_active=True, user=user)
+
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
         if user:
             self.fields['category'].queryset = ExpenseCategory.objects.filter(is_active=True, user=user)
-            self.fields['bank'].queryset = Bank.objects.filter(is_active=True, user=user)
+            banks = Bank.objects.filter(is_active=True, user=user)
+            self.fields['bank'].queryset = banks
+
+            # پیدا کردن بانک پیش‌فرض
+            default_bank = banks.filter(is_default=True).first()
+            if default_bank:
+                self.fields['bank'].initial = default_bank
+
+            # تغییر label برای نمایش "(پیش‌فرض)" کنار نام بانک
+            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
+                " (پیش‌فرض)" if obj.is_default else "")
 
 
 class ExpenseCategoryForm(forms.ModelForm):
@@ -708,12 +727,30 @@ class IncomeForm(forms.ModelForm):
         model = Income
         fields = ['category', 'bank', 'amount', 'doc_date', 'description', 'doc_number', 'details', 'document']
 
+    # def __init__(self, *args, **kwargs):
+    #     user = kwargs.pop('user', None)
+    #     super().__init__(*args, **kwargs)
+    #     if user:
+    #         self.fields['category'].queryset = IncomeCategory.objects.filter(is_active=True, user=user)
+    #         self.fields['bank'].queryset = Bank.objects.filter(is_active=True, user=user)
+
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
         if user:
             self.fields['category'].queryset = IncomeCategory.objects.filter(is_active=True, user=user)
-            self.fields['bank'].queryset = Bank.objects.filter(is_active=True, user=user)
+            banks = Bank.objects.filter(is_active=True, user=user)
+            self.fields['bank'].queryset = banks
+
+            # پیدا کردن بانک پیش‌فرض
+            default_bank = banks.filter(is_default=True).first()
+            if default_bank:
+                self.fields['bank'].initial = default_bank
+
+            # تغییر label برای نمایش "(پیش‌فرض)" کنار نام بانک
+            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
+                " (پیش‌فرض)" if obj.is_default else "")
 
 
 class IncomeCategoryForm(forms.ModelForm):
@@ -765,6 +802,18 @@ class ReceiveMoneyForm(forms.ModelForm):
         required=True,
         label=' حساب بانکی'
     )
+    unit = forms.ModelChoiceField(
+        queryset=Unit.objects.none(),  # خالی → ajax پرش می‌کنه
+        required=False,
+        label='انتخاب واحد',
+        widget=forms.Select(
+            attrs={
+                'class': 'form-control-sm ',
+                'style': 'width:100%',
+                # 'data-placeholder': 'واحد / مالک یا مستاجر را انتخاب کنید1'
+            }
+        )
+    )
     payer_name = forms.CharField(
         max_length=200, required=False, label='پرداخت کننده ', widget=forms.TextInput(attrs={'class': 'form-control'})
     )
@@ -792,18 +841,50 @@ class ReceiveMoneyForm(forms.ModelForm):
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
 
-    # is_active = forms.BooleanField(required=False)
-
     class Meta:
         model = ReceiveMoney
         fields = ['bank', 'amount', 'doc_date', 'description', 'doc_number',
-                  'details', 'document', 'payer_name']
+                  'details', 'document', 'unit', 'payer_name']
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
         if user:
-            self.fields['bank'].queryset = Bank.objects.filter(is_active=True, user=user)
+            # تمام کاربران تحت مدیریت این مدیر + خودش
+            managed_users = User.objects.filter(Q(manager=user) | Q(pk=user.pk))
+            self.fields['unit'].queryset = Unit.objects.filter(
+                is_active=True,
+                user__in=managed_users
+            ).select_related('user')
+
+            # نمایش نام مستاجر فعال یا مالک
+            self.fields['unit'].label_from_instance = lambda obj: (
+                f"واحد {obj.unit} - {obj.get_active_renter().renter_name}"
+                if obj.get_active_renter() else
+                f"واحد {obj.unit} - {obj.owner_name}"
+            )
+            banks = Bank.objects.filter(is_active=True, user=user)
+            self.fields['bank'].queryset = banks
+
+            # پیدا کردن بانک پیش‌فرض
+            default_bank = banks.filter(is_default=True).first()
+            if default_bank:
+                self.fields['bank'].initial = default_bank
+
+            # تغییر label برای نمایش "(پیش‌فرض)" کنار نام بانک
+            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
+                " (پیش‌فرض)" if obj.is_default else "")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        unit = cleaned_data.get('unit')
+        payer_name = cleaned_data.get('payer_name')
+
+        if not unit and not payer_name:
+            raise forms.ValidationError("لطفا یا واحد را انتخاب کنید یا نام پرداخت کننده را وارد نمایید.")
+
+        return cleaned_data
 
 
 class PayerMoneyForm(forms.ModelForm):
@@ -814,6 +895,18 @@ class PayerMoneyForm(forms.ModelForm):
         error_messages=error_message,
         required=True,
         label='شماره حساب بانکی'
+    )
+    unit = forms.ModelChoiceField(
+        queryset=Unit.objects.none(),  # خالی → ajax پرش می‌کنه
+        required=False,
+        label='انتخاب واحد',
+        widget=forms.Select(
+            attrs={
+                'class': 'form-control-sm ',
+                'style': 'width:100%',
+                # 'data-placeholder': 'واحد / مالک یا مستاجر را انتخاب کنید1'
+            }
+        )
     )
     receiver_name = forms.CharField(
         max_length=200, required=False, label='شخص دریافت کننده',
@@ -847,13 +940,46 @@ class PayerMoneyForm(forms.ModelForm):
     class Meta:
         model = PayMoney
         fields = ['bank', 'amount', 'document_date', 'description', 'document_number',
-                  'details', 'document', 'is_active', 'receiver_name']
+                  'details', 'document', 'is_active', 'receiver_name', 'unit']
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
         if user:
-            self.fields['bank'].queryset = Bank.objects.filter(is_active=True, user=user)
+            managed_users = User.objects.filter(Q(manager=user) | Q(pk=user.pk))
+            self.fields['unit'].queryset = Unit.objects.filter(
+                is_active=True,
+                user__in=managed_users
+            ).select_related('user')
+
+            # نمایش نام مستاجر فعال یا مالک
+            self.fields['unit'].label_from_instance = lambda obj: (
+                f"واحد {obj.unit} - {obj.get_active_renter().renter_name}"
+                if obj.get_active_renter() else
+                f"واحد {obj.unit} - {obj.owner_name}"
+            )
+            banks = Bank.objects.filter(is_active=True, user=user)
+            self.fields['bank'].queryset = banks
+
+            # پیدا کردن بانک پیش‌فرض
+            default_bank = banks.filter(is_default=True).first()
+            if default_bank:
+                self.fields['bank'].initial = default_bank
+
+            # تغییر label برای نمایش "(پیش‌فرض)" کنار نام بانک
+            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
+                " (پیش‌فرض)" if obj.is_default else "")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        unit = cleaned_data.get('unit')
+        receiver_name = cleaned_data.get('receiver_name')
+
+        if not unit and not receiver_name:
+            raise forms.ValidationError("لطفا یا واحد را انتخاب کنید یا نام دریافت کننده را وارد نمایید.")
+
+        return cleaned_data
 
 
 PROPERTY_CHOICES = {

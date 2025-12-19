@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fa">
+{% load poll_extras %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <style>
+        @font-face {
+            font-family: 'BYekan';
+            src: url('{{ font_path }}') format('truetype');
+        }
+        body {
+            font-family: 'BYekan';
+            direction: rtl;
+            text-align: right;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead tr {
+            background-color: #9b9797;
+            color: #000000;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: center;
+        }
+        h1{
+            text-align: center;
+        }
+        .logo-style-pdf{
+            width: 200px;
+            height: 80px;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <img src="/img/logo_core.png" class="logo-style-pdf" alt="">
+</div>
+
+<h1>گردش مالی واحد {{ unit.unit }}
+    {% if unit.is_renter %}
+        {{ unit.renters.renter_name }}
+    	{% else %}
+    - مالک: {{ unit.owner_name }}
+    {% endif %} 
+</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>شماره سند</th>
+            <th>تاریخ</th>
+            <th>شرح</th>
+            <th>روش پرداخت</th>
+            <th>بدهکار</th>
+            <th>بستانکار</th>
+        
+        </tr>
+    </thead>
+    <tbody>
+        {% for f in funds %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ f.doc_number }}</td>
+            <td>{{ f.payment_date|show_jalali_date_only }}</td>
+            <td>{{ f.payment_description }}</td>
+            <td>{{ f.payment_gateway }}</td>
+            <td>{{ f.creditor_amount|three_digit_currency }}</td>
+             <td>{{ f.debtor_amount|three_digit_currency }}</td>
+           
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7">تراکنشی برای این واحد وجود ندارد.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+</body>
+</html>

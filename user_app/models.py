@@ -48,7 +48,7 @@ class User(AbstractUser):
     REQUIRED_FIELDS = ['username']
 
     def __str__(self):
-        return f"{self.full_name} - {self.mobile}"
+        return f"{self.full_name}"
 
     def get_full_name(self):
         return self.full_name
@@ -94,8 +94,13 @@ class Bank(models.Model):
             Bank.objects.filter(user=self.user, is_default=True).exclude(id=self.id).update(is_default=False)
         super().save(*args, **kwargs)
 
+    @classmethod
+    def get_default(cls, user):
+        return cls.objects.filter(user=user, is_default=True, is_active=True).first()
+
     def __str__(self):
-        return f"{self.bank_name} - {self.cart_number}"
+        return f"{self.bank_name} - {self.account_no}"
+
 
 
 class MyHouse(models.Model):
@@ -144,7 +149,7 @@ class Unit(models.Model):
         verbose_name_plural = "واحدها"
 
     def __str__(self):
-        return f"واحد {self.unit} - مدیر {self.user}"
+        return f"واحد {self.unit} -  {self.user}"
 
     def get_active_renter(self):
         return self.renters.filter(renter_is_active=True).first()
