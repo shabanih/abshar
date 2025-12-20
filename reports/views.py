@@ -1,4 +1,5 @@
 import io
+from datetime import datetime
 
 import jdatetime
 import openpyxl
@@ -16,14 +17,22 @@ from django.views.generic import ListView
 from django.views.generic.edit import FormMixin
 
 from admin_panel.models import Fund
+from polls.templatetags.poll_extras import show_jalali
 from user_app.forms import UnitReportForm
-from user_app.models import Unit
+from user_app.models import Unit, MyHouse
 from openpyxl.styles import PatternFill, Font, Alignment
 from pypdf import PdfWriter
 from weasyprint import HTML, CSS
 
 
-def fund_turnover(request):
+def to_jalali(date_obj):
+    if not date_obj:
+        return ''
+    jalali_date = jdatetime.date.fromgregorian(date=date_obj)
+    return jalali_date.strftime('%Y/%m/%d')
+
+
+def fund_middle_turnover(request):
     manager = request.user
     query = request.GET.get('q', '').strip()
     paginate = int(request.GET.get('paginate', 20) or 20)
@@ -39,6 +48,8 @@ def fund_turnover(request):
     if query:
         funds = funds.filter(
             Q(payment_description__icontains=query) |
+            Q(payer_name__icontains=query) |
+            Q(receiver_name__icontains=query) |
             Q(transaction_no__icontains=query) |
             Q(creditor_amount__icontains=query) |
             Q(debtor_amount__icontains=query) |
@@ -55,7 +66,7 @@ def fund_turnover(request):
     paginator = Paginator(funds, paginate)
     page_obj = paginator.get_page(request.GET.get('page'))
 
-    return render(request, 'fund_turnover.html', {
+    return render(request, 'fund_middle_turnover.html', {
         'funds': page_obj,
         'query': query,
         'paginate': paginate,
@@ -65,6 +76,132 @@ def fund_turnover(request):
     })
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def export_middle_report_pdf(request):
+    manager = request.user
+
+    # Queryset اصلی
+    funds = Fund.objects.filter(Q(user=manager) | Q(user__manager=manager))
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
+
+    # فیلترها
+    query = request.GET.get('q', '').strip()
+    if query:
+        funds = funds.filter(
+            Q(payment_description__icontains=query) |
+            Q(unit__unit__icontains=query) |
+            Q(payer_name__icontains=query) |
+            Q(receiver_name__icontains=query) |
+            Q(payment_gateway__icontains=query) |
+            Q(debtor_amount__icontains=query) |
+            Q(creditor_amount__icontains=query)
+        )
+    # for field, lookup in filter_fields.items():
+    #     value = request.GET.get(field)
+    #     if value:
+    #         funds = funds.filter(**{lookup: value})
+
+    # محاسبه totals و balance
+    totals = funds.aggregate(
+        total_income=Sum('debtor_amount'),
+        total_expense=Sum('creditor_amount'),
+    )
+    balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
+
+    # PDF settings
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+        @page {{ size: A4 landscape; margin: 1cm; }}
+        body {{
+            font-family: 'BYekan', sans-serif;
+        }}
+        @font-face {{
+            font-family: 'BYekan';
+            src: url('{font_url}');
+        }}
+        table {{
+            border-collapse: collapse;
+            width: 100%;
+        }}
+        th, td {{
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: center;
+        }}
+        th {{
+            background-color: #FFD700;
+        }}
+    """)
+
+    template = get_template("middle_report_pdf.html")
+    context = {
+        'funds': funds,
+        'query': query,
+        'totals': totals,
+        'balance': balance,
+        'font_path': font_url,
+        'today': datetime.now(),
+        'house': house,
+    }
+    html = template.render(context)
+    pdf_file = io.BytesIO()
+    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
+    pdf_file.seek(0)
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="middle_report.pdf"'
+    return response
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def export_middle_report_excel(request):
+    manager = request.user
+    report = Fund.objects.filter(Q(user=manager) | Q(user__manager=manager)).order_by('-payment_date')
+
+    # Create Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "units"
+    ws.sheet_view.rightToLeft = True
+
+    # Title
+    title_cell = ws.cell(row=1, column=1, value=f"گردش مالی صندوق ")
+    title_cell.font = Font(bold=True, size=18)
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=5)
+
+    # Headers
+    headers = [' بانک', 'تاریخ پرداخت', 'شرح', 'پرداخت کننده/واریز کننده', 'روش پرداخت', 'بدهکار', 'بستانکار']
+
+    header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
+    header_font = Font(bold=True, color="000000")
+    for col_num, column_title in enumerate(headers, 1):
+        cell = ws.cell(row=2, column=col_num, value=column_title)
+        cell.fill = header_fill
+        cell.font = header_font
+
+    # Write data
+    for row_num, fund in enumerate(report, start=3):
+        ws.cell(row=row_num, column=1, value=f"{fund.bank.bank_name} - {fund.bank.account_no}")
+        ws.cell(row=row_num, column=2, value=show_jalali(fund.payment_date))
+        ws.cell(row=row_num, column=3, value=fund.payment_description)
+        ws.cell(row=row_num, column=4, value=f"{fund.payer_name} - {fund.receiver_name}")
+        ws.cell(row=row_num, column=5, value=fund.payment_gateway)
+        ws.cell(row=row_num, column=6, value=fund.debtor_amount)
+        ws.cell(row=row_num, column=7, value=fund.creditor_amount)
+
+    # Return response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename=report.xlsx'
+    wb.save(response)
+    return response
+
+
+# ========================================================================
 class UnitReportsTurnOver(FormMixin, ListView):
     model = Fund
     form_class = UnitReportForm
@@ -84,21 +221,28 @@ class UnitReportsTurnOver(FormMixin, ListView):
         unit = form.cleaned_data['unit']
 
         # همیشه مالک
-        unit_user = unit.user
+        # unit_user = unit.user
 
         transactions = Fund.objects.filter(
-            user=unit_user
-        ).filter(
-            Q(unit=unit) | Q(unit__isnull=True)
-        ).order_by('doc_number')
+            unit=unit
+        ).order_by('-payment_date')
 
         # ⚡ حتما object_list ست شود
         self.object_list = transactions
 
+        totals = Fund.objects.filter(unit=unit).aggregate(
+            total_income=Sum('debtor_amount'),
+            total_expense=Sum('creditor_amount'),
+        )
+
+        balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
+
         context = self.get_context_data(
             form=form,
             transactions=transactions,
-            selected_unit=unit
+            selected_unit=unit,
+            balance=balance,
+            totals=totals,
         )
         return self.render_to_response(context)
 
@@ -109,13 +253,6 @@ class UnitReportsTurnOver(FormMixin, ListView):
         return self.form_invalid(form)
 
 
-def to_jalali(date_obj):
-    if not date_obj:
-        return ''
-    jalali_date = jdatetime.date.fromgregorian(date=date_obj)
-    return jalali_date.strftime('%Y/%m/%d')
-
-
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_units_report_excel(request):
     unit_id = request.GET.get('unit')
@@ -123,20 +260,6 @@ def export_units_report_excel(request):
     unit_user = unit.user
 
     report = Fund.objects.filter(user=unit_user).order_by('doc_number')
-
-    # Apply filters based on GET parameters
-    filter_fields = {
-        'payment_date': 'payment_date__icontains',
-        'payment_description': 'payment_description__icontains',
-        'payment_gateway': 'payment_gateway__icontains',
-        'debtor_amount': 'debtor_amount__icontains',
-        'creditor_amount': 'creditor_amount__icontains',
-    }
-
-    for field, lookup in filter_fields.items():
-        value = request.GET.get(field)
-        if value:
-            report = report.filter(**{lookup: value})
 
     # Create Excel
     wb = openpyxl.Workbook()
@@ -148,10 +271,10 @@ def export_units_report_excel(request):
     title_cell = ws.cell(row=1, column=1, value=f"گردش مالی واحد {unit.unit}")
     title_cell.font = Font(bold=True, size=18)
     title_cell.alignment = Alignment(horizontal="center", vertical="center")
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=5)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=6)
 
     # Headers
-    headers = ['تاریخ پرداخت', 'شرح', 'روش پرداخت', 'بدهکار', 'بستانکار']
+    headers = [' بانک', 'تاریخ پرداخت', 'شرح', 'روش پرداخت', 'بدهکار', 'بستانکار']
     header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
     header_font = Font(bold=True, color="000000")
     for col_num, column_title in enumerate(headers, 1):
@@ -161,11 +284,12 @@ def export_units_report_excel(request):
 
     # Write data
     for row_num, fund in enumerate(report, start=3):
-        ws.cell(row=row_num, column=1, value=fund.payment_date)
-        ws.cell(row=row_num, column=2, value=fund.payment_description)
-        ws.cell(row=row_num, column=3, value=fund.payment_gateway)
-        ws.cell(row=row_num, column=4, value=fund.debtor_amount)
-        ws.cell(row=row_num, column=5, value=fund.creditor_amount)
+        ws.cell(row=row_num, column=1, value=f"{fund.bank.bank_name} - {fund.bank.account_no}")
+        ws.cell(row=row_num, column=2, value=show_jalali(fund.payment_date))
+        ws.cell(row=row_num, column=3, value=fund.payment_description)
+        ws.cell(row=row_num, column=4, value=fund.payment_gateway)
+        ws.cell(row=row_num, column=5, value=fund.debtor_amount)
+        ws.cell(row=row_num, column=6, value=fund.creditor_amount)
 
     # Return response
     response = HttpResponse(
@@ -176,15 +300,17 @@ def export_units_report_excel(request):
     return response
 
 
-
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_units_report_pdf(request):
     unit_id = request.GET.get('unit')
     unit = get_object_or_404(Unit, pk=unit_id)
-    unit_user = unit.user
+
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
 
     # Queryset اصلی بر اساس واحد (کاربر مالک)
-    funds = Fund.objects.filter(user=unit_user).order_by('doc_number')
+    funds = Fund.objects.filter(unit=unit).order_by('payment_date')
 
     # فیلترها از GET
     filter_fields = {
@@ -231,6 +357,8 @@ def export_units_report_pdf(request):
         'funds': funds,
         'unit': unit,
         'font_path': font_url,
+        'today': datetime.now(),
+        'house': house,
     }
 
     html = template.render(context)
@@ -244,6 +372,7 @@ def export_units_report_pdf(request):
     return response
 
 
+# ======================================================================================
 def fund_turnover_user(request):
     user = request.user
     query = request.GET.get('q', '').strip()
@@ -260,8 +389,10 @@ def fund_turnover_user(request):
         if query:
             funds = funds.filter(
                 Q(payment_description__icontains=query) |
+                Q(payment_gateway__icontains=query) |
                 Q(transaction_no__icontains=query) |
-                Q(payment_gateway__icontains=query)
+                Q(payment_date__icontains=query) |
+                Q(amount__icontains=query)
             )
 
         funds = funds.order_by('-created_at')
@@ -287,3 +418,124 @@ def fund_turnover_user(request):
         'total_amount': total_amount
     }
     return render(request, 'fund_turnover_user.html', context)
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def export_user_report_excel(request):
+    user = request.user
+
+    report = Fund.objects.filter(user=user).order_by('doc_number')
+
+    # Create Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "units"
+    ws.sheet_view.rightToLeft = True
+
+    # Title
+    title_cell = ws.cell(row=1, column=1, value=f"لیست تراکنش های من ")
+    title_cell.font = Font(bold=True, size=18)
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=5)
+
+    # Headers
+    headers = ['تاریخ پرداخت', 'شرح', 'روش پرداخت', 'شماره تراکنش', 'مبلغ']
+    header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
+    header_font = Font(bold=True, color="000000")
+    for col_num, column_title in enumerate(headers, 1):
+        cell = ws.cell(row=2, column=col_num, value=column_title)
+        cell.fill = header_fill
+        cell.font = header_font
+
+    # Write data
+    for row_num, fund in enumerate(report, start=3):
+        ws.cell(row=row_num, column=1, value=show_jalali(fund.payment_date))
+        ws.cell(row=row_num, column=2, value=fund.payment_description)
+        ws.cell(row=row_num, column=3, value=fund.payment_gateway)
+        ws.cell(row=row_num, column=4, value=fund.transaction_no)
+        ws.cell(row=row_num, column=5, value=fund.amount)
+
+    # Return response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename=report.xlsx'
+    wb.save(response)
+    return response
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def export_user_report_pdf(request):
+    user = request.user
+
+    funds = Fund.objects.filter(user=user).order_by('doc_number')
+
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
+
+    # # Queryset اصلی بر اساس واحد (کاربر مالک)
+    # funds = Fund.objects.filter(unit=unit).order_by('payment_date')
+
+    # فیلترها از GET
+    query = request.GET.get('q', '').strip()
+    if query:
+        funds = funds.filter(
+            Q(payment_description__icontains=query) |
+            Q(payment_gateway__icontains=query) |
+            Q(transaction_no__icontains=query) |
+            Q(payment_date__icontains=query) |
+            Q(amount__icontains=query)
+
+        )
+
+    # PDF settings
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+        @page {{ size: A4 landscape; margin: 1cm; }}
+        body {{
+            font-family: 'BYekan', sans-serif;
+        }}
+        @font-face {{
+            font-family: 'BYekan';
+            src: url('{font_url}');
+        }}
+        table {{
+            border-collapse: collapse;
+            width: 100%;
+        }}
+        th, td {{
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: center;
+        }}
+        th {{
+            background-color: #FFD700;
+        }}
+    """)
+
+    # Render template
+    template = get_template("user_report_pdf.html")
+    context = {
+        'funds': funds,
+        'query': query,
+        'font_path': font_url,
+        'today': datetime.now(),
+        'house': house,
+    }
+
+    html = template.render(context)
+    pdf_file = io.BytesIO()
+    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
+    pdf_file.seek(0)
+
+    # Response
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="report.pdf"'
+    return response
+
+
+# ===========================================================
+
+def debtor_creditor_report(request):
+    return render(request, 'debtor_creditor_report.html')

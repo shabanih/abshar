@@ -85,9 +85,17 @@ h1{
                         <tbody class="text-center">
                             <tr>
                                 <td>{{ forloop.counter }}</td>
-                               <td>{{ payment.bank.account_number.bank_name }}-{{ payment.bank.account_number.cart_number }}</td>
+                               <td>{{ payment.bank}}</td>
                               <td>{{payment.amount|three_digit_currency }}</td>
-                                 <td>{{payment.receiver_name }}</td>
+                                             <td>
+                                     {% if payment.unit %}
+                                     	{{ payment.unit }}
+                                         {% else %}
+                                     {{payment.receiver_name }}
+                                     {% endif %} 
+                                   
+                                 </td>
+                                  
                                 <td>{{payment.description }}</td>
                                 <td>{{payment.document_number }}</td>
                                  <td>{{payment.document_date|show_jalali }}</td>

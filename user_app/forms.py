@@ -170,7 +170,7 @@ class UnitReportForm(forms.Form):
         label='انتخاب واحد',
         widget=forms.Select(
             attrs={
-                'class': 'form-control select2-ajax rtl',
+                'class': 'form-control-sm select2-ajax rtl',
                 'style': 'width:100%',
                 # 'data-placeholder': 'واحد / مالک یا مستاجر را انتخاب کنید1'
             }

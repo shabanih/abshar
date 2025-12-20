@@ -62,7 +62,7 @@
             margin: 0 auto;
         }
         p{
-            text-align: center;
+           text-align: center; 
         }
     </style>
 </head>
@@ -72,25 +72,12 @@
     <img src="/img/logo_core.png" class="logo-style-pdf" alt="">
 </div>
 
-<h1>
-
-</h1>
-
 <div class="text-center mb-4" style="border-bottom: 2px solid #333; padding-bottom: 10px;">
     {% if house %}
         <h1 class="fw-bold mb-1" style="color: #202548F9;">{{ house.name }}</h1>
     {% endif %}
     
-    <h2 class="fw-bold mb-2 text-center" style="color: #222;">
-            گردش مالی واحد {{ unit.unit }}-
-     {% for renter in unit.renters.all %}
-        {% if renter.renter_is_active %}
-            {{ renter.renter_name }}<br>
-        {% endif %}
-    {% empty %}
-    {{ unit.owner_name }}
-    {% endfor %}
-    </h2>
+    <h2 class="fw-bold mb-2 text-center" style="color: #222;">گردش مالی صندوق</h2>
     
     <p class="text-muted mb-0" style="font-size: 0.9rem;">
         تاریخ: {{ today|show_jalali_date_time }}
@@ -102,6 +89,7 @@
         <tr>
             <th>#</th>
             <th>بانک</th>
+            <th>کاربر</th>
             <th>تاریخ پرداخت</th>
             <th>شرح سند</th>
             <th>روش پرداخت</th>
@@ -115,6 +103,7 @@
         <tr>
             <td>{{ forloop.counter }}</td>
             <td>{{ f.bank }}</td>
+            <td>{{ f.unit }}</td>
             <td>{{ f.payment_date|show_jalali_date_only }}</td>
             <td>{{ f.payment_description }}</td>
             <td>{{ f.payment_gateway }}</td>

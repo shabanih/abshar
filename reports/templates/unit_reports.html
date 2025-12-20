@@ -10,44 +10,71 @@
 {% block main_content %}
     <hr/>
 <div class="container mt-3">
+<div class="container pt-3">
 
-   <div class="row mb-2 mt-4 g-2">
-   <div class="col-12 col-md-5 col-xl-5 align-self-center">
-           <form method="post" class="row g-2 mb-3">
-    {% csrf_token %}
-    <div class="col-md-6">
-        {{ form.unit.label_tag }}
-        {{ form.unit }}
-    </div>
-    <div class="col-md-4 align-self-end">
-        <button type="submit" class="btn btn-primary w-75 py-2 p-0">
-            گزارش گیری
-        </button>
-    </div>
-</form>
-       </div>
-        <!-- بخش جستجو -->
-    <div class="col-12 col-md-4 col-xl-4 align-self-center mt-2">
-     <input type="text" id="searchInput" placeholder="جستجوی سریع در جدول..." onkeyup="searchTableUnit()" class="form-control mb-2 mt-2 p-1">
+    <div class="row g-2 align-items-end mb-3">
 
-    </div>
-    <div class=" col-12 col-md-3 col-xl-3 text-center align-self-center">
-       <a href="{% url 'export_units_report_excel' %}?unit={{ selected_unit.id }}"
-               class="btn btn-gradient-success px-2 py-2">
-               خروجی Excel
-            </a>
-        <a href="{% url 'export_units_report_pdf' %}?unit={{ selected_unit.id }}"
-           class="btn btn-gradient-danger px-2 py-2">
-           خروجی PDF
-        </a>
+        <!-- فرم انتخاب واحد -->
+        <div class="col-12 col-md-5 col-xl-5">
+            <form method="post" class="row g-2">
+                {% csrf_token %}
+                <div class="col-7">
+                    {{ form.unit }}
+                </div>
+                <div class="col-5">
+                    <button type="submit" class="btn btn-primary w-100">
+                        گزارش‌گیری
+                    </button>
+                </div>
+            </form>
         </div>
-       
+
+        <!-- جستجوی سریع -->
+        <div class="col-12 col-md-4 col-xl-5">
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="جستجوی سریع در جدول..."
+                onkeyup="searchTableUnit()"
+                class="form-control">
+        </div>
+
+        <!-- خروجی‌ها -->
+        <div class="col-12 col-md-3 col-xl-2 d-flex gap-1">
+            {% if selected_unit %}
+                <a href="{% url 'export_units_report_excel' %}?unit={{ selected_unit.id }}"
+                   class="btn btn-gradient-success w-50">
+                    Excel
+                </a>
+                <a href="{% url 'export_units_report_pdf' %}?unit={{ selected_unit.id }}"
+                   class="btn btn-gradient-danger w-50">
+                    PDF
+                </a>
+            {% else %}
+                <button class="btn btn-secondary w-50" disabled>Excel</button>
+                <button class="btn btn-secondary w-50" disabled>PDF</button>
+            {% endif %}
+        </div>
+
     </div>
+
+
 <table class="table table-bordered  text-center" id="unitTable">
+       <thead>
+            <tr class="fw-bold sticky-summary">
+                <th class="bg-body text-dark" colspan="5">جمع کل</th>
+{#                  <th class="{% if balance < 0 %}bg-danger{% else %}bg-success{% endif %}">#}
+{#                    {{ balance|three_digit_currency }}#}
+{#                </th>#}
+                <th class="bg-gradient-success">{{ totals.total_income|three_digit_currency }}</th>
+                <th class="bg-gradient-danger">{{ totals.total_expense|three_digit_currency }}</th>
+              
+            </tr>
+    </thead>
     <thead class="table-dark">
         <tr>
             <th>ردیف</th>
-{#            <th>شماره سند</th>#}
+            <th>بانک</th>
             <th>تاریخ پرداخت</th>
             <th>شرح</th>
             <th>روش پرداخت</th>
@@ -61,18 +88,18 @@
         {% for t in transactions %}
         <tr>
             <td>{{ forloop.counter }}</td>
-{#            <td>{{ t.doc_number }}</td>#}
+            <td>{{ t.bank }}</td>
             <td>{{ t.payment_date|show_jalali }}</td>
             <td>{{ t.payment_description }}</td>
             <td>{{ t.payment_gateway }}</td>
-            <td class="text-danger">
+            <td class="text-success">
                 {% if t.debtor_amount %}
                     {{ t.debtor_amount|three_digit_currency }}
                      {% else %}
                     0
                 {% endif %}
             </td>
-            <td class="text-success">
+            <td class="text-danger">
                 {% if t.creditor_amount %}
                     {{ t.creditor_amount|three_digit_currency }}
                     {% else %}
@@ -111,6 +138,7 @@
         </div>
     </div>
 
+</div>
 </div>
 
 {% endblock %}

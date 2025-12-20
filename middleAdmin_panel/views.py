@@ -1651,12 +1651,13 @@ class MiddleReceiveMoneyCreateView(CreateView):
         try:
             self.object = form.save()
             content_type = ContentType.objects.get_for_model(self.object)
-            payer_name_for_fund = self.object.payer_name if not self.object.unit else f"{self.object.unit} - {self.object.unit.owner_name}"
+            payer_name_for_fund = self.object.payer_name if not self.object.unit else f"{self.object.unit}"
             Fund.objects.create(
                 user=self.request.user,
                 content_type=content_type,
                 object_id=self.object.id,
                 bank=self.object.bank,
+                unit=self.object.unit,
                 amount=self.object.amount or 0,
                 debtor_amount=self.object.amount or 0,
                 creditor_amount=0,
@@ -1769,6 +1770,8 @@ def middle_receive_edit(request, pk):
 
             if fund:
                 fund.bank = receive.bank
+                fund.unit = receive.unit
+
                 fund.amount = receive.amount or 0
                 fund.debtor_amount = receive.amount or 0
                 fund.creditor_amount = 0
@@ -1785,6 +1788,7 @@ def middle_receive_edit(request, pk):
                     content_type=content_type,
                     object_id=receive.id,
                     bank=receive.bank,
+                    unit=receive.unit,
                     amount=receive.amount or 0,
                     debtor_amount=receive.amount or 0,
                     creditor_amount=0,
@@ -1912,7 +1916,7 @@ def export_receive_pdf(request):
         """)
 
     # رندر قالب HTML
-    template = get_template("receiveMoney/receive_pdf.html")
+    template = get_template("MiddleReceiveMoney/receive_pdf.html")
     context = {
         'receives': receives,
         'font_path': font_url,
@@ -2036,7 +2040,7 @@ class MiddlePaymentMoneyCreateView(CreateView):
         try:
             self.object = form.save()
             content_type = ContentType.objects.get_for_model(self.object)
-            receiver_name_for_fund = self.object.receiver_name if not self.object.unit else f"{self.object.unit} - {self.object.unit.owner_name}"
+            receiver_name_for_fund = self.object.receiver_name if not self.object.unit else f"{self.object.unit}"
 
             Fund.objects.create(
                 user=self.request.user,
@@ -2138,17 +2142,24 @@ def middle_pay_edit(request, pk):
         if form.is_valid():
             payment = form.save()
 
+            if payment.unit:
+                receiver_name_for_fund = str(payment.unit)
+            else:
+                receiver_name_for_fund = payment.receiver_name
+
             content_type = ContentType.objects.get_for_model(PayMoney)
             fund = Fund.objects.filter(content_type=content_type, object_id=payment.id).first()
 
             if fund:
                 # بروزرسانی رکورد موجود
                 fund.bank = payment.bank
+                fund.unit = payment.unit
                 fund.debtor_amount = 0
                 fund.amount = payment.amount or 0
                 fund.creditor_amount = payment.amount or 0
                 fund.payment_date = payment.document_date
-                fund.payment_description = f"حسابهای پرداختنی (ویرایش): {(payment.description or '')[:50]}"
+                fund.receiver_name = receiver_name_for_fund
+                fund.payment_description = f"حسابهای پرداختنی: {(payment.description or '')[:50]}"
                 fund.save()  # موجودی بانک بروزرسانی می‌شود
                 Fund.recalc_final_amounts_from(fund)
 
@@ -2159,10 +2170,12 @@ def middle_pay_edit(request, pk):
                     content_type=content_type,
                     object_id=payment.id,
                     bank=payment.bank,
+                    unit=payment.unit,
                     debtor_amount=0,
                     amount=payment.amount or 0,
                     creditor_amount=payment.amount or 0,
                     user=request.user,
+                    receiver_name= receiver_name_for_fund,
                     payment_date=payment.document_date,
                     payment_description=f"حسابهای پرداختنی: {(payment.description or '')[:50]}"
                 )
@@ -2280,7 +2293,7 @@ def export_pay_pdf(request):
         """)
 
     # رندر قالب HTML
-    template = get_template("payMoney/pay_pdf.html")
+    template = get_template("MiddlePayMoney/pay_pdf.html")
     context = {
         'payments': payments,
         'font_path': font_url,

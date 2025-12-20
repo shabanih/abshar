@@ -102,7 +102,6 @@ class Bank(models.Model):
         return f"{self.bank_name} - {self.account_no}"
 
 
-
 class MyHouse(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     residents = models.ManyToManyField(User, related_name='houses', blank=True, verbose_name='ساکنین')
