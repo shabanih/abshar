@@ -4,7 +4,7 @@
 {% load jalali_tags %}
 
 {% block page_title %}
-گردش صندوق
+واحدهای بدهکار/بستانکار
 {% endblock page_title %}
 
 {% block main_content %}
@@ -33,11 +33,11 @@
 
         <!-- خروجی -->
         <div class="col-12 col-md-3 d-flex gap-1">
-            <a href="{% url 'export_middle_report_excel' %}"
+            <a href=""
                class="btn btn-gradient-success w-50">
                 Excel
             </a>
-            <a href="{% url 'export_middle_report_pdf' %}?{{ request.GET.urlencode }}"
+            <a href=""
                class="btn btn-gradient-danger w-50">
                 PDF
             </a>
@@ -61,48 +61,57 @@
 
 
 
-      <div class="table-responsive mt-3">
-                            <table class="table table-bordered">
-                 
-                                <thead class="text-center">
-                          
-                                    <tr>
-                                        <th>#</th>
-                                        <th>نام واحد</th>
-                                        <th>شرح پرداخت</th>
-                                        <th>مبلغ بدهکاری/بستانکاری</th>
-                                    </tr>
-                                </thead>
-                            {% if funds %}
-                           {% for fund in funds %}
-                                    <tbody class="text-center">
-                                        <tr>
-                                            <td>{{ forloop.counter }}</td>
-                                            <td>{{ fund.bank }}</td>
-                                               <td>{{fund.payment_date|show_jalali }}</td>
-                                            <td>{{fund.payment_description }}</td>
-                                            <td>
-                                                
-                                                    {% if fund.payer_name %}
-                                                    {{fund.payer_name }}
-                                                    {% else %}
-                                                    {{fund.receiver_name}}
-                                                {% endif %} 
-                                            </td>
-                                            <td>{{fund.payment_gateway}}</td>
-                                            <td class="text-success">{{fund.debtor_amount|three_digit_currency}}</td>
-                                            <td class="text-danger">{{fund.creditor_amount|three_digit_currency }}</td>
-{#                                            <td class="btn-gradient-light"></td>#}
-                                        </tr>
-                                    {% endfor %}
-                                        {% else %}
-                                        <tr>
-                                            <td colspan="9" class="text-center">هیچ تراکنشی برای نمایش وجود ندارد.</td>
-                                        </tr>
-                                 <tbody>
-                                {% endif %}
-                            </table>
-               </div>
+     <table class="table table-bordered text-center align-middle">
+    <thead>
+        <tr>
+            <th>نام واحد</th>
+            <th class="text-success">جمع بدهکار</th>
+            <th class="text-danger">جمع بستانکار</th>
+            <th>مانده</th>
+            <th>وضعیت</th>
+        </tr>
+    </thead>
+
+ <tbody>
+{% for row in page_obj %}
+    {% if row.balance != 0 %}
+        <tr>
+            <td>{{ row.unit }}</td>
+
+            <td class="text-success">
+                {{ row.total_debtor|default:0|three_digit_currency }}
+            </td>
+
+            <td class="text-danger">
+                {{ row.total_creditor|default:0|three_digit_currency }}
+            </td>
+
+            <td>
+                {{ row.balance|three_digit_currency }}
+            </td>
+
+            <td>
+                {% if row.balance > 0 %}
+                    <span class="badge bg-danger">بدهکار</span>
+                {% else %}
+                    <span class="badge bg-success">بستانکار</span>
+                {% endif %}
+            </td>
+        </tr>
+    {% endif %}
+{% empty %}
+    <tr>
+        <td colspan="5" class="text-center text-muted">
+            اطلاعاتی برای نمایش وجود ندارد
+        </td>
+    </tr>
+{% endfor %}
+</tbody>
+
+</table>
+
+
+
    <!-- Pagination -->
       <div class="col-12">
         <div class="pagination d-flex justify-content-center mt-5">

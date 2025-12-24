@@ -210,7 +210,7 @@ def paymentView(request, pk):
                 payment_date=charge.payment_date,
                 payment_description=f"{charge.title}",
                 transaction_no=charge.transaction_reference,
-                payment_gateway='کارت به کارت'
+                payment_gateway='پرداخت الکترونیک'
             )
             return render(request, 'payment_done.html', {
                 'success': f'اطلاعات پرداخت با موفقیت انجام و پرداخت شارژ شما ثبت گردید. '

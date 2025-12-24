@@ -16,7 +16,7 @@
                                     enctype="multipart/form-data" novalidate>
                                   {% csrf_token %}
                                   <div class="container-fluid">
-                                    <div class="row justify-content-start">
+                                    <div class="row g-3 justify-content-start">
                                         <p class="mb-4 mt-4 mb-0" style="font-weight: 900">اطلاعات واحد مسکونی</p>
                                       <div class="col-4 col-lg-2 col-xl-2">
                                           {{ form.unit.label_tag }}
@@ -50,7 +50,7 @@
                                       </div>
 
                                     </div>
-                                         <div class="row">
+                                         <div class="row g-3">
                                       <div class="col-4 col-lg-2 col-xl-2">
                                           {{ form.parking_place.label_tag }}
                                           {{ form.parking_place }}
@@ -85,7 +85,7 @@
                                       </div>
                                     </div>
                                        <hr class="mt-2" style="color: #0f1531">
-                                      <div class="row justify-content-start">
+                                      <div class="row g-3 justify-content-start">
                                              <p class="mt-2 mb-0" style="font-weight: 900">اطلاعات مالک</p>
                                            <div class="col-6 col-lg-2 col-xl-2 ">
                                           {{ form.owner_name.label_tag }}
@@ -118,12 +118,35 @@
                                           {{ form.is_active.errors }}
                                            </div>
                                       </div>
-                                     <div class="row">
+                                     <div class="row g-1">
                                       <div class="form-group col-12">
                                         {{ form.owner_details.label_tag }}
                                         {{ form.owner_details }}
                                         {{ form.owner_details.errors }}
                                       </div>
+                                    </div>
+                                          <div class="row g-1">
+                                         <div class="col-12 col-lg-3 col-xl-3">
+                                          {{ form.first_charge_owner.label_tag }}
+                                          {{ form.first_charge_owner }}
+                                          {{ form.first_charge_owner.errors }}
+                                      </div>
+                                      <div class=" col-12 col-lg-4 col-xl-4">
+                                        {{ form.bank.label_tag }}
+                                        {{ form.bank }}
+                                        {{ form.bank.errors }}
+                                      </div>
+                                       <div class=" col-12 col-lg-2 col-xl-2">
+                                        {{ form.payment_date.label_tag }}
+                                        {{ form.payment_date }}
+                                        {{ form.payment_date.errors }}
+                                      </div>
+                                      <div class=" col-12 col-lg-2 col-xl-2">
+                                        {{ form.transaction_no.label_tag }}
+                                        {{ form.transaction_no }}
+                                        {{ form.transaction_no.errors }}
+                                      </div>
+                                    
                                     </div>
                              <hr class="mt-2" style="color: #0f1531">
                                     <div class="row">
@@ -134,7 +157,7 @@
                                            </div>
                                   </div>
                                   <div  id="renter_div">
-                                   <div class="row justify-content-start">
+                                   <div class="row g-3 justify-content-start">
                                         <p class="mb-4 mt-4 mb-0" style="font-weight: 900">اطلاعات مستاجر</p>
                                       <div class="col-6 col-lg-2 col-xl-2">
                                           {{ form.renter_name.label_tag }}
@@ -157,9 +180,9 @@
                                           {{ form.renter_people_count.errors }}
                                       </div>
                                           <div class="col-6 col-lg-2 col-xl-2">
-                                          {{ form.first_charge.label_tag }}
-                                          {{ form.first_charge }}
-                                          {{ form.first_charge.errors }}
+                                          {{ form.first_charge_renter.label_tag }}
+                                          {{ form.first_charge_renter }}
+                                          {{ form.first_charge_renter.errors }}
                                       </div>
                                           <div class="col-6 col-lg-2 col-xl-2">
                                            {{ form.contract_number.label_tag }}
@@ -168,7 +191,7 @@
                                       </div>
 
                                     </div>
-                                    <div class="row">
+                                    <div class="row g-3">
                                       <div class="col-6 col-lg-2 col-xl-2">
                                           {{ form.start_date.label_tag }}
                                           {{ form.start_date }}
@@ -194,24 +217,36 @@
                                     </div>
                                   </div>
                                         <hr class="mt-2" style="color: #0f1531">
-                                      <div class="row justify-content-start">
-                                             <p class="mt-2 mb-0" style="font-weight: 900">اطلاعات کاربری</p>
-                                           <div class="col-6 col-lg-2 col-xl-2 ">
-                                          {{ form.mobile.label_tag }}
-                                          {{ form.mobile }}
-                                          {{ form.mobile.errors }}
-                                          </div>
-                                              <div class="col-6 col-lg-2 col-xl-2">
-                                          {{ form.password.label_tag }}
-                                          {{ form.password }}
-                                          {{ form.password.errors }}
-                                           </div>
-                                              <div class="col-6 col-lg-2 col-xl-2">
-                                          {{ form.confirm_password.label_tag }}
-                                          {{ form.confirm_password }}
-                                          {{ form.confirm_password.errors }}
-                                           </div>
-                                      </div>
+                                <div class="row g-3 justify-content-start">
+    <p class="mt-2 mb-0" style="font-weight: 900">اطلاعات کاربری</p>
+
+    {# اگر مستاجر فعال باشد، اطلاعات مربوط به مستاجر است، در غیر این صورت مالک #}
+    <div class="col-6 col-lg-3 col-xl-3">
+        <label for="id_mobile">
+            {{ form.mobile.label }}
+            {% if is_renter %} (مستاجر) {% else %} (مالک) {% endif %}
+        </label>
+        {{ form.mobile }}
+        {{ form.mobile.errors }}
+    </div>
+    <div class="col-6 col-lg-3 col-xl-3">
+        <label for="id_password">
+            {{ form.password.label }}
+            {% if is_renter %} (مستاجر) {% else %} (مالک) {% endif %}
+        </label>
+        {{ form.password }}
+        {{ form.password.errors }}
+    </div>
+    <div class="col-6 col-lg-3 col-xl-3">
+        <label for="id_confirm_password">
+            {{ form.confirm_password.label }}
+            {% if is_renter %} (مستاجر) {% else %} (مالک) {% endif %}
+        </label>
+        {{ form.confirm_password }}
+        {{ form.confirm_password.errors }}
+    </div>
+</div>
+
                                     <div class="d-flex justify-content-end mt-4">
                                           <button type="submit" class="btn btn-gradient-success btn-md">ثبت اطلاعات</button>
                                          </div>

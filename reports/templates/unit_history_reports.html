@@ -4,7 +4,7 @@
 {% load jalali_tags %}
 
 {% block page_title %}
-گردش مالی اشخاص
+سوابق سکونت واحدها
 {% endblock page_title %}
 
 {% block main_content %}
@@ -41,12 +41,12 @@
 
         <!-- خروجی‌ها -->
         <div class="col-12 col-md-4 col-xl-3 d-flex gap-1">
-            {% if selected_unit %}
-                <a href="{% url 'export_units_report_excel' %}?unit={{ selected_unit.id }}"
+            {% if selected_unit and unit_histories %}
+                <a href="{% url 'export_history_unit_report_excel' %}?unit={{ selected_unit.id }}"
                    class="btn btn-gradient-success w-50">
                     Excel
                 </a>
-                <a href="{% url 'export_units_report_pdf' %}?unit={{ selected_unit.id }}"
+                <a href="{% url 'export_history_unit_report_pdf' %}?unit={{ selected_unit.id }}"
                    class="btn btn-gradient-danger w-50">
                     PDF
                 </a>
@@ -54,70 +54,68 @@
                 <button class="btn btn-secondary w-50" disabled>Excel</button>
                 <button class="btn btn-secondary w-50" disabled>PDF</button>
             {% endif %}
+
         </div>
 
     </div>
 
 
-<table class="table table-bordered  text-center" id="unitTable">
-       <thead>
-            <tr class="fw-bold sticky-summary">
-                <th class="bg-body text-dark" colspan="4">جمع کل/مانده</th>
-                  <th class="{% if balance < 0 %}bg-danger{% else %}bg-success{% endif %}">
-                    {{ balance|three_digit_currency }}
-                </th>
-                <th class="bg-gradient-success">{{ totals.total_income|three_digit_currency }}</th>
-                <th class="bg-gradient-danger">{{ totals.total_expense|three_digit_currency }}</th>
-              
-            </tr>
-    </thead>
+<table class="table table-bordered text-center" id="unitTable">
     <thead class="table-dark">
         <tr>
             <th>ردیف</th>
-            <th>بانک</th>
-            <th>تاریخ پرداخت</th>
-            <th>شرح</th>
-            <th>روش پرداخت</th>
-            <th>بدهکار</th>
-            <th>بستانکار</th>
-{#            <th>مبلغ کل</th>#}
+            <th>نوع سکونت</th>
+            <th>نام</th>
+            <th>موبایل</th>
+            <th>تعداد نفرات</th>
+            <th>از تاریخ</th>
+            <th>تا تاریخ</th>
+            <th>وضعیت</th>
         </tr>
     </thead>
-{% if transactions %}
-	    <tbody>
-        {% for t in transactions %}
-        <tr>
-            <td>{{ forloop.counter }}</td>
-            <td>{{ t.bank }}</td>
-            <td>{{ t.payment_date|show_jalali }}</td>
-            <td>{{ t.payment_description }}</td>
-            <td>{{ t.payment_gateway }}</td>
-            <td class="text-success">
-                {% if t.debtor_amount %}
-                    {{ t.debtor_amount|three_digit_currency }}
-                     {% else %}
-                    0
-                {% endif %}
-            </td>
-            <td class="text-danger">
-                {% if t.creditor_amount %}
-                    {{ t.creditor_amount|three_digit_currency }}
-                    {% else %}
-                    0
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-    {% else %}
-       <tbody>
-        <tr>
-            <td colspan="7" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
-        </tr>
-    </tbody>
-{% endif %} 
 
+    <tbody>
+    {% if unit_histories %}
+        {% for h in unit_histories %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>
+                    {% if h.resident_type == 'owner' %}
+                        <span class="badge bg-primary">مالک</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">مستاجر</span>
+                    {% endif %}
+                </td>
+                <td>{{ h.name }}</td>
+                <td>{{ h.mobile }}</td>
+                <td>{{ h.people_count }}</td>
+                <td>{{ h.from_date|show_jalali }}</td>
+                <td>
+                    {% if h.to_date %}
+                        {{ h.to_date|show_jalali }}
+                    {% else %}
+                        <span class="text-success fw-bold">اکنون</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if not h.to_date %}
+                        <span class="badge bg-success">فعال</span>
+                    {% else %}
+                        <span class="badge bg-secondary">پایان یافته</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    {% else %}
+        <tr>
+            <td colspan="8" class="text-center">
+                هیچ سابقه‌ای برای نمایش وجود ندارد
+            </td>
+        </tr>
+    {% endif %}
+    </tbody>
 </table>
+
 <!-- Pagination -->
       <div class="col-12">
         <div class="pagination d-flex justify-content-center mt-5">

@@ -1,10 +1,7 @@
-import os
-import random
-
-from ckeditor_uploader.fields import RichTextUploadingField
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
-from django.forms import FileField
+from django.utils import timezone
+
 
 class ChargeMethod(models.Model):
     name = models.CharField(max_length=100)
@@ -119,6 +116,8 @@ class MyHouse(models.Model):
 class Unit(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='کاربر')
     unit = models.IntegerField(verbose_name='واحد')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, null=True, blank=True, verbose_name='شماره حساب')
+
     unit_phone = models.CharField(max_length=8, null=True, blank=True, verbose_name='')
     floor_number = models.IntegerField()
     area = models.IntegerField()
@@ -140,6 +139,10 @@ class Unit(models.Model):
     people_count = models.IntegerField(null=True, blank=True, verbose_name='تعداد نفرات')
     parking_counts = models.IntegerField(null=True, blank=True, verbose_name='تعداد پارکینگ اضافه')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='زمان ایجاد')
+    first_charge_owner = models.IntegerField(null=True, blank=True, verbose_name='شارژ اولیه مالک', default=0)
+    payment_date = models.DateField(null=True, blank=True)
+    transaction_no = models.CharField(max_length=15, null=True, blank=True)
+
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیر فعال')
 
     class Meta:
@@ -158,6 +161,12 @@ class Unit(models.Model):
         return f"واحد {self.unit} - {renter.renter_name}" if renter else f"واحد {self.unit} - {self.owner_name}"
 
     def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        old = None
+
+        if not is_new:
+            old = Unit.objects.get(pk=self.pk)
+
         # --- Calculate extra parking count ---
         count = 0
         if self.extra_parking_first:
@@ -166,32 +175,51 @@ class Unit(models.Model):
             count += 1
         self.parking_counts = count
 
-        # --- Update people_count only if pk exists ---
-        if self.pk:  # ← مطمئن می‌شویم unit قبلاً ذخیره شده
-            if self.is_renter:
-                active_renter = self.renters.filter(renter_is_active=True).first()
-                if active_renter and hasattr(active_renter, 'renter_people_count'):
-                    self.people_count = active_renter.renter_people_count
-            else:
-                if self.owner_people_count:
-                    try:
-                        self.people_count = int(self.owner_people_count)
-                    except ValueError:
-                        self.people_count = None
+        # --- Calculate people_count ---
+        if self.is_renter:
+            active_renter = self.renters.filter(renter_is_active=True).first()
+            try:
+                self.people_count = int(active_renter.renter_people_count or 0) if active_renter else 0
+            except (ValueError, TypeError):
+                self.people_count = 0
         else:
-            # اگر هنوز unit ذخیره نشده، فقط از owner_people_count استفاده کن
-            if self.owner_people_count:
-                try:
-                    self.people_count = int(self.owner_people_count)
-                except ValueError:
-                    self.people_count = None
+            try:
+                self.people_count = int(self.owner_people_count or 0)
+            except (ValueError, TypeError):
+                self.people_count = 0
 
         super().save(*args, **kwargs)
+
+        # ------------------------------
+        # ✅ ثبت تاریخچه تغییر مالک
+        # ------------------------------
+        if not is_new and old.owner_name != self.owner_name:
+            from .models import UnitResidenceHistory
+
+            # بستن مالک قبلی
+            UnitResidenceHistory.objects.filter(
+                unit=self,
+                resident_type='owner',
+                to_date__isnull=True
+            ).update(to_date=timezone.now().date())
+
+            # ثبت مالک جدید
+            UnitResidenceHistory.objects.create(
+                unit=self,
+                resident_type='owner',
+                name=self.owner_name,
+                mobile=self.owner_mobile,
+                people_count=int(self.owner_people_count or 0),
+                from_date=timezone.now().date(),
+                changed_by=self.user
+            )
 
 
 class Renter(models.Model):
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, verbose_name='واحد', related_name='renters', null=True,
                              blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='کاربر')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, null=True, blank=True, verbose_name='شماره حساب')
     renter_name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام مستاجر')
     renter_mobile = models.CharField(max_length=11, null=True, blank=True, verbose_name='همراه')
     renter_national_code = models.CharField(max_length=10, null=True, blank=True, verbose_name='کد ملی')
@@ -200,13 +228,126 @@ class Renter(models.Model):
     end_date = models.DateField(null=True, blank=True, verbose_name='تاریخ پایان اجاره')
     contract_number = models.CharField(max_length=100, null=True, blank=True, verbose_name='شماره قرارداد')
     estate_name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام مشاور املاک')
-    first_charge = models.IntegerField(null=True, blank=True, verbose_name='شارژ اولیه', default=0)
+    first_charge_renter = models.IntegerField(null=True, blank=True, verbose_name='شارژ اولیه مستاجر', default=0)
     renter_details = models.TextField(null=True, blank=True, verbose_name='توضیحات مستاجر')
+    payment_date = models.DateField(null=True, blank=True)
+    transaction_no = models.CharField(max_length=15, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     renter_is_active = models.BooleanField(default=True, verbose_name='')
 
     def __str__(self):
         return self.renter_name
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        old = None
+
+        if not is_new:
+            old = Renter.objects.get(pk=self.pk)
+
+        super().save(*args, **kwargs)
+
+        from .models import UnitResidenceHistory
+
+        # ==============================
+        # مستاجر فعال شد
+        # ==============================
+        if self.renter_is_active and (is_new or not old.renter_is_active):
+            # ⛔ بستن مالک فعال
+            UnitResidenceHistory.objects.filter(
+                unit=self.unit,
+                resident_type='owner',
+                to_date__isnull=True
+            ).update(to_date=self.start_date or timezone.now().date())
+
+            # ⛔ بستن مستاجر فعال قبلی
+            UnitResidenceHistory.objects.filter(
+                unit=self.unit,
+                resident_type='renter',
+                to_date__isnull=True
+            ).update(to_date=self.start_date or timezone.now().date())
+
+            # ✅ ثبت مستاجر جدید
+            UnitResidenceHistory.objects.create(
+                unit=self.unit,
+                resident_type='renter',
+                renter=self,
+                name=self.renter_name,
+                mobile=self.renter_mobile,
+                people_count=int(self.renter_people_count or 0),
+                from_date=self.start_date or timezone.now().date(),
+                changed_by=self.user
+            )
+
+        # ==============================
+        # مستاجر غیرفعال شد
+        # ==============================
+        if old and old.renter_is_active and not self.renter_is_active:
+            # بستن سابقه مستاجر
+            UnitResidenceHistory.objects.filter(
+                renter=self,
+                to_date__isnull=True
+            ).update(to_date=self.end_date or timezone.now().date())
+
+            # 🔁 فعال شدن مجدد مالک
+            UnitResidenceHistory.objects.create(
+                unit=self.unit,
+                resident_type='owner',
+                name=self.unit.owner_name,
+                mobile=self.unit.owner_mobile,
+                people_count=int(self.unit.owner_people_count or 0),
+                from_date=self.end_date or timezone.now().date(),
+                changed_by=self.user
+            )
+
+
+class UnitResidenceHistory(models.Model):
+    RESIDENT_TYPE_CHOICES = (
+        ('owner', 'مالک'),
+        ('renter', 'مستاجر'),
+    )
+
+    unit = models.ForeignKey(
+        Unit,
+        on_delete=models.CASCADE,
+        related_name='residence_histories'
+    )
+
+    resident_type = models.CharField(
+        max_length=10,
+        choices=RESIDENT_TYPE_CHOICES
+    )
+
+    # اطلاعات شخص
+    name = models.CharField(max_length=255)
+    mobile = models.CharField(max_length=20)
+    people_count = models.IntegerField(default=0)
+
+    # فقط برای مستاجر
+    renter = models.ForeignKey(
+        Renter,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    from_date = models.DateField()
+    to_date = models.DateField(null=True, blank=True)
+
+    changed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='unit_residence_changes'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_active(self):
+        return self.to_date is None
+
+    def __str__(self):
+        return f"{self.get_resident_type_display()} | {self.name} | واحد {self.unit.unit}"
 
 
 class CalendarNote(models.Model):

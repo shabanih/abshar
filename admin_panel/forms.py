@@ -12,7 +12,7 @@ from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, 
                                 FixPersonCharge, FixAreaCharge, ChargeFixVariable, SmsManagement, UnifiedCharge,
                                 MessageToUser)
 
-from user_app.models import Unit, Bank, User, MyHouse, ChargeMethod
+from user_app.models import Unit, Bank, User, MyHouse, ChargeMethod, Renter
 
 attr = {'class': 'form-control border-1 py-2 mb-4 '}
 attr1 = {'class': 'form-control border-1 py-1 mb-4 '}
@@ -375,6 +375,20 @@ class MyHouseForm(forms.ModelForm):
 class UnitForm(forms.ModelForm):
     unit = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr1),
                            label='شماره واحد')
+    bank = forms.ModelChoiceField(
+        queryset=Bank.objects.none(),
+        empty_label="شماره حساب را انتخاب کنید",
+        error_messages=error_message,
+        required=False,
+        label=' حساب بانکی جهت واریز شارژ',
+        widget=forms.Select(
+            attrs={
+                'class': 'form-control-sm ',
+                'style': 'width:100%',
+                # 'data-placeholder': 'واحد / مالک یا مستاجر را انتخاب کنید1'
+            }
+        )
+    )
     unit_phone = forms.CharField(error_messages=error_message,
                                  max_length=8,
                                  min_length=8,
@@ -406,11 +420,20 @@ class UnitForm(forms.ModelForm):
         widget=forms.TextInput(attrs=attr),
         label='شماره پارکینگ'
     )
+    transaction_no = forms.IntegerField(error_messages=error_message,
+                                        widget=forms.TextInput(attrs=attr),
+                                        required=False, min_value=0,
+                                        label='کد پیگیری')
+    payment_date = JalaliDateField(
+        label='تاریخ پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
     parking_count = forms.ChoiceField(error_messages=error_message, choices=PARKING_COUNT_CHOICES, required=True,
                                       widget=forms.Select(attrs=attr),
                                       label='تعداد پارکینگ')
     unit_details = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'rows': 8}), required=False,
-                                   label='توضیحات')
+                                   label='توضیحات واحد')
     owner_name = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
                                  label='نام ')
     owner_mobile = forms.CharField(error_messages=error_message,
@@ -439,7 +462,7 @@ class UnitForm(forms.ModelForm):
         label='واحد دارای مستاجر است؟'
     )
     owner_details = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'rows': 8}), required=False,
-                                    label='توضیحات')
+                                    label='توضیحات مالک')
     renter_name = forms.CharField(error_messages=error_message, required=False, widget=forms.TextInput(attrs=attr),
                                   label='نام مستاجر')
     renter_mobile = forms.CharField(error_messages=error_message,
@@ -470,10 +493,14 @@ class UnitForm(forms.ModelForm):
                                       label='شماره قرارداد')
     estate_name = forms.CharField(error_messages=error_message, required=False, widget=forms.TextInput(attrs=attr),
                                   label='نام اجاره دهنده')
-    first_charge = forms.CharField(error_messages=error_message, required=False, widget=forms.TextInput(attrs=attr),
-                                   label='شارژ اولیه')
+    first_charge_owner = forms.CharField(error_messages=error_message, required=False,
+                                         widget=forms.TextInput(attrs=attr),
+                                         label='شارژ اولیه مالک', initial=0)
+    first_charge_renter = forms.CharField(error_messages=error_message, required=False,
+                                          widget=forms.TextInput(attrs=attr),
+                                          label='شارژ اولیه مستاجر', initial=0)
     renter_details = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'rows': 8}), required=False,
-                                     label='توضیحات')
+                                     label='توضیحات مستاجر')
     is_active = forms.BooleanField(required=False, initial=True, label='فعال/غیرفعال نمودن')
     mobile = forms.CharField(
         required=True,
@@ -516,7 +543,7 @@ class UnitForm(forms.ModelForm):
         if str(is_renter).lower() == 'true':
             required_fields_if_rented = [
                 'renter_name', 'renter_mobile', 'renter_national_code', 'estate_name',
-                'renter_people_count', 'start_date', 'end_date', 'contract_number', 'first_charge'
+                'renter_people_count', 'start_date', 'end_date', 'contract_number',
             ]
             for field in required_fields_if_rented:
                 if not cleaned_data.get(field):
@@ -531,8 +558,26 @@ class UnitForm(forms.ModelForm):
                   'parking_number', 'parking_count', 'status_residence', 'purchase_date', 'renter_name',
                   'renter_national_code', 'renter_details', 'extra_parking_first', 'extra_parking_second',
                   'renter_mobile', 'is_renter', 'owner_people_count',
-                  'renter_people_count', 'start_date', 'end_date', 'first_charge', 'contract_number',
-                  'estate_name', 'is_active', 'mobile', 'password', 'confirm_password']
+                  'renter_people_count', 'start_date', 'end_date', 'first_charge_owner', 'first_charge_renter',
+                  'contract_number', 'bank', 'transaction_no', 'payment_date',
+                  'estate_name', 'is_active', 'password', 'mobile', 'confirm_password']
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        if user:
+            banks = Bank.objects.filter(is_active=True, user=user)
+            self.fields['bank'].queryset = banks
+
+            # پیدا کردن بانک پیش‌فرض
+            default_bank = banks.filter(is_default=True).first()
+            if default_bank:
+                self.fields['bank'].initial = default_bank
+
+            # تغییر label برای نمایش "(پیش‌فرض)" کنار نام بانک
+            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
+                " (پیش‌فرض)" if obj.is_default else "")
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -548,10 +593,13 @@ class UnitForm(forms.ModelForm):
             instance.start_date = None
             instance.end_date = None
             instance.contract_number = ''
-            instance.first_charge = 0
+            instance.first_charge_renter = None or 0
             instance.renter_details = ''
+            instance.transaction_no = None
+            instance.payment_date = None
+
             # Set people_count from owner's info
-            instance.people_count = self.cleaned_data.get('owner_people_count') or 0
+            instance.people_count = int(self.cleaned_data.get('owner_people_count')) or 0
         else:
             # We'll assign renter_people_count later
             instance.people_count = 0  # default for now
@@ -567,6 +615,130 @@ class UnitForm(forms.ModelForm):
                     instance.save(update_fields=['people_count'])  # update only this field
 
         return instance
+
+
+class RenterAddForm(forms.ModelForm):
+    bank = forms.ModelChoiceField(
+        queryset=Bank.objects.none(),
+        empty_label="شماره حساب را انتخاب کنید",
+        error_messages=error_message,
+        required=False,
+        label=' حساب بانکی جهت واریز شارژ',
+        widget=forms.Select(
+            attrs={
+                'class': 'form-control-sm ',
+                'style': 'width:100%',
+                # 'data-placeholder': 'واحد / مالک یا مستاجر را انتخاب کنید1'
+            }
+        )
+    )
+    renter_name = forms.CharField(error_messages=error_message, required=False, widget=forms.TextInput(attrs=attr),
+                                  label='نام مستاجر')
+    renter_mobile = forms.CharField(error_messages=error_message,
+                                    required=False,
+                                    max_length=11,
+                                    min_length=11,
+                                    widget=forms.TextInput(attrs=attr),
+                                    label='شماره تلفن مستاجر')
+    renter_national_code = forms.CharField(error_messages=error_message, required=False,
+                                           max_length=10,
+                                           min_length=10,
+                                           widget=forms.TextInput(attrs=attr), label='کد ملی مستاجر')
+    renter_people_count = forms.CharField(error_messages=error_message, required=False,
+                                          widget=forms.TextInput(attrs=attr),
+                                          label='تعداد نفرات')
+
+    start_date = JalaliDateField(
+        label='تاریخ شروع اجاره',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    end_date = JalaliDateField(
+        label='تاریخ پایان اجاره',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    contract_number = forms.CharField(error_messages=error_message, required=False, widget=forms.TextInput(attrs=attr),
+                                      label='شماره قرارداد')
+    estate_name = forms.CharField(error_messages=error_message, required=False, widget=forms.TextInput(attrs=attr),
+                                  label='نام اجاره دهنده')
+    first_charge_owner = forms.CharField(error_messages=error_message, required=False,
+                                         widget=forms.TextInput(attrs=attr),
+                                         label='شارژ اولیه مالک', initial=0)
+    first_charge_renter = forms.CharField(error_messages=error_message, required=False,
+                                          widget=forms.TextInput(attrs=attr),
+                                          label='شارژ اولیه مستاجر', initial=0)
+    renter_details = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'rows': 8}), required=False,
+                                     label='توضیحات مستاجر')
+
+    renter_is_active = forms.BooleanField(required=False, initial=True, label='فعال')
+    transaction_no = forms.IntegerField(error_messages=error_message,
+                                        widget=forms.TextInput(attrs=attr),
+                                        required=False, min_value=0,
+                                        label='کد پیگیری')
+    payment_date = JalaliDateField(
+        label='تاریخ پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    # mobile = forms.CharField(
+    #     required=True,
+    #     max_length=11,
+    #     min_length=11,
+    #     error_messages=error_message,
+    #     label='نام کاربری',
+    #     widget=forms.TextInput(attrs=attr)
+    # )
+    password = forms.CharField(
+        required=False,
+        label='رمز عبور',
+        widget=forms.PasswordInput(attrs=attr),
+        help_text='رمز عبور باید شامل اعداد و حروف باشد'
+    )
+    confirm_password = forms.CharField(
+        required=False,
+        label='تایید رمز عبور',
+        widget=forms.PasswordInput(attrs=attr),
+        help_text='رمز عبور باید شامل اعداد و حروف باشد'
+    )
+
+    class Meta:
+        model = Renter
+        fields = [
+            'renter_name',
+            'renter_mobile',
+            'renter_national_code',
+            'renter_people_count',
+            'start_date',
+            'end_date',
+            'contract_number',
+            'estate_name',
+            'first_charge_renter',
+            'renter_details',
+            'renter_is_active',
+            'transaction_no',
+            'payment_date',
+            'bank',
+            'password',
+            'confirm_password'
+        ]
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        if user:
+            banks = Bank.objects.filter(is_active=True, user=user)
+            self.fields['bank'].queryset = banks
+
+            # پیدا کردن بانک پیش‌فرض
+            default_bank = banks.filter(is_default=True).first()
+            if default_bank:
+                self.fields['bank'].initial = default_bank
+
+            # تغییر label برای نمایش "(پیش‌فرض)" کنار نام بانک
+            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
+                " (پیش‌فرض)" if obj.is_default else "")
 
 
 # ======================== Expense Forms =============================
@@ -801,6 +973,7 @@ class ReceiveMoneyForm(forms.ModelForm):
         error_messages=error_message,
         required=True,
         label=' حساب بانکی'
+
     )
     unit = forms.ModelChoiceField(
         queryset=Unit.objects.none(),  # خالی → ajax پرش می‌کنه

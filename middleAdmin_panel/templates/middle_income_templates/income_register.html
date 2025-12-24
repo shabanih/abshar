@@ -185,12 +185,12 @@
                 enctype="multipart/form-data" novalidate>
               {% csrf_token %}
                  <div class="row align-items-center p-0 g-2">
-                      <div class="col-12 col-lg-6 col-xl-6">
+                      <div class="col-12">
                       {{ form.bank.label_tag }}
                       {{ form.bank }}
                       {{ form.bank.errors }}
                   </div>
-                  <div class="col-12 col-lg-6 col-xl-6">
+                  <div class="col-12">
                       {{ form.category.label_tag }}
                       {{ form.category }}
                       {{ form.category.errors }}

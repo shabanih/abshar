@@ -122,6 +122,29 @@
                                           {{ form.owner_details.errors }}
                                            </div>
                                       </div>
+                                         <div class="row g-1">
+                                         <div class="col-12 col-lg-3 col-xl-3">
+                                          {{ form.first_charge_owner.label_tag }}
+                                          {{ form.first_charge_owner }}
+                                          {{ form.first_charge_owner.errors }}
+                                      </div>
+                                      <div class=" col-12 col-lg-4 col-xl-4">
+                                        {{ form.bank.label_tag }}
+                                        {{ form.bank }}
+                                        {{ form.bank.errors }}
+                                      </div>
+                                       <div class=" col-12 col-lg-2 col-xl-2">
+                                        {{ form.payment_date.label_tag }}
+                                        {{ form.payment_date }}
+                                        {{ form.payment_date.errors }}
+                                      </div>
+                                      <div class=" col-12 col-lg-2 col-xl-2">
+                                        {{ form.transaction_no.label_tag }}
+                                        {{ form.transaction_no }}
+                                        {{ form.transaction_no.errors }}
+                                      </div>
+                                    
+                                    </div>
 
 
                              <hr class="mt-2" style="color: #0f1531">
@@ -155,11 +178,12 @@
                                           {{ form.renter_people_count }}
                                           {{ form.renter_people_count.errors }}
                                       </div>
-                                          <div class="col-6 col-lg-2 col-xl-2">
-                                          {{ form.first_charge.label_tag }}
-                                          {{ form.first_charge }}
-                                          {{ form.first_charge.errors }}
+                                             <div class="col-6 col-lg-2 col-xl-2">
+                                          {{ form.estate_name.label_tag }}
+                                          {{ form.estate_name }}
+                                          {{ form.estate_name.errors }}
                                       </div>
+                                
                                           <div class="col-6 col-lg-2 col-xl-2">
                                            {{ form.contract_number.label_tag }}
                                           {{ form.contract_number }}
@@ -178,17 +202,35 @@
                                           {{ form.end_date }}
                                           {{ form.end_date.errors }}
                                       </div>
-                                         <div class="col-6 col-lg-2 col-xl-2">
-                                          {{ form.estate_name.label_tag }}
-                                          {{ form.estate_name }}
-                                          {{ form.estate_name.errors }}
-                                      </div>
-                                           <div class="col-6 col-lg-12 col-xl-12">
+                                   
+                                           <div class="col-12 col-lg-8 col-xl-8">
                                           {{ form.renter_details.label_tag }}
                                           {{ form.renter_details }}
                                           {{ form.renter_details.errors }}
                                       </div>
                                     </div>
+                                         <div class="row g-3">
+                                    <div class="col-6 col-lg-3 col-xl-3">
+                                      {{ form.first_charge_renter.label_tag }}
+                                      {{ form.first_charge_renter }}
+                                      {{ form.first_charge_renter.errors }}
+                                  </div>
+                                     <div class="col-6 col-lg-4 col-xl-4">
+                                          {{ form.bank.label_tag }}
+                                          {{ form.bank }}
+                                          {{ form.bank.errors }}
+                                      </div>
+                                       <div class="col-6 col-lg-4 col-xl-2">
+                                          {{ form.payment_date.label_tag }}
+                                          {{ form.payment_date }}
+                                          {{ form.payment_date.errors }}
+                                      </div>
+                                         <div class="col-6 col-lg-4 col-xl-3">
+                                          {{ form.transaction_no.label_tag }}
+                                          {{ form.transaction_no }}
+                                          {{ form.transaction_no.errors }}
+                                      </div>
+                                        </div>
                                   </div>
                                        <hr class="mt-2" style="color: #0f1531">
                                       <div class="row justify-content-start">

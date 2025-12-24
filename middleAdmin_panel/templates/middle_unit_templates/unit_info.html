@@ -79,7 +79,10 @@
              <div class="col-6 col-lg-3 col-xl-3 p-0">
                <p class="renterInfoModal bg-warning">نام کاربری:<strong class="me-2">{{ unit.user.username }}</strong></p>
             </div>
-            <div class="col-6 col-lg-6 col-xl-6">
+            <div class="col-6 col-lg-3 col-xl-3">
+               <p class="renterInfoModal">شارژ اولیه:<strong class="me-2 text-danger">{{ unit.first_charge_owner|three_digit_currency }} تومان</strong></p>
+            </div>
+           <div class="col-6 col-lg-6 col-xl-6">
                <p class="renterInfoModal">توضیحات:<strong class="me-2 text-danger">{{ unit.owner_details }}</strong></p>
             </div>
         </div>
@@ -87,8 +90,15 @@
     </div>
       <hr>
     <br/>
-
-        <div class="table-responsive">
+    <div class="col-12 col-md-4 col-xl-5">
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="جستجوی سریع در جدول..."
+                onkeyup="searchTableUnit()"
+                class="form-control">
+        </div>
+        <div class="table-responsive mt-3">
                 <table class="table table-bordered" id="unitTable">
                     <thead class="text-center">
                         <tr>
@@ -115,7 +125,7 @@
                 <td>{{ renter.renter_mobile|default:"---" }}</td>
                 <td>{{ renter.renter_national_code|default:"---" }}</td>
                 <td>{{ renter.renter_people_count|default:"---" }}</td>
-                <td>{{ renter.first_charge|three_digit_currency}}</td>
+                <td>{{ renter.first_charge_renter|three_digit_currency}}</td>
                 <td>{{ renter.contract_number|default:"---" }}</td>
                 <td>{{ renter.start_date|show_jalali }}</td>
                 <td>{{ renter.start_date|show_jalali }}</td>
@@ -140,7 +150,25 @@
                 </table>
 
 
+<!-- Pagination -->
+      <div class="col-12">
+        <div class="pagination d-flex justify-content-center mt-5">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+            {% endif %}
 
+            {% for page_number in page_obj.paginator.page_range %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_number }}"
+                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
+                    {{ page_number }}
+                </a>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+            {% endif %}
+        </div>
+    </div>
             </div>
 
 {% endblock %}

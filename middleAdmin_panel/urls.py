@@ -30,6 +30,8 @@ urlpatterns = [
     # Unit Urls
     path('middle-add-unit', views.MiddleUnitRegisterView.as_view(), name='middle_add_unit'),
     path('middle-info-unit/<int:pk>/', views.MiddleUnitInfoView.as_view(), name='middle_unit_info'),
+    path('unit//add-renter/<int:unit_id>/', views.add_renter_to_unit, name='add_renter_to_unit'),
+
     path('edit/middle/unit/<int:pk>/', views.MiddleUnitUpdateView.as_view(), name='middle_edit_unit'),
     path('delete/middle/unit/<int:pk>/', views.middle_unit_delete, name='middle_delete_unit'),
     path('middle-manage-unit', views.MiddleUnitListView.as_view(), name='middle_manage_unit'),

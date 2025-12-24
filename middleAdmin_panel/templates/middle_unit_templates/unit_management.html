@@ -103,7 +103,7 @@
                 <table class="table table-bordered" id="unitTable">
                     <thead class="text-center">
                         <tr>
-                            <th>#</th>
+{#                            <th>#</th>#}
                             <th> واحد</th>
                             <th>نام مالک</th>
                             <th>موبایل مالک</th>
@@ -112,7 +112,7 @@
 {#                            <th>تعداد نفرات مالک</th>#}
                             <th>نام مستاجر</th>
                             <th>موبایل مستاجر</th>
-                            <th>تعداد نفرات </th>
+{#                            <th>تعداد نفرات </th>#}
                             <th>وضعیت سکونت</th>
                             <th>فعال/غیرفعال</th>
                             <th>دستورات</th>
@@ -123,7 +123,7 @@
                          {% if object_list  %}
                       {% for unit in object_list  %}
                             <tr>
-                          <td>{{ forloop.counter }}</td>
+{#                          <td>{{ forloop.counter }}</td>#}
                             <td>{{ unit.unit }}</td>
                             <td>{{ unit.owner_name }}</td>
                             <td>{{ unit.owner_mobile }}</td>
@@ -132,35 +132,27 @@
 {#                            <td>{{ unit.owner_people_count }}</td>#}
                             
                             <!-- Display Renters (multiple possible) -->
-                            <td>
-                                {% if unit.renters.all %}
-                                    {% for renter in unit.renters.all %}
-                                         {% if renter.renter_is_active %}
-                                        {{ renter.renter_name }} <br>
-                                        {% endif %}
-                                    {% endfor %}
-                                {% else %}
-                                    ---
-                                {% endif %}
-                            </td>
+                     <td>
+    {% if unit.active_renters %}
+        {% for renter in unit.active_renters %}
+            {{ renter.renter_name }} <br>
+        {% endfor %}
+    {% else %}
+        ---
+    {% endif %}
+</td>
+
+<td>
+    {% if unit.active_renters %}
+        {% for renter in unit.active_renters %}
+            {{ renter.renter_mobile }} <br>
+        {% endfor %}
+    {% else %}
+        ---
+    {% endif %}
+</td>
+
                             
-                            <!-- Display Renters' Mobile Numbers (multiple possible) -->
-                            <td>
-                                {% if unit.renters.all %}
-                                    {% for renter in unit.renters.all %}
-                                         {% if renter.renter_is_active %}
-                                        {{ renter.renter_mobile }} <br>
-                                        {% endif %}
-                                    {% endfor %}
-                                {% else %}
-                                    ---
-                                {% endif %}
-                            </td>
-                            
-                            <!-- Display Renters' People Count (multiple possible) -->
-                            <td>
-                              {{ unit.people_count }}
-                            </td>
                             
                             <td>{{ unit.status_residence }}</td>
                             <td>
@@ -171,7 +163,13 @@
                                 {% endif %}
                             </td>
 
-                                   <td class="col-lg-1 col-xl-1 p-0">
+                                   <td class="col-lg-2 col-xl-2 p-0">
+                                     
+                                    <a href="{% url 'add_renter_to_unit' unit.id %}" class="btn btn-primary px-1 py-2">
+                                                افزودن مستاجر
+                                            </a>
+                                    
+                                          
                                         <a href="{% url 'middle_unit_info' unit.id %}" class="btn btn-info p-1 p-1">
                                               <i class="mdi mdi-eye" aria-hidden="true"></i>
                                             </a>

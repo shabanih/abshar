@@ -1191,9 +1191,10 @@ class Fund(models.Model):
     final_amount = models.DecimalField(max_digits=12, decimal_places=0, default=0)
 
     payment_gateway = models.CharField(max_length=100, null=True, blank=True)
-    payment_date = models.DateField()
+    payment_date = models.DateField(null=True, blank=True)
     transaction_no = models.CharField(max_length=15, null=True, blank=True)
     payment_description = models.CharField(max_length=500, blank=True, null=True)
+    is_initial = models.BooleanField(default=False, verbose_name='افتتاحیه حساب')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
