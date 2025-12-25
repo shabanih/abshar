@@ -1,0 +1,160 @@
+{% load poll_extras %}
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <title>لیست هزینه ها</title>
+   <style>
+        @font-face {
+            font-family: 'BYekan';
+            src: url('{{ font_path }}') format('truetype');
+        }
+        @font-face {
+            font-family: VazirB2;
+            src: url('{{ font_path }}');
+            src: url('{{ font_path }}') format('embedded-opentype'),
+            url('{{ font_path }}') format('woff2'),
+            url('{{ font_path }}') format('woff'),
+            url('{{ font_path }}') format('truetype');
+            font-weight: normal;
+}
+
+
+        @font-face {
+            font-family: Vazir;
+            src: url('{{ font_path }}');
+            src: url('{{ font_path }}') format('embedded-opentype'),
+            url('{{ font_path }}') format('woff2'),
+            url('{{ font_path }}') format('woff'),
+            url('{{ font_path }}') format('truetype');
+            font-weight: 100;
+        }
+        body {
+            font-family: 'Vazir', sans-serif;
+            direction: rtl;
+            text-align: right;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead tr {
+            background-color: #9b9797;
+            color: #000000;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: center;
+        }
+        h1, h2{
+            text-align: center;
+            font-family: VazirB2, sans-serif;
+        }
+        .logo-style-pdf{
+            width: 200px;
+            height: 80px;
+            display: block;
+            margin: 0 auto;
+        }
+        p{
+           text-align: center; 
+        }
+    </style>
+</head>
+<body>
+
+<div class="text-center mb-4" style="border-bottom: 2px solid #333; padding-bottom: 10px;">
+    {% if house %}
+        <h1 class="fw-bold mb-1" style="color: #202548F9;">{{ house.name }}</h1>
+    {% endif %}
+    
+    <h2 class="fw-bold mb-1 text-center" style="color: #222;">لیست هزینه ها</h2>
+    
+    <p class="text-muted mb-0" style="font-size: 0.9rem;">
+        تاریخ: {{ today|show_jalali_date_time }}
+    </p>
+</div>
+
+
+  <div class="table-responsive">
+                <table class="table table-bordered " id="expenseTable">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th> موضوع هزینه</th>
+                            <th>شرح سند</th>
+                          
+                              <th>شماره سند</th>
+                            <th>تاریخ سند</th>
+                             <th>توضیحات سند</th>
+                            <th>تصویر سند</th>
+                            <th>حساب بانکی</th>
+                              <th>مبلغ</th>
+{#                            <th>دستورات</th>#}
+                        </tr>
+                    </thead>
+                {% if expenses %}
+               {% for expense in expenses %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{expense.category }}</td>
+                                <td>{{expense.description }}</td>
+                                
+                                <td>{{expense.doc_no }}</td>
+                                 <td>{{expense.date|show_jalali_date_only }}</td>
+                               <td>{{expense.details }}</td>
+                                <td class="d-flex justify-content-center align-self-center">
+                                  {% for doc in expense.documents.all %}
+                                        <a href="{{ doc.document.url }}" target="_blank" 
+                                           > 
+                                            <i class="fas fa-image fa-2x me-2"></i></a>
+                                    {% empty %}
+                                     !No File
+                                    {% endfor %}
+                                </td>
+                            <td>{{expense.bank }}</td>
+                            <td>{{expense.amount|three_digit_currency }}</td>
+                            </tr>
+                        {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="9" class="text-center">هیچ هزینه ای برای نمایش وجود ندارد.</td>
+                            </tr>
+                     <tbody>
+                    {% endif %}
+                              <tfoot>
+                            <tr>
+                                <th colspan="8" class="text-center">جمع کل</th>
+                                <th class="text-center fw-bold">{{ total_amount|three_digit_currency }}</th>
+                            </tr>
+                        </tfoot>
+                </table>
+                   <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+
+{#<p style="text-align: right; font-size: 11px;">تولید شده توسط سیستم مدیریت ساختمان</p>#}
+
+</body>
+</html>

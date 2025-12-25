@@ -1,0 +1,122 @@
+{% load poll_extras %}
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <title> لیست درآمدها   </title>
+   <style>
+        @font-face {
+            font-family: 'BYekan';
+            src: url('{{ font_path }}') format('truetype');
+        }
+        @font-face {
+            font-family: VazirB2;
+            src: url('{{ font_path }}');
+            src: url('{{ font_path }}') format('embedded-opentype'),
+            url('{{ font_path }}') format('woff2'),
+            url('{{ font_path }}') format('woff'),
+            url('{{ font_path }}') format('truetype');
+            font-weight: normal;
+}
+
+
+        @font-face {
+            font-family: Vazir;
+            src: url('{{ font_path }}');
+            src: url('{{ font_path }}') format('embedded-opentype'),
+            url('{{ font_path }}') format('woff2'),
+            url('{{ font_path }}') format('woff'),
+            url('{{ font_path }}') format('truetype');
+            font-weight: 100;
+        }
+        body {
+            font-family: 'Vazir', sans-serif;
+            direction: rtl;
+            text-align: right;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead tr {
+            background-color: #9b9797;
+            color: #000000;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: center;
+        }
+        h1, h2{
+            text-align: center;
+            font-family: VazirB2, sans-serif;
+        }
+        .logo-style-pdf{
+            width: 200px;
+            height: 80px;
+            display: block;
+            margin: 0 auto;
+        }
+        p{
+           text-align: center; 
+        }
+    </style>
+</head>
+<body>
+
+<div class="text-center mb-4" style="border-bottom: 2px solid #333; padding-bottom: 10px;">
+    {% if house %}
+        <h1 class="fw-bold mb-1" style="color: #202548F9;">{{ house.name }}</h1>
+    {% endif %}
+    
+    <h2 class="fw-bold mb-1 text-center" style="color: #222;">لیست درآمدها</h2>
+    
+    <p class="text-muted mb-0" style="font-size: 0.9rem;">
+        تاریخ: {{ today|show_jalali_date_time }}
+    </p>
+</div>
+
+
+<table>
+    <thead>
+        <tr>
+            <th>تاریخ</th>
+            <th>دسته‌بندی</th>
+            <th>شماره سند</th>
+            <th>شرح</th>
+              <th>واریز کننده</th>
+            <th>مبلغ (تومان)</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for income in incomes %}
+        <tr>
+            <td>{{ income.doc_date|show_jalali }}</td>
+            <td>{{ income.category.subject }}</td>
+   
+            <td>{{ income.doc_number}}</td>
+            <td>{{ income.description }}</td>
+                     <td>
+                {% if income.unit %}
+                	{{ income.unit }}
+                    {% else %}
+                    {{ income.payer_name }}
+
+                {% endif %} 
+            </td>
+            <td>{{ income.amount|three_digit_currency }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+            <td colspan="5">جمع کل</td>
+            <td>{{ total_amount|three_digit_currency }}</td>
+        </tr>
+    </tbody>
+</table>
+
+
+<p style="text-align: right; font-size: 11px;">تولید شده توسط سیستم مدیریت ساختمان</p>
+
+</body>
+</html>

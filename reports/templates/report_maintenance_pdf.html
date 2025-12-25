@@ -1,0 +1,177 @@
+{% load poll_extras %}
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <title>گزارش تعمیر و نگهداری ساختمان  </title>
+   <style>
+        @font-face {
+            font-family: 'BYekan';
+            src: url('{{ font_path }}') format('truetype');
+        }
+        @font-face {
+            font-family: VazirB2;
+            src: url('{{ font_path }}');
+            src: url('{{ font_path }}') format('embedded-opentype'),
+            url('{{ font_path }}') format('woff2'),
+            url('{{ font_path }}') format('woff'),
+            url('{{ font_path }}') format('truetype');
+            font-weight: normal;
+}
+
+
+        @font-face {
+            font-family: Vazir;
+            src: url('{{ font_path }}');
+            src: url('{{ font_path }}') format('embedded-opentype'),
+            url('{{ font_path }}') format('woff2'),
+            url('{{ font_path }}') format('woff'),
+            url('{{ font_path }}') format('truetype');
+            font-weight: 100;
+        }
+        body {
+            font-family: 'Vazir', sans-serif;
+            direction: rtl;
+            text-align: right;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead tr {
+            background-color: #9b9797;
+            color: #000000;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: center;
+        }
+        h1, h2{
+            text-align: center;
+            font-family: VazirB2, sans-serif;
+        }
+        .logo-style-pdf{
+            width: 200px;
+            height: 80px;
+            display: block;
+            margin: 0 auto;
+        }
+        p{
+           text-align: center; 
+        }
+    </style>
+</head>
+<body>
+
+<div class="text-center mb-2" style="border-bottom: 2px solid #333; padding-bottom: 10px;">
+    {% if house %}
+        <h1 class="fw-bold mb-1" style="color: #202548F9;">{{ house.name }}</h1>
+    {% endif %}
+    
+    <h2 class="fw-bold mb-1 text-center" style="color: #222;">گزارش تعمیر و نگهداری ساختمان</h2>
+    
+    <p class="text-muted mb-0" style="font-size: 0.9rem;">
+        تاریخ: {{ today|show_jalali_date_time }}
+    </p>
+</div>
+
+
+<div class="table-responsive">
+                <table class="table table-bordered " id="expenseTable">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th>شرح کار</th>
+                             <th>تاریخ شروع</th>
+                             <th>تاریخ پایان</th>
+                           
+                              <th>شرکت خدماتی</th>
+                            <th>شماره فاکتور</th>
+                             <th>توضیحات </th>
+                             <th>آخرین وضعیت</th>
+                            <th>تصویر سند</th>
+                             <th>اجرت/دستمزد</th>
+{#                            <th>دستورات</th>#}
+                        </tr>
+                    </thead>
+                    <thead>
+                                    <tr class="fw-bold sticky-summary">
+                                        <th class="bg-body text-dark fw-bold" colspan="9">جمع کل</th>
+                                          <th class="bg-light text-dark fw-bold">
+                                            {{ total_amount|three_digit_currency }}
+                                        </th>
+                                      
+                                    </tr>
+                            </thead>
+                {% if maintenances %}
+               {% for maintenance in maintenances %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                               <td>{{maintenance.maintenance_description }}</td>
+                             <td class="col-12 col-lg-1 col-xl-1">{{maintenance.maintenance_start_date|show_jalali }}</td>
+                                 <td class="col-12 col-lg-1 col-xl-1">{{maintenance.maintenance_end_date|show_jalali }}</td>
+                                <td>{{maintenance.service_company }}</td>
+                                <td>{{maintenance.maintenance_document_no }}</td>
+                               <td>{{maintenance.details }}</td>
+                            <td class="col-12 col-lg-1 col-xl-1 p-0">
+                                {% if maintenance.maintenance_status == 'در حال انجام' %}
+                                	<button class="btn btn-gradient-warning px-1 py-2">درحال انجام</button>
+                                    {% elif maintenance.maintenance_status == 'تکمیل شده' %}
+                                    <button class="btn btn-gradient-success px-1 py-2">تکمیل شده</button>
+                                    {% else %}
+                                    <button class="btn btn-gradient-danger px-1 py-2">تکمیل نشده</button>
+                                {% endif %} 
+                              
+                            </td>
+                            
+                            
+                                <td class=" justify-content-center align-self-center">
+                                  {% for doc in maintenance.documents.all %}
+                                        <a href="{{ doc.document.url }}" target="_blank" 
+                                           > 
+                                            <i class="fas fa-image fa-2x me-2"></i></a>
+                                    {% empty %}
+                                     !No File
+                                    {% endfor %}
+                                </td>
+                            <td>{{maintenance.maintenance_price|three_digit_currency }}</td>
+
+                            </tr>
+                        {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ سندی برای نمایش وجود ندارد.</td>
+                            </tr>
+                     <tbody>
+                    {% endif %}
+                </table>
+                   <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+
+
+
+
+</body>
+</html>
