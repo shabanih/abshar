@@ -1,4 +1,4 @@
-$(document).on('click', '.edit-expense-btn', function (e) {
+$(document).on('click', '.edit-m-expense', function (e) {
     e.preventDefault();
 
     var images = $(this).data('images');
@@ -80,7 +80,7 @@ $(document).on('click', '.delete-image321-btn', function () {
         }
     });
 });
-$(document).on('click', '.edit-expense-btn', function () {
+$(document).on('click', '.edit-m-expense', function () {
     console.log('ویرایش کلیک شد');
 
     // Get the expense ID from the clicked button's data attributes
@@ -88,8 +88,18 @@ $(document).on('click', '.edit-expense-btn', function () {
     // Set the form action URL dynamically
     $('#expenseForm').attr('action', '/middle-admin-panel/expense/middle/edit/' + id + '/');
 
-    // Populate the form with the expense data
-    $('#id_category').val($(this).data('category')).trigger('change');
+     // category
+    var category = $(this).data('category');
+    if ($('#id_category option[value="' + category + '"]').length) {
+        $('#id_category').val(category).trigger('change');
+    }
+
+    // bank
+    var bank = $(this).data('bank');
+    if ($('#id_bank option[value="' + bank + '"]').length) {
+        $('#id_bank').val(bank).trigger('change');
+    }
+
     $('#id_amount').val($(this).data('amount'));
 
     // Ensure date is in YYYY-MM-DD format before setting it
@@ -108,7 +118,7 @@ $(document).on('click', '.edit-expense-btn', function () {
 });
  document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('exampleModalLong');
-    const form = document.getElementById('personForm');
+    const form = document.getElementById('expenseForm');
 
     modal.addEventListener('hidden.bs.modal', function () {
       form.reset();
@@ -116,7 +126,7 @@ $(document).on('click', '.edit-expense-btn', function () {
   });
 
 // ==========================================
-$(document).on('click', '.edit-income-btn', function (e) {
+$(document).on('click', '.edit-m-income', function (e) {
     e.preventDefault();
 
     var images = $(this).data('images');
@@ -198,7 +208,7 @@ $(document).on('click', '.delete-image21-btn', function () {
         }
     });
 });
- $(document).on('click', '.edit-Mincome-btn', function () {
+ $(document).on('click', '.edit-m-income', function () {
     console.log('ویرایش کلیک شد');
 
     // Get the expense ID from the clicked button's data attributes
@@ -206,15 +216,27 @@ $(document).on('click', '.delete-image21-btn', function () {
     // Set the form action URL dynamically
     $('#incomeForm').attr('action', '/middle-admin-panel/income/middle/edit/' + id + '/');
 
-    // Populate the form with the expense data
-    $('#id_category').val($(this).data('category')).trigger('change');
+     // category
+    var category = $(this).data('category');
+    if ($('#id_category option[value="' + category + '"]').length) {
+        $('#id_category').val(category).trigger('change');
+    }
+
+    // bank
+    var bank = $(this).data('bank');
+    if ($('#id_bank option[value="' + bank + '"]').length) {
+        $('#id_bank').val(bank).trigger('change');
+    }
+     var unit = $(this).data('unit');
+    if ($('#id_unit option[value="' + unit + '"]').length) {
+        $('#id_unit').val(unit).trigger('change');
+    }
+
+    $('#id_payer_name').val($(this).data('payer_name'));
     $('#id_amount').val($(this).data('amount'));
 
     // Ensure date is in YYYY-MM-DD format before setting it
-    var expenseDate = $(this).data('doc_date');
-    // If the date is in a format other than YYYY-MM-DD, convert it here
-    // You can use moment.js or another library for conversion if necessary
-    $('#id_doc_date').val(expenseDate);  // Assuming it's already in correct format
+    $('#id_doc_date').val($(this).data('doc_date'));
 
     $('#id_doc_number').val($(this).data('doc_number'));
     $('#id_description').val($(this).data('description'));
@@ -234,15 +256,44 @@ $(document).on('click', '.delete-image21-btn', function () {
   });
 
 // ========================================================================
-$(document).on('click', '.edit-bank-btn', function () {
+$(document).on('click', '.edit-house-btn', function () {
     console.log('ویرایش کلیک شد2');
 
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
-    $('#bankForm').attr('action', '/middle-admin-panel/bank/middle/edit/' + id + '/');
+    $('#houseForm').attr('action', '/middle-admin-panel/middle/house/edit/' + id + '/');
 
     // Populate the form with the expense data
-    $('#id_house_name').val($(this).data('house_name'));
+    $('#id_name').val($(this).data('name'));
+    $('#id_user_type').val($(this).data('user_type'));
+    $('#id_city').val($(this).data('city'));
+    $('#id_address').val($(this).data('address'));
+       // تعیین مقدار is_active
+    let isActive = $(this).data('is_active');
+    $('#editForm select[name="is_active"]').val(isActive.toString());
+    // Update the modal title and submit button text for editing
+    $('#exampleModalLongTitle3').text('ویرایش اطلاعات ');
+    $('#btn-submit-bank').text('ویرایش اطلاعات ساختمان');
+});
+ document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('exampleModalLong');
+    const form = document.getElementById('personForm');
+
+    modal.addEventListener('hidden.bs.modal', function () {
+      form.reset();
+    });
+  });
+
+
+ $(document).on('click', '.edit-m-bank', function () {
+    console.log('ویرایش کلیک شد2');
+
+    // Get the expense ID from the clicked button's data attributes
+    var id = $(this).data('id');
+    $('#bankForm').attr('action', '/middle-admin-panel/middle/bank/edit/' + id + '/');
+
+
+    $('#id_house').val($(this).data('house')).trigger('change');
     $('#id_bank_name').val($(this).data('bank_name'));
     $('#id_account_holder_name').val($(this).data('account_holder_name'));
     $('#id_account_no').val($(this).data('account_no'));
@@ -250,13 +301,17 @@ $(document).on('click', '.edit-bank-btn', function () {
     $('#id_cart_number').val($(this).data('cart_number'));
     $('#id_initial_fund').val($(this).data('initial_fund').toString().replace(/,/g, ''));
 
+     // ✅ set select values
+    $('#id_is_active').val($(this).data('is_active'));
+    $('#id_is_default').val($(this).data('is_default'));
+
     // Update the modal title and submit button text for editing
     $('#exampleModalLongTitle3').text('ویرایش اطلاعات ساختمان');
     $('#btn-submit-bank').text('ویرایش اطلاعات ساختمان');
 });
  document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('exampleModalLong');
-    const form = document.getElementById('personForm');
+    const form = document.getElementById('bankForm');
 
     modal.addEventListener('hidden.bs.modal', function () {
       form.reset();
@@ -390,6 +445,7 @@ $(document).on('click', '.edit-Mreceive-btn', function () {
 
     // Populate the form with the expense data
     $('#id_bank').val($(this).data('bank')).trigger('change');
+    $('#id_unit').val($(this).data('unit')).trigger('change');
     $('#id_amount').val($(this).data('amount'));
     $('#id_payer_name').val($(this).data('payer_name'));
 
@@ -499,24 +555,20 @@ $(document).on('click', '.delete-image_payment-btn', function () {
         }
     });
 });
-$(document).on('click', '.edit-pay-btn', function () {
+$(document).on('click', '.edit-m-pay', function () {
     console.log('ویرایش کلیک شد');
 
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     // Set the form action URL dynamically
-    $('#receiveForm').attr('action', '/middle-admin-panel/pay/middle/edit/' + id + '/');
+    $('#payForm').attr('action', '/middle-admin-panel/pay/middle/edit/' + id + '/');
 
     // Populate the form with the expense data
     $('#id_bank').val($(this).data('bank')).trigger('change');
+    $('#id_unit').val($(this).data('unit')).trigger('change');
     $('#id_amount').val($(this).data('amount'));
     $('#id_receiver_name').val($(this).data('receiver_name'));
-
-    // Ensure date is in YYYY-MM-DD format before setting it
-    var receiveDate = $(this).data('document_date');
-    // If the date is in a format other than YYYY-MM-DD, convert it here
-    // You can use moment.js or another library for conversion if necessary
-    $('#id_document_date').val(receiveDate);  // Assuming it's already in correct format
+    $('#id_document_date').val($(this).data('document_date'));
 
     $('#id_document_number').val($(this).data('document_number'));
     $('#id_description').val($(this).data('description'));
@@ -528,7 +580,7 @@ $(document).on('click', '.edit-pay-btn', function () {
 });
  document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('exampleModalLong');
-    const form = document.getElementById('personForm');
+    const form = document.getElementById('payForm');
 
     modal.addEventListener('hidden.bs.modal', function () {
       form.reset();

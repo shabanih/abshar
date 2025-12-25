@@ -14218,7 +14218,7 @@ dl {
             margin-left: auto;
             margin-right: 1rem; }
         .sidebar .nav .nav-item.nav-profile .nav-link .nav-profile-badge {
-          font-size: 2.125rem;
+          font-size: 1.125rem;
           margin-left: auto; }
           .rtl .sidebar .nav .nav-item.nav-profile .nav-link .nav-profile-badge {
             margin-left: 0;
@@ -14491,3 +14491,12 @@ ul > li {
     border-bottom: 2px solid var(--bs-secondary) !important;
 }
 /*** Single Page End ***/
+
+.counter-badge {
+    position: relative;
+    top: -8px;
+    right: -10px;
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: 50%;
+}

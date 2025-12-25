@@ -35,15 +35,15 @@ document.querySelector('input[name="document"]').addEventListener('change', func
 });
 
 
-$(document).ready(function () {
-    $("#from_date, #to_date").persianDatepicker({
-        format: 'YYYY-MM-DD',
-        autoClose: true,
-        initialValue: false,
-        observer: true, // Fix positioning
-        responsive: true, // (some forks support it, safe to include) autoClose: true,
-    });
-});
+// $(document).ready(function () {
+//     $("#from_date, #to_date").persianDatepicker({
+//         format: 'YYYY-MM-DD',
+//         autoClose: true,
+//         initialValue: false,
+//         observer: true, // Fix positioning
+//         responsive: true, // (some forks support it, safe to include) autoClose: true,
+//     });
+// });
 
 function openQuery() {
     var form = document.getElementById('query-form');

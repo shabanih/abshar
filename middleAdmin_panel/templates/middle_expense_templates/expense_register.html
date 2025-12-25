@@ -51,10 +51,12 @@
                                value="{{ request.GET.doc_no }}">
                     </div>
                      <div class="col-md-2">
-                            <input type="text" id="from_date" name="from_date" class="form-control" placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
+                            <input type="text"  name="from_date" data-jdp data-jdp-only-date class="form-control" 
+                                   placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
                           </div>
                      <div class="col-md-2">
-                        <input type="text" id="to_date" name="to_date" class="form-control" placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
+                        <input type="text"  name="to_date" data-jdp data-jdp-only-date class="form-control" 
+                               placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
                         </div>
                </div>
                 <div class="row mt-2 mb-2">

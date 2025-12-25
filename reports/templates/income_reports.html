@@ -1,80 +1,126 @@
 {% extends 'middleShared/base_template.html' %}
 {% load static %}
 {% load poll_extras %}
-
 {% block page_title %}
 گزارش درآمدها
 {% endblock page_title %}
 
 {% block main_content %}
-{#    <hr/>#}
-<div class="container py-5">
-    <div class="row g-2 align-items-center mb-1 mt-4">
-
-        <!-- جستجو -->
-        <div class="col-12 col-md-7">
-            <form method="get" class="d-flex gap-2">
-                <input type="text"
-                       class="form-control"
-                       name="q"
-                       value="{{ query }}"
-                       placeholder="جستجو..."
-                       dir="rtl"
-                       autocomplete="off"
-                       oninput="if(this.value==='') this.form.submit();">
-                <button type="submit" class="btn btn-info py-2">
-                    جستجو
-                </button>
-            </form>
-        </div>
-
-        <!-- خروجی -->
-        <div class="col-12 col-md-3 d-flex gap-1">
-            <a href="{% url 'export_user_report_excel' %}"
-               class="btn btn-gradient-success w-50">
-                Excel
+    <hr/>
+<div class="container p-0">
+ 
+      <div class="row align-self-center mb-2">
+          <div class="col-12 col-md-8 col-xl-8">
+              <input type="text" id="searchInput" placeholder="جستجوی سریع در جدول..." onkeyup="searchTableIncome()" class="form-control mb-2 mt-2 p-2">
+          </div>
+        <div class=" col-12 col-md-4 col-xl-4 text-center text-md-start align-self-center">
+            <button onclick="openQuery()" class="btn btn-gradient-info px-2 py-2">جستجوی پیشرفته</button>
+            <a href="{% url 'export_income_report_excel' %}?{{ request.GET.urlencode }}"
+   class="btn btn-gradient-success px-2 py-2">خروجی Excel</a>
+            <a href="{% url 'export_income_report_pdf' %}?{{ request.GET.urlencode }}"
+               class="btn btn-gradient-danger px-2 py-2">
+               خروجی PDF
             </a>
-            <a href="{% url 'export_user_report_pdf' %}?{{ request.GET.urlencode }}"
-               class="btn btn-gradient-danger w-50">
-                PDF
-            </a>
-        </div>
+            </div>
+          </div>
+       <div id="query-form" style="display: none;" class="row mt-2">
+            <form method="get">
+               <div class="row mt-2 g-2">
+                     <div class="col-md-2">
+                      <select name="category" class="form-control form-control-sm">
+                        <option value="">انتخاب کنید</option>
+                        {% for cat in categories %}
+                            <option value="{{ cat.id }}" {% if request.GET.category == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.subject }}</option>
+                        {% endfor %}
+                    </select>
+                    </div>
+                     <div class="col-md-3">
+             <select name="bank" class="form-control form-control-sm">
+                <option value="">بانک را انتخاب کنید</option>
+                {% for bank in banks %}
+                    <option value="{{ bank.id }}" {% if request.GET.bank == bank.id|stringformat:"s" %}selected{% endif %}>
+                        {{ bank.bank_name }} - {{ bank.account_no }}
+                    </option>
+                {% endfor %}
+            </select>
 
-        <!-- تعداد نمایش -->
-     <div class="col-12 col-md-2 col-xl-2 p-3 "> 
-         <div class="d-flex align-items-center gap-1"> 
-             <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label> 
-             <select id="cardsPerPage" class="form-select select-fix" 
-                     style="width: auto;" onchange="window.location.href='?q={{ query }}&paginate=' + this.value;"> 
-                 <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option> 
-                 <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option> 
-                 <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option> 
-                 <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
-             </select>
-         </div> 
-     </div>
+                    </div>
+                     <div class="col-md-3">
+                 <select name="unit" class="form-control form-control-sm">
+                        <option value="">واحد را انتخاب کنید</option>
+                        {% for unit in units %}
+                            <option value="{{ unit.id }}" {% if request.GET.unit == unit.id|stringformat:"s" %}selected{% endif %}>
+                                واحد {{ unit.unit }}{% if unit.get_active_renter %} - {{ unit.get_active_renter.renter_name }}{% else %} - {{ unit.owner_name }}{% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    </div>
+               
+                       <div class="col-md-2">
+                            <input type="text"  name="from_date" data-jdp data-jdp-only-date class="form-control" 
+                                   placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
+                          </div>
+                     <div class="col-md-2">
+                        <input type="text"  name="to_date" data-jdp data-jdp-only-date class="form-control" 
+                               placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
+                        </div>
+                       </div>
+                <div class="row mt-2 mb-2 g-2">
+                       <div class="col-md-2">
+                        <input type="text" name="amount" class="form-control" placeholder="مبلغ"
+                               value="{{ request.GET.amount }}">
+                    </div>
+                     <div class="col-md-2">
+                        <input type="text" name="doc_number" class="form-control" placeholder="شماره سند"
+                               value="{{ request.GET.doc_no }}">
+                    </div>
+                      <div class="col-md-3">
+                <input type="text" name="description" class="form-control" placeholder="شرح سند"
+                       value="{{ request.GET.description }}">
+            </div>
+                      <div class="col-md-5">
+                       <input type="text" name="details" class="form-control" placeholder="توضیحات سند"
+                       value="{{ request.GET.details }}">
+                      </div>
+                   
+                    </div>
+             <div class="row">
+                       <div class="col-md-12 align-self-center text-start mb-2">
+                            <button type="submit" class="btn btn-facebook px-3 py-2">جستجو</button>
+                            <button type="button" class="btn btn-gradient-danger px-3 py-2" onclick="window.location.href=window.location.pathname;">حذف فیلتر</button>
+                        </div>
+                        </div>
+               </form>
+         </div>
 
-    </div>
 
-<div class="row mt-1">
-    <div class="col-12">
-          <div class="table-responsive">
+            <div class="table-responsive">
                 <table class="table table-bordered " id="incomeTable">
                     <thead class="text-center">
                         <tr>
                             <th>#</th>
                             <th> موضوع درآمد</th>
                             <th>شرح سند</th>
-                        
+                      
                               <th>شماره سند</th>
                             <th>تاریخ سند</th>
                              <th>توضیحات سند</th>
                             <th>تصویر سند</th>
+                            <th> پرداخت کننده</th>
                             <th>حساب بانکی</th>
-                                <th>مبلغ</th>
 {#                            <th>دستورات</th>#}
+                                  <th>مبلغ</th>
                         </tr>
                     </thead>
+                      <thead>
+                                    <tr class="fw-bold sticky-summary">
+                                        <th class="bg-body text-dark fw-bold" colspan="9">جمع کل</th>
+                                          <th class="bg-light text-dark fw-bold">
+                                            {{ total_amount|three_digit_currency }}
+                                        </th>
+                                      
+                                    </tr>
+                            </thead>
                 {% if page_obj %}
                {% for income in page_obj %}
                         <tbody class="text-center">
@@ -84,7 +130,7 @@
                                 <td>{{income.description }}</td>
                                 
                                 <td>{{income.doc_number }}</td>
-                                 <td>{{income.doc_date|show_jalali_date_only }}</td>
+                                 <td>{{income.doc_date|show_jalali }}</td>
                                <td>{{income.details }}</td>
                                 <td class="d-flex justify-content-center align-self-center">
                                   {% for doc in income.documents.all %}
@@ -95,8 +141,17 @@
                                      !No File
                                     {% endfor %}
                                 </td>
+                                        <td>
+                                     {% if income.unit %}
+                                     	{{ income.unit }}
+                                         {% else %}
+                                     {{income.payer_name }}
+                                     {% endif %} 
+                                   
+                                 </td>
                             <td>{{income.bank }}</td>
-                            <td class="bg-gradient-secondary">{{income.amount|three_digit_currency }}</td>
+                            <td>{{income.amount|three_digit_currency }}</td>
+                            
                             </tr>
                         {% endfor %}
                             {% else %}
@@ -105,43 +160,38 @@
                             </tr>
                      <tbody>
                     {% endif %}
-                                    <tfoot>
-                            <tr>
-                                <th colspan="8" class="text-center">جمع کل</th>
-                                <th class="text-center fw-bold">{{ total_amount|three_digit_currency }}</th>
-                            </tr>
-                        </tfoot>
+                       
                 </table>
-             
+                   <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-    </div>
-</div>
-      <!-- Pagination -->
-<div class="row mt-3">
-    <div class="col-12">
-        <div class="pagination d-flex justify-content-center mt-5">
-            {% if page_obj.has_previous %}
-                <a href="?q={{ query }}&paginate={{ paginate }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
-            {% endif %}
-
-            {% for page_number in page_obj.paginator.page_range %}
-                <a href="?q={{ query }}&paginate={{ paginate }}&page={{ page_number }}"
-                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
-                    {{ page_number }}
-                </a>
-            {% endfor %}
-
-            {% if page_obj.has_next %}
-                <a href="?q={{ query }}&paginate={{ paginate }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
-            {% endif %}
         </div>
-    </div>
-</div>
-</div>
+<script type="text/javascript" src="https://unpkg.com/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
 
-
-
-
+{#{% static 'js/jalalidatepicker.min.js' %}#}
 {% endblock %}
+
+
+
+
+
+
 
 

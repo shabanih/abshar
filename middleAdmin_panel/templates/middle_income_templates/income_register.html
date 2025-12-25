@@ -2,7 +2,7 @@
 {% load static %}
 {% load poll_extras %}
 {% block page_title %}
-مدیریت درامدها ( تعداد کل درآمدهای ثبت شده:{{ total_incomes }} )
+مدیریت درآمدها ( تعداد کل ثبت شده:{{ total_incomes }} )
 {% endblock page_title %}
 
 {% block main_content %}
@@ -29,10 +29,10 @@
             </a>
             </div>
           </div>
-       <div id="query-form" style="display: none;" class="row mt-2">
+         <div id="query-form" style="display: none;" class="row mt-2">
             <form method="get">
-               <div class="row mt-2">
-                     <div class="col-md-3">
+               <div class="row mt-2 g-2">
+                     <div class="col-md-2">
                       <select name="category" class="form-control form-control-sm">
                         <option value="">انتخاب کنید</option>
                         {% for cat in categories %}
@@ -41,6 +41,39 @@
                     </select>
                     </div>
                      <div class="col-md-3">
+             <select name="bank" class="form-control form-control-sm">
+                <option value="">بانک را انتخاب کنید</option>
+                {% for bank in banks %}
+                    <option value="{{ bank.id }}" {% if request.GET.bank == bank.id|stringformat:"s" %}selected{% endif %}>
+                        {{ bank.bank_name }} - {{ bank.account_no }}
+                    </option>
+                {% endfor %}
+            </select>
+
+                    </div>
+                     <div class="col-md-3">
+                 <select name="unit" class="form-control form-control-sm">
+                        <option value="">واحد را انتخاب کنید</option>
+                        {% for unit in units %}
+                            <option value="{{ unit.id }}" {% if request.GET.unit == unit.id|stringformat:"s" %}selected{% endif %}>
+                                واحد {{ unit.unit }}{% if unit.get_active_renter %} - {{ unit.get_active_renter.renter_name }}{% else %} - {{ unit.owner_name }}{% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    </div>
+               
+                     <div class="col-md-2">
+                            <input type="text"  name="from_date2" data-jdp data-jdp-only-date  class="form-control" 
+                                   placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
+                          </div>
+                     <div class="col-md-2">
+                        <input type="text"  name="to_date2" data-jdp data-jdp-only-date class="form-control" 
+                               placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
+                        </div>
+                       </div>
+            
+                <div class="row mt-2 mb-2 g-2">
+                       <div class="col-md-2">
                         <input type="text" name="amount" class="form-control" placeholder="مبلغ"
                                value="{{ request.GET.amount }}">
                     </div>
@@ -48,26 +81,21 @@
                         <input type="text" name="doc_number" class="form-control" placeholder="شماره سند"
                                value="{{ request.GET.doc_no }}">
                     </div>
-                     <div class="col-md-2">
-                            <input type="text" id="from_date" name="from_date" class="form-control" placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
-                          </div>
-                     <div class="col-md-2">
-                        <input type="text" id="to_date" name="to_date" class="form-control" placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
-                        </div>
-               </div>
-                <div class="row mt-2 mb-2">
-                      <div class="col-md-4">
+                      <div class="col-md-3">
                 <input type="text" name="description" class="form-control" placeholder="شرح سند"
                        value="{{ request.GET.description }}">
             </div>
-                      <div class="col-md-6">
+                      <div class="col-md-5">
                        <input type="text" name="details" class="form-control" placeholder="توضیحات سند"
                        value="{{ request.GET.details }}">
                       </div>
-                     <div class="col-md-2 align-self-center text-center">
+                   
+                    </div>
+             <div class="row">
+                     <div class="col-md-12 align-self-center text-start mb-2">
                             <button type="submit" class="btn btn-facebook px-4 py-2">جستجوی پیشرفته</button>
                         </div>
-                    </div>
+                        </div>
                </form>
          </div>
 
@@ -84,6 +112,7 @@
                             <th>تاریخ سند</th>
                              <th>توضیحات سند</th>
                             <th>تصویر سند</th>
+                            <th> پرداخت کننده</th>
                             <th>حساب بانکی</th>
                             <th>دستورات</th>
                         </tr>
@@ -97,7 +126,7 @@
                                 <td>{{income.description }}</td>
                                 <td>{{income.amount|three_digit_currency }}</td>
                                 <td>{{income.doc_number }}</td>
-                                 <td>{{income.doc_date|show_jalali_date_only }}</td>
+                                 <td>{{income.doc_date|show_jalali }}</td>
                                <td>{{income.details }}</td>
                                 <td class="d-flex justify-content-center align-self-center">
                                   {% for doc in income.documents.all %}
@@ -108,6 +137,14 @@
                                      !No File
                                     {% endfor %}
                                 </td>
+                                        <td>
+                                     {% if income.unit %}
+                                     	{{ income.unit }}
+                                         {% else %}
+                                     {{income.payer_name }}
+                                     {% endif %} 
+                                   
+                                 </td>
                             <td>{{income.bank }}</td>
                             
 
@@ -116,6 +153,8 @@
                                            class="btn btn-gradient-warning p-1 edit-m-income"
                                            data-id="{{ income.id }}"
                                            data-bank="{{ income.bank.id }}"
+                                           data-unit="{{ income.unit.id}}"
+                                           data-payer_name="{{ income.payer_name }}"
                                            data-category="{{ income.category.id }}"
                                            data-amount="{{ income.amount }}"
                                            data-doc_date="{{ income.doc_date|show_jalali}}"
@@ -196,6 +235,21 @@
                       {{ form.category.errors }}
                   </div>
                      </div>
+                     <div class="row g-2 mt-2">
+            <!-- انتخاب واحد -->
+            <div class="col-12 col-lg-6">
+              {{ form.unit.label_tag }}
+              {{ form.unit }}
+              {{ form.unit.errors }}
+            </div>
+
+            <!-- پرداخت کننده -->
+            <div class="col-12 col-lg-6">
+              {{ form.payer_name.label_tag }}
+              {{ form.payer_name }}
+              {{ form.payer_name.errors }}
+            </div>
+          </div>
                <div class="row m-0 g-2">
                    <div class="col-4 col-lg-4 col-xl-4 p-1">
                        {{ form.amount.label_tag }}
@@ -250,7 +304,6 @@
     </div>
   </div>
 </div>
-
 
 
   

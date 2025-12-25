@@ -31,7 +31,7 @@
           </div>
        <div id="query-form" style="display: none;" class="row mt-2">
             <form method="get">
-               <div class="row mt-2">
+               <div class="row g-2 mt-2">
                      <div class="col-md-4">
                    <input type="text" name="maintenance_description" class="form-control" placeholder="شرح کار"
                                value="{{ request.GET.maintenance_description }}">
@@ -45,13 +45,15 @@
                                value="{{ request.GET.maintenance_status }}">
                     </div>
                  <div class="col-md-2">
-                        <input type="text" id="from_date" name="maintenance_start_date" class="form-control" placeholder=" تاریخ شروع" value="{{ request.GET.maintenance_start_date }}">
-                      </div>
-                 <div class="col-md-2">
-                    <input type="text" id="to_date" name="maintenance_end_date" class="form-control" placeholder=" تاریخ پایان" value="{{ request.GET.maintenance_end_date }}">
-                    </div>
+                            <input type="text"  name="from_date2" data-jdp data-jdp-only-date  class="form-control" 
+                                   placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
+                          </div>
+                     <div class="col-md-2">
+                        <input type="text"  name="to_date2" data-jdp data-jdp-only-date class="form-control" 
+                               placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
+                        </div>
                </div>
-                <div class="row mt-2 mb-2">
+                <div class="row g-2 mt-2 mb-2">
                      <div class="col-md-4">
                        <input type="text" name="service_company" class="form-control" placeholder="نام شرکت خدماتی"
                        value="{{ request.GET.service_company }}">
@@ -65,7 +67,9 @@
                        value="{{ request.GET.details }}">
                       </div>
                       <div class="col-md-2 align-self-center text-center">
-                            <button type="submit" class="btn btn-facebook px-4 py-2">جستجوی پیشرفته</button>
+                            <button type="submit" class="btn btn-facebook px-3 py-2">جستجو</button>
+                          <button type="button" class="btn btn-gradient-danger px-3 py-2" onclick="window.location.href=window.location.pathname;">حذف فیلتر</button>
+
                         </div>
                     </div>
                </form>

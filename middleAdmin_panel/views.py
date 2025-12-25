@@ -948,7 +948,7 @@ def export_units_excel(request):
             ws.cell(row=row_num, column=19, value=to_jalali(renter.end_date))
             ws.cell(row=row_num, column=20, value=renter.contract_number)
             ws.cell(row=row_num, column=21, value=renter.estate_name)
-            ws.cell(row=row_num, column=22, value=renter.first_charge)
+            ws.cell(row=row_num, column=22, value=renter.first_charge_renter)
 
     # ✅ Return file
     response = HttpResponse(
@@ -1170,12 +1170,12 @@ class MiddleExpenseView(CreateView):
 
         try:
             if from_date_str:
-                jalali_from = jdatetime.datetime.strptime(from_date_str, '%Y/%m/%d')
+                jalali_from = jdatetime.datetime.strptime(from_date_str, '%Y-%m-%d')
                 gregorian_from = jalali_from.togregorian().date()
                 queryset = queryset.filter(date__gte=gregorian_from)
 
             if to_date_str:
-                jalali_to = jdatetime.datetime.strptime(to_date_str, '%Y/%m/%d')
+                jalali_to = jdatetime.datetime.strptime(to_date_str, '%Y-%m-%d')
                 gregorian_to = jalali_to.togregorian().date()
                 queryset = queryset.filter(date__lte=gregorian_to)
         except ValueError:
@@ -1550,6 +1550,7 @@ class MiddleIncomeView(CreateView):
         try:
             self.object = form.save()
             content_type = ContentType.objects.get_for_model(self.object)
+            payer_name_for_fund = self.object.payer_name if not self.object.unit else f"{self.object.unit}"
 
             Fund.objects.create(
                 user=self.request.user,
@@ -1559,6 +1560,7 @@ class MiddleIncomeView(CreateView):
                 amount=self.object.amount or 0,
                 debtor_amount=self.object.amount or 0,
                 creditor_amount=0,
+                payer_name=payer_name_for_fund,
                 payment_date=self.object.doc_date,
                 payment_gateway='پرداخت الکترونیک',
                 payment_description=f"درآمد: {self.object.description[:50]}",
@@ -1582,44 +1584,57 @@ class MiddleIncomeView(CreateView):
     def get_queryset(self):
         queryset = Income.objects.filter(user=self.request.user).order_by('-created_at')
 
-        # فیلتر بر اساس category__title
+        # فیلتر بر اساس category
         category_id = self.request.GET.get('category')
         if category_id:
             queryset = queryset.filter(category__id=category_id)
+
+        # فیلتر بر اساس بانک
+        bank_id = self.request.GET.get('bank')
+        if bank_id:
+            queryset = queryset.filter(bank__id=bank_id)
+
+        # فیلتر بر اساس واحد
+        unit_id = self.request.GET.get('unit')
+        if unit_id:
+            queryset = queryset.filter(unit__id=unit_id)
 
         # فیلتر بر اساس amount
         amount = self.request.GET.get('amount')
         if amount:
             queryset = queryset.filter(amount__icontains=amount)
 
+        # فیلتر بر اساس description
         description = self.request.GET.get('description')
         if description:
             queryset = queryset.filter(description__icontains=description)
 
+        # فیلتر بر اساس doc_number
         doc_number = self.request.GET.get('doc_number')
         if doc_number:
             queryset = queryset.filter(doc_number__icontains=doc_number)
 
+        # فیلتر بر اساس details
         details = self.request.GET.get('details')
         if details:
             queryset = queryset.filter(details__icontains=details)
 
-        # فیلتر بر اساس date
+        # فیلتر بر اساس تاریخ
         from_date_str = self.request.GET.get('from_date')
         to_date_str = self.request.GET.get('to_date')
-
         try:
             if from_date_str:
-                jalali_from = jdatetime.datetime.strptime(from_date_str, '%Y/%m/%d')
+                jalali_from = jdatetime.datetime.strptime(from_date_str, '%Y-%m-%d')
                 gregorian_from = jalali_from.togregorian().date()
                 queryset = queryset.filter(doc_date__gte=gregorian_from)
 
             if to_date_str:
-                jalali_to = jdatetime.datetime.strptime(to_date_str, '%Y/%m/%d')
+                jalali_to = jdatetime.datetime.strptime(to_date_str, '%Y-%m-%d')
                 gregorian_to = jalali_to.togregorian().date()
                 queryset = queryset.filter(doc_date__lte=gregorian_to)
         except ValueError:
             messages.warning(self.request, 'فرمت تاریخ وارد شده صحیح نیست.')
+
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -1631,6 +1646,9 @@ class MiddleIncomeView(CreateView):
         context['page_obj'] = page_obj
         context['total_incomes'] = Income.objects.filter(user=self.request.user).count()
         context['categories'] = IncomeCategory.objects.filter(user=self.request.user)
+        context['banks'] = Bank.objects.filter(user=self.request.user)
+        managed_users = User.objects.filter(Q(manager=self.request.user) | Q(pk=self.request.user.pk))
+        context['units'] = Unit.objects.filter(is_active=True, user__in=managed_users)
 
         return context
 
@@ -2722,12 +2740,12 @@ class MiddlePropertyCreateView(CreateView):
 
         try:
             if from_date_str:
-                jalali_from = jdatetime.datetime.strptime(from_date_str, '%Y/%m/%d')
+                jalali_from = jdatetime.datetime.strptime(from_date_str, '%Y-%m-%d')
                 gregorian_from = jalali_from.togregorian().date()
                 queryset = queryset.filter(property_purchase_date__gte=gregorian_from)
 
             if to_date_str:
-                jalali_to = jdatetime.datetime.strptime(to_date_str, '%Y/%m/%d')
+                jalali_to = jdatetime.datetime.strptime(to_date_str, '%Y-%m-%d')
                 gregorian_to = jalali_to.togregorian().date()
                 queryset = queryset.filter(property_purchase_date__lte=gregorian_to)
         except ValueError:

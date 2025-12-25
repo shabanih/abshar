@@ -61,7 +61,7 @@ body {
     font-family: 'Vazir', tahoma, sans-serif !important;
 }
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'BYekan', sans-serif;
+  font-family: 'Vazir', sans-serif;
 }
 * {
   font-family: 'Vazir', sans-serif;
@@ -72,7 +72,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 #grad1 {
-  height: 100px;
+  height: 60px;
   background-image: linear-gradient(#73acf8, #ffffff);
 	margin: 0;
 	padding: 0;
@@ -80,13 +80,20 @@ h1, h2, h3, h4, h5, h6 {
 
 .logo-style{
   width: 300px;
+
 }
 
 .login_style{
 	display: flex;
 	justify-content: center;
-	align-items: end;
+	/*align-items: end;*/
 	min-height: 400px;
+}
+
+.login_style a{
+   color: #055160;
+    text-decoration: none;
+
 }
 
 @media only screen and (max-width: 600px) {
@@ -118,11 +125,114 @@ h1, h2, h3, h4, h5, h6 {
 	font-weight: 900;
 	font-size: 24px;
 	color: #202548F9;
-	margin: 10px 10px;
+	margin: 5px 5px;
 	text-shadow: 1px 5px 6px #525050;
 
 }
 .site-text{
-  /*padding: 10px 10px;*/
+  display: flex;
+    align-items: center;
 }
 /*===============================================*/
+.counter-badge {
+    position: relative;
+    top: -8px;
+    right: -25px;
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: 50%;
+}
+
+.counter-badge_second{
+    position: relative;
+    top: -8px;
+    /*right: -10px;*/
+    font-size: 12px;
+    padding: 3px 6px;
+    border-radius: 50%;
+}
+/*-----------------------------------------*/
+.no-charge-card {
+    background-color: #f8f9fa;
+    border: 1px dashed #ced4da;
+    border-radius: 10px;
+    height: 381px;
+    /*transition: transform 0.3s ease, box-shadow 0.3s ease;*/
+
+}
+/*.no-charge-card:hover {*/
+/*    transform: translateY(-5px);*/
+/*    box-shadow: 0 8px 20px rgba(0,0,0,0.1);*/
+/*}*/
+
+.icon-container {
+    font-size: 3rem;
+    color: #ffc107;
+    animation: bounce 1.5s infinite;
+}
+
+/*@keyframes bounce {*/
+/*    0%, 100% { transform: translateY(0); }*/
+/*    50% { transform: translateY(-10px); }*/
+/*}*/
+
+.no-charge-card img {
+    max-width: 600px;
+    margin: 50px auto;
+    display: block;
+}
+.card {
+    position: relative;
+}
+.profile-image-user,
+.profile-image,
+.profile-image-password {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    max-width: 180px;
+    width: auto;
+    height: auto;
+    border-radius: 10px;
+    opacity: 0.9;
+}
+@media (max-width: 768px) {
+
+    .profile-image-user,
+    .profile-image,
+    .profile-image-password {
+        position: static;        /* مهم‌ترین خط */
+        display: block;
+        max-width: 120px;
+        margin: 15px auto 0;
+        opacity: 1;
+    }
+
+}
+.password-field {
+    position: relative;
+}
+
+.password-field input {
+    padding-left: 40px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 200px;   /* برای RTL */
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 18px;
+    color: #666;
+}
+
+.toggle-password:hover {
+    color: #000;
+}
+.sticky-summary {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background-color: #fff3cd !important;
+}

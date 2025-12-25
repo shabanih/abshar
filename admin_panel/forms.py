@@ -852,7 +852,6 @@ class SearchExpenseForm(forms.Form):
 
 
 # =============================== Income Forms ===================================
-
 class IncomeForm(forms.ModelForm):
     bank = forms.ModelChoiceField(
         queryset=Bank.objects.none(),
@@ -870,8 +869,21 @@ class IncomeForm(forms.ModelForm):
         required=True,
         label='موضوع درآمد'
     )
-    # category = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
-    #                            label='موضوع هزینه')
+    unit = forms.ModelChoiceField(
+        queryset=Unit.objects.none(),
+        required=False,
+        label='انتخاب واحد',
+        widget=forms.Select(
+            attrs={
+                'class': 'form-control-sm ',
+                'style': 'width:100%',
+            }
+        )
+    )
+    payer_name = forms.CharField(
+        max_length=200, required=False, label='پرداخت کننده ', widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+
     amount = forms.CharField(error_messages=error_message, max_length=20, required=True,
                              widget=forms.TextInput(attrs=attr),
                              label='مبلغ')
@@ -897,23 +909,31 @@ class IncomeForm(forms.ModelForm):
 
     class Meta:
         model = Income
-        fields = ['category', 'bank', 'amount', 'doc_date', 'description', 'doc_number', 'details', 'document']
-
-    # def __init__(self, *args, **kwargs):
-    #     user = kwargs.pop('user', None)
-    #     super().__init__(*args, **kwargs)
-    #     if user:
-    #         self.fields['category'].queryset = IncomeCategory.objects.filter(is_active=True, user=user)
-    #         self.fields['bank'].queryset = Bank.objects.filter(is_active=True, user=user)
+        fields = ['category', 'bank', 'amount', 'doc_date', 'description', 'doc_number', 'details',
+                  'document', 'payer_name', 'unit']
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
         if user:
+            # تمام کاربران تحت مدیریت این مدیر + خودش
+            managed_users = User.objects.filter(Q(manager=user) | Q(pk=user.pk))
+            self.fields['unit'].queryset = Unit.objects.filter(
+                is_active=True,
+                user__in=managed_users
+            ).select_related('user')
+
             self.fields['category'].queryset = IncomeCategory.objects.filter(is_active=True, user=user)
             banks = Bank.objects.filter(is_active=True, user=user)
             self.fields['bank'].queryset = banks
+
+            # نمایش نام مستاجر فعال یا مالک
+            self.fields['unit'].label_from_instance = lambda obj: (
+                f"واحد {obj.unit} - {obj.get_active_renter().renter_name}"
+                if obj.get_active_renter() else
+                f"واحد {obj.unit} - {obj.owner_name}"
+            )
 
             # پیدا کردن بانک پیش‌فرض
             default_bank = banks.filter(is_default=True).first()
@@ -923,6 +943,16 @@ class IncomeForm(forms.ModelForm):
             # تغییر label برای نمایش "(پیش‌فرض)" کنار نام بانک
             self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
                 " (پیش‌فرض)" if obj.is_default else "")
+
+    def clean(self):
+        cleaned_data = super().clean()
+        unit = cleaned_data.get('unit')
+        payer_name = cleaned_data.get('payer_name')
+
+        if not unit and not payer_name:
+            raise forms.ValidationError("لطفا یا واحد را انتخاب کنید یا نام پرداخت کننده را وارد نمایید.")
+
+        return cleaned_data
 
 
 class IncomeCategoryForm(forms.ModelForm):

@@ -1,17 +1,17 @@
-﻿    function toggleRenterFields() {
-    const isOwner = document.getElementById('id_is_owner').value;
+﻿function toggleRenterFields() {
+    const isRenter = document.getElementById('id_is_renter').value;
     const renterFields = document.getElementById('renter_div');
 
-    if (isOwner === 'True') {
-        renterFields.style.display = 'block';  // show fields when user is the owner
+    if (isRenter === 'True') {
+        renterFields.style.display = 'block';
     } else {
-        renterFields.style.display = 'none';  // hide otherwise (False or not selected)
+        renterFields.style.display = 'none';
     }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
     toggleRenterFields();
-    document.getElementById('id_is_owner').addEventListener('change', toggleRenterFields);
+    document.getElementById('id_is_renter').addEventListener('change', toggleRenterFields);
 });
 
 
@@ -35,15 +35,15 @@ document.querySelector('input[name="document"]').addEventListener('change', func
 });
 
 
-$(document).ready(function () {
-    $("#from_date, #to_date").persianDatepicker({
-        format: 'YYYY-MM-DD',
-        autoClose: true,
-        initialValue: false,
-        observer: true, // Fix positioning
-        responsive: true, // (some forks support it, safe to include) autoClose: true,
-    });
-});
+// $(document).ready(function () {
+//     $("#from_date, #to_date").persianDatepicker({
+//         format: 'YYYY-MM-DD',
+//         autoClose: true,
+//         initialValue: false,
+//         observer: true, // Fix positioning
+//         responsive: true, // (some forks support it, safe to include) autoClose: true,
+//     });
+// });
 
 function openQuery() {
     var form = document.getElementById('query-form');
@@ -65,37 +65,25 @@ function searchTable() {
 }
 
 // ==================================
-$(document).on('click', '.edit-income-btn', function () {
-    console.log('ویرایش کلیک شد');
 
-    // Get the expense ID from the clicked button's data attributes
-    var id = $(this).data('id');
-    // Set the form action URL dynamically
-    $('#incomeForm').attr('action', '/admin-panel/income/edit/' + id + '/');
-
-    // Populate the form with the expense data
-    $('#id_category').val($(this).data('category')).trigger('change');
-    $('#id_amount').val($(this).data('amount'));
-
-    // Ensure date is in YYYY-MM-DD format before setting it
-    var expenseDate = $(this).data('doc_date');
-    // If the date is in a format other than YYYY-MM-DD, convert it here
-    // You can use moment.js or another library for conversion if necessary
-    $('#id_doc_date').val(expenseDate);  // Assuming it's already in correct format
-
-    $('#id_doc_number').val($(this).data('doc_number'));
-    $('#id_description').val($(this).data('description'));
-    $('#id_details').val($(this).data('details'));
-
-    // Update the modal title and submit button text for editing
-    $('#exampleModalLongTitle2').text('ویرایش درآمد');
-    $('#btn-submit-expense').text('ویرایش درآمد');
-});
 
 function searchTableIncome() {
   var input = document.getElementById("searchInput");
   var filter = input.value.toLowerCase().replace(/,/g, '').replace(/\s/g, '');
   var table = document.getElementById("incomeTable");
+  var rows = table.getElementsByTagName("tr");
+
+  for (var i = 1; i < rows.length; i++) {
+    var row = rows[i];
+    var text = row.innerText.toLowerCase().replace(/,/g, '').replace(/\s/g, '');
+    row.style.display = text.includes(filter) ? "" : "none";
+  }
+}
+
+function searchTableExpense() {
+  var input = document.getElementById("searchInput");
+  var filter = input.value.toLowerCase().replace(/,/g, '').replace(/\s/g, '');
+  var table = document.getElementById("expenseTable");
   var rows = table.getElementsByTagName("tr");
 
   for (var i = 1; i < rows.length; i++) {
@@ -147,3 +135,5 @@ function searchTableUnit() {
         }
     });
 }
+// ======================================
+

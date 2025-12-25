@@ -3,187 +3,53 @@ $('#myForm').on('submit', function(e){
   e.preventDefault();
 });
 // ====================
-function updateClock() {
-    var sundte = new Date();
-    var hours = sundte.getHours();
-    var minutes = sundte.getMinutes();
-    var seconds = sundte.getSeconds();
+function toJalaali(gy, gm, gd) {
+    var g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
+    var gy2 = (gm > 2) ? (gy + 1) : gy;
+    var days = 355666 + (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) + gd + g_d_m[gm - 1];
 
-    document.getElementById("time").innerHTML = "ساعت " + hours + ":" + minutes + ":" + seconds;
-}
-
-// Call updateClock every second (1000 milliseconds)
-setInterval(updateClock, 1000);
-
-
-var sundte = new Date();
-var yeardte = sundte.getFullYear();
-var monthdte = sundte.getMonth();
-var dtedte = sundte.getDate();
-var daydte = sundte.getDay();
-var sunyear;
-
-switch (daydte) {
-    case 0:
-        var today = "يکشنبه";
-        break;
-    case 1:
-        var today = "دوشنبه";
-        break;
-    case 2:
-        var today = "سه شنبه";
-        break;
-    case 3:
-        var today = "چهارشنبه";
-        break;
-    case 4:
-        var today = "پنجشنبه";
-        break;
-    case 5:
-        var today = "جمعه";
-        break;
-    case 6:
-        var today = "شنبه";
-        break;
-}
-switch (monthdte) {
-    case 0:
-        sunyear = yeardte - 622;
-        if (dtedte <= 20) {
-            var sunmonth = "دي";
-            var daysun = dtedte + 10;
-        } else {
-            var sunmonth = "بهمن";
-            var daysun = dtedte - 20;
-        }
-        break;
-    case 1:
-        sunyear = yeardte - 622;
-        if (dtedte <= 19) {
-            var sunmonth = "بهمن";
-            var daysun = dtedte + 11;
-        } else {
-            var sunmonth = "اسفند";
-            var daysun = dtedte - 19;
-        }
-        break;
-    case 2: {
-        if ((yeardte - 621) % 4 == 0) var i = 10;
-        else var i = 9;
-        if (dtedte <= 20) {
-            sunyear = yeardte - 622;
-            var sunmonth = "اسفند";
-            var daysun = dtedte + i;
-        } else {
-            sunyear = yeardte - 621;
-            var sunmonth = "فروردين";
-            var daysun = dtedte - 20;
-        }
+    var jy = -1595 + (33 * Math.floor(days / 12053));
+    days %= 12053;
+    jy += 4 * Math.floor(days / 1461);
+    days %= 1461;
+    if (days > 365) {
+        jy += Math.floor((days - 1)/365);
+        days = (days - 1) % 365;
     }
-        break;
-    case 3:
-        sunyear = yeardte - 621;
-        if (dtedte <= 20) {
-            var sunmonth = "فروردين";
-            var daysun = dtedte + 10;
-        } else {
-            var sunmonth = "ارديبهشت";
-            var daysun = dtedte - 20;
-        }
-        break;
-    case 4:
-        sunyear = yeardte - 621;
-        if (dtedte <= 21) {
-            var sunmonth = "ارديبهشت";
-            var daysun = dtedte + 10;
-        } else {
-            var sunmonth = "خرداد";
-            var daysun = dtedte - 21;
-        }
-
-        break;
-    case 5:
-        sunyear = yeardte - 621;
-        if (dtedte <= 21) {
-            var sunmonth = "خرداد";
-            var daysun = dtedte + 10;
-        } else {
-            var sunmonth = "تير";
-            var daysun = dtedte - 21;
-        }
-        break;
-    case 6:
-        sunyear = yeardte - 621;
-        if (dtedte <= 22) {
-            var sunmonth = "تير";
-            var daysun = dtedte + 9;
-        } else {
-            var sunmonth = "مرداد";
-            var daysun = dtedte - 22;
-        }
-        break;
-    case 7:
-        sunyear = yeardte - 621;
-        if (dtedte <= 22) {
-            var sunmonth = "مرداد";
-            var daysun = dtedte + 9;
-        } else {
-            var sunmonth = "شهريور";
-            var daysun = dtedte - 22;
-        }
-        break;
-    case 8:
-        sunyear = yeardte - 621;
-        if (dtedte <= 22) {
-            var sunmonth = "شهريور";
-            var daysun = dtedte + 9;
-        } else {
-            var sunmonth = "مهر";
-            var daysun = dtedte - 22;
-        }
-        break;
-    case 9:
-        sunyear = yeardte - 621;
-        if (dtedte <= 22) {
-            var sunmonth = "مهر";
-            var daysun = dtedte + 8;
-        } else {
-            var sunmonth = "آبان";
-            var daysun = dtedte - 22;
-        }
-        break;
-    case 10:
-        sunyear = yeardte - 621;
-        if (dtedte <= 21) {
-            var sunmonth = "آبان";
-            var daysun = dtedte + 9;
-        } else {
-            var sunmonth = "آذر";
-            var daysun = dtedte - 21;
-        }
-
-        break;
-    case 11:
-        sunyear = yeardte - 621;
-        if (dtedte <= 19) {
-            var sunmonth = "آذر";
-            var daysun = dtedte + 9;
-        } else {
-            var sunmonth = "دي";
-            var daysun = dtedte - 21;
-        }
-        break;
+    var jm, jd;
+    if (days < 186) {
+        jm = 1 + Math.floor(days/31);
+        jd = 1 + (days % 31);
+    } else {
+        jm = 7 + Math.floor((days - 186)/30);
+        jd = 1 + ((days - 186) % 30);
+    }
+    return {jy: jy, jm: jm, jd: jd};
 }
-document.getElementById("demo").innerHTML =
-    "امروز: " +
-    today +
-    "&nbsp;" +
-    [daysun + 1] +
-    "&nbsp;" +
-    sunmonth +
-    "&nbsp;" +
-    sunyear +
-    " ";
+
+function updateClockAndDate() {
+    let now = new Date();
+
+    // ساعت
+    let hours = now.getHours().toString().padStart(2,'0');
+    let minutes = now.getMinutes().toString().padStart(2,'0');
+    let seconds = now.getSeconds().toString().padStart(2,'0');
+    document.getElementById("time").innerHTML = "ساعت " + hours + ":" + minutes + ":" + seconds;
+
+    // تاریخ شمسی دقیق
+    let jDate = toJalaali(now.getFullYear(), now.getMonth()+1, now.getDate());
+    let weekDays = ["یکشنبه","دوشنبه","سه‌شنبه","چهارشنبه","پنجشنبه","جمعه","شنبه"];
+    let todayName = weekDays[now.getDay()];
+
+    let jMonths = ["فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور",
+                   "مهر","آبان","آذر","دی","بهمن","اسفند"];
+
+    document.getElementById("date").innerHTML =
+        "امروز: " + todayName + " " + jDate.jd + " " + jMonths[jDate.jm - 1] + " " + jDate.jy;
+}
+
+setInterval(updateClockAndDate, 1000);
+updateClockAndDate();
 // ======================================================
 
 $(document).on('click', '.edit-expense-btn', function (e) {
@@ -223,9 +89,6 @@ $(document).on('click', '.edit-expense-btn', function (e) {
         $('#preview').html('<p>تصویری وجود ندارد.</p>');
     }
 });
-
-
-
 $(document).on('click', '.delete-image321-btn', function () {
     var imageUrl = $(this).data('url');  // Image URL
     var expenseId = $(this).data('expense-id');  // Expense ID
@@ -274,37 +137,39 @@ $(document).on('click', '.delete-image321-btn', function () {
 $(document).on('click', '.edit-expense-btn', function () {
     console.log('ویرایش کلیک شد');
 
-    // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
-    // Set the form action URL dynamically
     $('#expenseForm').attr('action', '/admin-panel/expense/edit/' + id + '/');
 
-    // Populate the form with the expense data
-    $('#id_category').val($(this).data('category')).trigger('change');
+    // category
+    var category = $(this).data('category');
+    if ($('#id_category option[value="' + category + '"]').length) {
+        $('#id_category').val(category).trigger('change');
+    }
+
+    // bank
+    var bank = $(this).data('bank');
+    if ($('#id_bank option[value="' + bank + '"]').length) {
+        $('#id_bank').val(bank).trigger('change');
+    }
+
     $('#id_amount').val($(this).data('amount'));
-
-    // Ensure date is in YYYY-MM-DD format before setting it
-    var expenseDate = $(this).data('date');
-    // If the date is in a format other than YYYY-MM-DD, convert it here
-    // You can use moment.js or another library for conversion if necessary
-    $('#id_date').val(expenseDate);  // Assuming it's already in correct format
-
+    $('#id_date').val($(this).data('date'));
     $('#id_doc_no').val($(this).data('doc_no'));
     $('#id_description').val($(this).data('description'));
     $('#id_details').val($(this).data('details'));
 
-    // Update the modal title and submit button text for editing
     $('#exampleModalLongTitle').text('ویرایش هزینه');
     $('#btn-submit-expense').text('ویرایش هزینه');
 });
- document.addEventListener('DOMContentLoaded', function () {
+
+document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('exampleModalLong');
-    const form = document.getElementById('personForm');
+    const form = document.getElementById('expenseForm'); // ✅ اصلاح شد
 
     modal.addEventListener('hidden.bs.modal', function () {
-      form.reset();
+        form.reset();
     });
-  });
+});
 
 // ==========================================
 $(document).on('click', '.edit-income-btn', function (e) {
@@ -391,21 +256,100 @@ $(document).on('click', '.delete-image21-btn', function () {
     });
 });
 
-$(document).on('click', '.edit-bank-btn', function () {
+$(document).on('click', '.edit-income-btn', function () {
+    console.log('ویرایش کلیک شد');
+
+    // Get the expense ID from the clicked button's data attributes
+    var id = $(this).data('id');
+    // Set the form action URL dynamically
+    $('#incomeForm').attr('action', '/admin-panel/income/edit/' + id + '/');
+
+   // category
+    var category = $(this).data('category');
+    if ($('#id_category option[value="' + category + '"]').length) {
+        $('#id_category').val(category).trigger('change');
+    }
+
+    // bank
+    var bank = $(this).data('bank');
+    if ($('#id_bank option[value="' + bank + '"]').length) {
+        $('#id_bank').val(bank).trigger('change');
+    }
+
+
+    $('#id_amount').val($(this).data('amount'));
+
+    // Ensure date is in YYYY-MM-DD format before setting it
+    var expenseDate = $(this).data('doc_date');
+    // If the date is in a format other than YYYY-MM-DD, convert it here
+    // You can use moment.js or another library for conversion if necessary
+    $('#id_doc_date').val(expenseDate);  // Assuming it's already in correct format
+
+    $('#id_doc_number').val($(this).data('doc_number'));
+    $('#id_description').val($(this).data('description'));
+    $('#id_details').val($(this).data('details'));
+
+    // Update the modal title and submit button text for editing
+    $('#exampleModalLongTitle2').text('ویرایش درآمد');
+    $('#btn-submit-expense').text('ویرایش درآمد');
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('exampleModalLong');
+    const form = document.getElementById('incomeForm'); // ✅ اصلاح شد
+
+    modal.addEventListener('hidden.bs.modal', function () {
+        form.reset();
+    });
+});
+
+// ========================================
+$(document).on('click', '.edit-house-btn', function () {
+    console.log('ویرایش کلیک شد2');
+
+    // Get the expense ID from the clicked button's data attributes
+    var id = $(this).data('id');
+    $('#houseForm').attr('action', '/admin-panel/house/edit/' + id + '/');
+
+    // Populate the form with the expense data
+    $('#id_name').val($(this).data('name'));
+    $('#id_user_type').val($(this).data('user_type'));
+    $('#id_city').val($(this).data('city'));
+    $('#id_address').val($(this).data('address'));
+       // تعیین مقدار is_active
+    let isActive = $(this).data('is_active');
+    $('#editForm select[name="is_active"]').val(isActive.toString());
+    // Update the modal title and submit button text for editing
+    $('#exampleModalLongTitle3').text('ویرایش اطلاعات ');
+    $('#btn-submit-bank').text('ویرایش اطلاعات ساختمان');
+});
+ document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('exampleModalLong');
+    const form = document.getElementById('personForm');
+
+    modal.addEventListener('hidden.bs.modal', function () {
+      form.reset();
+    });
+  });
+
+
+ $(document).on('click', '.edit-bank-btn', function () {
     console.log('ویرایش کلیک شد2');
 
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     $('#bankForm').attr('action', '/admin-panel/bank/edit/' + id + '/');
 
-    // Populate the form with the expense data
-    $('#id_house_name').val($(this).data('house_name'));
+
+    $('#id_house').val($(this).data('house')).trigger('change');
     $('#id_bank_name').val($(this).data('bank_name'));
     $('#id_account_holder_name').val($(this).data('account_holder_name'));
     $('#id_account_no').val($(this).data('account_no'));
     $('#id_sheba_number').val($(this).data('sheba_number'));
     $('#id_cart_number').val($(this).data('cart_number'));
     $('#id_initial_fund').val($(this).data('initial_fund').toString().replace(/,/g, ''));
+    let isActive = $(this).data('is_active');
+    $('#editForm select[name="is_active"]').val(isActive.toString());
 
     // Update the modal title and submit button text for editing
     $('#exampleModalLongTitle3').text('ویرایش اطلاعات ساختمان');
@@ -424,6 +368,8 @@ $(document).on('click', '.edit-bank-btn', function () {
 $(document).on('click', '.edit-middle-btn', function () {
     console.log('ویرایش کلیک شد2');
 
+    var modal = $('#exampleModalLong3'); // ← اضافه شد
+
     // Get the expense ID from the clicked button's data attributes
     var id = $(this).data('id');
     $('#middleForm').attr('action', '/admin-panel/middle/edit/' + id + '/');
@@ -436,15 +382,27 @@ $(document).on('click', '.edit-middle-btn', function () {
     $('#middleForm input[name="password"]').val('');
     $('#middleForm input[name="confirm_password"]').val('');
 
-     // تعیین مقدار is_active
+    // تعیین مقدار is_active
     let isActive = $(this).data('is_active');
-    $('#editForm select[name="is_active"]').val(isActive.toString());
+    $('#middleForm select[name="is_active"]').val(isActive.toString());
 
+    // پر کردن چک‌باکس‌های charge_methods
+    var selectedMethods = $(this).data('charge-methods');
+    if (typeof selectedMethods === 'string') {
+        selectedMethods = JSON.parse(selectedMethods);
+    }
+    modal.find('input[name="charge_methods"]').prop('checked', false);
+    if (selectedMethods) {
+        selectedMethods.forEach(function(id) {
+            modal.find('input[name="charge_methods"][value="'+id+'"]').prop('checked', true);
+        });
+    }
 
     // Update the modal title and submit button text for editing
     $('#exampleModalLongTitle3').text('ویرایش اطلاعات مدیر ساختمان');
     $('#btn-submit-bank').text('ویرایش اطلاعات ');
 });
+
  document.addEventListener('DOMContentLoaded', function () {
     const modal = document.getElementById('exampleModalLong');
     const form = document.getElementById('personForm');
@@ -812,7 +770,7 @@ $(document).on('click', '.edit-productProperty-btn', function () {
   });
 
 // =============================== Maintenance ==================
-$(document).on('click', '.edit-middleMaintenance-btn', function (e) {
+$(document).on('click', '.edit-maintenance-btn', function (e) {
     e.preventDefault();
 
     var images = $(this).data('images');
@@ -892,7 +850,7 @@ $(document).on('click', '.delete-image-btn', function () {
         }
     });
 });
-$(document).on('click', '.edit-middleMaintenance-btn', function () {
+$(document).on('click', '.edit-maintenance-btn', function () {
     console.log('ویرایش کلیک شد');
 
     // Get the expense ID from the clicked button's data attributes
@@ -1300,3 +1258,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 });
+
+
+

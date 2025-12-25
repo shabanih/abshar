@@ -227,7 +227,12 @@ $(document).on('click', '.delete-image21-btn', function () {
     if ($('#id_bank option[value="' + bank + '"]').length) {
         $('#id_bank').val(bank).trigger('change');
     }
+     var unit = $(this).data('unit');
+    if ($('#id_unit option[value="' + unit + '"]').length) {
+        $('#id_unit').val(unit).trigger('change');
+    }
 
+    $('#id_payer_name').val($(this).data('payer_name'));
     $('#id_amount').val($(this).data('amount'));
 
     // Ensure date is in YYYY-MM-DD format before setting it

@@ -109,6 +109,8 @@ class IncomeCategory(models.Model):
 class Income(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
+    payer_name = models.CharField(max_length=400, null=True, blank=True)
     category = models.ForeignKey(IncomeCategory, on_delete=models.CASCADE, verbose_name='گروه', related_name='incomes')
     doc_date = models.DateField(verbose_name='تاریخ سند')
     doc_number = models.IntegerField(verbose_name='شماره سند')
@@ -124,7 +126,7 @@ class Income(models.Model):
     def get_document_urls_json(self):
         # Use the correct attribute to access the file URL in the related `ExpenseDocument` model
         image_urls = [doc.document.url for doc in self.documents.all() if doc.document]
-        print(image_urls)
+
         return mark_safe(json.dumps(image_urls))
 
 
