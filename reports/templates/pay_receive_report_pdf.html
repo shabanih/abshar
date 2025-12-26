@@ -1,0 +1,145 @@
+{% load poll_extras %}
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <title> گزارش دریافت ها و پرداخت ها  </title>
+   <style>
+        @font-face {
+            font-family: 'BYekan';
+            src: url('{{ font_path }}') format('truetype');
+        }
+        @font-face {
+            font-family: VazirB2;
+            src: url('{{ font_path }}');
+            src: url('{{ font_path }}') format('embedded-opentype'),
+            url('{{ font_path }}') format('woff2'),
+            url('{{ font_path }}') format('woff'),
+            url('{{ font_path }}') format('truetype');
+            font-weight: normal;
+}
+
+
+        @font-face {
+            font-family: Vazir;
+            src: url('{{ font_path }}');
+            src: url('{{ font_path }}') format('embedded-opentype'),
+            url('{{ font_path }}') format('woff2'),
+            url('{{ font_path }}') format('woff'),
+            url('{{ font_path }}') format('truetype');
+            font-weight: 100;
+        }
+        body {
+            font-family: 'Vazir', sans-serif;
+            direction: rtl;
+            text-align: right;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead tr {
+            background-color: #9b9797;
+            color: #000000;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: center;
+        }
+        h1, h2{
+            text-align: center;
+            font-family: VazirB2, sans-serif;
+        }
+        .logo-style-pdf{
+            width: 200px;
+            height: 80px;
+            display: block;
+            margin: 0 auto;
+        }
+        p{
+           text-align: center; 
+        }
+    </style>
+</head>
+<body>
+
+<div class="text-center mb-4" style="border-bottom: 2px solid #333; padding-bottom: 10px;">
+    {% if house %}
+        <h1 class="fw-bold mb-1" style="color: #202548F9;">{{ house.name }}</h1>
+    {% endif %}
+    
+    <h2 class="fw-bold mb-1 text-center" style="color: #222;">گزارش دریافت ها و پرداخت ها</h2>
+    
+    <p class="text-muted mb-0" style="font-size: 0.9rem;">
+        تاریخ: {{ today|show_jalali_date_time }}
+    </p>
+</div>
+
+
+  <div class="table-responsive mt-3">
+                            <table class="table table-bordered">
+                            <thead>
+                                    <tr class="fw-bold sticky-summary">
+                                        <th class="bg-body text-dark" colspan="5">جمع کل/ مانده</th>
+                                          <th class="{% if balance < 0 %}bg-danger{% else %}bg-success{% endif %}">
+                                            {{ balance|three_digit_currency }}
+                                        </th>
+                                        <th class="bg-warning">{{ total_income|three_digit_currency }}</th>
+                                        <th class="bg-danger">{{ total_expense|three_digit_currency }}</th>
+                                      
+                                    </tr>
+                            </thead>
+                                <thead class="text-center">
+                          
+                                    <tr>
+                                        <th>#</th>
+                                        <th>بانک</th>
+                                        <th>تاریخ سند</th>
+                                        <th>شرح سند</th>
+                                         <th>شماره سند</th>
+                                        <th>واریز کننده/ پرداخت کننده</th>
+                                       
+                                        <th>بدهکار</th>
+                                        <th>بستانکار</th>
+{#                                        <th>موجودی نهایی</th>#}
+                                    </tr>
+                                </thead>
+                            {% if funds %}
+                           {% for fund in funds %}
+                                    <tbody class="text-center">
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{ fund.bank }}</td>
+                                               <td>{{fund.payment_date|show_jalali }}</td>
+                                            <td>{{fund.payment_description }}</td>
+                                             <td>{{fund.doc_number}}</td>
+
+                                            <td>
+                                                
+                                                    {% if fund.payer_name %}
+                                                    {{fund.payer_name }}
+                                                    {% else %}
+                                                    {{fund.receiver_name}}
+                                                {% endif %} 
+                                            </td>
+                                            <td class="text-success">{{fund.debtor_amount|three_digit_currency}}</td>
+                                            <td class="text-danger">{{fund.creditor_amount|three_digit_currency }}</td>
+{#                                            <td class="btn-gradient-light"></td>#}
+                                        </tr>
+                                    {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="9" class="text-center">هیچ تراکنشی برای نمایش وجود ندارد.</td>
+                                        </tr>
+                                 <tbody>
+                                {% endif %}
+                            </table>
+               </div>
+
+
+<p style="text-align: right; font-size: 11px;">تولید شده توسط سیستم مدیریت ساختمان</p>
+
+</body>
+</html>

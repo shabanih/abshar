@@ -1,0 +1,179 @@
+{% extends 'middleShared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% block page_title %}
+گزارش دریافت ها و پرداخت ها
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container p-0">
+ 
+      <div class="row align-self-center mb-2">
+          <div class="col-12 col-md-8 col-xl-8">
+              <input type="text" id="searchInput" placeholder="جستجوی سریع در جدول..." onkeyup="searchTableIncome()" class="form-control mb-2 mt-2 p-2">
+          </div>
+        <div class=" col-12 col-md-4 col-xl-4 text-center text-md-start align-self-center">
+            <button onclick="openQuery()" class="btn btn-gradient-info px-2 py-2">جستجوی پیشرفته</button>
+            <a href="{% url 'export_pay_receive_report_excel' %}?{{ request.GET.urlencode }}"
+   class="btn btn-gradient-success px-2 py-2">خروجی Excel</a>
+            <a href="{% url 'export_pay_receive_report_pdf' %}?{{ request.GET.urlencode }}"
+               class="btn btn-gradient-danger px-2 py-2">
+               خروجی PDF
+            </a>
+            </div>
+          </div>
+       <div id="query-form" style="display: none;" class="row mt-2">
+            <form method="get">
+               <div class="row mt-2 g-2">
+              <div class="col-md-2">
+                  <select name="transaction_type" class="form-select form-control form-control-sm">
+                    <option class="text-center" value="">نمایش کل اسناد</option>
+                    <option class="text-center" value="received"
+                      {% if request.GET.transaction_type == 'received' %}selected{% endif %}
+                    >
+                      اسناد دریافتی
+                    </option>
+                    <option class="text-center" value="paid"
+                      {% if request.GET.transaction_type == 'paid' %}selected{% endif %}
+                    >
+                      اسناد پرداختی
+                    </option>
+                  </select>
+                </div>
+            <div class="col-md-3">
+             <select name="bank" class="form-control form-control-sm">
+                <option value="">بانک را انتخاب کنید</option>
+                {% for bank in banks %}
+                    <option value="{{ bank.id }}" {% if request.GET.bank == bank.id|stringformat:"s" %}selected{% endif %}>
+                        {{ bank.bank_name }} - {{ bank.account_no }}
+                    </option>
+                {% endfor %}
+            </select>
+
+                    </div>
+                     <div class="col-md-3">
+                 <select name="unit" class="form-control form-control-sm">
+                        <option value="">واحد را انتخاب کنید</option>
+                        {% for unit in units %}
+                            <option value="{{ unit.id }}" {% if request.GET.unit == unit.id|stringformat:"s" %}selected{% endif %}>
+                                واحد {{ unit.unit }}{% if unit.get_active_renter %} - {{ unit.get_active_renter.renter_name }}{% else %} - {{ unit.owner_name }}{% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    </div>
+               
+                       <div class="col-md-2">
+                            <input type="text"  name="from_date" data-jdp data-jdp-only-date class="form-control" 
+                                   placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
+                          </div>
+                     <div class="col-md-2">
+                        <input type="text"  name="to_date" data-jdp data-jdp-only-date class="form-control" 
+                               placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
+                        </div>
+                       </div>
+                <div class="row mt-2 mb-2 g-2">
+                       <div class="col-md-2">
+                        <input type="text" name="amount" class="form-control" placeholder="مبلغ"
+                               value="{{ request.GET.amount }}">
+                    </div>
+                     <div class="col-md-2">
+                        <input type="text" name="doc_number" class="form-control" placeholder="شماره سند"
+                               value="{{ request.GET.doc_no }}">
+                    </div>
+                      <div class="col-md-3">
+                <input type="text" name="payment_description" class="form-control" placeholder="شرح سند"
+                       value="{{ request.GET.description }}">
+            </div>
+                      <div class="col-md-3">
+                      <input type="text"
+                           name="q"
+                           value="{{ request.GET.q }}"
+                           class="form-control"
+                           placeholder="نام دریافت کننده/ پرداخت کننده">
+                      </div>
+                         <div class="col-md-2 align-self-center text-start ">
+                            <button type="submit" class="btn btn-facebook px-3 py-2">جستجو</button>
+                            <button type="button" class="btn btn-gradient-danger px-3 py-2" onclick="window.location.href=window.location.pathname;">حذف فیلتر</button>
+                        </div>
+                   
+                    </div>
+             <div class="row">
+                  
+                        </div>
+               </form>
+         </div>
+
+
+              <div class="table-responsive mt-3">
+                            <table class="table table-bordered">
+                            <thead>
+                                    <tr class="fw-bold sticky-summary">
+                                        <th class="bg-body text-dark" colspan="5">جمع کل/ مانده</th>
+                                          <th class="{% if balance < 0 %}bg-danger{% else %}bg-success{% endif %}">
+                                            {{ balance|three_digit_currency }}
+                                        </th>
+                                        <th class="bg-warning">{{ total_income|three_digit_currency }}</th>
+                                        <th class="bg-danger">{{ total_expense|three_digit_currency }}</th>
+                                      
+                                    </tr>
+                            </thead>
+                                <thead class="text-center">
+                          
+                                    <tr>
+                                        <th>#</th>
+                                        <th>بانک</th>
+                                        <th>تاریخ سند</th>
+                                        <th>شرح سند</th>
+                                         <th>شماره سند</th>
+                                        <th>واریز کننده/ پرداخت کننده</th>
+                                       
+                                        <th>بدهکار</th>
+                                        <th>بستانکار</th>
+{#                                        <th>موجودی نهایی</th>#}
+                                    </tr>
+                                </thead>
+                            {% if page_obj %}
+                           {% for fund in page_obj %}
+                                    <tbody class="text-center">
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{ fund.bank }}</td>
+                                               <td>{{fund.payment_date|show_jalali }}</td>
+                                            <td>{{fund.payment_description }}</td>
+                                             <td>{{fund.doc_number}}</td>
+
+                                            <td>
+                                                
+                                                    {% if fund.payer_name %}
+                                                    {{fund.payer_name }}
+                                                    {% else %}
+                                                    {{fund.receiver_name}}
+                                                {% endif %} 
+                                            </td>
+                                            <td class="text-success">{{fund.debtor_amount|three_digit_currency}}</td>
+                                            <td class="text-danger">{{fund.creditor_amount|three_digit_currency }}</td>
+{#                                            <td class="btn-gradient-light"></td>#}
+                                        </tr>
+                                    {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="9" class="text-center">هیچ تراکنشی برای نمایش وجود ندارد.</td>
+                                        </tr>
+                                 <tbody>
+                                {% endif %}
+                            </table>
+               </div>
+        </div>
+<script type="text/javascript" src="https://unpkg.com/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
+
+{#{% static 'js/jalalidatepicker.min.js' %}#}
+{% endblock %}
+
+
+
+
+
+
+
+

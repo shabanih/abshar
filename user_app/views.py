@@ -37,8 +37,11 @@ def index(request):
     if request.method == 'POST' and form.is_valid():
         mobile = form.cleaned_data['mobile']
         password = form.cleaned_data['password']
+        print("Mobile:", mobile)
+        print("Password entered:", password)
 
         user = authenticate(request, username=mobile, password=password)
+        # print("Authenticated user:", user)
 
         if user:
             if user.is_superuser:
@@ -109,7 +112,7 @@ def verify_otp(request):
                 return redirect('verify_otp')
             else:
                 login(request, user)
-                messages.success(request, "ورود موفق")
+                # messages.success(request, "ورود موفق")
                 return redirect('user_panel')
 
         return render(
@@ -159,6 +162,7 @@ def site_header_component(request):
     return render(request, 'partials/notification_template.html', context)
 
 
+@login_required
 def user_panel(request):
     user = request.user
 
@@ -180,9 +184,9 @@ def user_panel(request):
     total_charge_unpaid = unpaid_unified_qs.count()
 
     total_unpaid_amount = (
-        unpaid_unified_qs.aggregate(
-            total=Sum("total_charge_month")
-        )["total"] or 0
+            unpaid_unified_qs.aggregate(
+                total=Sum("total_charge_month")
+            )["total"] or 0
     )
 
     # -------------------------
@@ -255,7 +259,6 @@ def user_panel(request):
     }
 
     return render(request, 'partials/home_template.html', context)
-
 
 
 # ==================================
@@ -439,4 +442,3 @@ def user_profile(request):
         'password_form': password_form,
     }
     return render(request, 'my_profile.html', context)
-

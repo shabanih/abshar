@@ -175,24 +175,23 @@ class Unit(models.Model):
             count += 1
         self.parking_counts = count
 
-        # --- Calculate people_count ---
-        if self.is_renter:
-            active_renter = self.renters.filter(renter_is_active=True).first()
-            try:
-                self.people_count = int(active_renter.renter_people_count or 0) if active_renter else 0
-            except (ValueError, TypeError):
-                self.people_count = 0
-        else:
-            try:
-                self.people_count = int(self.owner_people_count or 0)
-            except (ValueError, TypeError):
-                self.people_count = 0
-
+        # ذخیره اولیه برای گرفتن PK
         super().save(*args, **kwargs)
 
-        # ------------------------------
-        # ✅ ثبت تاریخچه تغییر مالک
-        # ------------------------------
+        # --- Calculate people_count AFTER PK exists ---
+        try:
+            if self.is_renter:
+                active_renter = self.renters.filter(renter_is_active=True).first()
+                self.people_count = int(active_renter.renter_people_count or 0) if active_renter else 0
+            else:
+                self.people_count = int(self.owner_people_count or 0)
+        except (ValueError, TypeError):
+            self.people_count = 0
+
+        # ذخیره دوباره people_count اگر تغییر کرده
+        super().save(update_fields=['people_count'])
+
+        # ثبت تاریخچه تغییر مالک
         if not is_new and old.owner_name != self.owner_name:
             from .models import UnitResidenceHistory
 

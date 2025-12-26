@@ -152,6 +152,7 @@ class ReceiveMoney(models.Model):
     details = models.TextField(verbose_name='توضیحات', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
+    is_received = models.BooleanField(default=False, verbose_name='')
 
     def __str__(self):
         return str(self.unit.unit)
@@ -188,6 +189,7 @@ class PayMoney(models.Model):
     details = models.TextField(verbose_name='توضیحات', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
+    is_payed = models.BooleanField(default=False, verbose_name='')
 
     def __str__(self):
         return str(self.receiver_name)
@@ -803,8 +805,8 @@ class ChargeByPersonAreaCalc(models.Model):
 
     def save(self, *args, **kwargs):
         # محاسبه شارژ نهایی بر اساس متراژ و تعداد نفرات
-        area = getattr(self.unit, 'area', 0)
-        people = getattr(self.unit, 'people_count', 0)
+        area = getattr(self.unit, 'area', 0) or 0
+        people = getattr(self.unit, 'people_count', 0) or 0
         area_charge = self.area_charge or 0
         person_charge = self.person_charge or 0
 
@@ -902,8 +904,8 @@ class ChargeByFixPersonAreaCalc(models.Model):
 
     def save(self, *args, **kwargs):
         # محاسبه مبلغ نهایی بر اساس متراژ، تعداد نفرات و شارژ ثابت
-        area = getattr(self.unit, 'area', 0)
-        people = getattr(self.unit, 'people_count', 0)
+        area = getattr(self.unit, 'area', 0) or 0
+        people = getattr(self.unit, 'people_count', 0) or 0
         area_charge = self.area_charge or 0
         person_charge = self.person_charge or 0
         fix = self.fix_charge or 0
@@ -1198,6 +1200,8 @@ class Fund(models.Model):
     payment_description = models.CharField(max_length=500, blank=True, null=True)
     is_initial = models.BooleanField(default=False, verbose_name='افتتاحیه حساب')
     created_at = models.DateTimeField(auto_now_add=True)
+    is_received = models.BooleanField(default=False)
+    is_paid = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Fund: {self.payment_description} for {self.content_object}"

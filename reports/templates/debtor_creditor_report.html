@@ -4,7 +4,7 @@
 {% load jalali_tags %}
 
 {% block page_title %}
-واحدهای بدهکار/بستانکار
+واحدهای بدهکار
 {% endblock page_title %}
 
 {% block main_content %}
@@ -61,54 +61,122 @@
 
 
 
-     <table class="table table-bordered text-center align-middle">
-    <thead>
-        <tr>
-            <th>نام واحد</th>
-            <th class="text-success">جمع بدهکار</th>
-            <th class="text-danger">جمع بستانکار</th>
-            <th>مانده</th>
-            <th>وضعیت</th>
-        </tr>
-    </thead>
-
- <tbody>
-{% for row in page_obj %}
-    {% if row.balance != 0 %}
-        <tr>
-            <td>{{ row.unit }}</td>
-
-            <td class="text-success">
-                {{ row.total_debtor|default:0|three_digit_currency }}
-            </td>
-
-            <td class="text-danger">
-                {{ row.total_creditor|default:0|three_digit_currency }}
-            </td>
-
+     <table class="table table-bordered table-striped mt-3">
+        <thead class="table-dark">
+            <tr>
+                <th>ردیف</th>
+                <th>نام واحد</th>
+                <th>جمع بدهی (تومان)</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for unit in units_with_debt %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ unit.label }}</td>
+                <td>{{ unit.total_debt|three_digit_currency }}</td>
             <td>
-                {{ row.balance|three_digit_currency }}
+                               <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ unit.id }}"
+                        class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
+                </button> 
             </td>
+{% for unit in units_with_debt %}
+<div class="modal fade"
+     id="exampleModalLong2{{ unit.id }}"
+     tabindex="-1"
+     aria-hidden="true">
 
-            <td>
-                {% if row.balance > 0 %}
-                    <span class="badge bg-danger">بدهکار</span>
-                {% else %}
-                    <span class="badge bg-success">بستانکار</span>
-                {% endif %}
-            </td>
-        </tr>
-    {% endif %}
-{% empty %}
-    <tr>
-        <td colspan="5" class="text-center text-muted">
-            اطلاعاتی برای نمایش وجود ندارد
-        </td>
-    </tr>
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title">
+            سوابق بدهی {{ unit.label }}
+        </h5>
+      </div>
+
+      <hr class="m-0">
+
+      <div class="modal-body">
+
+        <!-- Header row -->
+        <div class="row g-0 text-center fw-bold bg-light">
+          <div class="col-1 border">#</div>
+          <div class="col-3 border">شرح</div>
+          <div class="col-2 border">شارژ ماهیانه</div>
+          <div class="col-2 border">جریمه</div>
+          <div class="col-2 border">قابل پرداخت</div>
+          <div class="col-2 border">مهلت پرداخت</div>
+        </div>
+
+        <!-- Data rows -->
+        {% for charge in unit.charges %}
+        <div class="row g-0 text-center">
+          <div class="col-1 border">
+              {{ forloop.counter }}
+          </div>
+          <div class="col-3 border">
+              {{ charge.title }}
+          </div>
+          <div class="col-2 border">
+              {{ charge.amount|three_digit_currency }}
+          </div>
+          <div class="col-2 border text-danger">
+              {{ charge.penalty_amount|default:0|three_digit_currency }}
+          </div>
+          <div class="col-2 border fw-bold text-danger">
+              {{ charge.total_charge_month|three_digit_currency }}
+          </div>
+          <div class="col-2 border">
+              {{ charge.payment_deadline_date|show_jalali }}
+          </div>
+        </div>
+        {% empty %}
+        <div class="row g-0 text-center">
+          <div class="col-12 border py-3">
+              بدهی ثبت نشده است
+          </div>
+        </div>
+        {% endfor %}
+
+        <!-- Total -->
+        <div class="row g-0 text-center fw-bold bg-light mt-2">
+          <div class="col-8 border py-2">
+              جمع کل بدهی
+          </div>
+          <div class="col-4 border py-2 text-danger">
+              {{ unit.total_debt|three_digit_currency }} تومان
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button"
+                class="btn btn-gradient-danger"
+                data-bs-dismiss="modal">
+            بستن
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
 {% endfor %}
-</tbody>
 
-</table>
+            </tr>
+
+            {% empty %}
+            <tr>
+                <td colspan="3" class="text-center">هیچ واحد بدکاری وجود ندارد.</td>
+            </tr>
+
+            {% endfor %}
+
+        </tbody>
+
+    </table>
 
 
 

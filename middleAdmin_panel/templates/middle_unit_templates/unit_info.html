@@ -76,15 +76,29 @@
            <div class="col-6 col-lg-3 col-xl-3">
                <p class="renterInfoModal">تعداد نفرات:<strong class="me-2">{{ unit.owner_people_count }}</strong></p>
             </div>
-             <div class="col-6 col-lg-3 col-xl-3 p-0">
-               <p class="renterInfoModal bg-warning">نام کاربری:<strong class="me-2">{{ unit.user.username }}</strong></p>
-            </div>
+{#             <div class="col-6 col-lg-3 col-xl-3 p-0">#}
+{#               <p class="renterInfoModal bg-warning">نام کاربری:<strong class="me-2">{{ unit.user.username }}</strong></p>#}
+{#            </div>#}
             <div class="col-6 col-lg-3 col-xl-3">
-               <p class="renterInfoModal">شارژ اولیه:<strong class="me-2 text-danger">{{ unit.first_charge_owner|three_digit_currency }} تومان</strong></p>
+               <p class="renterInfoModal">شارژ اولیه:<strong class="me-2">
+                   {% if unit.first_charge_owner %}
+                   	  {{ unit.first_charge_owner|three_digit_currency }} تومان
+                       {% else %}
+                       ---
+                   {% endif %} 
+                 
+               </strong></p>
             </div>
            <div class="col-6 col-lg-6 col-xl-6">
-               <p class="renterInfoModal">توضیحات:<strong class="me-2 text-danger">{{ unit.owner_details }}</strong></p>
+               <p class="renterInfoModal">توضیحات:<strong class="me-2">
+                    {% if unit.owner_details %}
+                   {{ unit.owner_details }}
+                        {% else %}
+                       ثبت نشده است
+                   {% endif %} 
+               </strong></p>
             </div>
+          <h5 class="text-danger mt-3">توجه: نام کاربری، شماره موبایل شخص ساکن در ساختمان(مالک/مستاجر) میباشد.</h5>
         </div>
     </div>
     </div>

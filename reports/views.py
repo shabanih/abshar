@@ -1,4 +1,5 @@
 import io
+from collections import defaultdict
 from datetime import datetime
 
 import jdatetime
@@ -9,7 +10,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.core.paginator import Paginator
 from django.db import models
-from django.db.models import Q, Sum
+from django.db.models import Q, Sum, F
+from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
 from django.template.loader import get_template
@@ -18,7 +20,8 @@ from django.utils.decorators import method_decorator
 from django.views.generic import ListView
 from django.views.generic.edit import FormMixin
 
-from admin_panel.models import Fund, Expense, Income, Property, ExpenseCategory, IncomeCategory, Maintenance
+from admin_panel.models import Fund, Expense, Income, Property, ExpenseCategory, IncomeCategory, Maintenance, \
+    UnifiedCharge
 from middleAdmin_panel.views import middle_admin_required
 from polls.templatetags.poll_extras import show_jalali
 from user_app.forms import UnitReportForm
@@ -154,7 +157,7 @@ def export_middle_report_pdf(request):
     pdf_file.seek(0)
 
     response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="middle_report.pdf"'
+    response['Content-Disposition'] = 'attachment; filename="fund_report.pdf"'
     return response
 
 
@@ -199,7 +202,7 @@ def export_middle_report_excel(request):
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = f'attachment; filename=report.xlsx'
+    response['Content-Disposition'] = f'attachment; filename=fund-report.xlsx'
     wb.save(response)
     return response
 
@@ -298,7 +301,7 @@ def export_units_report_excel(request):
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = f'attachment; filename=unit_{unit.unit}_report.xlsx'
+    response['Content-Disposition'] = f'attachment; filename=fund_unit_{unit.unit}_report.xlsx'
     wb.save(response)
     return response
 
@@ -371,7 +374,7 @@ def export_units_report_pdf(request):
 
     # Response
     response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="unit_{unit.unit}_report.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="fund_unit_{unit.unit}_report.pdf"'
     return response
 
 
@@ -462,7 +465,7 @@ def export_user_report_excel(request):
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = f'attachment; filename=report.xlsx'
+    response['Content-Disposition'] = f'attachment; filename=fund_user_report.xlsx'
     wb.save(response)
     return response
 
@@ -534,49 +537,120 @@ def export_user_report_pdf(request):
 
     # Response
     response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="report.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="fund_user_report.pdf"'
     return response
 
 
 # ===========================================================
+# def debtor_creditor_report(request):
+#     charges = (
+#         UnifiedCharge.objects
+#         .filter(is_paid=False, unit__isnull=False)
+#         .select_related('unit')
+#         .order_by('-total_charge_month')  # مرتب‌سازی اولیه
+#     )
+#
+#     # گروه‌بندی بر اساس واحد
+#     units_dict = {}
+#     for charge in charges:
+#         unit = charge.unit
+#         # نام واحد + مستاجر یا مالک
+#         renter = unit.get_active_renter()
+#         label = f"واحد {unit.unit} - {renter.renter_name}" if renter else f"واحد {unit.unit} - {unit.owner_name}"
+#
+#         if unit.id not in units_dict:
+#             units_dict[unit.id] = {
+#                 'id': unit.id,
+#                 'label': label,
+#                 'total_debt': 0
+#             }
+#         units_dict[unit.id]['total_debt'] += charge.total_charge_month or 0
+#
+#     # مرتب‌سازی بر اساس بدهی
+#     units_with_debt = sorted(units_dict.values(), key=lambda x: x['total_debt'], reverse=True)
+#
+#     context = {
+#         'units_with_debt': units_with_debt
+#     }
+#     return render(request, 'debtor_creditor_report.html', context)
 
 def debtor_creditor_report(request):
-    query = request.GET.get('q', '').strip()
-    paginate = int(request.GET.get('paginate', 20) or 20)
+    charges = (
+        UnifiedCharge.objects
+        .filter(is_paid=False, unit__isnull=False)
+        .select_related('unit')
+        .order_by('-created_at')
+    )
 
-    units = Unit.objects.filter(user__manager=request.user, is_active=True)
+    units = defaultdict(lambda: {
+        'id': None,
+        'label': '',
+        'total_debt': 0,
+        'charges': []
+    })
 
-    if query:
-        units = units.filter(
-            Q(unit__icontains=query) |
-            Q(owner_name__icontains=query)
+    for charge in charges:
+        unit = charge.unit
+        renter = unit.get_active_renter()
+        label = (
+            f"واحد {unit.unit} - {renter.renter_name}"
+            if renter else
+            f"واحد {unit.unit} - {unit.owner_name}"
         )
 
-    report_data = []
+        data = units[unit.id]
+        data['id'] = unit.id
+        data['label'] = label
+        data['total_debt'] += charge.total_charge_month or 0
+        data['charges'].append(charge)
 
-    for unit in units:
-        totals = Fund.objects.filter(unit=unit).aggregate(
-            total_debtor=Sum('debtor_amount'),
-            total_creditor=Sum('creditor_amount'),
-        )
-
-        balance = (totals['total_debtor'] or 0) - (totals['total_creditor'] or 0)
-
-        report_data.append({
-            'unit': unit,
-            'total_debtor': totals['total_debtor'] or 0,
-            'total_creditor': totals['total_creditor'] or 0,
-            'balance': balance,
-        })
-
-    paginator = Paginator(report_data, paginate)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    units_with_debt = sorted(
+        units.values(),
+        key=lambda x: x['total_debt'],
+        reverse=True
+    )
 
     return render(request, 'debtor_creditor_report.html', {
-        'page_obj': page_obj,
-        'query': query,
+        'units_with_debt': units_with_debt
     })
+
+# def debtor_creditor_report(request):
+#     query = request.GET.get('q', '').strip()
+#     paginate = int(request.GET.get('paginate', 20) or 20)
+#
+#     units = Unit.objects.filter(user__manager=request.user, is_active=True)
+#
+#     if query:
+#         units = units.filter(
+#             Q(unit__icontains=query) |
+#             Q(owner_name__icontains=query)
+#         )
+#
+#     report_data = []
+#
+#     for unit in units:
+#         totals = Fund.objects.filter(unit=unit).aggregate(
+#             total_debtor=Sum('debtor_amount'),
+#             total_creditor=Sum('creditor_amount'),
+#         )
+#
+#         balance = (totals['total_debtor'] or 0) - (totals['total_creditor'] or 0)
+#
+#         report_data.append({
+#             'unit': unit,
+#             'total_debtor': totals['total_debtor'] or 0,
+#             'total_creditor': totals['total_creditor'] or 0,
+#             'balance': balance,
+#         })
+#
+#     paginator = Paginator(report_data, paginate)
+#     page_number = request.GET.get('page')
+#     page_obj = paginator.get_page(page_number)
+#
+#     return render(request, 'debtor_creditor_report.html', {
+#         'page_obj': page_obj,
+#         'query': query,
+#     })
 
 
 # ===========================================================
@@ -604,7 +678,7 @@ class HistoryUnitReports(FormMixin, ListView):
                 self.selected_unit = unit  # ⚡ ذخیره برای context و export
                 queryset = UnitResidenceHistory.objects.filter(
                     unit=unit
-                ).order_by('-from_date')  # جدیدترین‌ها بالای جدول
+                ).order_by('-created_at')  # جدیدترین‌ها بالای جدول
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -896,7 +970,7 @@ def export_expense_report_pdf(request):
     pdf_merger = PdfWriter()
     pdf_merger.append(page_pdf)
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="expenses.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="expenses_report.pdf"'
     pdf_merger.write(response)
     return response
 
@@ -974,7 +1048,7 @@ def export_expense_report_excel(request):
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename=expenses.xlsx'
+    response['Content-Disposition'] = 'attachment; filename=expenses_report.xlsx'
     wb.save(response)
     return response
 
@@ -1130,7 +1204,7 @@ def export_income_report_pdf(request):
     pdf_merger.append(page_pdf)
     response = HttpResponse(content_type='application/pdf')
 
-    response['Content-Disposition'] = f'attachment; filename="incomes.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="incomes_report.pdf"'
 
     pdf_merger.write(response)
     return response
@@ -1207,7 +1281,7 @@ def export_income_report_excel(request):
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename=incomes.xlsx'
+    response['Content-Disposition'] = 'attachment; filename=incomes_report.xlsx'
     wb.save(response)
     return response
 
@@ -1346,7 +1420,7 @@ def export_property_report_pdf(request):
     pdf_merger.append(page_pdf)
     response = HttpResponse(content_type='application/pdf')
 
-    response['Content-Disposition'] = f'attachment; filename="properties.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="properties_report.pdf"'
 
     pdf_merger.write(response)
     return response
@@ -1425,7 +1499,7 @@ def export_property_report_excel(request):
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename=properties.xlsx'
+    response['Content-Disposition'] = 'attachment; filename=properties_report.xlsx'
     wb.save(response)
     return response
 
@@ -1509,7 +1583,7 @@ def parse_jalali_to_gregorian(date_str):
 def export_maintenance_report_pdf(request):
     maintenances = Maintenance.objects.filter(user=request.user).order_by('-created_at')
     total_amount = maintenances.filter(user=request.user).aggregate(total=Sum('maintenance_price'))[
-        'total'] or 0
+                       'total'] or 0
     house = None
     if request.user.is_authenticated:
         house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
@@ -1641,6 +1715,244 @@ def export_maintenance_report_excel(request):
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename=maintenances.xlsx'
+    response['Content-Disposition'] = 'attachment; filename=maintenances_report.xlsx'
+    wb.save(response)
+    return response
+
+
+# =================================================
+
+class PayReceiveReportView(ListView):
+    model = Fund
+    template_name = 'pay_receive_report.html'
+    paginate_by = 50
+    context_object_name = 'funds'
+
+    def get_queryset(self):
+        qs = Fund.objects.filter(
+            user=self.request.user
+        ).filter(
+            Q(is_received=True) | Q(is_paid=True)
+        ).order_by('-payment_date')
+
+        if bank := self.request.GET.get('bank'):
+            qs = qs.filter(bank_id=bank)
+
+        if unit := self.request.GET.get('unit'):
+            qs = qs.filter(unit_id=unit)
+
+        if amount := self.request.GET.get('amount'):
+            qs = qs.filter(amount=amount)
+
+        q = self.request.GET.get('q')
+        if q:
+            search_filter = (
+                    Q(receiver_name__icontains=q) |
+                    Q(payer_name__icontains=q)
+            )
+            qs = qs.filter(search_filter)
+
+        if payment_description := self.request.GET.get('payment_description'):
+            qs = qs.filter(payment_description__icontains=payment_description)
+
+        if doc_number := self.request.GET.get('doc_number'):
+            qs = qs.filter(doc_number__exact=doc_number)
+
+        if details := self.request.GET.get('details'):
+            qs = qs.filter(details__icontains=details)
+
+        transaction_type = self.request.GET.get('transaction_type')
+
+        if transaction_type == 'received':
+            qs = qs.filter(is_received=True)
+
+        elif transaction_type == 'paid':
+            qs = qs.filter(is_paid=True)
+
+        try:
+            if from_date := self.request.GET.get('from_date'):
+                qs = qs.filter(
+                    payment_date__gte=jdatetime.datetime.strptime(
+                        from_date, '%Y/%m/%d'
+                    ).togregorian().date()
+                )
+
+            if to_date := self.request.GET.get('to_date'):
+                qs = qs.filter(
+                    payment_date__lte=jdatetime.datetime.strptime(
+                        to_date, '%Y/%m/%d'
+                    ).togregorian().date()
+                )
+        except ValueError:
+            messages.warning(self.request, 'فرمت تاریخ وارد شده صحیح نیست')
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        totals = self.object_list.aggregate(
+            total_income=Sum('debtor_amount'),
+            total_expense=Sum('creditor_amount'),
+        )
+
+        context['total_income'] = totals['total_income'] or 0
+        context['total_expense'] = totals['total_expense'] or 0
+        context['balance'] = context['total_income'] - context['total_expense']
+
+        managed_users = User.objects.filter(
+            Q(manager=self.request.user) | Q(pk=self.request.user.pk)
+        )
+
+        context.update({
+            'banks': Bank.objects.filter(user=self.request.user),
+            'units': Unit.objects.filter(is_active=True, user__in=managed_users),
+        })
+
+        return context
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def export_pay_receive_report_pdf(request):
+    manager = request.user
+
+    # Queryset اصلی
+    funds = Fund.objects.filter(
+    Q(user=manager) | Q(user__manager=manager)
+            ).filter(
+                Q(is_received=True) | Q(is_paid=True)
+            ).order_by('-payment_date')
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
+
+    transaction_type = request.GET.get('transaction_type')
+    if transaction_type == 'received':
+        funds = funds.filter(is_received=True)
+    elif transaction_type == 'paid':
+        funds = funds.filter(is_paid=True)
+    else:
+        funds = funds.filter(Q(is_received=True) | Q(is_paid=True))
+
+    # فیلتر جستجو
+    q = request.GET.get('q')
+    if q:
+        search_filter = Q(receiver_name__icontains=q) | Q(payer_name__icontains=q)
+        funds = funds.filter(search_filter)
+
+    filter_fields = {
+        'bank': 'bank__id',
+        'unit': 'unit__id',
+        'receiver_name': 'payer_name',
+        'amount': 'amount__icontains',
+        'doc_number': 'doc_number__exact',
+        'payment_description': 'payment_description__icontains',
+        'details': 'details__icontains',
+    }
+
+    for field, lookup in filter_fields.items():
+        value = request.GET.get(field)
+        if value:
+            filter_expression = {lookup: value}
+            funds = funds.filter(**filter_expression)
+
+    # فیلتر تاریخ
+    from_date_str = request.GET.get('from_date')
+    to_date_str = request.GET.get('to_date')
+    try:
+        if from_date_str:
+            from_date = jdatetime.datetime.strptime(from_date_str, '%Y/%m/%d').togregorian().date()
+            funds = funds.filter(payment_date__gte=from_date)
+        if to_date_str:
+            to_date = jdatetime.datetime.strptime(to_date_str, '%Y/%m/%d').togregorian().date()
+            funds = funds.filter(payment_date__lte=to_date)
+    except ValueError:
+        funds = Fund.objects.none()
+
+    # مسیر فونت
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+                @page {{ size: A4 landscape; margin: 1cm; }}
+                body {{
+                    font-family: 'BYekan', sans-serif;
+                }}
+                @font-face {{
+                    font-family: 'BYekan';
+                    src: url('{font_url}');
+                }}
+            """)
+
+    # رندر قالب HTML
+    template = get_template("pay_receive_report_pdf.html")
+    context = {
+        'funds': funds,
+        'font_path': font_url,
+        'house': house,
+        'today': datetime.now()
+    }
+
+    html = template.render(context)
+    page_pdf = io.BytesIO()
+    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(page_pdf, stylesheets=[css])
+
+    page_pdf.seek(0)
+
+    # تولید پاسخ PDF
+    pdf_merger = PdfWriter()
+    pdf_merger.append(page_pdf)
+    response = HttpResponse(content_type='application/pdf')
+
+    response['Content-Disposition'] = f'attachment; filename="pay_receive_reports.pdf"'
+
+    pdf_merger.write(response)
+    return response
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def export_pay_receive_report_excel(request):
+    manager = request.user
+    funds = Fund.objects.filter(
+        Q(user=manager) | Q(user__manager=manager)
+    ).filter(
+        Q(is_received=True) | Q(is_paid=True)
+    ).order_by('-payment_date')
+
+    # Create Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "units"
+    ws.sheet_view.rightToLeft = True
+
+    # Title
+    title_cell = ws.cell(row=1, column=1, value=f"گردش مالی صندوق ")
+    title_cell.font = Font(bold=True, size=18)
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=5)
+
+    # Headers
+    headers = [' بانک', 'تاریخ پرداخت', 'شرح', 'پرداخت کننده/واریز کننده', 'شماره سند', 'بدهکار', 'بستانکار']
+
+    header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
+    header_font = Font(bold=True, color="000000")
+    for col_num, column_title in enumerate(headers, 1):
+        cell = ws.cell(row=2, column=col_num, value=column_title)
+        cell.fill = header_fill
+        cell.font = header_font
+
+    # Write data
+    for row_num, fund in enumerate(funds, start=3):
+        ws.cell(row=row_num, column=1, value=f"{fund.bank.bank_name} - {fund.bank.account_no}")
+        ws.cell(row=row_num, column=2, value=show_jalali(fund.payment_date))
+        ws.cell(row=row_num, column=3, value=fund.payment_description)
+        ws.cell(row=row_num, column=4, value=f"{fund.payer_name} - {fund.receiver_name}")
+        ws.cell(row=row_num, column=5, value=fund.doc_number)
+        ws.cell(row=row_num, column=6, value=fund.debtor_amount)
+        ws.cell(row=row_num, column=7, value=fund.creditor_amount)
+
+    # Return response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename=report_pay_receive.xlsx'
     wb.save(response)
     return response

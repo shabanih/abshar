@@ -502,14 +502,14 @@ class UnitForm(forms.ModelForm):
     renter_details = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'rows': 8}), required=False,
                                      label='توضیحات مستاجر')
     is_active = forms.BooleanField(required=False, initial=True, label='فعال/غیرفعال نمودن')
-    mobile = forms.CharField(
-        required=True,
-        max_length=11,
-        min_length=11,
-        error_messages=error_message,
-        label='نام کاربری',
-        widget=forms.TextInput(attrs=attr)
-    )
+    # mobile = forms.CharField(
+    #     required=True,
+    #     max_length=11,
+    #     min_length=11,
+    #     error_messages=error_message,
+    #     label='نام کاربری',
+    #     widget=forms.TextInput(attrs=attr)
+    # )
     password = forms.CharField(
         required=False,
         label='رمز عبور',
@@ -528,8 +528,9 @@ class UnitForm(forms.ModelForm):
         password = cleaned_data.get("password")
         confirm_password = cleaned_data.get("confirm_password")
 
-        if password and confirm_password and password != confirm_password:
-            self.add_error('confirm_password', "کلمه عبور و تکرار آن باید یکسان باشند.")
+        if password or confirm_password:
+            if password != confirm_password:
+                self.add_error('confirm_password', "کلمه عبور و تکرار آن باید یکسان باشند.")
 
         is_renter = cleaned_data.get('is_renter')
 
@@ -542,8 +543,8 @@ class UnitForm(forms.ModelForm):
 
         if str(is_renter).lower() == 'true':
             required_fields_if_rented = [
-                'renter_name', 'renter_mobile', 'renter_national_code', 'estate_name',
-                'renter_people_count', 'start_date', 'end_date', 'contract_number',
+                'renter_name', 'renter_mobile', 'renter_national_code',
+                'renter_people_count', 'start_date', 'end_date',
             ]
             for field in required_fields_if_rented:
                 if not cleaned_data.get(field):
@@ -560,7 +561,7 @@ class UnitForm(forms.ModelForm):
                   'renter_mobile', 'is_renter', 'owner_people_count',
                   'renter_people_count', 'start_date', 'end_date', 'first_charge_owner', 'first_charge_renter',
                   'contract_number', 'bank', 'transaction_no', 'payment_date',
-                  'estate_name', 'is_active', 'password', 'mobile', 'confirm_password']
+                  'estate_name', 'is_active', 'password', 'confirm_password']
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
@@ -722,6 +723,16 @@ class RenterAddForm(forms.ModelForm):
             'password',
             'confirm_password'
         ]
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if password or confirm_password:
+            if password != confirm_password:
+                self.add_error('confirm_password', "کلمه عبور و تکرار آن باید یکسان باشند.")
+        return cleaned_data
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)

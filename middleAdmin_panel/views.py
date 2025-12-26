@@ -393,7 +393,12 @@ class MiddleUnitRegisterView(CreateView):
                 is_renter = str(form.cleaned_data.get('is_renter')).lower() == 'true'
 
                 # فقط یک موبایل داریم (یوزرنیم)
-                mobile = form.cleaned_data.get('mobile')
+                # تعیین شماره موبایل مناسب
+                if is_renter:
+                    mobile = form.cleaned_data.get('renter_mobile')
+                else:
+                    mobile = form.cleaned_data.get('owner_mobile')
+
                 password = form.cleaned_data.get('password')
                 full_name = (
                     form.cleaned_data.get('renter_name')
@@ -401,11 +406,12 @@ class MiddleUnitRegisterView(CreateView):
                     else form.cleaned_data.get('owner_name')
                 )
 
+                # بررسی وجود کاربر با همان موبایل
                 if User.objects.filter(mobile=mobile).exists():
                     form.add_error('mobile', 'کاربری با این شماره موبایل قبلاً ثبت شده است.')
                     return self.form_invalid(form)
 
-                # ساخت یوزر
+                # ساخت کاربر
                 user = User.objects.create(
                     mobile=mobile,
                     username=mobile,
@@ -415,6 +421,8 @@ class MiddleUnitRegisterView(CreateView):
                     manager=self.request.user,
                     otp_create_time=timezone.now(),
                 )
+
+                # ست کردن رمز عبور
                 user.set_password(password)
                 user.save()
 
@@ -450,28 +458,30 @@ class MiddleUnitRegisterView(CreateView):
                         transaction_no=form.cleaned_data.get('transaction_no'),
 
                     )
-                    first_charge_renter = form.cleaned_data.get('first_charge_renter') or 0
 
                 # شارژ اولیه
                 first_charge_owner = int(unit.first_charge_owner or 0)
+                first_charge_renter = int(form.cleaned_data.get('first_charge_renter') or 0)
+
                 bank = Bank.objects.first()
                 payment_date = form.cleaned_data.get('payment_date')
                 transaction_no = form.cleaned_data.get('transaction_no')
-                Fund.objects.create(
-                    user=user,
-                    unit=unit,
-                    bank=bank,
-                    debtor_amount=Decimal(first_charge_owner + int(first_charge_renter)),
-                    creditor_amount=0,
-                    amount=Decimal(first_charge_owner + int(first_charge_renter)),
-                    is_initial=True,
-                    payment_date=payment_date,
-                    payer_name=unit.get_label(),
-                    payment_description="شارژ اولیه واحد",
-                    payment_gateway='پرداخت الکترونیک',
-                    content_object=unit,
-                    transaction_no=transaction_no,
-                )
+                if first_charge_owner > 0 or first_charge_renter > 0:
+                    Fund.objects.create(
+                        user=user,
+                        unit=unit,
+                        bank=bank,
+                        debtor_amount=Decimal(first_charge_owner + int(first_charge_renter)),
+                        creditor_amount=0,
+                        amount=Decimal(first_charge_owner + int(first_charge_renter)),
+                        is_initial=True,
+                        payment_date=payment_date,
+                        payer_name=unit.get_label(),
+                        payment_description="شارژ اولیه واحد",
+                        payment_gateway='پرداخت الکترونیک',
+                        content_object=unit,
+                        transaction_no=transaction_no,
+                    )
 
             messages.success(self.request, 'واحد با موفقیت ثبت شد')
             return super().form_valid(form)
@@ -483,81 +493,85 @@ class MiddleUnitRegisterView(CreateView):
 
 def add_renter_to_unit(request, unit_id):
     unit = get_object_or_404(Unit, id=unit_id)
-    user = unit.user  # فقط یک یوزر داریم
 
     if request.method == 'POST':
         form = RenterAddForm(request.POST, user=request.user)
         if form.is_valid():
-
             renter_mobile = form.cleaned_data['renter_mobile']
 
-            # ست نام کاربری با موبایل مستاجر
-            user.mobile = renter_mobile
-            user.username = renter_mobile
-            user.full_name = form.cleaned_data['renter_name']
-
-            if User.objects.exclude(pk=user.pk).filter(mobile=renter_mobile).exists():
+            # بررسی تکراری بودن شماره موبایل مستاجر
+            if User.objects.filter(mobile=renter_mobile).exists():
                 form.add_error('renter_mobile', 'مستاجری با این شماره موبایل قبلاً ثبت شده است.')
                 return render(request, 'middle_unit_templates/new_renter_register.html', {'form': form, 'unit': unit})
 
-            # فقط پسورد ست می‌شود
-            password = form.cleaned_data.get('password')
-            if password:
-                user.set_password(password)
+            with transaction.atomic():
+                # غیر فعال کردن مالک قبلی (دسترسی به پنل نداشته باشد)
+                unit.user.is_active = False
+                unit.user.save()
 
-            user.save()
+                # غیرفعال کردن مستاجر قبلی
+                Renter.objects.filter(unit=unit, renter_is_active=True).update(renter_is_active=False)
 
-            # غیرفعال کردن مستاجر قبلی
-            Renter.objects.filter(
-                unit=unit,
-                renter_is_active=True
-            ).update(renter_is_active=False)
-            bank = Bank.objects.first()  # یا از فرم انتخاب شود
-            # ایجاد مستاجر جدید
-            Renter.objects.create(
-                unit=unit,
-                user=user,
-                bank=bank,
-                renter_name=form.cleaned_data['renter_name'],
-                renter_mobile=renter_mobile,
-                renter_national_code=form.cleaned_data['renter_national_code'],
-                renter_people_count=form.cleaned_data['renter_people_count'],
-                start_date=form.cleaned_data['start_date'],
-                end_date=form.cleaned_data['end_date'],
-                contract_number=form.cleaned_data['contract_number'],
-                estate_name=form.cleaned_data['estate_name'],
-                first_charge_renter=form.cleaned_data.get('first_charge_renter') or 0,
-                renter_details=form.cleaned_data.get('renter_details'),
-                renter_is_active=True,
-                payment_date=form.cleaned_data.get('payment_date'),
-                transaction_no=form.cleaned_data.get('transaction_no'),
-            )
+                # ساخت یوزر جدید برای مستاجر
+                renter_user = User.objects.create(
+                    mobile=renter_mobile,
+                    username=renter_mobile,
+                    full_name=form.cleaned_data['renter_name'],
+                    is_active=True
+                )
+                password = form.cleaned_data.get('password')
+                if password:
+                    renter_user.set_password(password)
+                    renter_user.save()
 
-            unit.is_renter = True
-            unit.save()
+                # انتخاب بانک
+                bank = form.cleaned_data.get('bank') or Bank.objects.first()
 
-            first_charge_renter = form.cleaned_data.get('first_charge_renter') or 0
-            bank = Bank.objects.first()
-            payment_date = form.cleaned_data.get('payment_date')
-            transaction_no = form.cleaned_data.get('transaction_no')
-            Fund.objects.create(
-                user=user,
-                unit=unit,
-                bank=bank,
-                debtor_amount=Decimal(int(first_charge_renter)),
-                creditor_amount=0,
-                amount=Decimal(int(first_charge_renter)),
-                is_initial=True,
-                payment_date=payment_date,
-                payer_name=unit.get_label(),
-                payment_description="شارژ اولیه مستاجر",
-                payment_gateway='پرداخت الکترونیک',
-                content_object=unit,
-                transaction_no=transaction_no,
-            )
+                # ایجاد مستاجر جدید
+                Renter.objects.create(
+                    unit=unit,
+                    user=renter_user,  # حتماً یوزر جدید مستاجر
+                    bank=bank,
+                    renter_name=form.cleaned_data['renter_name'],
+                    renter_mobile=renter_mobile,
+                    renter_national_code=form.cleaned_data['renter_national_code'],
+                    renter_people_count=form.cleaned_data['renter_people_count'],
+                    start_date=form.cleaned_data['start_date'],
+                    end_date=form.cleaned_data['end_date'],
+                    contract_number=form.cleaned_data['contract_number'],
+                    estate_name=form.cleaned_data['estate_name'],
+                    first_charge_renter=form.cleaned_data.get('first_charge_renter') or 0,
+                    renter_details=form.cleaned_data.get('renter_details'),
+                    renter_is_active=True,
+                    payment_date=form.cleaned_data.get('payment_date'),
+                    transaction_no=form.cleaned_data.get('transaction_no'),
+                )
 
-            messages.success(request, 'مستاجر با موفقیت ثبت شد')
-            return redirect('middle_manage_unit')
+                # بروزرسانی واحد
+                unit.is_renter = True
+                unit.save()
+
+                # ایجاد شارژ اولیه مستاجر
+                first_charge_renter = int(form.cleaned_data.get('first_charge_renter') or 0)
+                if first_charge_renter > 0:
+                    Fund.objects.create(
+                        user=renter_user,
+                        unit=unit,
+                        bank=bank,
+                        debtor_amount=Decimal(first_charge_renter),
+                        creditor_amount=0,
+                        amount=Decimal(first_charge_renter),
+                        is_initial=True,
+                        payment_date=form.cleaned_data.get('payment_date'),
+                        payer_name=unit.get_label(),
+                        payment_description="شارژ اولیه مستاجر",
+                        payment_gateway='پرداخت الکترونیک',
+                        content_object=unit,
+                        transaction_no=form.cleaned_data.get('transaction_no'),
+                    )
+
+                messages.success(request, 'مستاجر با موفقیت ثبت شد.')
+                return redirect('middle_manage_unit')
 
     else:
         form = RenterAddForm(user=request.user)
@@ -576,23 +590,16 @@ class MiddleUnitUpdateView(UpdateView):
     template_name = 'middle_unit_templates/edit_unit.html'
     success_url = reverse_lazy('middle_manage_unit')
 
-    # -------------------------
-    # form kwargs
-    # -------------------------
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['user'] = self.request.user
         return kwargs
 
-    # -------------------------
-    # initial values
-    # -------------------------
     def get_initial(self):
         initial = super().get_initial()
         unit = self.object
 
         initial['mobile'] = unit.user.mobile
-
         renter = unit.renters.filter(renter_is_active=True).select_related('bank').first()
         if renter:
             initial.update({
@@ -613,118 +620,302 @@ class MiddleUnitUpdateView(UpdateView):
             })
         else:
             initial['is_renter'] = 'False'
-
         return initial
 
-    # -------------------------
-    # main logic
-    # -------------------------
     def form_valid(self, form):
         try:
             with transaction.atomic():
-
                 unit = form.save(commit=False)
-                user = unit.user
 
+                # --------- 1️⃣ بررسی تغییر مالک ---------
+                owner_changed = False
+                if unit.pk:
+                    old_owner_name = Unit.objects.get(pk=unit.pk).owner_name
+                    new_owner_name = form.cleaned_data.get('owner_name')
+                    owner_changed = old_owner_name != new_owner_name
 
-                # -------- 1) تشخیص تغییر مالک (از DB)
-                db_owner_name = Unit.objects.get(pk=self.object.pk).owner_name
-                new_owner_name = form.cleaned_data.get('owner_name')
-                owner_changed = db_owner_name != new_owner_name
+                # --------- 2️⃣ مستاجر فعال ---------
+                active_renter = unit.renters.filter(renter_is_active=True).first()
 
-                # -------- 2) اگر مالک تغییر کرد → مستاجر فعال غیرفعال شود
-                if owner_changed:
-                    unit.renters.filter(renter_is_active=True).update(renter_is_active=False)
+                # --------- 3️⃣ انتخاب یوزر برای بروزرسانی ---------
+                if active_renter:
+                    user = active_renter.user
+                    new_mobile = form.cleaned_data.get('renter_mobile')
+                    new_name = form.cleaned_data.get('renter_name')
+                else:
+                    user = unit.user
+                    new_mobile = form.cleaned_data.get('mobile')
+                    new_name = form.cleaned_data.get('owner_name')
 
-                # -------- 3) بروزرسانی اطلاعات یوزر
-                mobile = form.cleaned_data.get('mobile')
-                if mobile != user.mobile:
-                    if User.objects.filter(mobile=mobile).exclude(pk=user.pk).exists():
-                        form.add_error('mobile', 'این شماره موبایل قبلاً ثبت شده است.')
+                # --------- 4️⃣ بروزرسانی موبایل و نام User ---------
+                if new_mobile and new_mobile != user.mobile:
+                    if User.objects.filter(mobile=new_mobile).exclude(pk=user.pk).exists():
+                        field_name = 'renter_mobile' if active_renter else 'mobile'
+                        form.add_error(field_name, 'این شماره موبایل قبلاً ثبت شده است.')
                         return self.form_invalid(form)
-                    user.mobile = mobile
-                    user.username = mobile
+                    user.mobile = new_mobile
+                    user.username = new_mobile
 
+                if new_name:
+                    user.full_name = new_name
+
+                # بروزرسانی پسورد
                 password = form.cleaned_data.get('password')
                 if password:
                     user.set_password(password)
 
-                user.full_name = new_owner_name
                 user.save()
 
-                # -------- 4) ذخیره واحد
-                unit.is_renter = str(form.cleaned_data.get('is_renter')).lower() == 'true'
+                # --------- 5️⃣ بروزرسانی مستاجر فعال ---------
+                renter_changed = False
+                if active_renter:
+                    if new_mobile and new_mobile != active_renter.renter_mobile:
+                        active_renter.renter_mobile = new_mobile
+                    if new_name and new_name != active_renter.renter_name:
+                        renter_changed = True
+                    active_renter.save()
+
+                # --------- 6️⃣ بروزرسانی واحد ---------
+                unit.is_renter = form.cleaned_data.get('is_renter', False)
                 unit.save()
 
-                # -------- 5) فقط اگر مالک تغییر نکرده، مستاجر را فعال/به‌روز کن
-                if unit.is_renter and not owner_changed:
-                    renter = unit.renters.filter(renter_is_active=False).first()
-                    if not renter:
-                        renter = Renter(unit=unit, user=user)
-
-                    renter.renter_name = form.cleaned_data.get('renter_name')
-                    renter.renter_mobile = form.cleaned_data.get('renter_mobile')
-                    renter.renter_national_code = form.cleaned_data.get('renter_national_code')
-                    renter.renter_people_count = form.cleaned_data.get('renter_people_count')
-                    renter.start_date = form.cleaned_data.get('start_date')
-                    renter.end_date = form.cleaned_data.get('end_date')
-                    renter.contract_number = form.cleaned_data.get('contract_number')
-                    renter.estate_name = form.cleaned_data.get('estate_name')
-                    renter.first_charge_renter = form.cleaned_data.get('first_charge_renter') or 0
-                    renter.renter_details = form.cleaned_data.get('renter_details')
-                    renter.bank = form.cleaned_data.get('bank')
-                    renter.payment_date = form.cleaned_data.get('payment_date')
-                    renter.transaction_no = form.cleaned_data.get('transaction_no')
-                    renter.renter_is_active = True
-                    renter.save()
-
-                    print('DB renter active:',
-                          Renter.objects.filter(unit=unit, renter_is_active=True).count())
-
-                    print('DB owner:',
-                          User.objects.get(pk=user.pk).full_name)
-
-                    print('FORM owner:',
-                          form.cleaned_data.get("owner_name"))
-
-                    # -------- 6) شارژ اولیه
-                    Fund.objects.filter(unit=unit, is_initial=True).update(is_initial=False)
-
-                    first_charge = Decimal(renter.first_charge_renter or 0)
-                    if first_charge > 0:
-                        Fund.objects.create(
-                            user=user,
-                            unit=unit,
-                            bank=renter.bank,
-                            debtor_amount=first_charge,
-                            creditor_amount=0,
-                            amount=first_charge,
-                            is_initial=True,
-                            payment_date=renter.payment_date,
-                            payer_name=unit.get_label(),
-                            payment_description='شارژ اولیه واحد',
-                            payment_gateway='پرداخت الکترونیک',
-                            content_object=unit,
-                            transaction_no=renter.transaction_no,
-                        )
-
+                # --------- 7️⃣ غیرفعال کردن مستاجر در صورت تغییر مالک ---------
                 if owner_changed:
-                    messages.success(
-                        self.request,
-                        'مشخصات مالک با موفقیت ویرایش گردید؛ .'
-                    )
-                else:
-                    messages.success(self.request, 'اطلاعات واحد با موفقیت ویرایش شد')
+                    unit.renters.filter(renter_is_active=True).update(renter_is_active=False)
 
+                # --------- 8️⃣ ایجاد مستاجر جدید در صورت تغییر نام ---------
+                if unit.is_renter and active_renter and renter_changed:
+                    # غیرفعال کردن مستاجر قبلی
+                    Renter.objects.filter(unit=unit, renter_is_active=True).update(renter_is_active=False)
+
+                    renter_mobile = form.cleaned_data.get('renter_mobile')
+                    renter_user, created = User.objects.get_or_create(
+                        mobile=renter_mobile,
+                        defaults={
+                            'username': renter_mobile,
+                            'full_name': form.cleaned_data.get('renter_name'),
+                            'is_active': True
+                        }
+                    )
+
+                    if password:
+                        renter_user.set_password(password)
+                        renter_user.save()
+
+                    Renter.objects.create(
+                        unit=unit,
+                        user=renter_user,
+                        bank=form.cleaned_data.get('bank'),
+                        renter_name=form.cleaned_data.get('renter_name'),
+                        renter_mobile=renter_mobile,
+                        renter_national_code=form.cleaned_data.get('renter_national_code'),
+                        renter_people_count=form.cleaned_data.get('renter_people_count'),
+                        start_date=form.cleaned_data.get('start_date'),
+                        end_date=form.cleaned_data.get('end_date'),
+                        contract_number=form.cleaned_data.get('contract_number'),
+                        estate_name=form.cleaned_data.get('estate_name'),
+                        first_charge_renter=form.cleaned_data.get('first_charge_renter') or 0,
+                        renter_details=form.cleaned_data.get('renter_details'),
+                        renter_is_active=True,
+                        payment_date=form.cleaned_data.get('payment_date'),
+                        transaction_no=form.cleaned_data.get('transaction_no'),
+                    )
+
+                # --------- 9️⃣ شارژ اولیه مستاجر ---------
+                first_charge_renter = Decimal(form.cleaned_data.get('first_charge_renter') or 0)
+                if unit.is_renter and first_charge_renter > 0:
+                    fund_user = active_renter.user if active_renter else unit.user
+                    Fund.objects.filter(unit=unit, is_initial=True).update(is_initial=False)
+                    Fund.objects.create(
+                        user=fund_user,
+                        unit=unit,
+                        bank=form.cleaned_data.get('bank'),
+                        debtor_amount=first_charge_renter,
+                        creditor_amount=0,
+                        amount=first_charge_renter,
+                        is_initial=True,
+                        payment_date=form.cleaned_data.get('payment_date'),
+                        payer_name=unit.get_label(),
+                        payment_description='شارژ اولیه مستاجر',
+                        payment_gateway='پرداخت الکترونیک',
+                        content_object=unit,
+                        transaction_no=form.cleaned_data.get('transaction_no'),
+                    )
+
+                # --------- 🔟 شارژ اولیه مالک ---------
+                first_charge_owner = Decimal(form.cleaned_data.get('first_charge_owner') or 0)
+                if first_charge_owner > 0:
+                    fund_user = unit.user
+                    # پیدا کردن رکورد موجود مالک
+                    fund_owner, created = Fund.objects.get_or_create(
+                        unit=unit,
+                        user=fund_user,
+                        is_initial=True,
+                        defaults={
+                            'bank': form.cleaned_data.get('bank'),
+                            'debtor_amount': first_charge_owner,
+                            'creditor_amount': 0,
+                            'amount': first_charge_owner,
+                            'payment_date': form.cleaned_data.get('payment_date'),
+                            'payer_name': unit.get_label(),
+                            'payment_description': 'شارژ اولیه مالک',
+                            'payment_gateway': 'پرداخت الکترونیک',
+                            'content_object': unit,
+                            'transaction_no': form.cleaned_data.get('transaction_no'),
+                        }
+                    )
+                    if not created:
+                        # اگر رکورد قبلی وجود داشت، مقدارها را آپدیت کن
+                        fund_owner.debtor_amount = first_charge_owner
+                        fund_owner.amount = first_charge_owner
+                        fund_owner.payment_date = form.cleaned_data.get('payment_date')
+                        fund_owner.bank = form.cleaned_data.get('bank')
+                        fund_owner.transaction_no = form.cleaned_data.get('transaction_no')
+                        fund_owner.save()
+
+                messages.success(self.request, 'اطلاعات واحد با موفقیت ویرایش شد')
                 return super().form_valid(form)
 
         except Exception as e:
             form.add_error(None, str(e))
             return self.form_invalid(form)
 
-    # -------------------------
-    # context
-    # -------------------------
+    # def form_valid(self, form):
+    #     try:
+    #         with transaction.atomic():
+    #             unit = form.save(commit=False)
+    #
+    #             # --------- 1️⃣ بررسی تغییر مالک ---------
+    #             owner_changed = False
+    #             if unit.pk:
+    #                 old_owner_name = Unit.objects.get(pk=unit.pk).owner_name
+    #                 new_owner_name = form.cleaned_data.get('owner_name')
+    #                 owner_changed = old_owner_name != new_owner_name
+    #
+    #             # --------- 2️⃣ مشخص کردن یوزر فعال برای آپدیت ---------
+    #             active_renter = unit.renters.filter(renter_is_active=True).first()
+    #             if active_renter:
+    #                 user = active_renter.user
+    #                 new_mobile = form.cleaned_data.get('renter_mobile')
+    #                 new_name = form.cleaned_data.get('renter_name')
+    #             else:
+    #                 user = unit.user
+    #                 new_mobile = form.cleaned_data.get('mobile')
+    #                 new_name = form.cleaned_data.get('owner_name')
+    #
+    #             # --------- 3️⃣ بروزرسانی موبایل و یوزرنیم User ---------
+    #             if new_mobile and new_mobile != user.mobile:
+    #                 if User.objects.filter(mobile=new_mobile).exclude(pk=user.pk).exists():
+    #                     field_name = 'renter_mobile' if active_renter else 'mobile'
+    #                     form.add_error(field_name, 'این شماره موبایل قبلاً ثبت شده است.')
+    #                     return self.form_invalid(form)
+    #                 user.mobile = new_mobile
+    #                 user.username = new_mobile
+    #
+    #             # --------- 4️⃣ بروزرسانی نام User ---------
+    #             if new_name:
+    #                 user.full_name = new_name
+    #
+    #             # --------- 5️⃣ بروزرسانی پسورد ---------
+    #             password = form.cleaned_data.get('password')
+    #             if password:
+    #                 user.set_password(password)
+    #
+    #             user.save()
+    #
+    #             # --------- 6️⃣ بروزرسانی Renter فعال در صورت تغییر موبایل یا نام ---------
+    #             if active_renter:
+    #                 updated = False
+    #                 # موبایل
+    #                 if new_mobile and new_mobile != active_renter.renter_mobile:
+    #                     active_renter.renter_mobile = new_mobile
+    #                     updated = True
+    #                 # نام (در این حالت فقط نام تغییر مستاجر باعث ایجاد مستاجر جدید می‌شود)
+    #                 if new_name and new_name != active_renter.renter_name:
+    #                     renter_changed = True
+    #                 else:
+    #                     renter_changed = False
+    #                 if updated:
+    #                     active_renter.save()
+    #
+    #             # --------- 7️⃣ بروزرسانی واحد ---------
+    #             unit.is_renter = form.cleaned_data.get('is_renter', False)
+    #             unit.save()
+    #
+    #             # --------- 8️⃣ اگر مالک تغییر کرد، مستاجر فعال غیرفعال شود ---------
+    #             if owner_changed:
+    #                 unit.renters.filter(renter_is_active=True).update(renter_is_active=False)
+    #
+    #             # --------- 9️⃣ مدیریت مستاجر جدید در صورت تغییر نام ---------
+    #             if unit.is_renter and active_renter and renter_changed:
+    #                 # غیرفعال کردن مستاجر قبلی
+    #                 Renter.objects.filter(unit=unit, renter_is_active=True).update(renter_is_active=False)
+    #
+    #                 # ایجاد یا دریافت یوزر جدید مستاجر
+    #                 renter_mobile = form.cleaned_data.get('renter_mobile')
+    #                 renter_user, created = User.objects.get_or_create(
+    #                     mobile=renter_mobile,
+    #                     defaults={
+    #                         'username': renter_mobile,
+    #                         'full_name': form.cleaned_data.get('renter_name'),
+    #                         'is_active': True
+    #                     }
+    #                 )
+    #
+    #                 # بروزرسانی پسورد مستاجر اگر وارد شده
+    #                 if password:
+    #                     renter_user.set_password(password)
+    #                     renter_user.save()
+    #
+    #                 # ایجاد مستاجر جدید
+    #                 Renter.objects.create(
+    #                     unit=unit,
+    #                     user=renter_user,
+    #                     bank=form.cleaned_data.get('bank'),
+    #                     renter_name=form.cleaned_data.get('renter_name'),
+    #                     renter_mobile=renter_mobile,
+    #                     renter_national_code=form.cleaned_data.get('renter_national_code'),
+    #                     renter_people_count=form.cleaned_data.get('renter_people_count'),
+    #                     start_date=form.cleaned_data.get('start_date'),
+    #                     end_date=form.cleaned_data.get('end_date'),
+    #                     contract_number=form.cleaned_data.get('contract_number'),
+    #                     estate_name=form.cleaned_data.get('estate_name'),
+    #                     first_charge_renter=form.cleaned_data.get('first_charge_renter') or 0,
+    #                     renter_details=form.cleaned_data.get('renter_details'),
+    #                     renter_is_active=True,
+    #                     payment_date=form.cleaned_data.get('payment_date'),
+    #                     transaction_no=form.cleaned_data.get('transaction_no'),
+    #                 )
+    #
+    #                 # --------- 🔟 شارژ اولیه ---------
+    #                 Fund.objects.filter(unit=unit, is_initial=True).update(is_initial=False)
+    #                 first_charge = Decimal(form.cleaned_data.get('first_charge_renter') or 0)
+    #                 print(first_charge)
+    #                 if first_charge > 0:
+    #                     Fund.objects.create(
+    #                         user=renter_user,
+    #                         unit=unit,
+    #                         bank=form.cleaned_data.get('bank'),
+    #                         debtor_amount=first_charge,
+    #                         creditor_amount=0,
+    #                         amount=first_charge,
+    #                         is_initial=True,
+    #                         payment_date=form.cleaned_data.get('payment_date'),
+    #                         payer_name=unit.get_label(),
+    #                         payment_description='شارژ اولیه واحد',
+    #                         payment_gateway='پرداخت الکترونیک',
+    #                         content_object=unit,
+    #                         transaction_no=form.cleaned_data.get('transaction_no'),
+    #                     )
+    #
+    #             messages.success(self.request, 'اطلاعات واحد با موفقیت ویرایش شد')
+    #             return super().form_valid(form)
+    #
+    #     except Exception as e:
+    #         form.add_error(None, str(e))
+    #         return self.form_invalid(form)
+
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['is_renter'] = self.object.renters.filter(renter_is_active=True).exists()
@@ -769,7 +960,6 @@ class MiddleUnitInfoView(DetailView):
         context['q'] = q
 
         return context
-
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -1939,10 +2129,12 @@ class MiddleReceiveMoneyCreateView(CreateView):
                 amount=self.object.amount or 0,
                 debtor_amount=self.object.amount or 0,
                 creditor_amount=0,
+                doc_number=self.object.doc_number,
                 payer_name=payer_name_for_fund,
                 payment_gateway='پرداخت الکترونیک',
                 payment_date=self.object.doc_date,
                 payment_description=f"حسابهای دریافتنی: {self.object.description[:50]}",
+                is_received=True
             )
             files = self.request.FILES.getlist('document')
 
@@ -2054,6 +2246,7 @@ def middle_receive_edit(request, pk):
                 fund.debtor_amount = receive.amount or 0
                 fund.creditor_amount = 0
                 fund.payment_date = receive.doc_date
+                fund.doc_number = receive.doc_number
                 fund.payer_name = payer_name_for_fund
                 fund.payment_description = f"حسابهای دریافتنی: {(receive.description or '')[:50]}"
                 fund.save()
@@ -2071,9 +2264,11 @@ def middle_receive_edit(request, pk):
                     debtor_amount=receive.amount or 0,
                     creditor_amount=0,
                     payment_date=receive.doc_date,
+                    doc_number=receive.doc_number,
                     payment_gateway='پرداخت الکترونیک',
                     payer_name=payer_name_for_fund,
                     payment_description=f"حسابهای دریافتنی: {(receive.description or '')[:50]}",
+                    is_received=True
                 )
 
             # 📎 ذخیره فایل‌ها
@@ -2333,7 +2528,9 @@ class MiddlePaymentMoneyCreateView(CreateView):
                 creditor_amount=self.object.amount,
                 payment_gateway='پرداخت الکترونیک',
                 payment_date=self.object.document_date,
+                doc_number=self.object.document_number,
                 payment_description=f"حسابهای پرداختنی: {self.object.description[:50]}",
+                is_paid=True
             )
 
             files = self.request.FILES.getlist('document')
@@ -2438,6 +2635,7 @@ def middle_pay_edit(request, pk):
                 fund.amount = payment.amount or 0
                 fund.creditor_amount = payment.amount or 0
                 fund.payment_date = payment.document_date
+                fund.doc_number = payment.document_number
                 fund.receiver_name = receiver_name_for_fund
                 fund.payment_gateway = 'پرداخت الکترونیک'
                 fund.payment_description = f"حسابهای پرداختنی: {(payment.description or '')[:50]}"
@@ -2458,8 +2656,10 @@ def middle_pay_edit(request, pk):
                     user=request.user,
                     receiver_name=receiver_name_for_fund,
                     payment_date=payment.document_date,
+                    doc_number=payment.document_number,
                     payment_gateway='پرداخت الکترونیک',
-                    payment_description=f"حسابهای پرداختنی: {(payment.description or '')[:50]}"
+                    payment_description=f"حسابهای پرداختنی: {(payment.description or '')[:50]}",
+                    is_paid=True
                 )
 
             # ثبت فایل‌های پیوست جدید
@@ -2471,7 +2671,7 @@ def middle_pay_edit(request, pk):
             return redirect(reverse('middle_add_pay'))  # Adjust redirect as necessary
 
         else:
-            messages.error(request, 'خطا در ویرایش فرم درآمد. لطفا دوباره تلاش کنید.')
+            messages.error(request, 'خطا در ویرایش فرم . لطفا دوباره تلاش کنید.')
             return render(request, 'MiddlePayMoney/add_pay_money.html', {'form': form, 'payment': payment})
     else:
         form = PayerMoneyForm(instance=payment, user=request.user)
