@@ -91,3 +91,6 @@ def four_digit_cart(value):
     # Prepend Left-to-Right Mark to ensure correct display in RTL contexts
     return '\u200E' + grouped
 
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)

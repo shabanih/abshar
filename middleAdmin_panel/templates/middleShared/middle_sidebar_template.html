@@ -130,11 +130,12 @@
     <i class="menu-arrow"></i>
     <i class="mdi mdi-clipboard-text menu-icon"></i>
   </a>
-  <div class="collapse {% if request.resolver_match.url_name in 'fund_turn_over unit_reports debtor_creditor_reports unit_history_report expense_history_report income_history_report property_history_report maintenance_history_report pay_receive_report' %}show{% endif %}" id="general2">
+  <div class="collapse {% if request.resolver_match.url_name in 'fund_turn_over unit_reports debtor_creditor_reports unit_history_report expense_history_report income_history_report property_history_report maintenance_history_report pay_receive_report charge_list_report' %}show{% endif %}" id="general2">
     <ul class="nav flex-column sub-menu">
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'fund_turn_over' %}active{% endif %}" href="{% url 'fund_turn_over' %}">گردش صندوق</a></li>
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'unit_reports' %}active{% endif %}" href="{% url 'unit_reports' %}">گردش مالی اشخاص</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'debtor_creditor_reports' %}active{% endif %}" href="{% url 'debtor_creditor_reports' %}">واحدهای بدهکار/بستانکار</a></li>
+      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'unit_reports' %}active{% endif %}" href="{% url 'charge_list_report' %}">شارژ های ساختمان</a></li>
+      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'debtor_creditor_reports' %}active{% endif %}" href="{% url 'debtor_creditor_reports' %}">واحدهای بدهکار</a></li>
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'unit_history_report' %}active{% endif %}" href="{% url 'unit_history_report' %}">سوابق سکونت واحدها</a></li>
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'expense_history_report' %}active{% endif %}" href="{% url 'expense_history_report' %}">هزینه‌ها</a></li>
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'income_history_report' %}active{% endif %}" href="{% url 'income_history_report' %}">درآمدها</a></li>

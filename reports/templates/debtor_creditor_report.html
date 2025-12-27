@@ -32,14 +32,12 @@
         </div>
 
         <!-- خروجی -->
-        <div class="col-12 col-md-3 d-flex gap-1">
-            <a href=""
-               class="btn btn-gradient-success w-50">
-                Excel
-            </a>
-            <a href=""
-               class="btn btn-gradient-danger w-50">
-                PDF
+        <div class="col-12 col-md-3 d-flex gap-2">
+           <a href="{% url 'export_debtor_report_excel' %}?{{ request.GET.urlencode }}"
+   class="btn btn-gradient-success px-2 py-2">خروجی Excel</a>
+            <a href="{% url 'export_debtor_report_pdf' %}?{{ request.GET.urlencode }}"
+               class="btn btn-gradient-danger px-2 py-2">
+               خروجی PDF
             </a>
         </div>
 
@@ -67,9 +65,20 @@
                 <th>ردیف</th>
                 <th>نام واحد</th>
                 <th>جمع بدهی (تومان)</th>
-                <th></th>
+                <th>مشاهده سوابق</th>
+                
             </tr>
         </thead>
+                 <thead>
+                                    <tr class="fw-bold sticky-summary">
+                                        <th class="bg-body text-dark fw-bold" colspan="2">جمع کل</th>
+                                          <th class="bg-light text-dark fw-bold">
+                                            {{ total_debt_all_units|three_digit_currency }}
+                                        </th>
+                                        <th class="bg-body">.</th>
+                                      
+                                    </tr>
+                            </thead>
         <tbody>
             {% for unit in units_with_debt %}
             <tr>

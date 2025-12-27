@@ -1,0 +1,133 @@
+{% extends 'middleShared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+جزئیات شارژ
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container mt-3">
+  <div class="container pt-3">
+
+    <div class="row g-2 align-items-center mb-3">
+
+        <!-- جستجو -->
+        <div class="col-12 col-md-7">
+            <form method="get" class="d-flex gap-2">
+                <input type="text"
+                       class="form-control"
+                       name="q"
+                       value="{{ query }}"
+                       placeholder="جستجو..."
+                       dir="rtl"
+                       autocomplete="off"
+                       oninput="if(this.value==='') this.form.submit();">
+                <button type="submit" class="btn btn-info py-2">
+                    جستجو
+                </button>
+            </form>
+        </div>
+
+        <!-- خروجی -->
+        <div class="col-12 col-md-3 d-flex gap-2">
+           <a href="{% url 'export_debtor_report_excel' %}?{{ request.GET.urlencode }}"
+   class="btn btn-gradient-success px-2 py-2">خروجی Excel</a>
+            <a href="{% url 'export_debtor_report_pdf' %}?{{ request.GET.urlencode }}"
+               class="btn btn-gradient-danger px-2 py-2">
+               خروجی PDF
+            </a>
+        </div>
+
+        <!-- تعداد نمایش -->
+     <div class="col-12 col-md-2 col-xl-2 p-3 "> 
+         <div class="d-flex align-items-center gap-1"> 
+             <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label> 
+             <select id="cardsPerPage" class="form-select select-fix" 
+                     style="width: auto;" onchange="window.location.href='?q={{ query }}&paginate=' + this.value;"> 
+                 <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option> 
+                 <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option> 
+                 <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option> 
+                 <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+             </select>
+         </div> 
+     </div>
+
+    </div>
+
+<div class="container mt-4">
+<h3>جزئیات شارژ: {{ base_charge.name }}</h3>
+
+<h3>جزئیات واحدها</h3>
+{% if unit_charges %}
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>واحد</th>
+            <th>کاربر</th>
+            <th>مبلغ</th>
+            <th>جریمه</th>
+            <th>مبلغ کل</th>
+            <th>وضعیت پرداخت</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for uc in unit_charges %}
+        <tr>
+            <td>{{ uc.unit.unit }}</td>
+            <td>{{ uc.user.full_name }}</td>
+            <td>{{ uc.amount|floatformat:0 }}</td>
+            <td>{{ uc.penalty_amount|default:0 }}</td>
+            <td>{{ uc.total_charge_month|default:uc.amount|floatformat:0 }}</td>
+            <td>
+                {% if uc.is_paid %}
+                    پرداخت شده
+                {% else %}
+                    پرداخت نشده
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>واحدی برای این شارژ ثبت نشده است.</p>
+{% endif %}
+
+
+
+</div>
+
+
+
+
+
+   <!-- Pagination -->
+      <div class="col-12">
+        <div class="pagination d-flex justify-content-center mt-5">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+            {% endif %}
+
+            {% for page_number in page_obj.paginator.page_range %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_number }}"
+                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
+                    {{ page_number }}
+                </a>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</div>
+
+
+
+{% endblock %}
+
+

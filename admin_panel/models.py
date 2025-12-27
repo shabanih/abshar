@@ -7,6 +7,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
+from django.utils.functional import cached_property
 from django.utils.safestring import mark_safe
 from datetime import date
 
@@ -156,7 +157,6 @@ class ReceiveMoney(models.Model):
 
     def __str__(self):
         return str(self.unit.unit)
-
 
     def get_document_json(self):
         # Use the correct attribute to access the file URL in the related `ExpenseDocument` model
@@ -384,8 +384,6 @@ class AreaCharge(models.Model):
         return str(self.name)
 
 
-
-
 class AreaChargeCalc(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_area')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_area')
@@ -450,7 +448,6 @@ class AreaChargeCalc(models.Model):
             self.total_charge_month = base_total + (self.payment_penalty_price or 0)
 
         super().save(*args, **kwargs)
-
 
 
 class PersonCharge(models.Model):
@@ -1176,6 +1173,45 @@ class UnifiedCharge(models.Model):
             self.total_charge_month = base_total + new_penalty
             if save:
                 self.save(update_fields=['penalty_amount', 'total_charge_month'])
+
+
+class UnifiedBaseCharge:
+    """
+    یک مدل نمایشی برای ترکیب شارژهای مختلف
+    """
+
+    def __init__(self, charge_instance, charge_type):
+        self.id = charge_instance.id
+        self.name = charge_instance.name
+        self.unit_count = getattr(charge_instance, 'unit_count', 0)
+        self.total_people = getattr(charge_instance, 'total_people', 0)
+        self.deadline = getattr(charge_instance, 'payment_deadline', None)
+        self.details = charge_instance.details
+        self.created_at = charge_instance.created_at
+        self.is_active = charge_instance.is_active
+        self.user = charge_instance.user
+        self.charge_type = charge_type
+        self.payment_penalty_amount = charge_instance.payment_penalty_amount
+
+    @cached_property
+    def type_display(self):
+        if self.charge_type == 'fix':
+            return "شارژ ثابت"
+        if self.charge_type == 'area':
+            return "شارژ متراژی"
+        if self.charge_type == 'person':
+            return "شارژ نفری"
+        elif self.charge_type == 'fix_person':
+            return "شارژ ثابت واحدی نفری"
+        elif self.charge_type == 'fix_area':
+            return "شارژ ثابت واحدی متراژی"
+        if self.charge_type == 'person_area':
+            return "شارژ نفری واحدی"
+        if self.charge_type == 'fix_person_area':
+            return "شارژ ثابت واحدی نفری"
+        if self.charge_type == 'fix_variable':
+            return "شارژ متغیر"
+        return ""
 
 
 class Fund(models.Model):

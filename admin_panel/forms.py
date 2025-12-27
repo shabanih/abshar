@@ -420,11 +420,20 @@ class UnitForm(forms.ModelForm):
         widget=forms.TextInput(attrs=attr),
         label='شماره پارکینگ'
     )
-    transaction_no = forms.IntegerField(error_messages=error_message,
+    owner_transaction_no = forms.IntegerField(error_messages=error_message,
                                         widget=forms.TextInput(attrs=attr),
                                         required=False, min_value=0,
                                         label='کد پیگیری')
-    payment_date = JalaliDateField(
+    owner_payment_date = JalaliDateField(
+        label='تاریخ پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    renter_transaction_no = forms.IntegerField(error_messages=error_message,
+                                              widget=forms.TextInput(attrs=attr),
+                                              required=False, min_value=0,
+                                              label='کد پیگیری')
+    renter_payment_date = JalaliDateField(
         label='تاریخ پرداخت',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
         error_messages=error_message, required=False
@@ -560,8 +569,8 @@ class UnitForm(forms.ModelForm):
                   'renter_national_code', 'renter_details', 'extra_parking_first', 'extra_parking_second',
                   'renter_mobile', 'is_renter', 'owner_people_count',
                   'renter_people_count', 'start_date', 'end_date', 'first_charge_owner', 'first_charge_renter',
-                  'contract_number', 'bank', 'transaction_no', 'payment_date',
-                  'estate_name', 'is_active', 'password', 'confirm_password']
+                  'contract_number', 'bank', 'owner_transaction_no', 'owner_payment_date', 'renter_payment_date',
+                  'estate_name', 'is_active', 'password', 'confirm_password', 'renter_transaction_no']
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
@@ -596,8 +605,8 @@ class UnitForm(forms.ModelForm):
             instance.contract_number = ''
             instance.first_charge_renter = None or 0
             instance.renter_details = ''
-            instance.transaction_no = None
-            instance.payment_date = None
+            instance.renter_transaction_no = None
+            instance.renter_payment_date = None
 
             # Set people_count from owner's info
             instance.people_count = int(self.cleaned_data.get('owner_people_count')) or 0
@@ -673,11 +682,11 @@ class RenterAddForm(forms.ModelForm):
                                      label='توضیحات مستاجر')
 
     renter_is_active = forms.BooleanField(required=False, initial=True, label='فعال')
-    transaction_no = forms.IntegerField(error_messages=error_message,
+    renter_transaction_no = forms.IntegerField(error_messages=error_message,
                                         widget=forms.TextInput(attrs=attr),
                                         required=False, min_value=0,
                                         label='کد پیگیری')
-    payment_date = JalaliDateField(
+    renter_payment_date = JalaliDateField(
         label='تاریخ پرداخت',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
         error_messages=error_message, required=False
@@ -717,8 +726,8 @@ class RenterAddForm(forms.ModelForm):
             'first_charge_renter',
             'renter_details',
             'renter_is_active',
-            'transaction_no',
-            'payment_date',
+            'renter_transaction_no',
+            'renter_payment_date',
             'bank',
             'password',
             'confirm_password'

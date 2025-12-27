@@ -15,6 +15,12 @@ urlpatterns = [
     path('history/property/report/', views.ReportPropertyView.as_view(), name='property_history_report'),
     path('history/maintenance/report/', views.ReportMaintenanceView.as_view(), name='maintenance_history_report'),
     path('pay/receive/report/', views.PayReceiveReportView.as_view(), name='pay_receive_report'),
+    path('reports/charges/', views.unified_charge_list, name='charge_list_report'),
+    path(
+        'reports/charges/<int:charge_id>/<str:charge_type>/',
+        views.charge_detail,
+        name='charge_detail'
+    ),
 
     path('report/export/excel/', views.export_units_report_excel, name='export_units_report_excel'),
     path('report/export/pdf/', views.export_units_report_pdf, name='export_units_report_pdf'),
@@ -47,6 +53,12 @@ urlpatterns = [
          name='export_pay_receive_report_excel'),
     path('report/pay/receive/export/pdf/', views.export_pay_receive_report_pdf,
          name='export_pay_receive_report_pdf'),
+
+    path('report/debtor/export/excel/', views.export_debtor_report_excel,
+         name='export_debtor_report_excel'),
+    path('report/debtor/export/pdf/', views.export_debtor_report_pdf,
+         name='export_debtor_report_pdf'),
+
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

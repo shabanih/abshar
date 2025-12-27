@@ -140,8 +140,8 @@ class Unit(models.Model):
     parking_counts = models.IntegerField(null=True, blank=True, verbose_name='تعداد پارکینگ اضافه')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='زمان ایجاد')
     first_charge_owner = models.IntegerField(null=True, blank=True, verbose_name='شارژ اولیه مالک', default=0)
-    payment_date = models.DateField(null=True, blank=True)
-    transaction_no = models.CharField(max_length=15, null=True, blank=True)
+    owner_payment_date = models.DateField(null=True, blank=True)
+    owner_transaction_no = models.CharField(max_length=15, null=True, blank=True)
 
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیر فعال')
 
@@ -175,8 +175,7 @@ class Unit(models.Model):
             count += 1
         self.parking_counts = count
 
-        # ذخیره اولیه برای گرفتن PK
-        super().save(*args, **kwargs)
+        super().save(*args, **kwargs)  # ذخیره اولیه برای گرفتن PK
 
         # --- Calculate people_count AFTER PK exists ---
         try:
@@ -188,21 +187,30 @@ class Unit(models.Model):
         except (ValueError, TypeError):
             self.people_count = 0
 
-        # ذخیره دوباره people_count اگر تغییر کرده
         super().save(update_fields=['people_count'])
 
         # ثبت تاریخچه تغییر مالک
-        if not is_new and old.owner_name != self.owner_name:
-            from .models import UnitResidenceHistory
+        from .models import UnitResidenceHistory
 
-            # بستن مالک قبلی
+        if is_new:
+            # واحد جدید → ثبت مالک اولیه
+            UnitResidenceHistory.objects.create(
+                unit=self,
+                resident_type='owner',
+                name=self.owner_name,
+                mobile=self.owner_mobile,
+                people_count=int(self.owner_people_count or 0),
+                from_date=timezone.now().date(),
+                changed_by=self.user
+            )
+        elif old.owner_name != self.owner_name:
+            # تغییر مالک موجود
             UnitResidenceHistory.objects.filter(
                 unit=self,
                 resident_type='owner',
                 to_date__isnull=True
             ).update(to_date=timezone.now().date())
 
-            # ثبت مالک جدید
             UnitResidenceHistory.objects.create(
                 unit=self,
                 resident_type='owner',
@@ -229,8 +237,8 @@ class Renter(models.Model):
     estate_name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام مشاور املاک')
     first_charge_renter = models.IntegerField(null=True, blank=True, verbose_name='شارژ اولیه مستاجر', default=0)
     renter_details = models.TextField(null=True, blank=True, verbose_name='توضیحات مستاجر')
-    payment_date = models.DateField(null=True, blank=True)
-    transaction_no = models.CharField(max_length=15, null=True, blank=True)
+    renter_payment_date = models.DateField(null=True, blank=True)
+    renter_transaction_no = models.CharField(max_length=15, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     renter_is_active = models.BooleanField(default=True, verbose_name='')
 

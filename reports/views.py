@@ -10,9 +10,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.core.paginator import Paginator
 from django.db import models
-from django.db.models import Q, Sum, F
+from django.db.models import Q, Sum, F, Count
 from django.db.models.functions import Coalesce
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from django.shortcuts import render, get_object_or_404
 from django.template.loader import get_template
 from django.urls import reverse_lazy
@@ -21,7 +21,9 @@ from django.views.generic import ListView
 from django.views.generic.edit import FormMixin
 
 from admin_panel.models import Fund, Expense, Income, Property, ExpenseCategory, IncomeCategory, Maintenance, \
-    UnifiedCharge
+    UnifiedCharge, PersonCharge, FixPersonCharge, FixAreaCharge, UnifiedBaseCharge, PersonChargeCalc, FixAreaChargeCalc, \
+    FixPersonChargeCalc, ChargeFixVariableCalc, AreaChargeCalc, FixedChargeCalc, ChargeByPersonAreaCalc, AreaCharge, \
+    FixCharge, ChargeByPersonArea, ChargeFixVariable, ChargeByFixPersonAreaCalc, ChargeByFixPersonArea
 from middleAdmin_panel.views import middle_admin_required
 from polls.templatetags.poll_extras import show_jalali
 from user_app.forms import UnitReportForm
@@ -540,41 +542,144 @@ def export_user_report_pdf(request):
     response['Content-Disposition'] = f'attachment; filename="fund_user_report.pdf"'
     return response
 
+# ============================================================
+def unified_charge_list(request):
+
+    # fix_charges = FixCharge.objects.filter(user=request.user)
+    # area_charges = AreaCharge.objects.filter(user=request.user)
+    # person_charges = PersonCharge.objects.filter(user=request.user)
+    # fix_person_charges = FixPersonCharge.objects.filter(user=request.user)
+    # fix_area_charges = FixAreaCharge.objects.filter(user=request.user)
+    # # charge_by_person_area = ChargeByPersonArea.objects.filter(user=request.user)
+    # charge_by_fix_person_area = ChargeByFixPersonArea.objects.filter(user=request.user)
+    # charge_fix_variable = ChargeFixVariable.objects.filter(user=request.user)
+
+    unit_count = Unit.objects.filter(is_active=True, user__manager=request.user).count()
+    fix_charges = FixCharge.objects.filter(user=request.user).annotate(
+        notified_count=Count(
+            'fix_charge_amount',
+            filter=Q(fix_charge_amount__send_notification=True)
+        ),
+        total_units=Count('fix_charge_amount')
+    ).order_by('-created_at')
+
+    area_charges = AreaCharge.objects.filter(user=request.user).annotate(
+            notified_count=Count(
+                'area_charge_amount',
+                filter=Q(area_charge_amount__send_notification=True)
+            ),
+            total_units=Count('area_charge_amount')
+        ).order_by('-created_at')
+    person_charges = PersonCharge.objects.annotate(
+        notified_count=Count(
+            'person_charge_amount',
+            filter=Q(person_charge_amount__send_notification=True)
+        ),
+        total_units=Count('person_charge_amount')
+    ).order_by('-created_at')
+    fix_area_charges = FixAreaCharge.objects.annotate(
+        notified_count=Count(
+            'fix_area_charge',
+            filter=Q(fix_area_charge__send_notification=True)
+        ),
+        total_units=Count('fix_area_charge')
+    ).order_by('-created_at')
+    fix_person_charges = FixPersonCharge.objects.annotate(
+        notified_count=Count(
+            'fix_person_charge',
+            filter=Q(fix_person_charge__send_notification=True)
+        ),
+        total_units=Count('fix_person_charge')
+    ).order_by('-created_at')
+
+    charge_by_person_area = ChargeByPersonArea.objects.filter(user=request.user).annotate(
+        notified_count=Count(
+            'person_area_charge',
+            filter=Q(person_area_charge__send_notification=True)
+        ),
+        total_units=Count('person_area_charge')).order_by('-created_at')
+    charge_by_fix_person_area = ChargeByFixPersonArea.objects.annotate(
+        notified_count=Count(
+            'fix_person_area',
+            filter=Q(fix_person_area__send_notification=True)
+        ),
+        total_units=Count('fix_person_area')
+    ).order_by('-created_at')
+    charge_fix_variable = ChargeFixVariable.objects.annotate(
+        notified_count=Count(
+            'fix_variable_charge',
+            filter=Q(fix_variable_charge__send_notification=True)
+        ),
+        total_units=Count('fix_variable_charge')
+    ).order_by('-created_at')
+
+    context = {
+        'unit_count': unit_count,
+        'fix_charges': fix_charges,
+        'area_charges': area_charges,
+        'person_charges': person_charges,
+        'fix_person_charges': fix_person_charges,
+        'fix_area_charges': fix_area_charges,
+        'charge_by_person_area': charge_by_person_area,
+        'charge_by_fix_person_area': charge_by_fix_person_area,
+        'charge_fix_variable': charge_fix_variable,
+    }
+
+    return render(request, 'unified_charge_list.html', context)
+
+
+def charge_detail(request, unit_id):
+    unit = get_object_or_404(Unit, id=unit_id)
+
+    fix_charges = FixedChargeCalc.objects.filter(unit=unit, is_active=True)
+    area_charges = AreaChargeCalc.objects.filter(unit=unit, is_active=True)
+    person_charges = PersonChargeCalc.objects.filter(unit=unit, is_active=True)
+    fix_person_charges = FixPersonChargeCalc.objects.filter(unit=unit, is_active=True)
+    fix_area_charges = FixAreaChargeCalc.objects.filter(unit=unit, is_active=True)
+    charge_by_person_area = ChargeByPersonAreaCalc.objects.filter(unit=unit, is_active=True)
+    charge_fix_variable = ChargeFixVariableCalc.objects.filter(unit=unit, is_active=True)
+
+    context = {
+        'unit': unit,
+        'fix_charges': fix_charges,
+        'area_charges': area_charges,
+        'person_charges': person_charges,
+        'fix_person_charges': fix_person_charges,
+        'fix_area_charges': fix_area_charges,
+        'charge_by_person_area': charge_by_person_area,
+        'charge_fix_variable': charge_fix_variable,
+    }
+    return render(request, 'charge_detail_report.html', context)
+
+def unified_charge_detail(request, unit_id):
+    unit = get_object_or_404(Unit, id=unit_id)
+
+    charges = (
+        UnifiedCharge.objects
+        .filter(unit=unit, is_active=True)
+        .select_related('unit', 'bank', 'content_type')
+        .order_by('-created_at')
+    )
+
+    # آپدیت جریمه‌ها (اختیاری ولی حرفه‌ای)
+    for charge in charges:
+        charge.update_penalty(save=False)
+
+    context = {
+        'unit': unit,
+        'charges': charges,
+    }
+    return render(request, 'charge_detail_unified.html', context)
+
+
 
 # ===========================================================
-# def debtor_creditor_report(request):
-#     charges = (
-#         UnifiedCharge.objects
-#         .filter(is_paid=False, unit__isnull=False)
-#         .select_related('unit')
-#         .order_by('-total_charge_month')  # مرتب‌سازی اولیه
-#     )
-#
-#     # گروه‌بندی بر اساس واحد
-#     units_dict = {}
-#     for charge in charges:
-#         unit = charge.unit
-#         # نام واحد + مستاجر یا مالک
-#         renter = unit.get_active_renter()
-#         label = f"واحد {unit.unit} - {renter.renter_name}" if renter else f"واحد {unit.unit} - {unit.owner_name}"
-#
-#         if unit.id not in units_dict:
-#             units_dict[unit.id] = {
-#                 'id': unit.id,
-#                 'label': label,
-#                 'total_debt': 0
-#             }
-#         units_dict[unit.id]['total_debt'] += charge.total_charge_month or 0
-#
-#     # مرتب‌سازی بر اساس بدهی
-#     units_with_debt = sorted(units_dict.values(), key=lambda x: x['total_debt'], reverse=True)
-#
-#     context = {
-#         'units_with_debt': units_with_debt
-#     }
-#     return render(request, 'debtor_creditor_report.html', context)
 
 def debtor_creditor_report(request):
+    query = request.GET.get('q', '').strip()
+    # -------------------------
+    # Unpaid charges
+    # -------------------------
     charges = (
         UnifiedCharge.objects
         .filter(is_paid=False, unit__isnull=False)
@@ -582,6 +687,28 @@ def debtor_creditor_report(request):
         .order_by('-created_at')
     )
 
+    # -------------------------
+    # Update penalties for unpaid charges
+    # -------------------------
+    if query:
+        charges = charges.filter(
+            Q(unit__unit__icontains=query) |
+            Q(unit__owner_name__icontains=query) |
+            Q(unit__renters__renter_name__icontains=query)
+        ).distinct()
+
+    charges = charges.order_by('-created_at')
+
+    # -------------------------
+    # Update penalties for unpaid charges
+    # -------------------------
+    for charge in charges:
+        charge.update_penalty()
+        charge.save(update_fields=['total_charge_month', 'penalty_amount'])
+
+    # -------------------------
+    # Organize charges per unit
+    # -------------------------
     units = defaultdict(lambda: {
         'id': None,
         'label': '',
@@ -593,9 +720,8 @@ def debtor_creditor_report(request):
         unit = charge.unit
         renter = unit.get_active_renter()
         label = (
-            f"واحد {unit.unit} - {renter.renter_name}"
-            if renter else
-            f"واحد {unit.unit} - {unit.owner_name}"
+            f"واحد {unit.unit} - {renter.renter_name}" if renter
+            else f"واحد {unit.unit} - {unit.owner_name}"
         )
 
         data = units[unit.id]
@@ -604,56 +730,223 @@ def debtor_creditor_report(request):
         data['total_debt'] += charge.total_charge_month or 0
         data['charges'].append(charge)
 
+    # -------------------------
+    # Sort units by total debt
+    # -------------------------
+
+
     units_with_debt = sorted(
         units.values(),
-        key=lambda x: x['total_debt'],
+        key=lambda x: x['id'],
         reverse=True
     )
+    total_debt_all_units = sum(unit['total_debt'] for unit in units_with_debt)
+
+    # Pagination
+    # -------------------------
+    paginate_by = int(request.GET.get('paginate', 20))
+    page_number = request.GET.get('page', 1)
+    paginator = Paginator(units_with_debt, paginate_by)
+    page_obj = paginator.get_page(page_number)
 
     return render(request, 'debtor_creditor_report.html', {
-        'units_with_debt': units_with_debt
+        'units_with_debt': page_obj.object_list,
+        'total_debt_all_units': total_debt_all_units,
+        'page_obj': page_obj,
+        'query': query,
     })
 
-# def debtor_creditor_report(request):
-#     query = request.GET.get('q', '').strip()
-#     paginate = int(request.GET.get('paginate', 20) or 20)
-#
-#     units = Unit.objects.filter(user__manager=request.user, is_active=True)
-#
-#     if query:
-#         units = units.filter(
-#             Q(unit__icontains=query) |
-#             Q(owner_name__icontains=query)
-#         )
-#
-#     report_data = []
-#
-#     for unit in units:
-#         totals = Fund.objects.filter(unit=unit).aggregate(
-#             total_debtor=Sum('debtor_amount'),
-#             total_creditor=Sum('creditor_amount'),
-#         )
-#
-#         balance = (totals['total_debtor'] or 0) - (totals['total_creditor'] or 0)
-#
-#         report_data.append({
-#             'unit': unit,
-#             'total_debtor': totals['total_debtor'] or 0,
-#             'total_creditor': totals['total_creditor'] or 0,
-#             'balance': balance,
-#         })
-#
-#     paginator = Paginator(report_data, paginate)
-#     page_number = request.GET.get('page')
-#     page_obj = paginator.get_page(page_number)
-#
-#     return render(request, 'debtor_creditor_report.html', {
-#         'page_obj': page_obj,
-#         'query': query,
-#     })
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def export_debtor_report_pdf(request):
+    query = request.GET.get('q', '').strip()
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
+    # -------------------------
+    # Unpaid charges
+    # -------------------------
+    charges = UnifiedCharge.objects.filter(is_paid=False, unit__isnull=False).select_related('unit')
+
+    # -------------------------
+    # Apply search query
+    # -------------------------
+    if query:
+        charges = charges.filter(
+            Q(unit__unit__icontains=query) |
+            Q(unit__owner_name__icontains=query) |
+            Q(unit__renters__renter_name__icontains=query)
+        ).distinct()
+
+    # -------------------------
+    # Update penalties
+    # -------------------------
+    for charge in charges:
+        charge.update_penalty()
+        charge.save(update_fields=['total_charge_month', 'penalty_amount'])
+
+    # -------------------------
+    # Organize charges per unit
+    # -------------------------
+    units = defaultdict(lambda: {'id': None, 'label': '', 'total_debt': 0, 'charges': []})
+    for charge in charges:
+        unit = charge.unit
+        renter = unit.get_active_renter()
+        label = f"واحد {unit.unit} - {renter.renter_name}" if renter else f"واحد {unit.unit} - {unit.owner_name}"
+
+        data = units[unit.id]
+        data['id'] = unit.id
+        data['label'] = label
+        data['total_debt'] += charge.total_charge_month or 0
+        data['charges'].append(charge)
+
+    # -------------------------
+    # Sort units by unit number
+    # -------------------------
+    units_with_debt = sorted(units.values(), key=lambda x: x['id'])
+
+    # -------------------------
+    # Total debt all units
+    # -------------------------
+    total_debt_all_units = sum(unit['total_debt'] for unit in units_with_debt)
+
+    # -------------------------
+    # Render HTML template
+    # -------------------------
+    template = get_template("debtor_report_pdf.html")
+    context = {
+        'units_with_debt': units_with_debt,
+        'total_debt_all_units': total_debt_all_units,
+        'today': datetime.now(),
+        'house': house,
+    }
+    html = template.render(context)
+
+    # -------------------------
+    # Generate PDF
+    # -------------------------
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+        @page {{ size: A4 landscape; margin: 1cm; }}
+        body {{ font-family: 'BYekan', sans-serif; }}
+        @font-face {{
+            font-family: 'BYekan';
+            src: url('{font_url}');
+        }}
+    """)
+    pdf_file = io.BytesIO()
+    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
+    pdf_file.seek(0)
+
+    response = HttpResponse(pdf_file.read(), content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="debtor_report.pdf"'
+    return response
 
 
-# ===========================================================
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def export_debtor_report_excel(request):
+    query = request.GET.get('q', '').strip()
+
+    # -------------------------
+    # Unpaid charges
+    # -------------------------
+    charges = UnifiedCharge.objects.filter(is_paid=False, unit__isnull=False).select_related('unit')
+
+    # Apply search query
+    if query:
+        charges = charges.filter(
+            Q(unit__unit__icontains=query) |
+            Q(unit__owner_name__icontains=query) |
+            Q(unit__renters__renter_name__icontains=query)
+        ).distinct()
+
+    # Update penalties
+    for charge in charges:
+        charge.update_penalty()
+        charge.save(update_fields=['total_charge_month', 'penalty_amount'])
+
+    # Organize charges per unit
+    units = defaultdict(lambda: {'id': None, 'label': '', 'total_debt': 0, 'charges': []})
+    for charge in charges:
+        unit = charge.unit
+        renter = unit.get_active_renter()
+        label = f"واحد {unit.unit} - {renter.renter_name}" if renter else f"واحد {unit.unit} - {unit.owner_name}"
+
+        data = units[unit.id]
+        data['id'] = unit.id
+        data['label'] = label
+        data['total_debt'] += charge.total_charge_month or 0
+        data['charges'].append(charge)
+
+    # Sort units by unit number
+    units_with_debt = sorted(units.values(), key=lambda x: x['id'])
+    total_debt_all_units = sum(u['total_debt'] for u in units_with_debt)
+
+    # -------------------------
+    # Create Excel workbook
+    # -------------------------
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Debtor Report"
+    ws.sheet_view.rightToLeft = True
+
+    # Title
+    title_cell = ws.cell(row=1, column=1, value="گزارش بدهکاران")
+    title_cell.font = Font(bold=True, size=16)
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=7)
+
+    # Total debt summary
+    ws.cell(row=2, column=1, value="جمع کل بدهی همه واحدها")
+    ws.cell(row=2, column=2, value=total_debt_all_units)
+    ws.cell(row=2, column=2).font = Font(bold=True, color="FF0000")  # Red
+
+    current_row = 4
+
+    # Headers for unit charges
+    header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
+    header_font = Font(bold=True)
+
+    for unit in units_with_debt:
+        # Unit title
+        ws.cell(row=current_row, column=1, value=f"{unit['label']} - جمع بدهی: {unit['total_debt']}")
+        ws.cell(row=current_row, column=1).font = Font(bold=True)
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=7)
+        current_row += 1
+
+        # Column headers
+        headers = ['#', 'شرح', 'شارژ ماهیانه', 'جریمه', 'قابل پرداخت', 'مهلت پرداخت']
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(row=current_row, column=col_num, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+        current_row += 1
+
+        # Charges
+        for idx, charge in enumerate(unit['charges'], start=1):
+            ws.cell(row=current_row, column=1, value=idx)
+            ws.cell(row=current_row, column=2, value=charge.title)
+            ws.cell(row=current_row, column=3, value=charge.amount)
+            ws.cell(row=current_row, column=4, value=charge.penalty_amount or 0)
+            ws.cell(row=current_row, column=5, value=charge.total_charge_month)
+            ws.cell(row=current_row, column=6, value=show_jalali(charge.payment_deadline_date))
+            current_row += 1
+
+        current_row += 1  # Empty row between units
+
+    # -------------------------
+    # Return Excel response
+    # -------------------------
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=debtor_report.xlsx'
+    wb.save(response)
+    return response
+
+
+# ======================================================
 
 class HistoryUnitReports(FormMixin, ListView):
     model = UnitResidenceHistory
