@@ -21,7 +21,7 @@ from django.views.generic import ListView
 from django.views.generic.edit import FormMixin
 
 from admin_panel.models import Fund, Expense, Income, Property, ExpenseCategory, IncomeCategory, Maintenance, \
-    UnifiedCharge, PersonCharge, FixPersonCharge, FixAreaCharge, UnifiedBaseCharge, PersonChargeCalc, FixAreaChargeCalc, \
+    UnifiedCharge, PersonCharge, FixPersonCharge, FixAreaCharge, PersonChargeCalc, FixAreaChargeCalc, \
     FixPersonChargeCalc, ChargeFixVariableCalc, AreaChargeCalc, FixedChargeCalc, ChargeByPersonAreaCalc, AreaCharge, \
     FixCharge, ChargeByPersonArea, ChargeFixVariable, ChargeByFixPersonAreaCalc, ChargeByFixPersonArea
 from middleAdmin_panel.views import middle_admin_required

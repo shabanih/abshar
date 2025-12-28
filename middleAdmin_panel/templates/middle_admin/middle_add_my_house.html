@@ -59,6 +59,8 @@
                                            class="btn btn-gradient-info p-1 edit-house-btn"
                                            data-id="{{ house.id }}"
                                            data-name="{{ house.name }}"
+                                           data-floor_counts="{{ house.floor_counts }}"
+                                           data-unit_counts="{{ house.unit_counts }}"
                                            data-user_type="{{ house.user_type }}"
                                            data-city="{{ house.city}}"
                                            data-address="{{ house.address }}"
@@ -106,8 +108,19 @@
                       {{ form.name }}
                       {{ form.name.errors }}
                   </div>
-                  
               </div>
+               <div class="row g-2">
+                  <div class="col-6 ">
+                      {{ form.floor_counts.label_tag }}
+                      {{ form.floor_counts }}
+                      {{ form.floor_counts.errors }}
+                  </div>
+                      <div class="col-6 ">
+                       {{ form.unit_counts.label_tag }}
+                      {{ form.unit_counts }}
+                      {{ form.unit_counts.errors }}
+                  </div>
+                     </div>
                  <div class="row g-2">
                   <div class="col-6 ">
                       {{ form.user_type.label_tag }}
@@ -139,7 +152,8 @@
               
                    <hr class="mt-2" style="color: #0f1531">
                     <div class="d-flex justify-content-between">
-                        <button type="submit" name="submit_bank" id="account_holder_name" class="btn btn-gradient-success px-4 py-2">ثبت اطلاعات ساختمان</button>
+                        <button type="submit" name="submit_bank" id="account_holder_name" class="btn btn-gradient-success px-4 py-2">
+                              ثبت / ذخیره اطلاعات ساختمان</button>
                            <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
                      </div>
           </form>

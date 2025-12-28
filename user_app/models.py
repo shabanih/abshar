@@ -103,6 +103,8 @@ class MyHouse(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     residents = models.ManyToManyField(User, related_name='houses', blank=True, verbose_name='ساکنین')
     name = models.CharField(max_length=100, verbose_name='نام ساختمان')
+    floor_counts = models.PositiveIntegerField(default=1)
+    unit_counts = models.PositiveIntegerField(default=1)
     user_type = models.CharField(max_length=100, null=True, blank=True, verbose_name='نوع کاربری')
     city = models.CharField(max_length=100, null=True, blank=True, verbose_name='شهر')
     address = models.CharField(max_length=200, verbose_name='آدرس')

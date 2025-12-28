@@ -265,6 +265,8 @@ $(document).on('click', '.edit-house-btn', function () {
 
     // Populate the form with the expense data
     $('#id_name').val($(this).data('name'));
+    $('#id_floor_counts').val($(this).data('floor_counts'));
+    $('#id_unit_counts').val($(this).data('unit_counts'));
     $('#id_user_type').val($(this).data('user_type'));
     $('#id_city').val($(this).data('city'));
     $('#id_address').val($(this).data('address'));

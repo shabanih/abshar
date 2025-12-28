@@ -113,17 +113,13 @@ BEDROOMS_COUNT_CHOICES = {
     '': '--- انتخاب کنید ---', '1': '1', '2': '2', '3': '3', '4': '4',
 }
 
-FLOOR_CHOICES = {
-    '': '--- انتخاب کنید ---', '1': '1', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7', '8': '8', '9': '9',
-    '10': '10',
-}
-
 AREA_CHOICES = {
     '': '--- انتخاب کنید ---', '90': '90', '120': '120', '130': '130', '150': '150',
 }
 
 PARKING_PLACE_CHOICES = {
     '': '--- انتخاب کنید ---', 'همکف': 'همکف', 'طبقه -1': 'طبقه -1', 'طبقه -2': 'طبقه -2', 'طبقه -3': 'طبقه -3',
+    'طبقه -4': 'طبقه -4', 'طبقه -5': 'طبقه -5',
 }
 
 PARKING_NUMBER_CHOICES = {
@@ -358,6 +354,12 @@ class MyHouseForm(forms.ModelForm):
     user_type = forms.ChoiceField(error_messages=error_message, choices=USER_TYPE_CHOICES, required=True,
                                   widget=forms.Select(attrs=attr3),
                                   label='نوع کاربری')
+    floor_counts = forms.IntegerField(error_messages=error_message, required=True,
+                                      widget=forms.NumberInput(attrs=attr),
+                                      label='تعداد طبقات')
+    unit_counts = forms.IntegerField(error_messages=error_message, required=True,
+                                     widget=forms.NumberInput(attrs=attr),
+                                     label='تعداد واحدها')
 
     city = forms.ChoiceField(error_messages=error_message, choices=CITY_CHOICES, required=True,
                              widget=forms.Select(attrs=attr3),
@@ -369,7 +371,7 @@ class MyHouseForm(forms.ModelForm):
 
     class Meta:
         model = MyHouse
-        fields = ['name', 'address', 'user_type', 'city', 'is_active']
+        fields = ['name', 'address', 'user_type', 'city', 'is_active', 'floor_counts', 'unit_counts']
 
 
 class UnitForm(forms.ModelForm):
@@ -394,9 +396,9 @@ class UnitForm(forms.ModelForm):
                                  min_length=8,
                                  required=False, widget=forms.TextInput(attrs=attr),
                                  label='شماره تلفن واحد')
-    floor_number = forms.ChoiceField(error_messages=error_message, choices=FLOOR_CHOICES, required=True,
-                                     widget=forms.Select(attrs=attr),
-                                     label='شماره طبقه')
+    floor_number = forms.IntegerField(error_messages=error_message, required=True,
+                                      widget=forms.NumberInput(attrs=attr1),
+                                      label='شماره طبقه')
     area = forms.ChoiceField(error_messages=error_message, required=True, choices=AREA_CHOICES,
                              widget=forms.Select(attrs=attr),
                              label='متراژ')
@@ -421,18 +423,18 @@ class UnitForm(forms.ModelForm):
         label='شماره پارکینگ'
     )
     owner_transaction_no = forms.IntegerField(error_messages=error_message,
-                                        widget=forms.TextInput(attrs=attr),
-                                        required=False, min_value=0,
-                                        label='کد پیگیری')
+                                              widget=forms.TextInput(attrs=attr),
+                                              required=False, min_value=0,
+                                              label='کد پیگیری')
     owner_payment_date = JalaliDateField(
         label='تاریخ پرداخت',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
         error_messages=error_message, required=False
     )
     renter_transaction_no = forms.IntegerField(error_messages=error_message,
-                                              widget=forms.TextInput(attrs=attr),
-                                              required=False, min_value=0,
-                                              label='کد پیگیری')
+                                               widget=forms.TextInput(attrs=attr),
+                                               required=False, min_value=0,
+                                               label='کد پیگیری')
     renter_payment_date = JalaliDateField(
         label='تاریخ پرداخت',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
@@ -589,6 +591,21 @@ class UnitForm(forms.ModelForm):
             self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
                 " (پیش‌فرض)" if obj.is_default else "")
 
+            house = None
+            if 'house' in self.data:
+                house_id = self.data.get('house')
+                try:
+                    house = MyHouse.objects.get(id=house_id)
+                except MyHouse.DoesNotExist:
+                    house = None
+            elif self.instance and self.instance.pk:
+                house = self.instance.house
+
+            if house:
+                self.fields['floor_number'].choices = [(i, f'طبقه {i}') for i in range(1, house.floor_counts + 1)]
+            else:
+                self.fields['floor_number'].choices = []
+
     def save(self, commit=True):
         instance = super().save(commit=False)
 
@@ -683,9 +700,9 @@ class RenterAddForm(forms.ModelForm):
 
     renter_is_active = forms.BooleanField(required=False, initial=True, label='فعال')
     renter_transaction_no = forms.IntegerField(error_messages=error_message,
-                                        widget=forms.TextInput(attrs=attr),
-                                        required=False, min_value=0,
-                                        label='کد پیگیری')
+                                               widget=forms.TextInput(attrs=attr),
+                                               required=False, min_value=0,
+                                               label='کد پیگیری')
     renter_payment_date = JalaliDateField(
         label='تاریخ پرداخت',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),

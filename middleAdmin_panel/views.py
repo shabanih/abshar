@@ -499,6 +499,9 @@ class MiddleUnitRegisterView(CreateView):
                         transaction_no=form.cleaned_data.get('owner_transaction_no'),
                     )
 
+
+
+
             messages.success(self.request, 'واحد با موفقیت ثبت شد')
             return super().form_valid(form)
 
