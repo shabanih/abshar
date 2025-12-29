@@ -152,6 +152,33 @@
     font-weight: 600;
     height: 35px;
 }
+.alert-warning {
+    /*width: content-box;*/
+    /*margin-top: 10px;*/
+    background-color: #ffb700;
+    color: #fcfcfc;
+    /*position: initial;*/
+    /*padding: -1rem;*/
+    margin-bottom: -1rem;
+    border: 0 solid transparent;
+    /*border-radius: 1.25rem;*/
+    font-weight: 600;
+    height: 35px;
+}
+.alert-info {
+    /*width: content-box;*/
+    /*margin-top: 10px;*/
+    background-color: #73acf8;
+    color: #fcfcfc;
+    /*position: initial;*/
+    /*padding: -1rem;*/
+    margin-bottom: -1rem;
+    border: 0 solid transparent;
+    /*border-radius: 1.25rem;*/
+    font-weight: 600;
+    height: 35px;
+}
+
 
 .alert{
     /*margin-right: -1rem;*/

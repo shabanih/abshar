@@ -4,7 +4,7 @@
 {% load jalali_tags %}
 
 {% block page_title %}
-شارژ های ساختمان
+شارژ های اعلامی
 {% endblock page_title %}
 
 {% block main_content %}
@@ -112,7 +112,7 @@
                                                         class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
                                                 </button>
                                       
-                                     <a href=""
+                                     <a href="{% url 'charge_units_list' 'fix' charge.id %}"
                                          class="btn btn-gradient-primary px-3 py-2">  صورتحساب واحدها </a>
 
                                         </td>
@@ -170,7 +170,7 @@
                                     <tr>
                                         <th>#</th>
                                         <th> عنوان شارژ </th>
-                                        <th> تعداد واحدها </th>
+{#                                        <th> تعداد واحدها </th>#}
                                         <th class="p-0">مبلغ شارژ به ازای هر متر</th>
                                         <th>توضیحات</th>
                                         <th>تاریخ ثبت</th>
@@ -186,16 +186,9 @@
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
                                             <td>{{charge.name }}</td>
-                                            <td>{{charge.unit_count }}</td>
+{#                                            <td>{{charge.unit_count }}</td>#}
                                             <td class="bg-gradient-light">{{charge.area_amount|three_digit_currency }}</td>
-                                            <td>
-                                                {% if charge.details %}
-                                                    <span>دارد</span>
-                                                	{% else %}
-                                                    <span>ندارد</span>
-                                                {% endif %} 
-
-                                            </td>
+                                            <td>{{ charge.details|truncatechars:15 }}</td>
                                             <td>{{charge.created_at|show_jalali }}</td>
                                               	  <td>
                                                    {% if charge.payment_penalty_amount %}
@@ -221,7 +214,7 @@
                                                         class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
                                                 </button>
 
-                                     <a href=""
+                                       <a href="{% url 'charge_units_list' 'area' charge.id %}"
                                          class="btn btn-gradient-primary px-3 py-2">  صورتحساب واحدها </a>
 
 
@@ -298,7 +291,7 @@
                                     <tr>
                                         <th>#</th>
                                         <th> عنوان شارژ </th>
-                                        <th class="p-0">تعداد کل نفرات</th>
+{#                                        <th class="p-0">تعداد کل نفرات</th>#}
                                          <th class="p-0">مبلغ شارژ به ازای هر نفر(تومان)</th>
                                            <th> توضیحات </th>
                                          <th>تاریخ ثبت</th>
@@ -314,9 +307,9 @@
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
                                             <td>{{charge.name }}</td>
-                                            <td>{{total_people }}</td>
+{#                                            <td>{{total_people }}</td>#}
                                             <td class="bg-gradient-light">{{charge.person_amount|three_digit_currency }}</td>
-                                        <td>{{ charge.details|truncatechars:20 }}</td>
+                                        <td>{{ charge.details|truncatechars:15 }}</td>
                                               <td>{{charge.created_at|show_jalali }}</td>
                                               	  <td>
                                                    {% if charge.payment_penalty_amount %}
@@ -342,7 +335,7 @@
                                               <button data-bs-toggle="modal" data-bs-target="#exampleModalLong3{{ charge.id }}"
                                                   class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
                                                 </button>
-                                      <a href=""
+                                      <a href="{% url 'charge_units_list' 'person' charge.id %}"
                                          class="btn btn-gradient-primary px-3 py-2">  صورتحساب واحدها </a>
 
                                         </td>
@@ -417,7 +410,7 @@
                                        <tr>
                                         <th>#</th>
                                         <th> عنوان شارژ </th>
-                                        <th> تعداد واحدها </th>
+{#                                        <th> تعداد واحدها </th>#}
                                         <th> شارز ثابت(تومان) </th>
                                         <th class="p-0">مبلغ شارژ به ازای هر نفر(تومان)</th>
                                             <th> سایر هزینه ها </th>
@@ -434,10 +427,10 @@
                                        <tr>
                                             <td>{{ forloop.counter }}</td>
                                             <td>{{charge.name }}</td>
-                                            <td>{{charge.unit_count }}</td>
+{#                                            <td>{{charge.unit_count }}</td>#}
                                             <td>{{charge.fix_charge_amount|three_digit_currency  }}</td>
                                             <td>{{charge.person_amount|three_digit_currency }}</td>
-                                         <td>{{ charge.details|truncatechars:20 }}</td>
+                                         <td>{{ charge.details|truncatechars:14 }}</td>
                                                   <td>{{charge.created_at|show_jalali }}</td>
                                             <td>
                                                    {% if charge.payment_penalty_amount %}
@@ -464,7 +457,7 @@
                                                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
                                                 </button>
                               
-                                     <a href=""
+                                     <a href="{% url 'charge_units_list' 'fix_person' charge.id %}"
                                          class="btn btn-gradient-primary px-3 py-2">  صورتحساب واحدها </a>
                                         </td>
                                     
@@ -535,7 +528,7 @@
                                       <tr>
                                         <th>#</th>
                                         <th> عنوان شارژ </th>
-                                        <th> تعداد واحدها </th>
+{#                                        <th> تعداد واحدها </th>#}
                                         <th> شارز ثابت(تومان) </th>
                                         <th class="p-0">مبلغ شارژ به ازای هر متر(تومان)</th>
                                         <th>توضیحات</th>
@@ -552,10 +545,10 @@
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
                                             <td>{{charge.name }}</td>
-                                            <td>{{charge.unit_count }}</td>
+{#                                            <td>{{charge.unit_count }}</td>#}
                                             <td>{{charge.fix_charge_amount|three_digit_currency  }}</td>
                                             <td>{{charge.area_amount|three_digit_currency }}</td>
-                                                 <td>{{ charge.details|truncatechars:20 }}</td>
+                                                 <td>{{ charge.details|truncatechars:14 }}</td>
                                                   <td>{{charge.created_at|show_jalali }}</td>
                                             <td>
                                                    {% if charge.payment_penalty_amount %}
@@ -582,7 +575,7 @@
                                                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
                                                 </button>
                                
-                                     <a href=""
+                                     <a href="{% url 'charge_units_list' 'fix_area' charge.id %}"
                                          class="btn btn-gradient-primary px-3 py-2">  صورتحساب واحدها </a>
 
 
@@ -656,7 +649,7 @@
                                     <tr>
                                         <th>#</th>
                                         <th> عنوان شارژ </th>
-                                        <th> تعداد واحدها </th>
+{#                                        <th> تعداد واحدها </th>#}
                                         <th class="p-0">مبلغ شارژ به ازای هر نفر</th>
                                         <th class="p-0">مبلغ شارژ به ازای هر متر</th>
                                         <th>توضیحات</th>
@@ -673,10 +666,10 @@
                                        <tr>
                                             <td>{{ forloop.counter }}</td>
                                             <td>{{charge.name }}</td>
-                                            <td>{{charge.unit_count }}</td>
+{#                                            <td>{{charge.unit_count }}</td>#}
                                             <td>{{charge.person_amount|three_digit_currency }}</td>
                                             <td>{{charge.area_amount|three_digit_currency }}</td>
-                                                <td>{{ charge.details|truncatechars:20 }}</td>
+                                                <td>{{ charge.details|truncatechars:14 }}</td>
 
                                                   <td>{{charge.created_at|show_jalali }}</td>
                                             <td>
@@ -704,7 +697,7 @@
                                                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
                                                 </button>
                                     
-                                     <a href=""
+                                     <a href="{% url 'charge_units_list' 'person_area' charge.id %}"
                                          class="btn btn-gradient-primary px-3 py-2">  صورتحساب واحدها </a>
 
                                         </td>
@@ -777,7 +770,7 @@
                                       <tr>
                                         <th>#</th>
                                         <th> عنوان شارژ </th>
-                                        <th> تعداد واحدها </th>
+{#                                        <th> تعداد واحدها </th>#}
                                         <th> شارژ ثابت </th>
                                         <th class="px-1"> شارژ به ازای هر نفر</th>
                                         <th class="px-1"> شارژ به ازای هر متر</th>
@@ -795,11 +788,11 @@
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
                                             <td>{{charge.name }}</td>
-                                            <td>{{charge.unit_count }}</td>
+{#                                            <td>{{charge.unit_count }}</td>#}
                                             <td>{{charge.fix_charge_amount }}</td>
                                             <td>{{charge.person_amount|three_digit_currency }}</td>
                                             <td>{{charge.area_amount|three_digit_currency }}</td>
-                                        <td>{{ charge.details|truncatechars:20 }}</td>
+                                        <td>{{ charge.details|truncatechars:14 }}</td>
                                                   <td>{{charge.created_at|show_jalali }}</td>
                                             <td>
                                                    {% if charge.payment_penalty_amount %}
@@ -827,7 +820,7 @@
                                                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
                                                 </button>
                                     
-                                     <a href=""
+                                     <a href="{% url 'charge_units_list' 'fix_person_area' charge.id %}"
                                          class="btn btn-gradient-primary px-3 py-2">  صورتحساب واحدها </a>
 
                                         </td>
@@ -903,7 +896,7 @@
                                         <tr>
                                         <th>#</th>
                                         <th> عنوان شارژ </th>
-                                        <th> تعداد واحدها </th>
+{#                                        <th> تعداد واحدها </th>#}
                                        <th class="p-0"> شارژ ثابت هر واحد</th>
                                         <th class="p-0"> شارژ متغیر هر متر</th>
                                         <th class="p-0"> شارژ متغیر هر نفر</th>
@@ -921,11 +914,11 @@
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
                                             <td>{{charge.name }}</td>
-                                            <td>{{charge.unit_count }}</td>
+{#                                            <td>{{charge.unit_count }}</td>#}
                                             <td>{{charge.unit_fix_amount|three_digit_currency }}</td>
                                             <td>{{charge.unit_variable_area_amount|three_digit_currency }}</td>
                                             <td>{{charge.unit_variable_person_amount|three_digit_currency }}</td>
-                                        <td>{{ charge.details|truncatechars:20 }}</td>
+                                        <td>{{ charge.details|truncatechars:14 }}</td>
                                          <td>{{charge.created_at|show_jalali }}</td>
                                        <td>
                                                    {% if charge.payment_penalty_amount %}
@@ -949,7 +942,7 @@
                                                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
                                                 </button>
                                          
-                                     <a href=""
+                                     <a href="{% url 'charge_units_list' 'fix_variable' charge.id %}"
                                          class="btn btn-gradient-primary px-3 py-2">  صورتحساب واحدها </a>
 
                                         </td>

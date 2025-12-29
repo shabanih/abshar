@@ -1,0 +1,109 @@
+{% extends 'middleShared/base_template.html' %}
+{% load poll_extras %}
+
+{% block page_title %}
+انتخاب روش پرداخت
+{% endblock page_title %}
+
+{% block main_content %}
+{#    <hr>#}
+    
+  <div class="container py-5">
+
+
+         <div class="d-flex gap-2 mt-4 justify-content-center">
+
+    <!-- کارت کارت به کارت -->
+    <div class="card p-2 text-center" style="width: 300px; cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#manualPayment{{ charge.id }}">
+      <img src="/static/img/payment1.png" class="card-img-top" style="height: 100px; object-fit: contain;" alt="کارت به کارت">
+      <div class="card-body p-1">
+        <small>کارت به کارت</small>
+      </div>
+    </div>
+
+    <!-- کارت پرداخت آنلاین -->
+            
+         <a href="" class="card p-2 text-center" style="width: 300px; text-decoration:none;">
+      <img src="/static/img/payment2.png" class="card-img-top" style="height: 100px; object-fit: contain;" alt="پرداخت آنلاین">
+      <div class="card-body p-1">
+        <small>درگاه بانکی</small>
+      </div>
+    </a>
+          
+
+
+  </div>
+
+  <!-- فرم کارت به کارت -->
+  <div class="collapse mt-2" id="manualPayment{{ charge.id }}">
+     
+      
+<form id="paymentForm{{ charge.id }}" method="post" class="mx-auto" style="max-width: 400px;">
+    {% csrf_token %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <p class="badge-gradient-info p-2">نام شارژ: {{ charge.title }}</p>
+              <p class="badge-gradient-danger p-2">   مبلغ قابل پرداخت : {{ charge.total_charge_month|three_digit_currency }} تومان  </p>
+                
+        </div>
+    </div>
+    <div class="mb-3">
+        {{ form.payment_date.label_tag }}
+        {{ form.payment_date }}
+        {{ form.payment_date.errors }}
+    </div>
+
+    <div class="mb-3">
+        {{ form.transaction_reference.label_tag }}
+        {{ form.transaction_reference }}
+        {{ form.transaction_reference.errors }}
+    </div>
+
+    <div class="text-center">
+        <button type="submit" class="btn btn-gradient-success w-50">ثبت پرداخت</button>
+    </div>
+</form>
+
+
+  </div> 
+
+
+
+
+
+
+  </div>
+
+  
+
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% for charge in page_obj %}
+    const form{{ charge.id }} = document.getElementById('paymentForm{{ charge.id }}');
+    form{{ charge.id }}.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const data = new FormData(form{{ charge.id }});
+        fetch("{% url 'manual_payment_ajax' charge.id %}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: data
+        })
+        .then(res => res.json())
+        .then(result => {
+            if(result.success) {
+                alert(result.message);
+                // بروز رسانی مبلغ کل و جریمه در جدول
+                document.querySelector('#chargeRow{{ charge.id }} .total_charge').innerText = result.total_charge_month.toLocaleString();
+                document.querySelector('#chargeRow{{ charge.id }} .penalty_amount').innerText = result.penalty_amount.toLocaleString();
+                form{{ charge.id }}.closest('.collapse').classList.remove('show'); // فرم مخفی شود
+            } else {
+                alert('خطا در ثبت پرداخت');
+            }
+        });
+    });
+    {% endfor %}
+});
+</script>
+
+    
+{% endblock main_content %}

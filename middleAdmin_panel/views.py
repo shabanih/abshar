@@ -278,8 +278,9 @@ class middleAddBankView(CreateView):
                 Fund.objects.create(
                     user=self.request.user,
                     bank=bank,
-                    payer_name='افتتاحیه حساب',
+                    payer_name=f'{bank.account_holder_name}',
                     receiver_name='صندوق',
+                    payment_gateway='پرداخت الکترونیک',
                     content_type=content_type,
                     object_id=bank.id,
                     is_initial=True,
@@ -287,7 +288,7 @@ class middleAddBankView(CreateView):
                     debtor_amount=Decimal(bank.initial_fund),
                     creditor_amount=Decimal(0),
                     payment_date=bank.create_at.date(),
-                    payment_description='افتتاحیه حساب بانکی'
+                    payment_description=f'افتتاحیه حساب بانک {bank.bank_name}'
                 )
             messages.success(self.request, 'حساب بانکی با موفقیت ثبت گردید!')
             return super().form_valid(form)
@@ -3869,7 +3870,7 @@ def middle_fix_charge_delete(request, pk):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_show_fix_charge_notification_form(request, pk):
-    charge = get_object_or_404(FixCharge, id=pk)  # شیء اصلی شارژ ثابت
+    charge = get_object_or_404(FixCharge, id=pk, user=request.user)  # شیء اصلی شارژ ثابت
     units = Unit.objects.filter(is_active=True, user__manager=request.user).order_by('unit')
 
     notified_ids = FixedChargeCalc.objects.filter(
@@ -3929,6 +3930,16 @@ def middle_send_notification_fix_charge_to_user(request, pk):
 
     if not selected_units:
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
+        return redirect('middle_add_fixed_charge')
+
+    today = timezone.now().date()
+
+    # بررسی اینکه payment_deadline_date معتبر است
+    if fix_charge.payment_deadline < today:
+        messages.warning(
+            request,
+            f'مهلت پرداخت نباید قبل از تاریخ ارسال اطلاعیه باشد. لطفا اصلاح و مجددا تلاش نمایید.'
+        )
         return redirect('middle_show_notification_fix_charge_form', pk=pk)
 
     units_qs = Unit.objects.filter(is_active=True)
@@ -3940,6 +3951,15 @@ def middle_send_notification_fix_charge_to_user(request, pk):
 
     if not units_to_notify.exists():
         messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
+        return redirect('middle_show_notification_fix_charge_form', pk=pk)
+
+    units_to_notify = units_to_notify.filter(
+        charge_fix__fix_charge=fix_charge,
+        charge_fix__send_notification=False
+    ).distinct()
+
+    if not units_to_notify.exists():
+        messages.info(request, 'اطلاعیه قبلاً برای همه واحدهای انتخابی ارسال شده است.')
         return redirect('middle_show_notification_fix_charge_form', pk=pk)
 
     notified_units = []
@@ -4336,6 +4356,16 @@ def middle_send_notification_area_charge_to_user(request, pk):
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
         return redirect('middle_show_notification_area_charge_form', pk=pk)
 
+    today = timezone.now().date()
+
+    # بررسی اینکه payment_deadline_date معتبر است
+    if area_charge.payment_deadline < today:
+        messages.warning(
+            request,
+            f'مهلت پرداخت نباید قبل از تاریخ ارسال اطلاعیه باشد. لطفا اصلاح و مجددا تلاش نمایید.'
+        )
+        return redirect('middle_add_area_charge')
+
     # 🔥 مهم: فقط واحدهای این مدیر
     units_qs = Unit.objects.filter(is_active=True, user__manager=request.user)
 
@@ -4347,6 +4377,16 @@ def middle_send_notification_area_charge_to_user(request, pk):
     if not units_to_notify.exists():
         messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
         return redirect('middle_show_notification_area_charge_form', pk=pk)
+
+    units_to_notify = units_to_notify.filter(
+        charge_area__area_charge=area_charge,
+        charge_area__send_notification=False
+    ).distinct()
+
+    if not units_to_notify.exists():
+        messages.info(request, 'قبلا برای واحدهای انتخابی اطلاعیه ارسال شده است.')
+        return redirect('middle_show_notification_area_charge_form', pk=pk)
+
 
     charge_type = 'area'
     calc_ct = ContentType.objects.get_for_model(AreaChargeCalc)
@@ -4748,6 +4788,16 @@ def middle_send_notification_person_charge_to_user(request, pk):
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
         return redirect('middle_show_notification_person_charge_form', pk=pk)
 
+    today = timezone.now().date()
+
+    # بررسی اینکه payment_deadline_date معتبر است
+    if person_charge.payment_deadline < today:
+        messages.warning(
+            request,
+            f'مهلت پرداخت نباید قبل از تاریخ ارسال اطلاعیه باشد. لطفا اصلاح و مجددا تلاش نمایید.'
+        )
+        return redirect('middle_add_person_charge')
+
     # فقط واحدهای زیرمجموعه این مدیر
     units_qs = Unit.objects.filter(is_active=True, user__manager=request.user)
 
@@ -4758,6 +4808,15 @@ def middle_send_notification_person_charge_to_user(request, pk):
 
     if not units_to_notify.exists():
         messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
+        return redirect('middle_show_notification_person_charge_form', pk=pk)
+
+    units_to_notify = units_to_notify.filter(
+        charge_person__person_charge=person_charge,
+        charge_person__send_notification=False
+    ).distinct()
+
+    if not units_to_notify.exists():
+        messages.info(request, 'قبلا برای واحدهای انتخابی اطلاعیه ارسال شده است.')
         return redirect('middle_show_notification_person_charge_form', pk=pk)
 
     calc_ct = ContentType.objects.get_for_model(PersonChargeCalc)
@@ -5155,11 +5214,30 @@ def middle_send_notification_fix_area_charge_to_user(request, pk):
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
         return redirect('middle_show_notification_fix_area_charge_form', pk=pk)
 
+    today = timezone.now().date()
+
+    # بررسی اینکه payment_deadline_date معتبر است
+    if fix_area_charge.payment_deadline < today:
+        messages.warning(
+            request,
+            f'مهلت پرداخت نباید قبل از تاریخ ارسال اطلاعیه باشد. لطفا اصلاح و مجددا تلاش نمایید.'
+        )
+        return redirect('middle_add_fix_area_charge')
+
     units_qs = Unit.objects.filter(is_active=True)
     units_to_notify = units_qs if 'all' in request.POST.getlist('units') else units_qs.filter(id__in=selected_units)
 
     if not units_to_notify.exists():
         messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
+        return redirect('middle_show_notification_fix_area_charge_form', pk=pk)
+
+    units_to_notify = units_to_notify.filter(
+        charge_fix_area__fix_area=fix_area_charge,
+        charge_fix_area__send_notification=False
+    )
+
+    if not units_to_notify.exists():
+        messages.info(request, 'قبلا برای واحدهای انتخابی اطلاعیه ارسال شده است.')
         return redirect('middle_show_notification_fix_area_charge_form', pk=pk)
 
     notified_units = []
@@ -5544,11 +5622,30 @@ def middle_send_notification_fix_person_charge_to_user(request, pk):
         messages.error(request, 'هیچ واحدی انتخاب نشده است.')
         return redirect('middle_show_notification_fix_person_charge_form', pk=pk)
 
+    today = timezone.now().date()
+
+    # بررسی اینکه payment_deadline_date معتبر است
+    if fix_person_charge.payment_deadline < today:
+        messages.warning(
+            request,
+            f'مهلت پرداخت نباید قبل از تاریخ ارسال اطلاعیه باشد. لطفا اصلاح و مجددا تلاش نمایید.'
+        )
+        return redirect('middle_add_fix_person_charge')
+
     units_qs = Unit.objects.filter(is_active=True)
     units_to_notify = units_qs if 'all' in request.POST.getlist('units') else units_qs.filter(id__in=selected_units)
 
     if not units_to_notify.exists():
         messages.error(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
+        return redirect('middle_show_notification_fix_person_charge_form', pk=pk)
+
+    units_to_notify = units_to_notify.filter(
+        charge_fix_person__fix_person=fix_person_charge,
+        charge_fix_person__send_notification=False
+    )
+
+    if not units_to_notify.exists():
+        messages.info(request, 'قبلا برای واحدهای انتخابی اطلاعیه ارسال شده است.')
         return redirect('middle_show_notification_fix_person_charge_form', pk=pk)
 
     notified_units = []
@@ -5929,11 +6026,30 @@ def middle_send_notification_person_area_charge_to_user(request, pk):
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
         return redirect('middle_show_notification_person_area_charge_form', pk=pk)
 
+    today = timezone.now().date()
+
+    # بررسی اینکه payment_deadline_date معتبر است
+    if person_area.payment_deadline < today:
+        messages.warning(
+            request,
+            f'مهلت پرداخت نباید قبل از تاریخ ارسال اطلاعیه باشد. لطفا اصلاح و مجددا تلاش نمایید.'
+        )
+        return redirect('middle_add_person_area_charge')
+
     units_qs = Unit.objects.filter(is_active=True)
     units_to_notify = units_qs if 'all' in request.POST.getlist('units') else units_qs.filter(id__in=selected_units)
 
     if not units_to_notify.exists():
         messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
+        return redirect('middle_show_notification_person_area_charge_form', pk=pk)
+
+    units_to_notify = units_to_notify.filter(
+        charge_by_person_area__person_area_charge=person_area,
+        charge_by_person_area__send_notification=False
+    )
+
+    if not units_to_notify.exists():
+        messages.info(request, 'قبلا برای واحدهای انتخابی اطلاعیه ارسال شده است.')
         return redirect('middle_show_notification_person_area_charge_form', pk=pk)
 
     notified_units = []
@@ -6324,11 +6440,30 @@ def middle_send_notification_fix_person_area_charge_to_user(request, pk):
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
         return redirect('middle_show_notification_fix_person_area_charge_form', pk=pk)
 
+    today = timezone.now().date()
+
+    # بررسی اینکه payment_deadline_date معتبر است
+    if fix_person_area.payment_deadline < today:
+        messages.warning(
+            request,
+            f'مهلت پرداخت نباید قبل از تاریخ ارسال اطلاعیه باشد. لطفا اصلاح و مجددا تلاش نمایید.'
+        )
+        return redirect('middle_add_person_area_fix_charge')
+
     units_qs = Unit.objects.filter(is_active=True)
     units_to_notify = units_qs if 'all' in request.POST.getlist('units') else units_qs.filter(id__in=selected_units)
 
     if not units_to_notify.exists():
         messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
+        return redirect('middle_show_notification_fix_person_area_charge_form', pk=pk)
+
+    units_to_notify = units_to_notify.filter(
+        charge_by_fix_person_area__fix_person_area=fix_person_area,
+        charge_by_fix_person_area__send_notification=False
+    )
+
+    if not units_to_notify.exists():
+        messages.info(request, 'قبلا برای واحدهای انتخابی اطلاعیه ارسال شده است.')
         return redirect('middle_show_notification_fix_person_area_charge_form', pk=pk)
 
     notified_units = []
@@ -6745,12 +6880,31 @@ def middle_send_notification_fix_variable_to_user(request, pk):
         messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
         return redirect('middle_show_notification_fix_variable_charge_form', pk=pk)
 
+    today = timezone.now().date()
+
+    # بررسی اینکه payment_deadline_date معتبر است
+    if fix_variable.payment_deadline < today:
+        messages.warning(
+            request,
+            f'مهلت پرداخت نباید قبل از تاریخ ارسال اطلاعیه باشد. لطفا اصلاح و مجددا تلاش نمایید.'
+        )
+        return redirect('middle_add_variable_fix_charge')
+
     units_qs = Unit.objects.filter(is_active=True)
     units_to_notify = units_qs if 'all' in request.POST.getlist('units') else units_qs.filter(id__in=selected_units)
 
     if not units_to_notify.exists():
         messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
         return redirect('middle_show_notification_fix_variable_charge_form', pk=pk)
+
+    units_to_notify = units_to_notify.filter(
+        charge_calc__fix_variable_charge=fix_variable,
+        charge_calc__send_notification=False
+    )
+
+    if not units_to_notify.exists():
+        messages.info(request, 'قبلا برای واحدهای انتخابی اطلاعیه ارسال شده است.')
+        return redirect('middle_show_notification_fix_person_area_charge_form', pk=pk)
 
     notified_units = []
 

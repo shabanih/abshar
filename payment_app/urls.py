@@ -7,6 +7,14 @@ urlpatterns = [
     path('request-pay/<int:charge_id>/', views.request_pay, name='request_pay'),
     path('verify-pay/', views.verify_pay, name='verify_pay'),
     path('payment/gateway/<int:pk>/', views.paymentView, name='payment_gateway'),
+    path('payment/charge/done/<int:pk>/', views.payment_done_view, name='payment_done'),
+
+    path(
+        'unit-charge/payment/<str:charge_type>/<int:charge_id>/',
+        views.unit_charge_payment_view,
+        name='unit_charge_payment'
+    ),
+    path('payment/unit-charge/done/<int:pk>/', views.charge_payment_done_view, name='charge_payment_done'),
 
     # path('request-pay-area/<int:charge_id>/', views.request_pay_area, name='request_pay_area'),
     # path('verify-pay-area/', views.verify_pay_area, name='verify_pay_area'),

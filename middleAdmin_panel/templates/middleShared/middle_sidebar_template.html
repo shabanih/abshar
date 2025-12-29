@@ -134,7 +134,7 @@
     <ul class="nav flex-column sub-menu">
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'fund_turn_over' %}active{% endif %}" href="{% url 'fund_turn_over' %}">گردش صندوق</a></li>
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'unit_reports' %}active{% endif %}" href="{% url 'unit_reports' %}">گردش مالی اشخاص</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'unit_reports' %}active{% endif %}" href="{% url 'charge_list_report' %}">شارژ های ساختمان</a></li>
+      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'charge_list_report' %}active{% endif %}" href="{% url 'charge_list_report' %}">شارژ های اعلامی</a></li>
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'debtor_creditor_reports' %}active{% endif %}" href="{% url 'debtor_creditor_reports' %}">واحدهای بدهکار</a></li>
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'unit_history_report' %}active{% endif %}" href="{% url 'unit_history_report' %}">سوابق سکونت واحدها</a></li>
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'expense_history_report' %}active{% endif %}" href="{% url 'expense_history_report' %}">هزینه‌ها</a></li>

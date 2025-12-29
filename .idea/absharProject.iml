@@ -58,6 +58,7 @@
         <option value="$MODULE_DIR$/middleAdmin_panel/templates/middleMaintenance" />
         <option value="$MODULE_DIR$/middleAdmin_panel/templates/middleCharge" />
         <option value="$MODULE_DIR$/notifications/templates" />
+        <option value="$MODULE_DIR$/payment_app/templates" />
       </list>
     </option>
   </component>

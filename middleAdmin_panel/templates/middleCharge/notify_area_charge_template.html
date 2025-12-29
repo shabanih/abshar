@@ -3,7 +3,7 @@
 {% load poll_extras %}
 
 {% block page_title %}
- اعلام   {{ charge.name }}   به واحدها 
+     اعلام شارژ متراژی ({{ charge.name }}  )
 {% endblock page_title %}
 
 {% block main_content %}
@@ -68,7 +68,7 @@
                 {% if is_paid %}
                     style="background-color: #8fef88; "  {# سبز برای اطلاع داده شده و پرداخت شده #}
                 {% else %}
-                    style="background-color: #fff3cd;"  {# زرد برای اطلاع داده شده و پرداخت نشده #}
+                    style="background-color: #fae7ae;"  {# زرد برای اطلاع داده شده و پرداخت نشده #}
                 {% endif %}
             {% endif %}>
             <div class="card-body text-center px-0 py-0 mt-3">

@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.http import HttpRequest, HttpResponse, JsonResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.utils import timezone
 
 from admin_panel.forms import UnifiedChargePaymentForm
@@ -101,7 +102,7 @@ def verify_pay(request: HttpRequest):
     #     default_bank = Bank.objects.filter(user=request.user, is_active=True).first()
     #
     # if not default_bank:
-    #     return render(request, 'payment_done.html', {
+    #     return render(request, 'charge_payment_done.html', {
     #         'error': 'هیچ حساب بانکی فعالی برای ثبت پرداخت وجود ندارد',
     #         'charge': payment_charge,
     #     })
@@ -212,11 +213,14 @@ def paymentView(request, pk):
                 transaction_no=charge.transaction_reference,
                 payment_gateway='پرداخت الکترونیک'
             )
-            return render(request, 'payment_done.html', {
-                'success': f'اطلاعات پرداخت با موفقیت انجام و پرداخت شارژ شما ثبت گردید. '
-            })
+            messages.success(request, ' پرداخت شما با موفقیت ثبت گردید.')
+            # return render(request, 'payment_done.html', {
+            #     'success': f'اطلاعات پرداخت با موفقیت انجام و پرداخت شارژ شما ثبت گردید. '
+            # })
+            return redirect('payment_done', pk=charge.id)
+
         else:
-            messages.error(request, 'خطا در ثبت اطلاعات')
+            messages.success(request, 'خطا در ثبت اطلاعات')
             return redirect('payment_gateway')
 
     else:
@@ -226,3 +230,118 @@ def paymentView(request, pk):
             'form': form
         }
         return render(request, 'payment_gateway.html', context)
+
+def payment_done_view(request, pk):
+    charge = get_object_or_404(UnifiedCharge, pk=pk)
+    return render(request, 'payment_done.html', {'charge': charge})
+
+
+CHARGE_CALC_MAP = {
+    'fix': FixedChargeCalc,
+    'area': AreaChargeCalc,
+    'person': PersonChargeCalc,
+    'fix_person': FixPersonChargeCalc,
+    'fix_area': FixAreaChargeCalc,
+    'person_area': ChargeByPersonAreaCalc,
+    'fix_person_area': ChargeByFixPersonAreaCalc,
+    'fix_variable': ChargeFixVariableCalc,
+}
+
+CHARGE_FK_FIELD = {
+    'fix': 'fix_charge_id',
+    'area': 'area_charge_id',
+    'person': 'person_charge_id',
+    'fix_person': 'fix_person_charge_id',
+    'fix_area': 'fix_area_charge_id',
+    'person_area': 'person_area_charge_id',
+    'fix_person_area': 'fix_person_area_id',
+    'fix_variable': 'fix_variable_charge_id',
+}
+
+
+@login_required
+def unit_charge_payment_view(request, charge_type, charge_id):
+    # 1️⃣ انتخاب مدل محاسبه
+    model = CHARGE_CALC_MAP.get(charge_type)
+    if not model:
+        raise Http404('نوع شارژ نامعتبر است')
+
+    # 2️⃣ گرفتن نمونه شارژ محاسبه شده (مثل FixChargeCalc)
+    calc_charge = get_object_or_404(model, pk=charge_id, is_active=True)
+
+    # 3️⃣ گرفتن یا ساخت UnifiedCharge متناظر
+    unified_charge, created = UnifiedCharge.objects.get_or_create(
+        content_type=ContentType.objects.get_for_model(calc_charge),
+        object_id=calc_charge.id,
+        defaults={
+            'user': calc_charge.user,
+            'unit': getattr(calc_charge, 'unit', None),
+            'bank': getattr(calc_charge, 'bank', None),
+            'amount': getattr(calc_charge, 'amount', 0),
+            'charge_type': charge_type,
+            'total_charge_month': getattr(calc_charge, 'amount', 0),
+            'title': getattr(calc_charge, 'name', ''),
+        }
+    )
+
+    # 4️⃣ پردازش فرم
+    if request.method == "POST":
+        form = UnifiedChargePaymentForm(request.POST, instance=unified_charge)
+        if form.is_valid():
+            # ذخیره تغییرات فرم روی UnifiedCharge
+            unified_charge = form.save(commit=False)
+            unified_charge.is_paid = True
+            unified_charge.payment_gateway = 'کارت به کارت'
+            unified_charge.update_penalty(save=False)
+            unified_charge.save()
+
+            # بروزرسانی مدل محاسبه اصلی
+            calc_charge.payment_date = unified_charge.payment_date
+            calc_charge.transaction_reference = unified_charge.transaction_reference
+            if hasattr(calc_charge, 'is_paid'):
+                calc_charge.is_paid = True
+            calc_charge.save(update_fields=['payment_date', 'transaction_reference', 'is_paid'])
+
+            # ثبت در صندوق (Fund)
+            Fund.objects.create(
+                content_type=ContentType.objects.get_for_model(calc_charge),
+                object_id=unified_charge.id,
+                bank=unified_charge.bank,
+                unit=unified_charge.unit,
+                payer_name=unified_charge.unit,
+                debtor_amount=unified_charge.total_charge_month,
+                amount=unified_charge.total_charge_month,
+                creditor_amount=0,
+                user=request.user,
+                payment_date=unified_charge.payment_date,
+                payment_description=unified_charge.title,
+                transaction_no=unified_charge.transaction_reference,
+                payment_gateway='پرداخت الکترونیک'
+            )
+
+            messages.success(request, "پرداخت شارژ واحد با موفقیت ثبت شد.")
+            return redirect(reverse('charge_payment_done', args=[unified_charge.id]))
+
+        else:
+            messages.error(request, "خطا در ثبت اطلاعات پرداخت. لطفاً فرم را بررسی کنید.")
+            return render(request, 'charge_payment_gateway.html', {
+                'charge': unified_charge,
+                'form': form
+            })
+
+    else:
+        # نمایش فرم برای پرداخت
+        form = UnifiedChargePaymentForm(instance=unified_charge)
+        return render(request, 'charge_payment_gateway.html', {
+            'charge': unified_charge,
+            'form': form
+        })
+
+
+
+
+@login_required
+def charge_payment_done_view(request, pk):
+    charge = get_object_or_404(UnifiedCharge, pk=pk)
+    return render(request, 'charge_payment_done.html', {'charge': charge})
+

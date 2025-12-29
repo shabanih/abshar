@@ -7,19 +7,19 @@ from reports import views
 urlpatterns = [
     path('fund/turnover', views.fund_middle_turnover, name='fund_turn_over'),
     path('tarakonesh', views.fund_turnover_user, name='fund_turn_over_user'),
-    path('report/', views.UnitReportsTurnOver.as_view(), name='unit_reports'),
+    path('units/fund/', views.UnitReportsTurnOver.as_view(), name='unit_reports'),
     path('debtor/creditor/report/', views.debtor_creditor_report, name='debtor_creditor_reports'),
     path('history/unit/report/', views.HistoryUnitReports.as_view(), name='unit_history_report'),
-    path('history/expense/report/', views.ReportExpenseView.as_view(), name='expense_history_report'),
-    path('history/income/report/', views.ReportIncomeView.as_view(), name='income_history_report'),
-    path('history/property/report/', views.ReportPropertyView.as_view(), name='property_history_report'),
-    path('history/maintenance/report/', views.ReportMaintenanceView.as_view(), name='maintenance_history_report'),
-    path('pay/receive/report/', views.PayReceiveReportView.as_view(), name='pay_receive_report'),
-    path('reports/charges/', views.unified_charge_list, name='charge_list_report'),
+    path('history/expense/', views.ReportExpenseView.as_view(), name='expense_history_report'),
+    path('history/income/', views.ReportIncomeView.as_view(), name='income_history_report'),
+    path('history/property/', views.ReportPropertyView.as_view(), name='property_history_report'),
+    path('history/maintenance/', views.ReportMaintenanceView.as_view(), name='maintenance_history_report'),
+    path('pay/receive/', views.PayReceiveReportView.as_view(), name='pay_receive_report'),
+    path('charges/', views.unified_charge_list, name='charge_list_report'),
     path(
-        'reports/charges/<int:charge_id>/<str:charge_type>/',
-        views.charge_detail,
-        name='charge_detail'
+        'charges/<str:charge_type>/<int:charge_id>/units/',
+        views.charge_units_list,
+        name='charge_units_list'
     ),
 
     path('report/export/excel/', views.export_units_report_excel, name='export_units_report_excel'),
@@ -58,6 +58,17 @@ urlpatterns = [
          name='export_debtor_report_excel'),
     path('report/debtor/export/pdf/', views.export_debtor_report_pdf,
          name='export_debtor_report_pdf'),
+    path(
+        'charges/<str:charge_type>/<int:charge_id>/pdf/',
+        views.export_units_charge_report_pdf,
+        name='charge_units_list_pdf'
+    ),
+    path(
+        'charges/<str:charge_type>/<int:charge_id>/excel/',
+        views.export_units_charge_report_excel,
+        name='charge_units_list_excel'
+    ),
+
 
 ]
 if settings.DEBUG:
