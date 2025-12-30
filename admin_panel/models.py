@@ -331,43 +331,41 @@ class FixedChargeCalc(models.Model):
     def __str__(self):
         return f"{self.charge_name or 'شارژ'} - {self.amount} تومان"
 
+    @property
+    def charge_monthly(self):
+        return self.amount
+
+
     def calculate_penalty(self, base_total):
-        if not self.payment_deadline_date or self.is_paid:
+        if not self.payment_deadline_date:
             return 0
 
-        today = timezone.now().date()
-        deadline = self.payment_deadline_date
+        # اگر پرداخت شده، تاریخ پرداخت ملاک است
+        check_date = self.payment_date or timezone.now().date()
 
-        if today <= deadline:
+        if check_date <= self.payment_deadline_date:
             return 0
 
-        delay_days = (today - deadline).days
+        delay_days = (check_date - self.payment_deadline_date).days
         penalty_percent = self.payment_penalty or 0
 
-        # محاسبه جریمه فقط روی base_total
-        penalty_amount = int((base_total * penalty_percent / 100) * delay_days)
-        return penalty_amount
+        return int((base_total * penalty_percent / 100) * delay_days)
 
     def save(self, *args, **kwargs):
         amount = max(self.amount or 0, 0)
         civil = max(self.civil_charge or 0, 0)
         other_cost = max(self.other_cost or 0, 0)
+
         base_total = amount + civil + other_cost
 
-        if not self.is_paid:  # فقط اگر پرداخت نشده است جریمه محاسبه شود
-            penalty = self.calculate_penalty(base_total)
-            self.payment_penalty_price = penalty
-            self.total_charge_month = base_total + penalty
-        else:  # اگر پرداخت شده، total_charge_month همان مقدار قبلی باقی بماند
-            if self.total_charge_month is None:
-                self.total_charge_month = base_total
+        penalty = self.calculate_penalty(base_total)
+        self.payment_penalty_price = penalty
+        self.total_charge_month = base_total + penalty
 
         super().save(*args, **kwargs)
 
-    def update_penalty(self, save=True):
-        today = timezone.now().date()
-
-        if not self.payment_deadline_date:
+    def update_penalty(self):
+        if self.is_paid:
             return
 
         amount = self.amount or 0
@@ -375,25 +373,12 @@ class FixedChargeCalc(models.Model):
         other_cost = self.other_cost or 0
         base_total = amount + civil + other_cost
 
-        deadline = self.payment_deadline_date
+        penalty = self.calculate_penalty(base_total)
 
-        if today <= deadline:
-            if self.payment_penalty_price != 0:
-                self.payment_penalty_price = 0
-                self.total_charge_month = base_total
-                if save:
-                    self.save(update_fields=['payment_penalty_price', 'total_charge_month'])
-            return
-
-        delay_days = (today - deadline).days
-        penalty_percent = self.payment_penalty or 0
-        new_penalty = int((base_total * penalty_percent / 100) * delay_days)
-
-        if new_penalty != (self.payment_penalty_price or 0):
-            self.payment_penalty_price = new_penalty
-            self.total_charge_month = base_total + new_penalty
-            if save:
-                self.save(update_fields=['payment_penalty_price', 'total_charge_month'])
+        if penalty != (self.payment_penalty_price or 0):
+            self.payment_penalty_price = penalty
+            self.total_charge_month = base_total + penalty
+            self.save(update_fields=['payment_penalty_price', 'total_charge_month'])
 
 
 class AreaCharge(models.Model):
@@ -445,77 +430,45 @@ class AreaChargeCalc(models.Model):
     def __str__(self):
         return f"{self.charge_name or 'شارژ'} - {self.amount} تومان"
 
+    def charge_monthly(self):
+        return self.final_area_amount
+
+
     def calculate_penalty(self, base_total):
-        if not self.payment_deadline_date or self.is_paid:
+        if not self.payment_deadline_date:
             return 0
 
-        today = timezone.now().date()
-        deadline = self.payment_deadline_date
+        # اگر پرداخت شده، تاریخ پرداخت ملاک است
+        check_date = self.payment_date or timezone.now().date()
 
-        if today <= deadline:
+        if check_date <= self.payment_deadline_date:
             return 0
 
-        delay_days = (today - deadline).days
+        delay_days = (check_date - self.payment_deadline_date).days
         penalty_percent = self.payment_penalty or 0
 
-        # ⚡ محاسبه جریمه فقط روی پایه شارژ، نه total_charge_month
-        penalty_amount = int(base_total * penalty_percent / 100 * delay_days)
-        return penalty_amount
+        return int(base_total * penalty_percent / 100 * delay_days)
 
     def save(self, *args, **kwargs):
-
-        # محاسبه مبلغ پایه
         base_total = (self.final_area_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
 
-        # ⚡ جریمه فقط اگر پرداخت نشده و تاریخ سررسید گذشته باشد
-        if not self.is_paid and self.payment_deadline_date and timezone.now().date() > self.payment_deadline_date:
-            penalty = self.calculate_penalty(base_total)
-            self.payment_penalty_price = penalty
-            self.total_charge_month = base_total + penalty
-        else:
-            # اگر پرداخت شده یا هنوز سررسید نگذشته، فقط base_total بدون تغییر
-            self.payment_penalty_price = self.payment_penalty_price or 0
-            self.total_charge_month = base_total + (self.payment_penalty_price or 0)
+        penalty = self.calculate_penalty(base_total)
+        self.payment_penalty_price = penalty
+        self.total_charge_month = base_total + penalty
 
         super().save(*args, **kwargs)
 
-    def update_penalty(self, save=True):
+    def update_penalty(self):
+        if self.is_paid:
+            return
 
-            today = timezone.now().date()
+        base_total = (self.final_area_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
+        penalty = self.calculate_penalty(base_total)
 
-            # ---------- ۱: مبلغ پایه دقیقاً مثل FixedChargeCalc ----------
-            amount = self.amount or 0
-            base_total = amount
-
-            # ---------- ۳: اگر deadline ندارد ----------
-            if not self.payment_deadline_date:
-                return
-
-            deadline = self.payment_deadline_date
-
-            # ---------- ۴: اگر هنوز مهلت نگذشته ----------
-            if today <= deadline:
-                if self.penalty_amount != 0:
-                    self.penalty_amount = 0
-                    self.total_charge_month = base_total
-                    if save:
-                        self.save(update_fields=['penalty_amount', 'total_charge_month'])
-                return
-
-            # ---------- ۵: تعداد روزهای دیرکرد ----------
-            delay_days = (today - deadline).days
-
-            # ---------- ۶: درصد جریمه مانند FixedChargeCalc ----------
-            penalty_percent = getattr(self.related_object, 'payment_penalty', 0) or 0
-
-            new_penalty = int((base_total * penalty_percent / 100) * delay_days)
-
-            # ---------- ۷: اگر تغییری رخ داده ذخیره کن ----------
-            if new_penalty != (self.penalty_amount or 0):
-                self.penalty_amount = new_penalty
-                self.total_charge_month = base_total + new_penalty
-                if save:
-                    self.save(update_fields=['penalty_amount', 'total_charge_month'])
+        if penalty != (self.payment_penalty_price or 0):
+            self.payment_penalty_price = penalty
+            self.total_charge_month = base_total + penalty
+            self.save(update_fields=['payment_penalty_price', 'total_charge_month'])
 
 
 class PersonCharge(models.Model):
@@ -569,79 +522,50 @@ class PersonChargeCalc(models.Model):
     def __str__(self):
         return str(self.amount)
 
+    def charge_monthly(self):
+        return self.final_person_amount
+
+    def charge_per_area_or_person(self):
+        return self.amount
+
+
     def calculate_penalty(self):
-        if not self.payment_deadline_date or self.is_paid:
+        if not self.payment_deadline_date:
             return 0
 
-        today = timezone.now().date()
-        deadline = self.payment_deadline_date
+        # اگر پرداخت شده، تاریخ پرداخت ملاک است
+        check_date = self.payment_date or timezone.now().date()
 
-        if today <= deadline:
+        if check_date <= self.payment_deadline_date:
             return 0
 
-        delay_days = (today - deadline).days
+        delay_days = (check_date - self.payment_deadline_date).days
         penalty_percent = self.payment_penalty or 0
 
-        # محاسبه مجموع پایه
         base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
 
         return int(base_total * penalty_percent / 100 * delay_days)
 
-    def save(self, *args, recalc_penalty=True, **kwargs):
+    def save(self, *args, **kwargs):
+        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
 
-        base_total = (self.final_person_amount or 0) + \
-                     (self.civil_charge or 0) + \
-                     (self.other_cost or 0)
-
-        if not self.is_paid:
-            if recalc_penalty or self.payment_penalty_price is None:
-                self.payment_penalty_price = self.calculate_penalty()
-
-            self.total_charge_month = base_total + (self.payment_penalty_price or 0)
-
-        else:  # اگر پرداخت شده باشد
-            if self.total_charge_month is None:
-                self.total_charge_month = base_total
+        penalty = self.calculate_penalty()
+        self.payment_penalty_price = penalty
+        self.total_charge_month = base_total + penalty
 
         super().save(*args, **kwargs)
 
-    def update_penalty(self, save=True):
+    def update_penalty(self):
+        if self.is_paid:
+            return
 
-            today = timezone.now().date()
+        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
+        penalty = self.calculate_penalty()
 
-            # ---------- ۱: مبلغ پایه دقیقاً مثل FixedChargeCalc ----------
-            amount = self.amount or 0
-            base_total = amount
-
-            # ---------- ۳: اگر deadline ندارد ----------
-            if not self.payment_deadline_date:
-                return
-
-            deadline = self.payment_deadline_date
-
-            # ---------- ۴: اگر هنوز مهلت نگذشته ----------
-            if today <= deadline:
-                if self.penalty_amount != 0:
-                    self.penalty_amount = 0
-                    self.total_charge_month = base_total
-                    if save:
-                        self.save(update_fields=['penalty_amount', 'total_charge_month'])
-                return
-
-            # ---------- ۵: تعداد روزهای دیرکرد ----------
-            delay_days = (today - deadline).days
-
-            # ---------- ۶: درصد جریمه مانند FixedChargeCalc ----------
-            penalty_percent = getattr(self.related_object, 'payment_penalty', 0) or 0
-
-            new_penalty = int((base_total * penalty_percent / 100) * delay_days)
-
-            # ---------- ۷: اگر تغییری رخ داده ذخیره کن ----------
-            if new_penalty != (self.penalty_amount or 0):
-                self.penalty_amount = new_penalty
-                self.total_charge_month = base_total + new_penalty
-                if save:
-                    self.save(update_fields=['penalty_amount', 'total_charge_month'])
+        if penalty != (self.payment_penalty_price or 0):
+            self.payment_penalty_price = penalty
+            self.total_charge_month = base_total + penalty
+            self.save(update_fields=['payment_penalty_price', 'total_charge_month'])
 
 
 class FixPersonCharge(models.Model):
@@ -697,89 +621,51 @@ class FixPersonChargeCalc(models.Model):
     def __str__(self):
         return str(self.charge_name)
 
-    from django.utils import timezone
+    def charge_monthly(self):
+        return self.final_person_amount
 
     def calculate_penalty(self):
-        if not self.payment_deadline_date or self.is_paid:
+        if not self.payment_deadline_date:
             return 0
 
-        today = timezone.now().date()
-        deadline = self.payment_deadline_date
+        # اگر پرداخت شده، تاریخ پرداخت ملاک است
+        check_date = self.payment_date or timezone.now().date()
 
-        if today <= deadline:
+        if check_date <= self.payment_deadline_date:
             return 0
 
-        delay_days = (today - deadline).days
+        delay_days = (check_date - self.payment_deadline_date).days
         penalty_percent = self.payment_penalty or 0
 
-        # محاسبه جریمه بر اساس درصد و تعداد روزها
-        base_amount = self.total_charge_month or 0
-        penalty_amount = int(base_amount * penalty_percent / 100 * delay_days)
-        return penalty_amount
+        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
+
+        return int(base_total * penalty_percent / 100 * delay_days)
 
     def save(self, *args, **kwargs):
         # محاسبه مبلغ نهایی بر اساس تعداد افراد و شارژ ثابت
-        final = 0
-        if self.unit.people_count and self.amount:
-            final = self.unit.people_count * self.amount
-        if getattr(self, 'fix_charge', 0):
-            final += self.fix_charge
+        final = (self.unit.people_count or 0) * (self.amount or 0)
+        final += self.fix_charge or 0
         self.final_person_amount = final
 
-        civil = self.civil_charge or 0
-        other = self.other_cost or 0
+        base_total = final + (self.civil_charge or 0) + (self.other_cost or 0)
 
-        # محاسبه شارژ کل ماهانه بدون جریمه
-        self.total_charge_month = final + civil + other
-
-        # اضافه کردن جریمه دیرکرد اگر پرداخت نشده
-        if not self.is_paid:
-            self.payment_penalty_price = self.calculate_penalty()
-            if self.payment_penalty_price:
-                self.total_charge_month += self.payment_penalty_price
+        penalty = self.calculate_penalty()
+        self.payment_penalty_price = penalty
+        self.total_charge_month = base_total + penalty
 
         super().save(*args, **kwargs)
 
-    def update_penalty(self, save=True):
-            """
-            محاسبه جریمه دیرکرد دقیقاً مشابه FixedChargeCalc
-            """
+    def update_penalty(self):
+        if self.is_paid:
+            return
 
-            today = timezone.now().date()
+        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
+        penalty = self.calculate_penalty()
 
-            # ---------- ۱: مبلغ پایه دقیقاً مثل FixedChargeCalc ----------
-            amount = self.amount or 0
-            base_total = amount
-
-            # ---------- ۳: اگر deadline ندارد ----------
-            if not self.payment_deadline_date:
-                return
-
-            deadline = self.payment_deadline_date
-
-            # ---------- ۴: اگر هنوز مهلت نگذشته ----------
-            if today <= deadline:
-                if self.penalty_amount != 0:
-                    self.penalty_amount = 0
-                    self.total_charge_month = base_total
-                    if save:
-                        self.save(update_fields=['penalty_amount', 'total_charge_month'])
-                return
-
-            # ---------- ۵: تعداد روزهای دیرکرد ----------
-            delay_days = (today - deadline).days
-
-            # ---------- ۶: درصد جریمه مانند FixedChargeCalc ----------
-            penalty_percent = getattr(self.related_object, 'payment_penalty', 0) or 0
-
-            new_penalty = int((base_total * penalty_percent / 100) * delay_days)
-
-            # ---------- ۷: اگر تغییری رخ داده ذخیره کن ----------
-            if new_penalty != (self.penalty_amount or 0):
-                self.penalty_amount = new_penalty
-                self.total_charge_month = base_total + new_penalty
-                if save:
-                    self.save(update_fields=['penalty_amount', 'total_charge_month'])
+        if penalty != (self.payment_penalty_price or 0):
+            self.payment_penalty_price = penalty
+            self.total_charge_month = base_total + penalty
+            self.save(update_fields=['payment_penalty_price', 'total_charge_month'])
 
 
 class FixAreaCharge(models.Model):
@@ -836,87 +722,52 @@ class FixAreaChargeCalc(models.Model):
     def __str__(self):
         return str(self.charge_name)
 
+    def charge_monthly(self):
+        return self.final_person_amount
+
     def calculate_penalty(self):
-        if not self.payment_deadline_date or self.is_paid:
+        if not self.payment_deadline_date:
             return 0
 
-        today = timezone.now().date()
-        deadline = self.payment_deadline_date
+        # اگر پرداخت شده، تاریخ پرداخت ملاک است
+        check_date = self.payment_date or timezone.now().date()
 
-        if today <= deadline:
+        if check_date <= self.payment_deadline_date:
             return 0
 
-        delay_days = (today - deadline).days
+        delay_days = (check_date - self.payment_deadline_date).days
         penalty_percent = self.payment_penalty or 0
 
-        # محاسبه جریمه بر اساس درصد و تعداد روزها
-        penalty_amount = int((self.total_charge_month or 0) * penalty_percent / 100 * delay_days)
-        return penalty_amount
+        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
+        return int(base_total * penalty_percent / 100 * delay_days)
 
     def save(self, *args, **kwargs):
-        # محاسبه مبلغ نهایی بر اساس متراژ واحد و شارژ ثابت
-        final = 0
-        if getattr(self.unit, 'area', 0) and getattr(self, 'amount', 0):
-            final = self.unit.area * self.amount
-        if getattr(self, 'fix_charge', 0):
-            final += self.fix_charge
-
+        # محاسبه مبلغ نهایی بر اساس متراژ و شارژ ثابت
+        final = (getattr(self.unit, 'area', 0) or 0) * (self.amount or 0)
+        final += self.fix_charge or 0
         self.final_person_amount = final
 
-        civil = self.civil_charge or 0
-        other = self.other_cost or 0
+        base_total = final + (self.civil_charge or 0) + (self.other_cost or 0)
 
-        # محاسبه شارژ کل ماهانه بدون جریمه
-        self.total_charge_month = final + civil + other
-
-        # اضافه کردن جریمه دیرکرد اگر پرداخت نشده
-        if not self.is_paid:
-            self.payment_penalty_price = self.calculate_penalty()
-            if self.payment_penalty_price:
-                self.total_charge_month += self.payment_penalty_price
+        # محاسبه جریمه
+        penalty = self.calculate_penalty()
+        self.payment_penalty_price = penalty
+        self.total_charge_month = base_total + penalty
 
         super().save(*args, **kwargs)
 
     def update_penalty(self, save=True):
-            """
-            محاسبه جریمه دیرکرد دقیقاً مشابه FixedChargeCalc
-            """
+        if self.is_paid:
+            return
 
-            today = timezone.now().date()
+        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
+        new_penalty = self.calculate_penalty()
 
-            # ---------- ۱: مبلغ پایه دقیقاً مثل FixedChargeCalc ----------
-            amount = self.amount or 0
-            base_total = amount
-
-            # ---------- ۳: اگر deadline ندارد ----------
-            if not self.payment_deadline_date:
-                return
-
-            deadline = self.payment_deadline_date
-
-            # ---------- ۴: اگر هنوز مهلت نگذشته ----------
-            if today <= deadline:
-                if self.penalty_amount != 0:
-                    self.penalty_amount = 0
-                    self.total_charge_month = base_total
-                    if save:
-                        self.save(update_fields=['penalty_amount', 'total_charge_month'])
-                return
-
-            # ---------- ۵: تعداد روزهای دیرکرد ----------
-            delay_days = (today - deadline).days
-
-            # ---------- ۶: درصد جریمه مانند FixedChargeCalc ----------
-            penalty_percent = getattr(self.related_object, 'payment_penalty', 0) or 0
-
-            new_penalty = int((base_total * penalty_percent / 100) * delay_days)
-
-            # ---------- ۷: اگر تغییری رخ داده ذخیره کن ----------
-            if new_penalty != (self.penalty_amount or 0):
-                self.penalty_amount = new_penalty
-                self.total_charge_month = base_total + new_penalty
-                if save:
-                    self.save(update_fields=['penalty_amount', 'total_charge_month'])
+        if new_penalty != (self.payment_penalty_price or 0):
+            self.payment_penalty_price = new_penalty
+            self.total_charge_month = base_total + new_penalty
+            if save:
+                self.save(update_fields=['payment_penalty_price', 'total_charge_month'])
 
 
 class ChargeByPersonArea(models.Model):
@@ -970,87 +821,50 @@ class ChargeByPersonAreaCalc(models.Model):
     def __str__(self):
         return str(self.charge_name)
 
+    def charge_monthly(self):
+        return self.final_person_amount
+
     def calculate_penalty(self):
-        if not self.payment_deadline_date or self.is_paid:
+        if not self.payment_deadline_date:
             return 0
 
-        today = timezone.now().date()
-        deadline = self.payment_deadline_date
-
-        if today <= deadline:
+        check_date = self.payment_date or timezone.now().date()
+        if check_date <= self.payment_deadline_date or self.is_paid:
             return 0
 
-        delay_days = (today - deadline).days
+        delay_days = (check_date - self.payment_deadline_date).days
         penalty_percent = self.payment_penalty or 0
 
-        # محاسبه جریمه بر اساس درصد و تعداد روزها
-        base_amount = self.total_charge_month or 0
-        penalty_amount = int(base_amount * penalty_percent / 100 * delay_days)
-        return penalty_amount
+        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
+        return int(base_total * penalty_percent / 100 * delay_days)
 
     def save(self, *args, **kwargs):
         # محاسبه شارژ نهایی بر اساس متراژ و تعداد نفرات
         area = getattr(self.unit, 'area', 0) or 0
         people = getattr(self.unit, 'people_count', 0) or 0
-        area_charge = self.area_charge or 0
-        person_charge = self.person_charge or 0
+        self.final_person_amount = (area * (self.area_charge or 0)) + (people * (self.person_charge or 0))
 
-        self.final_person_amount = (area * area_charge) + (people * person_charge)
+        base_total = self.final_person_amount + (self.civil_charge or 0) + (self.other_cost or 0)
 
-        civil = self.civil_charge or 0
-        other = self.other_cost or 0
-
-        # محاسبه شارژ کل ماهانه بدون جریمه
-        self.total_charge_month = self.final_person_amount + civil + other
-
-        # اضافه کردن جریمه دیرکرد اگر پرداخت نشده
-        if not self.is_paid:
-            self.payment_penalty_price = self.calculate_penalty()
-            if self.payment_penalty_price:
-                self.total_charge_month += self.payment_penalty_price
+        # محاسبه جریمه دیرکرد
+        penalty = self.calculate_penalty()
+        self.payment_penalty_price = penalty
+        self.total_charge_month = base_total + penalty
 
         super().save(*args, **kwargs)
 
     def update_penalty(self, save=True):
-            """
-            محاسبه جریمه دیرکرد دقیقاً مشابه FixedChargeCalc
-            """
+        if self.is_paid:
+            return
 
-            today = timezone.now().date()
+        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
+        new_penalty = self.calculate_penalty()
 
-            # ---------- ۱: مبلغ پایه دقیقاً مثل FixedChargeCalc ----------
-            amount = self.amount or 0
-            base_total = amount
-
-            # ---------- ۳: اگر deadline ندارد ----------
-            if not self.payment_deadline_date:
-                return
-
-            deadline = self.payment_deadline_date
-
-            # ---------- ۴: اگر هنوز مهلت نگذشته ----------
-            if today <= deadline:
-                if self.penalty_amount != 0:
-                    self.penalty_amount = 0
-                    self.total_charge_month = base_total
-                    if save:
-                        self.save(update_fields=['penalty_amount', 'total_charge_month'])
-                return
-
-            # ---------- ۵: تعداد روزهای دیرکرد ----------
-            delay_days = (today - deadline).days
-
-            # ---------- ۶: درصد جریمه مانند FixedChargeCalc ----------
-            penalty_percent = getattr(self.related_object, 'payment_penalty', 0) or 0
-
-            new_penalty = int((base_total * penalty_percent / 100) * delay_days)
-
-            # ---------- ۷: اگر تغییری رخ داده ذخیره کن ----------
-            if new_penalty != (self.penalty_amount or 0):
-                self.penalty_amount = new_penalty
-                self.total_charge_month = base_total + new_penalty
-                if save:
-                    self.save(update_fields=['penalty_amount', 'total_charge_month'])
+        if new_penalty != (self.payment_penalty_price or 0):
+            self.payment_penalty_price = new_penalty
+            self.total_charge_month = base_total + new_penalty
+            if save:
+                self.save(update_fields=['payment_penalty_price', 'total_charge_month'])
 
 
 class ChargeByFixPersonArea(models.Model):
@@ -1110,88 +924,51 @@ class ChargeByFixPersonAreaCalc(models.Model):
     def __str__(self):
         return str(self.charge_name)
 
+    def charge_monthly(self):
+        return self.final_person_amount
+
     def calculate_penalty(self):
         if not self.payment_deadline_date or self.is_paid:
             return 0
 
         today = timezone.now().date()
-        deadline = self.payment_deadline_date
-
-        if today <= deadline:
+        if today <= self.payment_deadline_date:
             return 0
 
-        delay_days = (today - deadline).days
+        delay_days = (today - self.payment_deadline_date).days
         penalty_percent = self.payment_penalty or 0
-
-        # محاسبه جریمه بر اساس درصد و تعداد روزها
-        base_amount = self.total_charge_month or 0
-        penalty_amount = int(base_amount * penalty_percent / 100 * delay_days)
-        return penalty_amount
+        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
+        return int(base_total * penalty_percent / 100 * delay_days)
 
     def save(self, *args, **kwargs):
-        # محاسبه مبلغ نهایی بر اساس متراژ، تعداد نفرات و شارژ ثابت
         area = getattr(self.unit, 'area', 0) or 0
         people = getattr(self.unit, 'people_count', 0) or 0
-        area_charge = self.area_charge or 0
-        person_charge = self.person_charge or 0
         fix = self.fix_charge or 0
+        person = self.person_charge or 0
+        area_c = self.area_charge or 0
 
-        self.final_person_amount = (area * area_charge) + (people * person_charge) + fix
+        self.final_person_amount = (area * area_c) + (people * person) + fix
 
-        civil = self.civil_charge or 0
-        other = self.other_cost or 0
+        base_total = self.final_person_amount + (self.civil_charge or 0) + (self.other_cost or 0)
 
-        # محاسبه شارژ کل ماهانه بدون جریمه
-        self.total_charge_month = self.final_person_amount + civil + other
-
-        # اضافه کردن جریمه دیرکرد اگر پرداخت نشده
-        if not self.is_paid:
-            self.payment_penalty_price = self.calculate_penalty()
-            if self.payment_penalty_price:
-                self.total_charge_month += self.payment_penalty_price
+        penalty = self.calculate_penalty()
+        self.payment_penalty_price = penalty
+        self.total_charge_month = base_total + penalty
 
         super().save(*args, **kwargs)
 
     def update_penalty(self, save=True):
-            """
-            محاسبه جریمه دیرکرد دقیقاً مشابه FixedChargeCalc
-            """
+        if self.is_paid:
+            return
 
-            today = timezone.now().date()
+        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
+        new_penalty = self.calculate_penalty()
 
-            # ---------- ۱: مبلغ پایه دقیقاً مثل FixedChargeCalc ----------
-            amount = self.amount or 0
-            base_total = amount
-
-            # ---------- ۳: اگر deadline ندارد ----------
-            if not self.payment_deadline_date:
-                return
-
-            deadline = self.payment_deadline_date
-
-            # ---------- ۴: اگر هنوز مهلت نگذشته ----------
-            if today <= deadline:
-                if self.penalty_amount != 0:
-                    self.penalty_amount = 0
-                    self.total_charge_month = base_total
-                    if save:
-                        self.save(update_fields=['penalty_amount', 'total_charge_month'])
-                return
-
-            # ---------- ۵: تعداد روزهای دیرکرد ----------
-            delay_days = (today - deadline).days
-
-            # ---------- ۶: درصد جریمه مانند FixedChargeCalc ----------
-            penalty_percent = getattr(self.related_object, 'payment_penalty', 0) or 0
-
-            new_penalty = int((base_total * penalty_percent / 100) * delay_days)
-
-            # ---------- ۷: اگر تغییری رخ داده ذخیره کن ----------
-            if new_penalty != (self.penalty_amount or 0):
-                self.penalty_amount = new_penalty
-                self.total_charge_month = base_total + new_penalty
-                if save:
-                    self.save(update_fields=['penalty_amount', 'total_charge_month'])
+        if new_penalty != (self.payment_penalty_price or 0):
+            self.payment_penalty_price = new_penalty
+            self.total_charge_month = base_total + new_penalty
+            if save:
+                self.save(update_fields=['payment_penalty_price', 'total_charge_month'])
 
 
 class ChargeFixVariable(models.Model):
@@ -1258,87 +1035,54 @@ class ChargeFixVariableCalc(models.Model):
     def __str__(self):
         return str(self.charge_name)
 
-    from django.utils import timezone
+    def charge_monthly(self):
+        return self.final_person_amount
 
     def calculate_penalty(self):
         if not self.payment_deadline_date or self.is_paid:
             return 0
 
-        today = timezone.now().date()
-        deadline = self.payment_deadline_date
-
-        if today <= deadline:
+        check_date = self.payment_date or timezone.now().date()
+        if check_date <= self.payment_deadline_date:
             return 0
 
-        delay_days = (today - deadline).days
+        delay_days = (check_date - self.payment_deadline_date).days
         penalty_percent = self.payment_penalty or 0
 
-        # محاسبه جریمه بر اساس درصد و تعداد روزها
-        base_amount = self.total_charge_month or 0
-        penalty_amount = int(base_amount * penalty_percent / 100 * delay_days)
-        return penalty_amount
+        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
+        return int(base_total * penalty_percent / 100 * delay_days)
 
     def save(self, *args, **kwargs):
         people_count = getattr(self.unit, 'people_count', 0)
         area = getattr(self.unit, 'area', 0)
 
-        self.total_charge_month = (
+        self.final_person_amount = (
                 (self.unit_variable_person_charge or 0) * people_count +
                 (self.unit_variable_area_charge or 0) * area +
                 (self.unit_fix_charge_per_unit or 0) +
-                (self.extra_parking_charges or 0) +
-                (self.other_cost or 0) +
-                (self.civil_charge or 0)
+                (self.extra_parking_charges or 0)
         )
 
-        # اضافه کردن جریمه دیرکرد اگر پرداخت نشده
-        if not self.is_paid:
-            self.payment_penalty_price = self.calculate_penalty()
-            if self.payment_penalty_price:
-                self.total_charge_month += self.payment_penalty_price
+        base_total = self.final_person_amount + (self.civil_charge or 0) + (self.other_cost or 0)
+
+        penalty = self.calculate_penalty()
+        self.payment_penalty_price = penalty
+        self.total_charge_month = base_total + penalty
 
         super().save(*args, **kwargs)
 
     def update_penalty(self, save=True):
-            """
-            محاسبه جریمه دیرکرد دقیقاً مشابه FixedChargeCalc
-            """
+        if self.is_paid:
+            return
 
-            today = timezone.now().date()
+        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
+        new_penalty = self.calculate_penalty()
 
-            # ---------- ۱: مبلغ پایه دقیقاً مثل FixedChargeCalc ----------
-            amount = self.amount or 0
-            base_total = amount
-
-            # ---------- ۳: اگر deadline ندارد ----------
-            if not self.payment_deadline_date:
-                return
-
-            deadline = self.payment_deadline_date
-
-            # ---------- ۴: اگر هنوز مهلت نگذشته ----------
-            if today <= deadline:
-                if self.penalty_amount != 0:
-                    self.penalty_amount = 0
-                    self.total_charge_month = base_total
-                    if save:
-                        self.save(update_fields=['penalty_amount', 'total_charge_month'])
-                return
-
-            # ---------- ۵: تعداد روزهای دیرکرد ----------
-            delay_days = (today - deadline).days
-
-            # ---------- ۶: درصد جریمه مانند FixedChargeCalc ----------
-            penalty_percent = getattr(self.related_object, 'payment_penalty', 0) or 0
-
-            new_penalty = int((base_total * penalty_percent / 100) * delay_days)
-
-            # ---------- ۷: اگر تغییری رخ داده ذخیره کن ----------
-            if new_penalty != (self.penalty_amount or 0):
-                self.penalty_amount = new_penalty
-                self.total_charge_month = base_total + new_penalty
-                if save:
-                    self.save(update_fields=['penalty_amount', 'total_charge_month'])
+        if new_penalty != (self.payment_penalty_price or 0):
+            self.payment_penalty_price = new_penalty
+            self.total_charge_month = base_total + new_penalty
+            if save:
+                self.save(update_fields=['payment_penalty_price', 'total_charge_month'])
 
 
 class UnifiedCharge(models.Model):
@@ -1481,7 +1225,7 @@ class UnifiedCharge(models.Model):
 class Fund(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     doc_number = models.PositiveIntegerField(unique=True, editable=False, null=True, blank=True)
     payer_name = models.CharField(max_length=200, null=True, blank=True)
     receiver_name = models.CharField(max_length=200, null=True, blank=True)

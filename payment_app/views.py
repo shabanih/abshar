@@ -96,17 +96,6 @@ def verify_pay(request: HttpRequest):
     if not payment_charge:
         return JsonResponse({"error": "Charge not found"}, status=404)
 
-    # default_bank = Bank.objects.filter(user=request.user, is_active=True, is_default=True).first()
-    #
-    # if not default_bank:
-    #     default_bank = Bank.objects.filter(user=request.user, is_active=True).first()
-    #
-    # if not default_bank:
-    #     return render(request, 'charge_payment_done.html', {
-    #         'error': 'هیچ حساب بانکی فعالی برای ثبت پرداخت وجود ندارد',
-    #         'charge': payment_charge,
-    #     })
-
     total_fix_charge = payment_charge.total_charge_month
 
     t_authority = request.GET.get('Authority')
@@ -151,17 +140,17 @@ def verify_pay(request: HttpRequest):
                         payment_gateway='پرداخت اینترنتی'
                     )
 
-                    return render(request, 'payment_done.html', {
+                    return render(request, 'internet_payment_done.html', {
                         'success': f'تراکنش شما با کد پیگیری {ref_str} با موفقیت انجام و پرداخت شارژ شما ثبت گردید. ',
                         'charge': payment_charge,  # ← این خط حیاتی است
                     })
                 elif t_status == 101:
-                    return render(request, 'payment_done.html', {
+                    return render(request, 'internet_payment_done.html', {
                         'info': 'این تراکنش قبلا ثبت شده است',
                         'charge': payment_charge,  # ← این خط حیاتی است
                     })
                 else:
-                    return render(request, 'payment_done.html', {
+                    return render(request, 'internet_payment_done.html', {
                         'error': str(req_data['data']['message']),
                         'charge': payment_charge,  # ← این خط حیاتی است
                     })
@@ -186,6 +175,7 @@ def verify_pay(request: HttpRequest):
 
 @login_required
 def paymentView(request, pk):
+    # گرفتن شارژ
     charge = get_object_or_404(UnifiedCharge, pk=pk, user=request.user)
 
     if request.method == "POST":
@@ -194,42 +184,63 @@ def paymentView(request, pk):
             charge = form.save(commit=False)
             charge.is_paid = True
             charge.payment_gateway = 'کارت به کارت'
-            charge.update_penalty(save=False)
-            charge.save()
 
-            content_type = ContentType.objects.get_for_model(charge)
+            # به‌روزرسانی جریمه قبل از ذخیره
+            charge.update_penalty()
+
+            # ذخیره اطلاعات شارژ
+            charge.save(update_fields=[
+                'is_paid', 'payment_gateway', 'payment_date', 'transaction_reference', 'penalty_amount'
+            ])
+
+            # بروزرسانی مدل محاسبه اصلی در صورت وجود
+            calc_model = CHARGE_CALC_MAP.get(charge.charge_type)
+            if calc_model:
+                calc_charge = calc_model.objects.filter(pk=charge.object_id).first()
+                if calc_charge:
+                    calc_charge.payment_date = charge.payment_date
+                    calc_charge.transaction_reference = charge.transaction_reference
+                    if hasattr(calc_charge, 'is_paid'):
+                        calc_charge.is_paid = True
+                        calc_charge.save(update_fields=['payment_date', 'transaction_reference', 'is_paid'])
+                    else:
+                        calc_charge.save(update_fields=['payment_date', 'transaction_reference'])
+
+            # ثبت در صندوق
             Fund.objects.create(
-                content_type=content_type,
+                content_type=ContentType.objects.get_for_model(charge),
                 object_id=charge.id,
                 bank=charge.bank,
                 unit=charge.unit,
-                payer_name=charge.unit,
+                payer_name=getattr(charge.unit, 'unit_number', str(charge.unit)),
                 debtor_amount=charge.total_charge_month,
                 amount=charge.total_charge_month,
                 creditor_amount=0,
                 user=request.user,
                 payment_date=charge.payment_date,
-                payment_description=f"{charge.title}",
+                payment_description=charge.title,
                 transaction_no=charge.transaction_reference,
                 payment_gateway='پرداخت الکترونیک'
             )
-            messages.success(request, ' پرداخت شما با موفقیت ثبت گردید.')
-            # return render(request, 'payment_done.html', {
-            #     'success': f'اطلاعات پرداخت با موفقیت انجام و پرداخت شارژ شما ثبت گردید. '
-            # })
+
+            messages.success(request, 'پرداخت شما با موفقیت ثبت شد.')
             return redirect('payment_done', pk=charge.id)
 
         else:
-            messages.success(request, 'خطا در ثبت اطلاعات')
-            return redirect('payment_gateway')
+            # نمایش فرم با خطاها بدون ریدایرکت
+            messages.error(request, 'خطا در ثبت اطلاعات پرداخت. لطفاً فرم را بررسی کنید.')
+            return render(request, 'payment_gateway.html', {
+                'form': form,
+                'charge': charge
+            })
 
     else:
+        # نمایش فرم برای پرداخت
         form = UnifiedChargePaymentForm(instance=charge)
-        context = {
-            'charge': charge,
-            'form': form
-        }
-        return render(request, 'payment_gateway.html', context)
+        return render(request, 'payment_gateway.html', {
+            'form': form,
+            'charge': charge
+        })
 
 def payment_done_view(request, pk):
     charge = get_object_or_404(UnifiedCharge, pk=pk)
@@ -288,21 +299,24 @@ def unit_charge_payment_view(request, charge_type, charge_id):
     if request.method == "POST":
         form = UnifiedChargePaymentForm(request.POST, instance=unified_charge)
         if form.is_valid():
-            # ذخیره تغییرات فرم روی UnifiedCharge
             unified_charge = form.save(commit=False)
             unified_charge.is_paid = True
             unified_charge.payment_gateway = 'کارت به کارت'
-            unified_charge.update_penalty(save=False)
-            unified_charge.save()
+            # بدون پارامتر save
+            unified_charge.update_penalty()
+            # ذخیره با همه فیلدهای تغییر یافته
+            unified_charge.save(update_fields=['is_paid', 'payment_gateway', 'payment_date', 'transaction_reference'])
 
             # بروزرسانی مدل محاسبه اصلی
             calc_charge.payment_date = unified_charge.payment_date
             calc_charge.transaction_reference = unified_charge.transaction_reference
+            fields_to_update = ['payment_date', 'transaction_reference']
             if hasattr(calc_charge, 'is_paid'):
                 calc_charge.is_paid = True
-            calc_charge.save(update_fields=['payment_date', 'transaction_reference', 'is_paid'])
+                fields_to_update.append('is_paid')
+            calc_charge.save(update_fields=fields_to_update)
 
-            # ثبت در صندوق (Fund)
+            # ثبت در صندوق
             Fund.objects.create(
                 content_type=ContentType.objects.get_for_model(calc_charge),
                 object_id=unified_charge.id,
@@ -322,6 +336,7 @@ def unit_charge_payment_view(request, charge_type, charge_id):
             messages.success(request, "پرداخت شارژ واحد با موفقیت ثبت شد.")
             return redirect(reverse('charge_payment_done', args=[unified_charge.id]))
 
+
         else:
             messages.error(request, "خطا در ثبت اطلاعات پرداخت. لطفاً فرم را بررسی کنید.")
             return render(request, 'charge_payment_gateway.html', {
@@ -336,8 +351,6 @@ def unit_charge_payment_view(request, charge_type, charge_id):
             'charge': unified_charge,
             'form': form
         })
-
-
 
 
 @login_required

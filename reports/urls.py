@@ -68,6 +68,16 @@ urlpatterns = [
         views.export_units_charge_report_excel,
         name='charge_units_list_excel'
     ),
+    path(
+        'charges/pdf/<str:charge_type>/<int:charge_id>/pdf/',
+        views.unit_charge_invoice_pdf_view,
+        name='unit_charge_invoice_pdf_view'
+    ),
+    path(
+        'charges/pdf/<str:charge_type>/pdf/',
+        views.all_charges_invoice_pdf_view,
+        name='all_unit_charges_invoice_pdf'
+    ),
 
 
 ]

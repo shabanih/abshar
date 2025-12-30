@@ -591,20 +591,6 @@ class UnitForm(forms.ModelForm):
             self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
                 " (پیش‌فرض)" if obj.is_default else "")
 
-            house = None
-            if 'house' in self.data:
-                house_id = self.data.get('house')
-                try:
-                    house = MyHouse.objects.get(id=house_id)
-                except MyHouse.DoesNotExist:
-                    house = None
-            elif self.instance and self.instance.pk:
-                house = self.instance.house
-
-            if house:
-                self.fields['floor_number'].choices = [(i, f'طبقه {i}') for i in range(1, house.floor_counts + 1)]
-            else:
-                self.fields['floor_number'].choices = []
 
     def save(self, commit=True):
         instance = super().save(commit=False)

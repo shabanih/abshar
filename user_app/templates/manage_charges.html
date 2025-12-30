@@ -197,9 +197,9 @@
                             <hr/>
                            
                                      
-                               
+                                 {% if charge.penalty_amount %}
                                 <p><strong>جریمه دیرکرد:</strong> {{ charge.penalty_amount|three_digit_currency }} تومان</p>
-                           
+                           {% endif %}
                                 <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                               <hr>
                                 <p class="bg-warning"><strong>توضیحات:</strong> 
@@ -210,7 +210,9 @@
                                     {% endif %} 
                                     
                                 </p>
+                            
                                    <p><strong>تاریخ ارسال اطلاعیه:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>
+                                   <p><strong>مهلت پرداخت:</strong> {{ charge.payment_deadline_date|show_jalali_date_only }}</p>
 
                               <hr>
                            {% if charge.transaction_reference %} 

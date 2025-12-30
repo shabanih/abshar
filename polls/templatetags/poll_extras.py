@@ -94,3 +94,12 @@ def four_digit_cart(value):
 @register.filter
 def get_item(dictionary, key):
     return dictionary.get(key)
+
+
+@register.filter
+def get_field(obj, field_name):
+    return getattr(obj, field_name, None)
+
+@register.filter
+def dict_get(d, key):
+    return d.get(key)

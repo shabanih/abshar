@@ -92,8 +92,11 @@ class Bank(models.Model):
         super().save(*args, **kwargs)
 
     @classmethod
-    def get_default(cls, user):
-        return cls.objects.filter(user=user, is_default=True, is_active=True).first()
+    def get_default(cls, user, house=None):
+        qs = cls.objects.filter(user=user, is_default=True, is_active=True)
+        if house:
+            qs = qs.filter(house=house)
+        return qs.first()
 
     def __str__(self):
         return f"{self.bank_name} - {self.account_no}"
