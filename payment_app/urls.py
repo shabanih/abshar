@@ -6,7 +6,7 @@ from payment_app import views
 urlpatterns = [
     path('request-pay/<int:charge_id>/', views.request_pay, name='request_pay'),
     path('verify-pay/', views.verify_pay, name='verify_pay'),
-    path('payment/gateway/<int:pk>/', views.paymentView, name='payment_gateway'),
+    path('payment/gateway/<int:pk>/', views.paymentUserView, name='payment_gateway'),
     path('payment/charge/done/<int:pk>/', views.payment_done_view, name='payment_done'),
 
     path(

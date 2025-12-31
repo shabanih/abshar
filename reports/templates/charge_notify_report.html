@@ -11,9 +11,9 @@
         <hr class="p-0">
      <div class="row g-2">
      
-        <div class="col-12 mb-3 text-start">
-            <a class="btn btn-gradient-primary px-3 py-2" href="{% url 'charge_list_report' %}">برگشت به لیست شارژها</a>
-        </div>
+{#        <div class="col-12 mb-3 text-start">#}
+{#            <a class="btn btn-gradient-primary px-3 py-2" href="{% url 'charge_list_report' %}">برگشت به لیست شارژها</a>#}
+{#        </div>#}
   
         <!-- بخش جستجو -->
         <div class="col-12 col-md-4 col-xl-4 align-self-center">
@@ -31,14 +31,14 @@
             </form>
         </div>
        <div class=" col-12 col-md-6 col-xl-6 text-end text-md-center align-self-center">
-            <a href="{% url 'charge_units_list_excel' charge_type charge_id %}?{{ request.GET.urlencode }}"
+            <a href=""
                 class="btn btn-gradient-success px-4 py-2"> Excel</a>
-            <a href="{% url 'charge_units_list_pdf' charge_type charge_id %}?{{ request.GET.urlencode }}"
+            <a href=""
                    class="btn btn-gradient-danger px-4 py-2">
                     PDF
                 </a>
                 <a class="btn btn-gradient-warning px-4 py-2" 
-                   href="{% url 'all_unit_charges_invoice_pdf' charge_type  %}"> PDF همه صورتحساب ها</a>
+                   href=""> PDF همه صورتحساب ها</a>
 
             </div>
 
@@ -84,7 +84,7 @@
                 <tbody>
                 <tr>
                  <td>{{ forloop.counter}}</td>
-                 <td>{{ charge.charge_name}}</td>
+                 <td>{{ charge.title}}</td>
                  <td>{{ charge.unit.get_label }}</td>
                     <td>{{ charge.base_charge|three_digit_currency }} </td>
                     <td>
@@ -122,7 +122,7 @@
 {#                </td>#}
            
                   <td class="shadow_style p-1">
-                      <a href="{% url 'unit_charge_invoice_pdf_view' charge_type charge.id %}">
+                      <a href="">
                           <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
                                style="width: 35px; height: 33px">
                       </a>|
@@ -134,7 +134,7 @@
                          <button data-bs-toggle="modal" data-bs-target="#exampleModalLong77{{ charge.id }}"
                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
                       </button> | 
-                     <a href="{% url 'unit_charge_payment' charge_type charge.id %}"
+                     <a href=""
                          class="btn btn-gradient-success px-1 py-1" 
                           data-bs-toggle="tooltip"  title="امور مالی">
                          <i class="fas fa-money-check-alt"></i>

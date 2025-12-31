@@ -6549,7 +6549,7 @@ def middle_show_fix_variable_notification_form(request, pk):
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 @require_POST
 def middle_send_notification_fix_variable_to_user(request, pk):
-    fix_variable = get_object_or_404(ChargeFixVariable, id=pk)
+    fix_variable_charge = get_object_or_404(ChargeFixVariable, id=pk)
     selected_units = [int(uid) for uid in request.POST.getlist('units') if uid.isdigit()]
     charge_type = 'fix_variable'
     calc_ct = ContentType.objects.get_for_model(ChargeFixVariableCalc)
@@ -6560,60 +6560,57 @@ def middle_send_notification_fix_variable_to_user(request, pk):
         return redirect('middle_show_notification_fix_variable_charge_form', pk=pk)
 
     today = timezone.now().date()
-
-    # بررسی اینکه payment_deadline_date معتبر است
-    if fix_variable.payment_deadline < today:
+    if fix_variable_charge.payment_deadline < today:
         messages.warning(
             request,
-            f'مهلت پرداخت نباید قبل از تاریخ ارسال اطلاعیه باشد. لطفا اصلاح و مجددا تلاش نمایید.'
+            'مهلت پرداخت قبل از امروز است. لطفاً اصلاح و مجدداً تلاش نمایید.'
         )
         return redirect('middle_add_variable_fix_charge')
 
     units_qs = Unit.objects.filter(is_active=True)
     units_to_notify = units_qs if 'all' in request.POST.getlist('units') else units_qs.filter(id__in=selected_units)
-
     if not units_to_notify.exists():
         messages.warning(request, 'هیچ واحد معتبری برای ارسال اطلاعیه پیدا نشد.')
         return redirect('middle_show_notification_fix_variable_charge_form', pk=pk)
 
+    # فقط واحدهایی که قبلاً اطلاعیه دریافت نکرده‌اند
     units_to_notify = units_to_notify.filter(
-        charge_calc_fix__fix_variable_charge=fix_variable,
+        charge_calc_fix__fix_variable_charge=fix_variable_charge,
         charge_calc_fix__send_notification=False
     )
-
     if not units_to_notify.exists():
-        messages.info(request, 'قبلا برای واحدهای انتخابی اطلاعیه ارسال شده است.')
-        return redirect('middle_show_notification_fix_person_area_charge_form', pk=pk)
+        messages.info(request, 'قبلاً اطلاعیه برای واحدهای انتخابی ارسال شده است.')
+        return redirect('middle_show_notification_fix_variable_charge_form', pk=pk)
 
     notified_units = []
 
     with transaction.atomic():
         for unit in units_to_notify:
+            # ایجاد یا به‌روزرسانی مدل محاسبه
             calc_obj, created = ChargeFixVariableCalc.objects.update_or_create(
                 unit=unit,
-                fix_variable_charge=fix_variable,
+                fix_variable_charge=fix_variable_charge,
                 defaults={
                     'user': unit.user,
-                    'unit_variable_area_charge': fix_variable.unit_variable_area_amount,
-                    'unit_variable_person_charge': fix_variable.unit_variable_person_amount,
-                    'unit_fix_charge_per_unit': fix_variable.unit_fix_amount,
-                    'civil_charge': fix_variable.civil,
-                    'charge_name': fix_variable.name,
-                    'details': fix_variable.details,
-                    'payment_deadline_date': fix_variable.payment_deadline,
+                    'unit_variable_area_charge': fix_variable_charge.unit_variable_area_amount,
+                    'unit_variable_person_charge': fix_variable_charge.unit_variable_person_amount,
+                    'unit_fix_charge_per_unit': fix_variable_charge.unit_fix_amount,
+                    'civil_charge': fix_variable_charge.civil,
+                    'charge_name': fix_variable_charge.name,
+                    'details': fix_variable_charge.details,
+                    'payment_deadline_date': fix_variable_charge.payment_deadline,
                     'send_notification': True,
                     'send_notification_date': timezone.now().date(),
-                    'bank': default_bank
+                    'bank': default_bank,
                 }
             )
-
-            # ایجاد یا به‌روزرسانی UnifiedCharge
             if not created and not calc_obj.send_notification:
                 calc_obj.send_notification = True
                 calc_obj.send_notification_date = timezone.now().date()
                 calc_obj.bank = default_bank
                 calc_obj.save()
 
+            # بروزرسانی یا ایجاد UnifiedCharge با object_id صحیح
             UnifiedCharge.objects.update_or_create(
                 content_type=calc_ct,
                 object_id=calc_obj.id,
@@ -6637,15 +6634,16 @@ def middle_send_notification_fix_variable_to_user(request, pk):
 
             notified_units.append(str(unit))
 
-        fix_variable.send_notification = True
-        fix_variable.send_notification_date = timezone.now().date()
-        fix_variable.send_sms = True
-        fix_variable.save()
+        # بروزرسانی مدل اصلی ChargeFixVariable
+        fix_variable_charge.send_notification = True
+        fix_variable_charge.send_notification_date = timezone.now().date()
+        fix_variable_charge.send_sms = True
+        fix_variable_charge.save()
 
     if notified_units:
         messages.success(request, 'اطلاعیه برای واحدهای انتخابی ارسال شد!')
     else:
-        messages.info(request, 'اطلاعیه‌ای ارسال نشد؛ ممکن است قبلاً برای واحد انتخابی ثبت شده باشد.')
+        messages.info(request, 'اطلاعیه‌ای ارسال نشد؛ ممکن است قبلاً ثبت شده باشد.')
 
     return redirect('middle_show_notification_fix_variable_charge_form', pk=pk)
 

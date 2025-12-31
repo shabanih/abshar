@@ -39,7 +39,7 @@ CallbackURLFix = 'http://127.0.0.1:8001/payment/verify-pay/'
 # CallbackURLFixPersonArea = 'http://127.0.0.1:8001/payment/verify-pay-fix-person-area/'
 # CallbackURLFixVariable = 'http://127.0.0.1:8001/payment/verify-pay-fix-variable/'
 
-@login_required()
+@login_required
 def request_pay(request: HttpRequest, charge_id):
     if not request.user.is_authenticated:
         return redirect('login')  # Ensure the user is logged in
@@ -83,107 +83,123 @@ def request_pay(request: HttpRequest, charge_id):
         return HttpResponse(f"Payment request failed: {str(e)}", status=500)
 
 
-@login_required()
+@login_required
 def verify_pay(request: HttpRequest):
     charge_id = request.GET.get('charge_id')
     if not charge_id:
-        return render(request, 'payment_gateway.html', {
-            'error': 'شناسه شارژ ارسال نشده است.'
-        })
+        return render(request, 'payment_gateway.html', {'error': 'شناسه شارژ ارسال نشده است.'})
 
     payment_charge = get_object_or_404(UnifiedCharge, id=charge_id, user=request.user, is_paid=False)
-
-    if not payment_charge:
-        return JsonResponse({"error": "Charge not found"}, status=404)
-
     total_fix_charge = payment_charge.total_charge_month
-
     t_authority = request.GET.get('Authority')
 
-    if request.GET.get('Status') == 'OK':
-        req_header = {"accept": "application/json", "content-type": "application/json"}
-        req_data = {
-            "merchant_id": MERCHANT,
-            "amount": total_fix_charge * 10,
-            "authority": t_authority
-        }
-
-        try:
-            req = requests.post(url=ZP_API_VERIFY, data=json.dumps(req_data), headers=req_header)
-            req_data = req.json()
-
-            if not req_data.get('errors'):
-                t_status = req_data['data']['code']
-                if t_status == 100:
-                    ref_str = req_data['data']['ref_id']
-                    # payment_charge.bank = default_bank  # ⭐⭐⭐
-                    payment_charge.transaction_reference = req_data['data']['ref_id']
-                    payment_charge.is_paid = True
-                    payment_charge.payment_date = timezone.now()
-                    payment_charge.payment_gateway = 'پرداخت اینترنتی'
-                    payment_charge.save()
-
-                    content_type = ContentType.objects.get_for_model(payment_charge)
-                    Fund.objects.create(
-                        content_type=content_type,
-                        object_id=payment_charge.id,
-                        bank=payment_charge.bank,
-                        unit=payment_charge.unit,
-                        payer_name=payment_charge.unit,
-                        debtor_amount=payment_charge.total_charge_month,
-                        amount=payment_charge.total_charge_month,
-                        creditor_amount=0,
-                        user=request.user,
-                        payment_date=payment_charge.payment_date,
-                        payment_description=payment_charge.title,
-                        transaction_no=payment_charge.transaction_reference,
-                        payment_gateway='پرداخت اینترنتی'
-                    )
-
-                    return render(request, 'internet_payment_done.html', {
-                        'success': f'تراکنش شما با کد پیگیری {ref_str} با موفقیت انجام و پرداخت شارژ شما ثبت گردید. ',
-                        'charge': payment_charge,  # ← این خط حیاتی است
-                    })
-                elif t_status == 101:
-                    return render(request, 'internet_payment_done.html', {
-                        'info': 'این تراکنش قبلا ثبت شده است',
-                        'charge': payment_charge,  # ← این خط حیاتی است
-                    })
-                else:
-                    return render(request, 'internet_payment_done.html', {
-                        'error': str(req_data['data']['message']),
-                        'charge': payment_charge,  # ← این خط حیاتی است
-                    })
-            else:
-                e_code = req_data['errors'].get('code')
-                e_message = req_data['errors'].get('message')
-                return render(request, 'payment_done.html', {
-                    'error': f"Error code: {e_code}, Message: {e_message}",
-                    'charge': payment_charge,  # ← این خط حیاتی است
-                })
-        except Exception as e:
-            return render(request, 'payment_done.html', {
-                'error': f"An error occurred: {str(e)}",
-                'charge': payment_charge,  # ← این خط حیاتی است
-            })
-
-    else:
+    if request.GET.get('Status') != 'OK':
         payment_charge.is_paid = False
         payment_charge.save()
         return redirect('user_fixed_charges')
 
+    # درخواست تایید پرداخت
+    req_header = {"accept": "application/json", "content-type": "application/json"}
+    req_data = {
+        "merchant_id": MERCHANT,
+        "amount": total_fix_charge * 10,
+        "authority": t_authority
+    }
+
+    try:
+        req = requests.post(url=ZP_API_VERIFY, data=json.dumps(req_data), headers=req_header)
+        req_data = req.json()
+
+        if req_data.get('errors'):
+            e_code = req_data['errors'].get('code')
+            e_message = req_data['errors'].get('message')
+            return render(request, 'payment_done.html',
+                          {'error': f"Error code: {e_code}, Message: {e_message}", 'charge': payment_charge})
+
+        t_status = req_data['data']['code']
+        if t_status != 100:
+            msg = 'این تراکنش قبلاً ثبت شده است' if t_status == 101 else str(req_data['data'].get('message'))
+            return render(request, 'internet_payment_done.html', {'info': msg, 'charge': payment_charge})
+
+        # پرداخت موفق
+        ref_str = req_data['data']['ref_id']
+        payment_charge.transaction_reference = ref_str
+        payment_charge.is_paid = True
+        payment_charge.payment_date = timezone.now()
+        payment_charge.payment_gateway = 'پرداخت اینترنتی'
+        payment_charge.update_penalty()
+        payment_charge.save()
+
+        # ثبت در صندوق
+        content_type = ContentType.objects.get_for_model(payment_charge)
+        Fund.objects.create(
+            content_type=content_type,
+            object_id=payment_charge.id,
+            bank=payment_charge.bank,
+            unit=payment_charge.unit,
+            payer_name=str(payment_charge.unit),
+            debtor_amount=payment_charge.total_charge_month,
+            amount=payment_charge.total_charge_month,
+            creditor_amount=0,
+            user=request.user,
+            payment_date=payment_charge.payment_date,
+            payment_description=payment_charge.title,
+            transaction_no=payment_charge.transaction_reference,
+            payment_gateway='پرداخت اینترنتی'
+        )
+
+        # sync با مدل محاسبه اصلی
+        CHARGE_TYPE_MAP = {
+            'fixed': 'fix',
+            'area': 'area',
+            'person': 'person',
+            'fix_person': 'fix_person',
+            'fix_area': 'fix_area',
+            'person_area': 'person_area',
+            'fix_person_area': 'fix_person_area',
+            'fix_variable': 'fix_variable',
+        }
+        mapped_type = CHARGE_TYPE_MAP.get(payment_charge.charge_type)
+        calc_model = CHARGE_CALC_MAP.get(mapped_type)
+
+        if not calc_model:
+            print(f"No calc_model for charge_type: {payment_charge.charge_type}")
+        elif payment_charge.object_id is None:
+            print(f"payment_charge.object_id is None for charge_type: {payment_charge.charge_type}")
+        else:
+            calc_charge = calc_model.objects.filter(pk=payment_charge.object_id).first()
+            if calc_charge:
+                calc_charge.is_paid = True
+                calc_charge.payment_date = payment_charge.payment_date
+                calc_charge.transaction_reference = payment_charge.transaction_reference
+                calc_charge.save(update_fields=['is_paid', 'payment_date', 'transaction_reference'])
+            else:
+                print(f"No calc_charge found for object_id: {payment_charge.object_id}")
+
+        return render(request, 'internet_payment_done.html', {
+            'success': f'تراکنش شما با کد پیگیری {ref_str} با موفقیت انجام شد.',
+            'charge': payment_charge,
+        })
+
+    except Exception as e:
+        return render(request, 'internet_payment_done.html',
+                      {'error': f"An error occurred: {str(e)}", 'charge': payment_charge})
+
 
 @login_required
-def paymentView(request, pk):
+def paymentUserView(request, pk):
     # گرفتن شارژ
     charge = get_object_or_404(UnifiedCharge, pk=pk, user=request.user)
+    if charge.is_paid:
+        messages.warning(request, 'این شارژ قبلاً پرداخت شده است.')
+        return redirect('payment_done', pk=charge.id)
 
     if request.method == "POST":
         form = UnifiedChargePaymentForm(request.POST, instance=charge)
         if form.is_valid():
             charge = form.save(commit=False)
             charge.is_paid = True
-            charge.payment_gateway = 'کارت به کارت'
+            charge.payment_gateway = 'پرداخت الکترونیک'
 
             # به‌روزرسانی جریمه قبل از ذخیره
             charge.update_penalty()
@@ -242,6 +258,7 @@ def paymentView(request, pk):
             'charge': charge
         })
 
+
 def payment_done_view(request, pk):
     charge = get_object_or_404(UnifiedCharge, pk=pk)
     return render(request, 'payment_done.html', {'charge': charge})
@@ -266,9 +283,8 @@ CHARGE_FK_FIELD = {
     'fix_area': 'fix_area_charge_id',
     'person_area': 'person_area_charge_id',
     'fix_person_area': 'fix_person_area_id',
-    'fix_variable': 'fix_variable_charge_id',
+    'fix_variable': 'fix_variable_id',
 }
-
 
 @login_required
 def unit_charge_payment_view(request, charge_type, charge_id):
@@ -301,7 +317,7 @@ def unit_charge_payment_view(request, charge_type, charge_id):
         if form.is_valid():
             unified_charge = form.save(commit=False)
             unified_charge.is_paid = True
-            unified_charge.payment_gateway = 'کارت به کارت'
+            unified_charge.payment_gateway = 'پرداخت الکترونیک'
             # بدون پارامتر save
             unified_charge.update_penalty()
             # ذخیره با همه فیلدهای تغییر یافته
@@ -357,4 +373,3 @@ def unit_charge_payment_view(request, charge_type, charge_id):
 def charge_payment_done_view(request, pk):
     charge = get_object_or_404(UnifiedCharge, pk=pk)
     return render(request, 'charge_payment_done.html', {'charge': charge})
-

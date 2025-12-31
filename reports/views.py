@@ -2648,3 +2648,52 @@ def export_pay_receive_report_excel(request):
     response['Content-Disposition'] = f'attachment; filename=report_pay_receive.xlsx'
     wb.save(response)
     return response
+
+
+def charge_notify_report_list(request):
+    search = request.GET.get('q', '').strip()
+
+    charges = (
+        UnifiedCharge.objects
+        .all())
+
+    # 🔍 فیلتر جستجو
+    if search:
+        q_obj = (
+            Q(charge_name__icontains=search) |
+            Q(details__icontains=search) |
+            Q(unit__unit__icontains=search) |
+            Q(unit__user__full_name__icontains=search)
+        )
+
+        if search.isdigit():
+            q_obj |= Q(amount=search) | Q(total_charge_month=search)
+
+        charges = charges.filter(q_obj)
+
+    # 🧮 annotate
+    charges = charges.annotate(
+        unit_number=F('unit__unit'),
+        user_full_name=F('unit__user__full_name')
+    )
+
+    # 📄 pagination
+    paginate = request.GET.get('paginate', '20')
+    if str(paginate).lower() == 'all':
+        paginate = charges.count() or 1
+    else:
+        try:
+            paginate = int(paginate)
+        except ValueError:
+            paginate = 20
+
+    paginator = Paginator(charges, paginate)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    context = {
+        'page_obj': page_obj,
+        'query': search,
+        'paginate': paginate,
+    }
+
+    return render(request, 'charge_notify_report.html', context)

@@ -11,7 +11,7 @@
       <div class="row mb-4">
               <div class="col-9 col-md-10 col-xl-10 align-self-center ">
          <form method="get" action="">
-    <input type="text" class="p-2" name="search" id="searchInput" autocomplete="off"
+    <input type="text" class="p-2 w-50" name="search" id="searchInput" autocomplete="off"
            value="{{ request.GET.search|default_if_none:'' }}"
            placeholder="جستجوی واحد مسکونی..." dir="rtl"
            oninput="if(this.value === '') this.form.submit();">

@@ -1304,7 +1304,7 @@ class MaintenanceForm(forms.ModelForm):
 # ============================== Charge Forms ===================================
 
 class FixChargeForm(forms.ModelForm):
-    name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+    name = forms.CharField(error_messages=error_message, max_length=100, widget=forms.TextInput(attrs=attr),
                            required=True,
                            label='عنوان شارژ ')
     fix_amount = forms.IntegerField(error_messages=error_message,
@@ -1352,7 +1352,7 @@ class FixChargeForm(forms.ModelForm):
 
 
 class AreaChargeForm(forms.ModelForm):
-    name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+    name = forms.CharField(error_messages=error_message, max_length=100, widget=forms.TextInput(attrs=attr),
                            required=True,
                            label='عنوان شارژ ')
     area_amount = forms.IntegerField(error_messages=error_message,
@@ -1405,7 +1405,7 @@ class AreaChargeForm(forms.ModelForm):
 
 
 class PersonChargeForm(forms.ModelForm):
-    name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+    name = forms.CharField(error_messages=error_message, max_length=100, widget=forms.TextInput(attrs=attr),
                            required=True,
                            label='عنوان شارژ ')
     person_amount = forms.IntegerField(error_messages=error_message,
@@ -1452,7 +1452,7 @@ class PersonChargeForm(forms.ModelForm):
 
 
 class FixAreaChargeForm(forms.ModelForm):
-    name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+    name = forms.CharField(error_messages=error_message, max_length=100, widget=forms.TextInput(attrs=attr),
                            required=True,
                            label='عنوان شارژ ')
     fix_charge_amount = forms.IntegerField(error_messages=error_message,
@@ -1504,7 +1504,7 @@ class FixAreaChargeForm(forms.ModelForm):
 
 
 class FixPersonChargeForm(forms.ModelForm):
-    name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+    name = forms.CharField(error_messages=error_message, max_length=100, widget=forms.TextInput(attrs=attr),
                            required=True,
                            label='عنوان شارژ ')
     fix_charge_amount = forms.IntegerField(error_messages=error_message,
@@ -1556,7 +1556,7 @@ class FixPersonChargeForm(forms.ModelForm):
 
 
 class PersonAreaChargeForm(forms.ModelForm):
-    name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+    name = forms.CharField(error_messages=error_message, max_length=100, widget=forms.TextInput(attrs=attr),
                            required=True,
                            label='عنوان شارژ ')
     person_amount = forms.IntegerField(error_messages=error_message,
@@ -1607,7 +1607,7 @@ class PersonAreaChargeForm(forms.ModelForm):
 
 
 class PersonAreaFixChargeForm(forms.ModelForm):
-    name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+    name = forms.CharField(error_messages=error_message, max_length=100, widget=forms.TextInput(attrs=attr),
                            required=True,
                            label='عنوان شارژ ')
     fix_charge_amount = forms.IntegerField(error_messages=error_message,
