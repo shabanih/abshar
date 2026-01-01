@@ -2,7 +2,7 @@ import json
 from decimal import Decimal
 
 from ckeditor_uploader.fields import RichTextUploadingField
-from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
@@ -278,103 +278,34 @@ class MaintenanceDocument(models.Model):
 # =========================== Charge Modals =============================
 class FixCharge(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fixCharge')
-    name = models.CharField(max_length=300, verbose_name='', null=True, blank=True)
-    fix_amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True)
-    civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
-    other_cost_amount = models.PositiveIntegerField(verbose_name='سایر هزینه ها', null=True, blank=True)
+    name = models.CharField(max_length=300, null=True, blank=True)
+    fix_amount = models.PositiveIntegerField(null=True, blank=True)
+    civil = models.PositiveIntegerField(null=True, blank=True)
+    other_cost_amount = models.PositiveIntegerField(null=True, blank=True)
     unit_count = models.IntegerField(null=True, blank=True)
     payment_deadline = models.DateField(null=True, blank=True)
-    payment_penalty_amount = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
-    total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
-    is_active = models.BooleanField(default=True, verbose_name='')
+    payment_penalty_amount = models.PositiveIntegerField(null=True, blank=True)  # درصد جریمه
+    details = models.CharField(max_length=4000, null=True, blank=True)
+    payment_date = models.DateField(null=True, blank=True)  # تاریخ پرداخت واقعی
+    unified_charges = GenericRelation('UnifiedCharge', related_query_name='fix_charge')
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return str(self.name)
 
-    def save(self, *args, **kwargs):
-        amount = max(self.fix_amount or 0, 0)
-        civil = self.civil or 0
-        other_cost = max(self.other_cost_amount or 0, 0)
+    charge_type = 'fix'
 
-        self.total_charge_month = amount + civil + other_cost
+    def calculate_charge(self, unit):
+        from services.calculators import CALCULATORS
 
-        super().save(*args, **kwargs)
-
-
-class FixedChargeCalc(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_fix')
-    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_fix')
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
-    fix_charge = models.ForeignKey(FixCharge, on_delete=models.CASCADE, related_name='fix_charge_amount')
-    charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
-    amount = models.PositiveIntegerField(verbose_name='مبلغ')
-    unit_count = models.PositiveIntegerField(verbose_name='تعداد واحدها', null=True, blank=True)
-    civil_charge = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
-    base_charge = models.PositiveIntegerField(null=True, blank=True, verbose_name='مبلغ')
-    total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
-    details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
-    send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
-    send_notification_date = models.DateField(verbose_name='اعلام شارژ به کاربر')
-    send_sms = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر با پیامک')
-    is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
-    payment_date = models.DateField(verbose_name='', null=True, blank=True)
-    payment_deadline_date = models.DateField(null=True, blank=True)
-    other_cost = models.PositiveIntegerField(verbose_name='سایر هزینه ها', null=True, blank=True)
-    payment_penalty = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    payment_penalty_price = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
-    is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
-
-    def __str__(self):
-        return f"{self.charge_name or 'شارژ'} - {self.amount} تومان"
-
-    def calculate_penalty(self, base_total):
-        if not self.payment_deadline_date or not self.payment_penalty:
+        calculator = CALCULATORS.get(self.charge_type)
+        if not calculator:
             return 0
 
-        check_date = self.payment_date or timezone.now().date()
-        if check_date <= self.payment_deadline_date:
-            return 0
-
-        delay_days = (check_date - self.payment_deadline_date).days
-        return int((base_total * self.payment_penalty / 100) * delay_days)
-
-    def save(self, *args, **kwargs):
-        amount = max(self.amount or 0, 0)
-        civil = max(self.civil_charge or 0, 0)
-        other_cost = max(self.other_cost or 0, 0)
-        base_total = amount + civil + other_cost
-
-        # فقط قبل از پرداخت جریمه محاسبه شود
-        if not self.is_paid:
-            penalty = self.calculate_penalty(base_total)
-            self.payment_penalty_price = penalty
-
-        # اگر پرداخت شده، total_charge_month همان چیزی باشد که قبلا محاسبه شده یا با جریمه فعلی
-        if self.total_charge_month is None:
-            self.total_charge_month = base_total + (self.payment_penalty_price or 0)
-
-        super().save(*args, **kwargs)
-
-    def update_penalty(self):
-        if self.is_paid:
-            return
-
-        amount = self.amount or 0
-        civil = self.civil_charge or 0
-        other = self.other_cost or 0
-        base_total = amount + civil + other
-
-        penalty = self.calculate_penalty(base_total)
-        if penalty != (self.payment_penalty_price or 0):
-            self.payment_penalty_price = penalty
-            self.total_charge_month = base_total + penalty
-            # ذخیره بدون update_fields که save() اصلی اجرا شود
-            self.save()
-
+        base_total = calculator.calculate(unit, self)
+        penalty = calculator.calculate_penalty(self, base_total)
+        return base_total + penalty
 
 class AreaCharge(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='areaCharge')
@@ -387,91 +318,25 @@ class AreaCharge(models.Model):
     total_area = models.IntegerField(null=True, blank=True)
     payment_penalty_amount = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
+    unified_charges = GenericRelation('UnifiedCharge', related_query_name='area_charge')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
 
     def __str__(self):
         return str(self.name)
 
+    charge_type = 'area'
 
-class AreaChargeCalc(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_area')
-    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_area')
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
-    area_charge = models.ForeignKey(AreaCharge, on_delete=models.CASCADE, related_name='area_charge_amount')
-    charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
-    amount = models.PositiveIntegerField(verbose_name='مبلغ')
-    unit_count = models.PositiveIntegerField(verbose_name='تعداد واحدها', null=True, blank=True)
-    total_area = models.PositiveIntegerField(verbose_name='متراژ کل', null=True, blank=True)
-    final_area_amount = models.PositiveIntegerField(verbose_name='مبلغ شارژ هر واحئ', null=True, blank=True)
+    def calculate_charge(self, unit):
+        from services.calculators import CALCULATORS
 
-    civil_charge = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
-    payment_deadline_date = models.DateField(null=True, blank=True)
-    payment_penalty = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    other_cost = models.PositiveIntegerField(verbose_name='سایر هزینه ها', null=True, blank=True)
-    base_charge = models.PositiveIntegerField(null=True, blank=True, verbose_name='مبلغ')
-    total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه هر واحد')
-    send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
-    send_notification_date = models.DateField(null=True, blank=True, verbose_name='اعلام شارژ به کاربر')
-    send_sms = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر با پیامک')
-    is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
-    payment_date = models.DateField(verbose_name='', null=True, blank=True)
-    payment_penalty_price = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
-    details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
-    is_active = models.BooleanField(default=True, verbose_name='')
-
-    def __str__(self):
-        return f"{self.charge_name or 'شارژ'} - {self.amount} تومان"
-
-    def charge_monthly(self):
-        return self.final_area_amount
-
-    def calculate_penalty(self, base_total):
-        if not self.payment_deadline_date:
+        calculator = CALCULATORS.get(self.charge_type)
+        if not calculator:
             return 0
 
-        # تاریخ برای محاسبه تأخیر: یا payment_date یا امروز
-        check_date = self.payment_date or timezone.now().date()
-        if check_date <= self.payment_deadline_date:
-            return 0
-
-        delay_days = (check_date - self.payment_deadline_date).days
-        penalty_percent = self.payment_penalty or 0
-
-        return int(base_total * penalty_percent / 100 * delay_days)
-
-    def save(self, *args, **kwargs):
-        amount = max(self.amount or 0, 0)
-        civil = max(self.civil_charge or 0, 0)
-        other_cost = max(self.other_cost or 0, 0)
-
-        base_total = amount + civil + other_cost
-
-        if not self.is_paid:
-            # محاسبه جریمه فقط قبل از پرداخت
-            penalty = self.calculate_penalty(base_total)
-            self.payment_penalty_price = penalty
-
-        # total_charge_month همیشه به روز شود
-        self.total_charge_month = base_total + (self.payment_penalty_price or 0)
-
-        # ⚡️ مهم: اجازه دهید همه فیلدها ذخیره شوند
-        super().save(*args, **kwargs)
-
-    def update_penalty(self):
-        # بعد از پرداخت، جریمه تغییر نکند
-        if self.is_paid:
-            return
-
-        base_total = (self.final_area_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
-        penalty = self.calculate_penalty(base_total)
-
-        if penalty != (self.payment_penalty_price or 0):
-            self.payment_penalty_price = penalty
-            self.total_charge_month = base_total + penalty
-            self.save(update_fields=['payment_penalty_price', 'total_charge_month'])
+        base_total = calculator.calculate(unit, self)
+        penalty = calculator.calculate_penalty(self, base_total)
+        return base_total + penalty
 
 
 class PersonCharge(models.Model):
@@ -485,93 +350,25 @@ class PersonCharge(models.Model):
     payment_deadline = models.DateField(null=True, blank=True)
     payment_penalty_amount = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
+    unified_charges = GenericRelation('UnifiedCharge', related_query_name='person_charge')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
 
     def __str__(self):
         return str(self.name)
 
+    charge_type = 'person'
 
-class PersonChargeCalc(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_person')
-    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_person')
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
-    person_charge = models.ForeignKey(PersonCharge, on_delete=models.CASCADE, related_name='person_charge_amount')
-    charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
-    amount = models.PositiveIntegerField(verbose_name='مبلغ')
-    final_person_amount = models.PositiveIntegerField(verbose_name='مبلغ شارژ نهایی', null=True, blank=True)
-    base_charge = models.PositiveIntegerField(null=True, blank=True, verbose_name='مبلغ')
+    def calculate_charge(self, unit):
+        from services.calculators import CALCULATORS
 
-    civil_charge = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
-    payment_deadline_date = models.DateField(null=True, blank=True)
-    payment_penalty = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    other_cost = models.PositiveIntegerField(verbose_name='سایر هزینه ها', null=True, blank=True)
-
-    unit_count = models.PositiveIntegerField(null=True, blank=True, verbose_name='تعداد واحدها')
-    total_people = models.PositiveIntegerField(null=True, blank=True, verbose_name='تعداد نفرات')
-    total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
-    total_charge_year = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل سالیانه')
-    send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
-    send_notification_date = models.DateField(null=True, blank=True, verbose_name='اعلام شارژ به کاربر')
-    send_sms = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر با پیامک')
-    is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
-    payment_date = models.DateField(verbose_name='', null=True, blank=True)
-    payment_penalty_price = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
-    details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
-    is_active = models.BooleanField(default=True, verbose_name='')
-
-    def __str__(self):
-        return str(self.amount)
-
-    def charge_monthly(self):
-        return self.final_person_amount
-
-    def charge_per_area_or_person(self):
-        return self.amount
-
-    def calculate_penalty(self):
-        if not self.payment_deadline_date:
+        calculator = CALCULATORS.get(self.charge_type)
+        if not calculator:
             return 0
 
-        # تاریخ برای محاسبه تأخیر: یا payment_date یا امروز
-        check_date = self.payment_date or timezone.now().date()
-        if check_date <= self.payment_deadline_date:
-            return 0
-
-        delay_days = (check_date - self.payment_deadline_date).days
-        penalty_percent = self.payment_penalty or 0
-        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
-
-        return int(base_total * penalty_percent / 100 * delay_days)
-
-    def save(self, *args, **kwargs):
-        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
-
-        if not self.is_paid:
-            # محاسبه جریمه فقط قبل از پرداخت
-            penalty = self.calculate_penalty()
-            self.payment_penalty_price = penalty
-            self.total_charge_month = base_total + penalty
-        else:
-            # بعد از پرداخت، جریمه قبلی ثابت بماند
-            self.total_charge_month = base_total + (self.payment_penalty_price or 0)
-
-        super().save(*args, **kwargs)
-
-    def update_penalty(self):
-        # بعد از پرداخت، جریمه تغییر نکند
-        if self.is_paid:
-            return
-
-        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
-        penalty = self.calculate_penalty()
-
-        if penalty != (self.payment_penalty_price or 0):
-            self.payment_penalty_price = penalty
-            self.total_charge_month = base_total + penalty
-            self.save(update_fields=['payment_penalty_price', 'total_charge_month'])
+        base_total = calculator.calculate(unit, self)
+        penalty = calculator.calculate_penalty(self, base_total)
+        return base_total + penalty
 
 
 class FixPersonCharge(models.Model):
@@ -586,96 +383,25 @@ class FixPersonCharge(models.Model):
     payment_penalty_amount = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
     civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', default=0, null=True, blank=True)
+    unified_charges = GenericRelation('UnifiedCharge', related_query_name='area_charge')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
 
     def __str__(self):
         return str(self.name)
 
+    charge_type = 'fix_person'
 
-class FixPersonChargeCalc(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_fix_person')
-    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_fix_person')
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
-    fix_person = models.ForeignKey(FixPersonCharge, on_delete=models.CASCADE, related_name='fix_person_charge')
-    charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
-    fix_charge = models.PositiveIntegerField(verbose_name='شارژ ثابت', null=True, blank=True)
-    amount = models.PositiveIntegerField(verbose_name='شارژ به ازای نفرات', null=True, blank=True)
-    final_person_amount = models.PositiveIntegerField(verbose_name='مبلغ شارژ نهایی', null=True, blank=True)
-    unit_count = models.PositiveIntegerField(null=True, blank=True, verbose_name='تعداد واحدها')
-    total_people = models.PositiveIntegerField(null=True, blank=True, verbose_name='تعداد نفرات')
-    base_charge = models.PositiveIntegerField(null=True, blank=True, verbose_name='مبلغ')
+    def calculate_charge(self, unit):
+        from services.calculators import CALCULATORS
 
-    civil_charge = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
-    payment_deadline_date = models.DateField(null=True, blank=True)
-    payment_penalty = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    other_cost = models.PositiveIntegerField(verbose_name='سایر هزینه ها', null=True, blank=True)
-
-    total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
-    send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
-    send_notification_date = models.DateField(null=True, blank=True, verbose_name='اعلام شارژ به کاربر')
-    send_sms = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر با پیامک')
-    is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
-    payment_date = models.DateField(verbose_name='', null=True, blank=True)
-    payment_penalty_price = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-
-    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
-    details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
-    is_active = models.BooleanField(default=True, verbose_name='')
-
-    def __str__(self):
-        return str(self.charge_name)
-
-    def charge_monthly(self):
-        return self.final_person_amount
-
-    def calculate_penalty(self):
-        if not self.payment_deadline_date:
+        calculator = CALCULATORS.get(self.charge_type)
+        if not calculator:
             return 0
 
-        # تاریخ برای محاسبه تأخیر: یا payment_date یا امروز
-        check_date = self.payment_date or timezone.now().date()
-        if check_date <= self.payment_deadline_date:
-            return 0
-
-        delay_days = (check_date - self.payment_deadline_date).days
-        penalty_percent = self.payment_penalty or 0
-
-        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
-        return int(base_total * penalty_percent / 100 * delay_days)
-
-    def save(self, *args, **kwargs):
-        # محاسبه مبلغ نهایی بر اساس تعداد افراد و شارژ ثابت
-        final = (getattr(self.unit, 'people_count', 0) or 0) * (self.amount or 0)
-        final += self.fix_charge or 0
-        self.final_person_amount = final
-
-        base_total = final + (self.civil_charge or 0) + (self.other_cost or 0)
-
-        if not self.is_paid:
-            # محاسبه جریمه فقط قبل از پرداخت
-            penalty = self.calculate_penalty()
-            self.payment_penalty_price = penalty
-            self.total_charge_month = base_total + penalty
-        else:
-            # بعد از پرداخت جریمه قبلی ثابت بماند
-            self.total_charge_month = base_total + (self.payment_penalty_price or 0)
-
-        super().save(*args, **kwargs)
-
-    def update_penalty(self):
-        # بعد از پرداخت جریمه تغییر نکند
-        if self.is_paid:
-            return
-
-        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
-        penalty = self.calculate_penalty()
-
-        if penalty != (self.payment_penalty_price or 0):
-            self.payment_penalty_price = penalty
-            self.total_charge_month = base_total + penalty
-            self.save(update_fields=['payment_penalty_price', 'total_charge_month'])
+        base_total = calculator.calculate(unit, self)
+        penalty = calculator.calculate_penalty(self, base_total)
+        return base_total + penalty
 
 
 class FixAreaCharge(models.Model):
@@ -691,97 +417,25 @@ class FixAreaCharge(models.Model):
     payment_penalty_amount = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
     civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', default=0, null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
+    unified_charges = GenericRelation('UnifiedCharge', related_query_name='area_charge')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
 
     def __str__(self):
         return str(self.name)
 
+    charge_type = 'fix_area'
 
-class FixAreaChargeCalc(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_fix_area')
-    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_fix_area')
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
-    fix_area = models.ForeignKey(FixAreaCharge, on_delete=models.CASCADE, related_name='fix_area_charge')
-    charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
-    fix_charge = models.PositiveIntegerField(verbose_name='شارژ ثابت', null=True, blank=True)
-    amount = models.PositiveIntegerField(verbose_name='شارژ به ازای متراژ', null=True, blank=True)
-    unit_count = models.PositiveIntegerField(verbose_name='تعداد واحدها', null=True, blank=True)
-    total_area = models.PositiveIntegerField(verbose_name='متراژ کل', null=True, blank=True)
-    final_person_amount = models.PositiveIntegerField(verbose_name='مبلغ شارژ نهایی', null=True, blank=True)
-    civil_charge = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
-    payment_deadline_date = models.DateField(null=True, blank=True)
-    payment_penalty = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    other_cost = models.PositiveIntegerField(verbose_name='سایر هزینه ها', null=True, blank=True)
-    base_charge = models.PositiveIntegerField(null=True, blank=True, verbose_name='مبلغ')
+    def calculate_charge(self, unit):
+        from services.calculators import CALCULATORS
 
-    total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
-    send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
-    send_notification_date = models.DateField(null=True, blank=True, verbose_name='اعلام شارژ به کاربر')
-
-    send_sms = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر با پیامک')
-    is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
-    payment_date = models.DateField(verbose_name='', null=True, blank=True)
-    payment_penalty_price = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-
-    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
-    details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
-    is_active = models.BooleanField(default=True, verbose_name='')
-
-    def __str__(self):
-        return str(self.charge_name)
-
-    def charge_monthly(self):
-        return self.final_person_amount
-
-    def calculate_penalty(self):
-        if not self.payment_deadline_date:
+        calculator = CALCULATORS.get(self.charge_type)
+        if not calculator:
             return 0
 
-        # تاریخ برای محاسبه تأخیر: یا payment_date یا امروز
-        check_date = self.payment_date or timezone.now().date()
-        if check_date <= self.payment_deadline_date:
-            return 0
-
-        delay_days = (check_date - self.payment_deadline_date).days
-        penalty_percent = self.payment_penalty or 0
-
-        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
-        return int(base_total * penalty_percent / 100 * delay_days)
-
-    def save(self, *args, **kwargs):
-        # محاسبه مبلغ نهایی بر اساس متراژ و شارژ ثابت
-        final = (getattr(self.unit, 'area', 0) or 0) * (self.amount or 0)
-        final += self.fix_charge or 0
-        self.final_person_amount = final
-
-        base_total = final + (self.civil_charge or 0) + (self.other_cost or 0)
-
-        if not self.is_paid:
-            # محاسبه جریمه فقط قبل از پرداخت
-            penalty = self.calculate_penalty()
-            self.payment_penalty_price = penalty
-            self.total_charge_month = base_total + penalty
-        else:
-            # بعد از پرداخت جریمه قبلی دست نخورده باقی بماند
-            self.total_charge_month = base_total + (self.payment_penalty_price or 0)
-
-        super().save(*args, **kwargs)
-
-    def update_penalty(self, save=True):
-        # اگر پرداخت انجام شده باشد، جریمه تغییر نکند
-        if self.is_paid:
-            return
-
-        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
-        new_penalty = self.calculate_penalty()
-
-        if new_penalty != (self.payment_penalty_price or 0):
-            self.payment_penalty_price = new_penalty
-            self.total_charge_month = base_total + new_penalty
-            if save:
-                self.save(update_fields=['payment_penalty_price', 'total_charge_month'])
+        base_total = calculator.calculate(unit, self)
+        penalty = calculator.calculate_penalty(self, base_total)
+        return base_total + penalty
 
 
 class ChargeByPersonArea(models.Model):
@@ -797,93 +451,25 @@ class ChargeByPersonArea(models.Model):
     unit_count = models.IntegerField(null=True, blank=True)
     civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', default=0, null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
+    unified_charges = GenericRelation('UnifiedCharge', related_query_name='area_charge')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
 
-
-class ChargeByPersonAreaCalc(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_by_person_area')
-    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_by_person_area')
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
-    person_area_charge = models.ForeignKey(ChargeByPersonArea, on_delete=models.CASCADE,
-                                           related_name='person_area_charge', null=True, blank=True)
-    charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
-    person_charge = models.PositiveIntegerField(verbose_name='شارژ به ازای نفرات')
-    area_charge = models.PositiveIntegerField(verbose_name='شارژ به ازای متراژ')
-    unit_count = models.PositiveIntegerField(verbose_name='تعداد واحدها', null=True, blank=True)
-    total_people = models.PositiveIntegerField(verbose_name=' کل نفرات', null=True, blank=True)
-    total_area = models.PositiveIntegerField(verbose_name='متراژ کل', null=True, blank=True)
-    final_person_amount = models.PositiveIntegerField(verbose_name='مبلغ شارژ نهایی', null=True, blank=True)
-    total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
-    payment_deadline_date = models.DateField(null=True, blank=True)
-    payment_penalty = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    other_cost = models.PositiveIntegerField(verbose_name='سایر هزینه ها', null=True, blank=True)
-    send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
-    send_notification_date = models.DateField(null=True, blank=True, verbose_name='اعلام شارژ به کاربر')
-    send_sms = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر با پیامک')
-    is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
-    payment_date = models.DateField(verbose_name='', null=True, blank=True)
-    payment_penalty_price = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    base_charge = models.PositiveIntegerField(null=True, blank=True, verbose_name='مبلغ')
-
-    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
-    details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
-    civil_charge = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
-    is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
-
     def __str__(self):
-        return str(self.charge_name)
+        return self.name
 
-    def charge_monthly(self):
-        return self.final_person_amount
+    charge_type = 'person_area'
 
-    def calculate_penalty(self):
-        if not self.payment_deadline_date:
+    def calculate_charge(self, unit):
+        from services.calculators import CALCULATORS
+
+        calculator = CALCULATORS.get(self.charge_type)
+        if not calculator:
             return 0
 
-        # تاریخ برای محاسبه تأخیر: یا payment_date یا امروز
-        check_date = self.payment_date or timezone.now().date()
-        if check_date <= self.payment_deadline_date:
-            return 0
-
-        delay_days = (check_date - self.payment_deadline_date).days
-        penalty_percent = self.payment_penalty or 0
-        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
-
-        return int(base_total * penalty_percent / 100 * delay_days)
-
-    def save(self, *args, **kwargs):
-        # محاسبه شارژ نهایی بر اساس متراژ و تعداد نفرات
-        area = getattr(self.unit, 'area', 0) or 0
-        people = getattr(self.unit, 'people_count', 0) or 0
-        self.final_person_amount = (area * (self.area_charge or 0)) + (people * (self.person_charge or 0))
-
-        base_total = self.final_person_amount + (self.civil_charge or 0) + (self.other_cost or 0)
-
-        if not self.is_paid:
-            # محاسبه جریمه فقط قبل از پرداخت
-            penalty = self.calculate_penalty()
-            self.payment_penalty_price = penalty
-            self.total_charge_month = base_total + penalty
-        else:
-            # بعد از پرداخت جریمه ذخیره شده ثابت بماند
-            self.total_charge_month = base_total + (self.payment_penalty_price or 0)
-
-        super().save(*args, **kwargs)
-
-    def update_penalty(self, save=True):
-        if self.is_paid:
-            return  # بعد از پرداخت، جریمه تغییر نکند
-
-        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
-        new_penalty = self.calculate_penalty()
-
-        if new_penalty != (self.payment_penalty_price or 0):
-            self.payment_penalty_price = new_penalty
-            self.total_charge_month = base_total + new_penalty
-            if save:
-                self.save(update_fields=['payment_penalty_price', 'total_charge_month'])
+        base_total = calculator.calculate(unit, self)
+        penalty = calculator.calculate_penalty(self, base_total)
+        return base_total + penalty
 
 
 class ChargeByFixPersonArea(models.Model):
@@ -901,102 +487,25 @@ class ChargeByFixPersonArea(models.Model):
     parking_count = models.PositiveIntegerField(verbose_name='تعداد پارکینگ اضافه', null=True, blank=True)
     civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', default=0, null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
+    unified_charges = GenericRelation('UnifiedCharge', related_query_name='area_charge')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
 
     def __str__(self):
         return self.name
 
+    charge_type = 'fix_person_area'
 
-class ChargeByFixPersonAreaCalc(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_by_fix_person_area')
-    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_by_fix_person_area')
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
-    fix_person_area = models.ForeignKey(ChargeByFixPersonArea, on_delete=models.CASCADE,
-                                        related_name='fix_person_area', null=True, blank=True)
-    charge_name = models.CharField(max_length=100, verbose_name='عنوان شارژ', null=True, blank=True)
-    fix_charge = models.PositiveIntegerField(verbose_name='شارژ ثابت', null=True, blank=True)
-    person_charge = models.PositiveIntegerField(verbose_name='شارژ به ازای نفرات')
-    area_charge = models.PositiveIntegerField(verbose_name='شارژ به ازای متراژ')
-    unit_count = models.PositiveIntegerField(verbose_name='تعداد واحدها', null=True, blank=True)
-    total_people = models.PositiveIntegerField(verbose_name=' کل نفرات', null=True, blank=True)
-    total_area = models.PositiveIntegerField(verbose_name='متراژ کل', null=True, blank=True)
-    final_person_amount = models.PositiveIntegerField(verbose_name='مبلغ شارژ نهایی', null=True, blank=True)
-    total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
-    payment_deadline_date = models.DateField(null=True, blank=True)
-    payment_penalty = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    other_cost = models.PositiveIntegerField(verbose_name='سایر هزینه ها', null=True, blank=True)
-    send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
-    send_notification_date = models.DateField(null=True, blank=True, verbose_name='اعلام شارژ به کاربر')
-    send_sms = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر با پیامک')
-    is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
-    payment_date = models.DateField(verbose_name='', null=True, blank=True)
-    payment_penalty_price = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    base_charge = models.PositiveIntegerField(null=True, blank=True, verbose_name='مبلغ')
+    def calculate_charge(self, unit):
+        from services.calculators import CALCULATORS
 
-    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
-    details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
-    civil_charge = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
-    is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
-
-    def __str__(self):
-        return str(self.charge_name)
-
-    def charge_monthly(self):
-        return self.final_person_amount
-
-    def calculate_penalty(self):
-        if not self.payment_deadline_date:
+        calculator = CALCULATORS.get(self.charge_type)
+        if not calculator:
             return 0
 
-        # امروز را برای محاسبه تأخیر استفاده می‌کنیم
-        today = timezone.now().date()
-        if today <= self.payment_deadline_date:
-            return 0
-
-        delay_days = (today - self.payment_deadline_date).days
-        penalty_percent = self.payment_penalty or 0
-        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
-
-        return int(base_total * penalty_percent / 100 * delay_days)
-
-    def save(self, *args, **kwargs):
-        # محاسبه مبالغ پایه
-        area = getattr(self.unit, 'area', 0) or 0
-        people = getattr(self.unit, 'people_count', 0) or 0
-        fix = self.fix_charge or 0
-        person = self.person_charge or 0
-        area_c = self.area_charge or 0
-
-        self.final_person_amount = (area * area_c) + (people * person) + fix
-
-        base_total = self.final_person_amount + (self.civil_charge or 0) + (self.other_cost or 0)
-
-        # جریمه فقط محاسبه و ذخیره می‌شود، حتی اگر پرداخت انجام شده باشد
-        if not self.is_paid:
-            penalty = self.calculate_penalty()
-            self.payment_penalty_price = penalty
-            self.total_charge_month = base_total + penalty
-        else:
-            # اگر پرداخت انجام شده، مقدار قبلی جریمه را نگه می‌داریم
-            self.total_charge_month = base_total + (self.payment_penalty_price or 0)
-
-        super().save(*args, **kwargs)
-
-    def update_penalty(self, save=True):
-        # اگر پرداخت انجام شده باشد، جریمه تغییر نکند
-        if self.is_paid:
-            return
-
-        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
-        new_penalty = self.calculate_penalty()
-
-        if new_penalty != (self.payment_penalty_price or 0):
-            self.payment_penalty_price = new_penalty
-            self.total_charge_month = base_total + new_penalty
-            if save:
-                self.save(update_fields=['payment_penalty_price', 'total_charge_month'])
+        base_total = calculator.calculate(unit, self)
+        penalty = calculator.calculate_penalty(self, base_total)
+        return base_total + penalty
 
 
 class ChargeFixVariable(models.Model):
@@ -1016,107 +525,25 @@ class ChargeFixVariable(models.Model):
     payment_deadline = models.DateField(null=True, blank=True)
     payment_penalty_amount = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
     unit_count = models.IntegerField(null=True, blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
-    is_active = models.BooleanField(default=True, verbose_name='')
-
-
-class ChargeFixVariableCalc(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='charge_calc', null=True, blank=True)
-    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='charge_calc_fix', null=True, blank=True)
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
-    fix_variable_charge = models.ForeignKey(ChargeFixVariable, on_delete=models.CASCADE,
-                                            related_name='fix_variable_charge', null=True, blank=True)
-
-    charge_name = models.CharField(max_length=100, verbose_name='نام شارژ', null=True, blank=True)
-    extra_parking_charges = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    unit_count = models.PositiveIntegerField(verbose_name='تعداد واحدها', null=True, blank=True)
-    total_people = models.PositiveIntegerField(verbose_name=' کل نفرات', null=True, blank=True)
-    total_area = models.PositiveIntegerField(verbose_name='متراژ کل', null=True, blank=True)
-    unit_fix_charge_per_unit = models.PositiveIntegerField(verbose_name='مبلغ شارژ ثابت', null=True, blank=True)
-    unit_variable_person_charge = models.PositiveIntegerField(verbose_name='مبلغ شارژ متغیر هر نفر', null=True, blank=True)
-    unit_variable_area_charge = models.PositiveIntegerField(verbose_name='مبلغ شارژ متغیر هر متر', null=True, blank=True)
-    final_person_amount = models.PositiveIntegerField(verbose_name='مبلغ شارژ نهایی', null=True, blank=True)
-    total_charge_month = models.PositiveIntegerField(null=True, blank=True, verbose_name='شارژ کل ماهانه')
-    base_charge = models.PositiveIntegerField(null=True, blank=True, verbose_name='مبلغ')
-
-    payment_deadline_date = models.DateField(null=True, blank=True)
-    payment_penalty = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    send_notification = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر')
-    send_notification_date = models.DateField(null=True, blank=True, verbose_name='اعلام شارژ به کاربر')
-    other_cost = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    send_sms = models.BooleanField(default=False, verbose_name='اعلام شارژ به کاربر با پیامک')
-    is_paid = models.BooleanField(default=False, verbose_name='وضعیت پرداخت')
-    payment_date = models.DateField(verbose_name='', null=True, blank=True)
-    payment_penalty_price = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
-    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
-    details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
-    civil_charge = models.PositiveIntegerField(verbose_name='شارژ عمرانی', null=True, blank=True)
+    unified_charges = GenericRelation('UnifiedCharge', related_query_name='area_charge')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
 
     def __str__(self):
-        return str(self.charge_name)
+        return self.name
 
-    def charge_monthly(self):
-        return self.final_person_amount
+    charge_type = 'fix_variable'
 
-    def calculate_penalty(self):
-        if not self.payment_deadline_date:
+    def calculate_charge(self, unit):
+        from services.calculators import CALCULATORS
+
+        calculator = CALCULATORS.get(self.charge_type)
+        if not calculator:
             return 0
 
-        today = timezone.now().date()
-        if today <= self.payment_deadline_date:
-            return 0
-
-        delay_days = (today - self.payment_deadline_date).days
-        penalty_percent = self.payment_penalty or 0
-        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
-
-        return int(base_total * penalty_percent / 100 * delay_days)
-
-    def save(self, *args, **kwargs):
-        # جلوگیری از None و خطا در محاسبه
-        people_count = getattr(self.unit, 'people_count', 0) if self.unit else 0
-        area = getattr(self.unit, 'area', 0) if self.unit else 0
-
-        self.unit_variable_person_charge = self.unit_variable_person_charge or 0
-        self.unit_variable_area_charge = self.unit_variable_area_charge or 0
-        self.unit_fix_charge_per_unit = self.unit_fix_charge_per_unit or 0
-        self.extra_parking_charges = self.extra_parking_charges or 0
-
-        # محاسبه مبلغ نهایی
-        self.final_person_amount = (
-            self.unit_variable_person_charge * people_count +
-            self.unit_variable_area_charge * area +
-            self.unit_fix_charge_per_unit +
-            self.extra_parking_charges
-        )
-
-        base_total = self.final_person_amount + (self.civil_charge or 0) + (self.other_cost or 0)
-
-        # محاسبه جریمه فقط قبل از پرداخت
-        if not self.is_paid:
-            penalty = self.calculate_penalty()
-            self.payment_penalty_price = penalty
-            self.total_charge_month = base_total + penalty
-        else:
-            self.total_charge_month = base_total + (self.payment_penalty_price or 0)
-
-        super().save(*args, **kwargs)
-
-    def update_penalty(self):
-        if self.is_paid:
-            return
-
-        base_total = (self.final_person_amount or 0) + (self.civil_charge or 0) + (self.other_cost or 0)
-        new_penalty = self.calculate_penalty()
-
-        if new_penalty != (self.payment_penalty_price or 0):
-            self.payment_penalty_price = new_penalty
-            self.total_charge_month = base_total + new_penalty
-            super().save(update_fields=['payment_penalty_price', 'total_charge_month'])
-
+        base_total = calculator.calculate(unit, self)
+        penalty = calculator.calculate_penalty(self, base_total)
+        return base_total + penalty
 
 
 class UnifiedCharge(models.Model):
@@ -1157,15 +584,16 @@ class UnifiedCharge(models.Model):
         max_length=50,
         choices=ChargeType.choices
     )
-    fix_amount = models.PositiveIntegerField(null=False, blank=False)
-    charge_by_person_amount = models.PositiveIntegerField(null=False, blank=False)
-    charge_by_area_amount = models.PositiveIntegerField(null=False, blank=False)
-    fix_person_variable_amount = models.PositiveIntegerField(null=False, blank=False)
-    fix_area_variable_amount = models.PositiveIntegerField(null=False, blank=False)
+    fix_amount = models.IntegerField(null=True, blank=True)
+    charge_by_person_amount = models.IntegerField(null=True, blank=True)
+    charge_by_area_amount = models.IntegerField(null=True, blank=True)
+    fix_person_variable_amount = models.IntegerField(null=True, blank=True)
+    fix_area_variable_amount = models.IntegerField(null=True, blank=True)
 
     # مبلغ نهایی
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    base_charge = models.IntegerField(null=True, blank=True)
 
+    penalty_percent = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
     penalty_amount = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
     other_cost_amount = models.PositiveIntegerField(verbose_name='', null=True, blank=True)
     civil = models.PositiveIntegerField(verbose_name='شارژ عمرانی', default=0, null=True, blank=True)
@@ -1219,47 +647,58 @@ class UnifiedCharge(models.Model):
     # تاریخ ایجاد
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return f"{self.get_charge_type_display()} - {self.amount:,}"
 
     def update_penalty(self, save=True):
         """
-        محاسبه جریمه دیرکرد دقیقاً مشابه FixedChargeCalc
+        محاسبه و بروزرسانی جریمه دیرکرد
         """
 
+        base_total = self.base_charge or 0
         today = timezone.now().date()
 
-        # ---------- ۱: مبلغ پایه دقیقاً مثل FixedChargeCalc ----------
-        amount = self.amount or 0
-        base_total = amount
-
-        # ---------- ۳: اگر deadline ندارد ----------
-        if not self.payment_deadline_date:
-            return
-
-        deadline = self.payment_deadline_date
-
-        # ---------- ۴: اگر هنوز مهلت نگذشته ----------
-        if today <= deadline:
+        # ---------- ۱: اگر پرداخت شده → جریمه صفر ----------
+        if self.is_paid:
             if self.penalty_amount != 0:
                 self.penalty_amount = 0
-                self.total_charge_month = base_total
+                self.total_charge_month = (
+                        base_total
+                        + (self.other_cost_amount or 0)
+                        + (self.civil or 0)
+                )
                 if save:
                     self.save(update_fields=['penalty_amount', 'total_charge_month'])
             return
 
-        # ---------- ۵: تعداد روزهای دیرکرد ----------
-        delay_days = (today - deadline).days
+        # ---------- ۲: اگر deadline یا درصد جریمه ندارد ----------
+        if not self.payment_deadline_date or not self.penalty_percent:
+            return
 
-        # ---------- ۶: درصد جریمه مانند FixedChargeCalc ----------
-        penalty_percent = getattr(self.related_object, 'payment_penalty', 0) or 0
+        # ---------- ۳: اگر هنوز مهلت نگذشته ----------
+        if today <= self.payment_deadline_date:
+            if self.penalty_amount != 0:
+                self.penalty_amount = 0
+                self.total_charge_month = (
+                        base_total
+                        + (self.other_cost_amount or 0)
+                        + (self.civil or 0)
+                )
+                if save:
+                    self.save(update_fields=['penalty_amount', 'total_charge_month'])
+            return
 
-        new_penalty = int((base_total * penalty_percent / 100) * delay_days)
+        # ---------- ۴: محاسبه جریمه ----------
+        delay_days = (today - self.payment_deadline_date).days
+        new_penalty = int(base_total * self.penalty_percent / 100 * delay_days)
 
-        # ---------- ۷: اگر تغییری رخ داده ذخیره کن ----------
+        # ---------- ۵: ذخیره فقط در صورت تغییر ----------
         if new_penalty != (self.penalty_amount or 0):
             self.penalty_amount = new_penalty
-            self.total_charge_month = base_total + new_penalty
+            self.total_charge_month = (
+                    base_total
+                    + new_penalty
+                    + (self.other_cost_amount or 0)
+                    + (self.civil or 0)
+            )
             if save:
                 self.save(update_fields=['penalty_amount', 'total_charge_month'])
 
@@ -1356,3 +795,5 @@ class SmsManagement(models.Model):
     @property
     def notified_units_count(self):
         return self.notified_units.count()
+
+

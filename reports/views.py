@@ -24,9 +24,8 @@ from django.views.generic.edit import FormMixin
 
 from admin_panel.forms import UnifiedChargePaymentForm
 from admin_panel.models import Fund, Expense, Income, Property, ExpenseCategory, IncomeCategory, Maintenance, \
-    UnifiedCharge, PersonCharge, FixPersonCharge, FixAreaCharge, PersonChargeCalc, FixAreaChargeCalc, \
-    FixPersonChargeCalc, ChargeFixVariableCalc, AreaChargeCalc, FixedChargeCalc, ChargeByPersonAreaCalc, AreaCharge, \
-    FixCharge, ChargeByPersonArea, ChargeFixVariable, ChargeByFixPersonAreaCalc, ChargeByFixPersonArea
+    UnifiedCharge, PersonCharge, FixPersonCharge, FixAreaCharge, AreaCharge, \
+    FixCharge, ChargeByPersonArea, ChargeFixVariable, ChargeByFixPersonArea
 from middleAdmin_panel.views import middle_admin_required
 from polls.templatetags.poll_extras import show_jalali
 from user_app.forms import UnitReportForm
@@ -633,16 +632,6 @@ CHARGE_TYPE_FA = {
     'fix_variable': ' ثابت متغیر',
 }
 
-CHARGE_CALC_MAP = {
-    'fix': FixedChargeCalc,
-    'area': AreaChargeCalc,
-    'person': PersonChargeCalc,
-    'fix_person': FixPersonChargeCalc,
-    'fix_area': FixAreaChargeCalc,
-    'person_area': ChargeByPersonAreaCalc,
-    'fix_person_area': ChargeByFixPersonAreaCalc,
-    'fix_variable': ChargeFixVariableCalc,
-}
 
 CHARGE_FK_FIELD = {
     'fix': 'fix_charge_id',

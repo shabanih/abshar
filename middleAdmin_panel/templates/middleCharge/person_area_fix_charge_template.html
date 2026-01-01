@@ -45,7 +45,14 @@
                                             <td>{{charge.fix_charge_amount }}</td>
                                             <td>{{charge.person_amount|three_digit_currency }}</td>
                                             <td>{{charge.area_amount|three_digit_currency }}</td>
-                                        <td>{{ charge.details|truncatechars:14 }}</td>
+                                        <td>
+                                                 {% if charge.details %}
+                                                 	 دارد
+                                                   {% else %}
+                                              ندارد
+                                            {% endif %} 
+                                            
+                                          </td>
                                                   <td>{{charge.created_at|show_jalali }}</td>
                                             <td>
                                                    {% if charge.payment_penalty_amount %}

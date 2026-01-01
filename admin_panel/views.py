@@ -35,16 +35,12 @@ from admin_panel.forms import announcementForm, UnitForm, ExpenseForm, ExpenseCa
     ChargeCategoryForm
 from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDocument, Income, IncomeDocument, \
     IncomeCategory, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
-    MaintenanceDocument, FixedChargeCalc, ChargeByPersonArea, AreaChargeCalc, PersonChargeCalc, FixAreaChargeCalc, \
-    FixPersonChargeCalc, ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
-    FixPersonCharge, FixAreaCharge, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariable, \
-    ChargeFixVariableCalc, SmsManagement, Fund, UnifiedCharge
+    MaintenanceDocument, ChargeByPersonArea, \
+    ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
+    FixPersonCharge, FixAreaCharge, ChargeFixVariable, \
+    SmsManagement, Fund, UnifiedCharge
 from notifications.models import AdminTicket
 from user_app.models import Unit, Bank, Renter, User, MyHouse, ChargeMethod, CalendarNote
-from django.contrib.auth import get_user_model
-
-
-# User = get_user_model()
 
 
 def admin_required(view_func):

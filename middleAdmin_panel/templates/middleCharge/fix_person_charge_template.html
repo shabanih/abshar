@@ -22,9 +22,9 @@
                                        <tr>
                                         <th>#</th>
                                         <th> عنوان شارژ </th>
-                                        <th> تعداد واحدها </th>
-                                        <th> شارز ثابت(تومان) </th>
-                                        <th class="p-0">مبلغ شارژ به ازای هر نفر(تومان)</th>
+{#                                        <th> تعداد واحدها </th>#}
+                                        <th> شارز ثابت </th>
+                                        <th class="p-0">مبلغ شارژ به ازای هر نفر</th>
                                             <th> سایر هزینه ها </th>
                                         <th>تاریخ ثبت</th>
                                         <th>جریمه دیرکرد</th>
@@ -39,10 +39,17 @@
                                        <tr>
                                             <td>{{ forloop.counter }}</td>
                                             <td>{{charge.name }}</td>
-                                            <td>{{charge.unit_count }}</td>
+{#                                            <td>{{charge.unit_count }}</td>#}
                                             <td>{{charge.fix_charge_amount|three_digit_currency  }}</td>
                                             <td>{{charge.person_amount|three_digit_currency }}</td>
-                                         <td>{{ charge.details|truncatechars:10 }}</td>
+                                         <td>
+                                                 {% if charge.details %}
+                                                 	 دارد
+                                                   {% else %}
+                                              ندارد
+                                            {% endif %} 
+                                            
+                                          </td>
                                                   <td>{{charge.created_at|show_jalali }}</td>
                                             <td>
                                                    {% if charge.payment_penalty_amount %}

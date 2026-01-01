@@ -23,10 +23,7 @@ from weasyprint import CSS, HTML
 from admin_panel.forms import UnifiedChargePaymentForm
 from notifications.models import Notification, SupportUser
 from user_app import helper
-from admin_panel.models import Announcement, FixedChargeCalc, AreaChargeCalc, PersonCharge, PersonChargeCalc, \
-    FixPersonChargeCalc, FixAreaChargeCalc, ChargeByPersonAreaCalc, ChargeByFixPersonAreaCalc, ChargeFixVariableCalc, \
-    FixCharge, AreaCharge, FixPersonCharge, FixAreaCharge, ChargeByPersonArea, ChargeByFixPersonArea, UnifiedCharge, \
-    MessageToUser
+from admin_panel.models import Announcement, UnifiedCharge, MessageToUser
 from user_app.forms import LoginForm, MobileLoginForm
 from user_app.models import User, Unit, Bank, MyHouse, CalendarNote
 
@@ -267,41 +264,42 @@ def user_panel(request):
 def fetch_user_charges(request):
     user = request.user
     query = request.GET.get('q', '').strip()
-    paginate = request.GET.get('paginate', '20')  # پیش‌فرض 20
+    paginate = request.GET.get('paginate', '20')
     unit = Unit.objects.filter(user=user, is_active=True).first()
-
-    charges = UnifiedCharge.objects.filter(user=user)  # start with user's charges
+    charges = UnifiedCharge.objects.filter(
+        unit__user=user,
+        unit=unit
+    )
+    print(charges.count())
 
     if query:
         charges = charges.filter(
-            Q(amount__icontains=query) |
-            Q(total_charge_month__icontains=query) |
-            Q(details__icontains=query) |
-            Q(title__icontains=query)
+            Q(title__icontains=query) |
+            Q(details__icontains=query)
         )
 
-    last_charges = charges.order_by('-created_at')  # order after filtering
+    charges = charges.order_by('-created_at')
 
     try:
         paginate = int(paginate)
     except ValueError:
         paginate = 20
 
-    if paginate <= 0:
-        paginate = 20
-
-    paginator = Paginator(last_charges, paginate)
+    paginator = Paginator(charges, paginate)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # map کردن GenericForeignKey
+    related_map = {charge.id: charge.related_object for charge in page_obj}
+
     context = {
-        'unit': unit,
-        'last_charges': page_obj,
+        'page_obj': page_obj,
+        'related_map': related_map,
         'query': query,
         'paginate': paginate,
-        'page_obj': page_obj,  # برای template
     }
     return render(request, 'manage_charges.html', context)
+
 
 
 # ======================== Pdf Charges ===================

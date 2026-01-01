@@ -27,7 +27,7 @@
                                         <tr>
                                         <th>#</th>
                                         <th> عنوان شارژ </th>
-                                        <th> تعداد واحدها </th>
+{#                                        <th> تعداد واحدها </th>#}
                                        <th class="p-0"> شارژ ثابت هر واحد</th>
                                         <th class="p-0"> شارژ متغیر هر متر</th>
                                         <th class="p-0"> شارژ متغیر هر نفر</th>
@@ -45,11 +45,18 @@
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
                                             <td>{{charge.name }}</td>
-                                            <td>{{charge.unit_count }}</td>
+{#                                            <td>{{charge.unit_count }}</td>#}
                                             <td>{{charge.unit_fix_amount|three_digit_currency }}</td>
                                             <td>{{charge.unit_variable_area_amount|three_digit_currency }}</td>
                                             <td>{{charge.unit_variable_person_amount|three_digit_currency }}</td>
-                                        <td>{{ charge.details|truncatechars:12 }}</td>
+                                       <td>
+                                                 {% if charge.details %}
+                                                 	 دارد
+                                                   {% else %}
+                                              ندارد
+                                            {% endif %} 
+                                            
+                                          </td>
                                          <td>{{charge.created_at|show_jalali }}</td>
                                        <td>
                                                    {% if charge.payment_penalty_amount %}

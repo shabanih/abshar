@@ -1662,7 +1662,7 @@ class PersonAreaFixChargeForm(forms.ModelForm):
 
 
 class VariableFixChargeForm(forms.ModelForm):
-    name = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+    name = forms.CharField(error_messages=error_message, max_length=200, widget=forms.TextInput(attrs=attr),
                            required=True,
                            label='عنوان شارژ ')
 

@@ -32,7 +32,7 @@
     
      
 
-<form method="post" action="{% url 'middle_send_notification_fix_charge_to_user' pk=charge.id %}">
+<form method="post" action="">
         {% csrf_token %}
        
         <hr>
@@ -51,7 +51,7 @@
                   پرداخت موفق شارژ
                 </div>
          
-            <div class="col-12 col-md-6 col-xl-6 text-start align-self-center ">
+            <div class="col-12 col-md-6 col-xl-6 text-md-start align-self-center p-1">
                   <button type="button" id="remove-all-btn" class="btn btn-dark px-2 shadow_style">
                     حذف اطلاعیه واحدها
                 </button>
@@ -63,40 +63,50 @@
     
   
 <div class="row g-2 mt-3">
-   {% for unit, renter, is_paid, total_charge in page_obj %}
-    <div class="col-6 col-lg-2 col-md-2 col-xl-2 mb-3">
-       <div class="card shadow_style fixChargeTable p-0 m-0"
-            {% if unit.id in notified_ids %}
-                {% if is_paid %}
-                    style="background-color: #8fef88; "  {# سبز برای اطلاع داده شده و پرداخت شده #}
+   {% for item in page_obj %}
+{% with unit=item.unit renter=item.renter %}
+<div class="col-6 col-lg-2 col-md-2 col-xl-2 mb-3">
+   <div class="card shadow_style fixChargeTable p-0 mt-3"
+        {% if item.is_notified %}
+            {% if item.is_paid %}
+                style="background-color: #8fef88;"
+            {% else %}
+                style="background-color: #fff3cd;"
+            {% endif %}
+        {% endif %}>
+        <div class="card-body text-center d-flex px-2 py-1 mt-3">
+             <p class="card-charge-title shadow_style"
+                data-bs-toggle="popover"
+                data-bs-html="true"
+                data-bs-trigger="hover"
+                data-bs-placement="top"
+                data-bs-content="
+                {% if unit.is_renter %}
+                    {% if renter %}مستاجر: {{ renter.renter_name }}{% else %}بدون مستاجر{% endif %}
                 {% else %}
-                    style="background-color: #fff3cd;"  {# زرد برای اطلاع داده شده و پرداخت نشده #}
+                    مالک: {{ unit.owner_name }}
                 {% endif %}
-            {% endif %}>
-            <div class="card-body text-center px-0 py-0 mt-3">
-                 <p class="card-charge-title shadow_style"
-                   tabindex="0" 
-                   role="button"
-                   data-bs-toggle="popover"
-                   data-bs-trigger="hover focus"
-                   data-bs-placement="top"
-                   data-bs-html="true"
-                   data-bs-content="{% if unit.is_renter %}
-                                      {% if renter %}مستاجر: {{ renter.renter_name }}{% else %}بدون مستاجر{% endif %}
-                                    {% else %}
-                                      مالک: {{ unit.owner_name }}
-                                    {% endif %}<br>مبلغ شارژ: {{ total_charge|three_digit_currency }} تومان">
-                    <input class="form-check-input unit-checkbox mx-2" 
-                           type="checkbox" name="units" 
-                           value="{{ unit.id }}" id="unit{{ unit.id }}">
-{#                           {% if unit.id in notified_ids %}disabled{% endif %}>#}
-                    واحد شماره {{ unit.unit }}
-                </p>
-
-            </div>
+                <br>
+                مبلغ شارژ: {{ item.total_charge|three_digit_currency }} تومان
+                ">
+                <input class="form-check-input unit-checkbox mx-2"
+                       type="checkbox"
+                       name="units"
+                       value="{{ unit.id }}">
+                واحد شماره {{ unit.unit }}
+            </p>
+            <a href="#">
+                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="me-4" alt="" 
+                               style="width: 30px; height: 28px;">
+                      </a>
         </div>
+     
     </div>
-   {% endfor %}
+ 
+</div>
+{% endwith %}
+{% endfor %}
+
 </div>
                     
 
@@ -207,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 location.reload();
                             });
                         } else {
-                            Swal.fire('خطا', data.error || 'مشکلی پیش آمده است.', 'error');
+                            Swal.fire('خطا', data.error || 'خطا در حذف اطلاعیه.', 'error');
                         }
                     })
                     .catch(error => {

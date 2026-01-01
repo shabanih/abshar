@@ -42,7 +42,14 @@
 {#                                            <td>{{charge.unit_count }}</td>#}
                                             <td>{{charge.person_amount|three_digit_currency }}</td>
                                             <td>{{charge.area_amount|three_digit_currency }}</td>
-                                                <td>{{ charge.details|truncatechars:20 }}</td>
+                                                  <td>
+                                                 {% if charge.details %}
+                                                 	 دارد
+                                                   {% else %}
+                                              ندارد
+                                            {% endif %} 
+                                            
+                                          </td>
 
                                                   <td>{{charge.created_at|show_jalali }}</td>
                                             <td>

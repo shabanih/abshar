@@ -8,7 +8,7 @@
 
 {% block main_content %}
 <div class="container-fluid mt-4 p-0">
-      <div class="row mb-4 ">
+      <div class="row mb-4 g-2 justify-content-center ">
               <div class="col-9 col-md-10 col-xl-10 align-self-center ">
          <form method="get" action="">
     <input type="text" class="p-2 w-50" name="search" id="searchInput" autocomplete="off"
@@ -32,11 +32,11 @@
     
      
 
-<form method="post" id="remove-notification-form" action="{% url 'middle_send_notification_person_area_charge_to_user' pk=charge.id %}">
+<form method="post" id="remove-notification-form" action="">
         {% csrf_token %}
        
         <hr>
-      <div class="row g-3 mb-2">
+      <div class="row g-2 mb-2">
             <div class="col-12 col-md-2 col-xl-2 form-check align-self-center p-1">
             <button type="button" id="toggle-select-btn" class="btn btn-gradient-info shadow_style px-3">
                 انتخاب همه واحدها
@@ -51,52 +51,63 @@
                   پرداخت موفق شارژ
                 </div>
          
-            <div class="col-12 col-md-6 col-xl-6 text-start align-self-center p-1">
+            <div class="col-12 col-md-6 col-xl-6 text-start align-self-center p-0">
                 <button type="button" id="remove-all-btn" class="btn btn-dark px-2 shadow_style">
                     حذف اطلاعیه واحدها
                 </button>
                 <button type="submit" onclick="return confirmWithSweetAlert(event)" 
-                        class="btn btn-gradient-success px-3 shadow_style">ارسال اطلاعیه شارژ</button>
+                        class="btn btn-gradient-success px-2 shadow_style">ارسال اطلاعیه شارژ</button>
                 <a href="{% url 'middle_add_person_area_charge' %}" class="btn btn-danger px-3 shadow_style"> بازگشت</a>
              </div>
         </div>
     
   
-<div class="row g-2">
-   {% for unit, renter, is_paid, total_charge in page_obj %}
-    <div class="col-6 col-lg-2 col-md-2 col-xl-2 mb-3">
-       <div class="card shadow_style fixChargeTable p-0 m-0"
-            {% if unit.id in notified_ids %}
-                {% if is_paid %}
-                    style="background-color: #8fef88; "  {# سبز برای اطلاع داده شده و پرداخت شده #}
+ <div class="row g-2 mt-3">
+  <span class="text-danger">توجه: جهت مشاهده اطلاعات شارژ بر روی آن کلیک نمایید.</span>
+   {% for item in page_obj %}
+{% with unit=item.unit renter=item.renter %}
+<div class="col-6 col-lg-2 col-md-2 col-xl-2 mb-3">
+   <div class="card shadow_style fixChargeTable p-0 mt-3"
+        {% if item.is_notified %}
+            {% if item.is_paid %}
+                style="background-color: #8fef88;"
+            {% else %}
+                style="background-color: #fff3cd;"
+            {% endif %}
+        {% endif %}>
+        <div class="card-body text-center d-flex px-2 py-1 mt-3">
+             <p class="card-charge-title shadow_style"
+                data-bs-toggle="popover"
+                data-bs-html="true"
+                data-bs-trigger="hover"
+                data-bs-placement="top"
+                data-bs-content="
+                {% if unit.is_renter %}
+                    {% if renter %}مستاجر: {{ renter.renter_name }}{% else %}بدون مستاجر{% endif %}
                 {% else %}
-                    style="background-color: #fff3cd;"  {# زرد برای اطلاع داده شده و پرداخت نشده #}
+                    مالک: {{ unit.owner_name }}
                 {% endif %}
-            {% endif %}>
-            <div class="card-body text-center px-0 py-0 mt-3">
-                 <p class="card-charge-title shadow_style"
-                   tabindex="0" 
-                   role="button"
-                   data-bs-toggle="popover"
-                   data-bs-trigger="hover focus"
-                   data-bs-placement="top"
-                   data-bs-html="true"
-                   data-bs-content="{% if unit.is_renter %}
-                                      {% if renter %}مستاجر: {{ renter.renter_name }}{% else %}بدون مستاجر{% endif %}
-                                    {% else %}
-                                      مالک: {{ unit.owner_name }}
-                                    {% endif %}<br>مبلغ شارژ: {{ total_charge|three_digit_currency }} تومان">
-                    <input class="form-check-input unit-checkbox mx-2" 
-                           type="checkbox" name="units" 
-                           value="{{ unit.id }}" id="unit{{ unit.id }}">
-{#                           {% if unit.id in notified_ids %}disabled{% endif %}>#}
-                    واحد شماره {{ unit.unit }}
-                </p>
-
-            </div>
+                <br>
+                مبلغ شارژ: {{ item.total_charge|three_digit_currency }} تومان
+                ">
+                <input class="form-check-input unit-checkbox mx-2"
+                       type="checkbox"
+                       name="units"
+                       value="{{ unit.id }}">
+                واحد شماره {{ unit.unit }}
+            </p>
+            <a href="#">
+                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="me-4" alt="" 
+                               style="width: 30px; height: 28px;">
+                      </a>
         </div>
+     
     </div>
-   {% endfor %}
+ 
+</div>
+{% endwith %}
+{% endfor %}
+
 </div>
                     
 

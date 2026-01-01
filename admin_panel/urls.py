@@ -106,8 +106,8 @@ urlpatterns = [
     path('charge/edit/<int:pk>/', views.fix_charge_edit, name='charge_edit'),
     path('charge/delete/<int:pk>/', views.fix_charge_delete, name='fix_charge_delete'),
     path('charge/notify/<int:pk>/', views.show_fix_charge_notification_form, name='show_notification_fix_charge_form'),
-    path('charge/fix/notify/send/<int:pk>/', views.send_notification_fix_charge_to_user,
-         name='send_notification_fix_charge_to_user'),
+    # path('charge/fix/notify/send/<int:pk>/', views.send_notification_fix_charge_to_user,
+    #      name='send_notification_fix_charge_to_user'),
     path('remove-send-notification-fix/<int:pk>/', views.remove_send_notification_fix,
          name='remove_send_notification_fix'),
 

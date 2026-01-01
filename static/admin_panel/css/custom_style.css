@@ -873,3 +873,7 @@ div.d-flex.justify-content-between div{
     z-index: 20;
     background-color: #fff3cd !important;
 }
+
+.text-notify{
+    font-size: 14px;
+}
