@@ -1,11 +1,14 @@
 import io
 import os
 import time
-from datetime import timezone
+from datetime import timezone, datetime
 from decimal import Decimal
+from itertools import chain
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.apps import apps
+from django.conf.urls.static import static
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
@@ -18,16 +21,16 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import transaction, IntegrityError
-from django.db.models import ProtectedError, Count, Q, Sum
+from django.db.models import ProtectedError, Count, Q, Sum, F
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
-from django.template.loader import get_template
+from django.template.loader import get_template, render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, UpdateView, DetailView, ListView
+from django.views.generic import CreateView, UpdateView, DetailView, ListView, TemplateView
 from openpyxl.styles import PatternFill, Alignment, Font
 from pypdf import PdfWriter
 from sweetify import sweetify
@@ -47,6 +50,7 @@ from admin_panel.models import Announcement, ExpenseCategory, Expense, Fund, Exp
 from admin_panel.services.calculators import CALCULATORS
 from admin_panel.views import admin_required
 from notifications.models import Notification, SupportUser
+from polls.templatetags.poll_extras import show_jalali
 
 from user_app.models import Bank, Unit, User, Renter, MyHouse
 
@@ -3497,25 +3501,22 @@ class MiddleFixChargeCreateView(CreateView):
             # مطمئن شدن که فیلدهای عددی عدد هستند
             civil_amount = fix_charge.civil or 0
             other_amount = fix_charge.other_cost_amount or 0
-            total__monthly_charge = base_amount + civil_amount + other_amount
+            total_monthly_charge = base_amount + civil_amount + other_amount
 
             unified_charges.append(
                 UnifiedCharge(
                     user=self.request.user,
                     unit=unit,
                     bank=None,
+                    amount=base_amount,
                     charge_type=fix_charge.charge_type,
-                    fix_amount=fix_charge.fix_amount,
-                    charge_by_person_amount=0,
-                    charge_by_area_amount=0,
-                    fix_person_variable_amount=0,
-                    fix_area_variable_amount=0,
-                    base_charge=fix_charge.fix_amount,
+                    base_charge=total_monthly_charge,
+                    main_charge=fix_charge,
                     penalty_percent=fix_charge.payment_penalty_amount,
                     civil=civil_amount,
                     other_cost_amount=other_amount,
                     penalty_amount=0,
-                    total_charge_month=total__monthly_charge,
+                    total_charge_month=total_monthly_charge,
                     details=fix_charge.details or '',
                     title=fix_charge.name,
                     send_notification=False,  # ⛔ اعلان ارسال نشده
@@ -3550,12 +3551,12 @@ class MiddleFixChargeCreateView(CreateView):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_fix_charge_edit(request, pk):
-    charge = get_object_or_404(FixCharge, pk=pk, user=request.user)
+    fix_charge = get_object_or_404(FixCharge, pk=pk, user=request.user)
 
     # بررسی اینکه برای این شارژ اعلان ارسال شده باشد
     any_notify = UnifiedCharge.objects.filter(
         content_type=ContentType.objects.get_for_model(FixCharge),
-        object_id=charge.id,
+        object_id=fix_charge.id,
         send_notification=True
     ).exists()
     if any_notify:
@@ -3563,12 +3564,12 @@ def middle_fix_charge_edit(request, pk):
         return redirect('middle_add_fixed_charge')
 
     if request.method == 'POST':
-        form = FixChargeForm(request.POST, request.FILES, instance=charge)
+        form = FixChargeForm(request.POST, request.FILES, instance=fix_charge)
         if form.is_valid():
             with transaction.atomic():
-                charge = form.save(commit=False)
-                charge.name = charge.name or 'شارژ ثابت'
-                charge.save()
+                fix_charge = form.save(commit=False)
+                fix_charge.name = fix_charge.name or 'شارژ ثابت'
+                fix_charge.save()
 
                 # کاربران و واحدهای تحت مدیریت
                 managed_users = request.user.managed_users.all()
@@ -3578,7 +3579,7 @@ def middle_fix_charge_edit(request, pk):
                     return redirect('middle_manage_unit')
 
                 # انتخاب Calculator
-                calculator = CALCULATORS.get(charge.charge_type)
+                calculator = CALCULATORS.get(fix_charge.charge_type)
                 if not calculator:
                     messages.error(request, 'نوع شارژ پشتیبانی نمی‌شود.')
                     return redirect('middle_add_fixed_charge')
@@ -3587,9 +3588,9 @@ def middle_fix_charge_edit(request, pk):
 
                 for unit in units:
                     # محاسبه مبلغ پایه برای هر واحد
-                    base_amount = calculator.calculate(unit, charge)
-                    civil_amount = charge.civil or 0
-                    other_amount = charge.other_cost_amount or 0
+                    base_amount = calculator.calculate(unit, fix_charge)
+                    civil_amount = fix_charge.civil or 0
+                    other_amount = fix_charge.other_cost_amount or 0
                     total_monthly = base_amount + civil_amount + other_amount
 
                     # آپدیت یا ایجاد UnifiedCharge برای این واحد
@@ -3597,26 +3598,28 @@ def middle_fix_charge_edit(request, pk):
                         user=request.user,
                         unit=unit,
                         content_type=ContentType.objects.get_for_model(FixCharge),
-                        object_id=charge.id,
+                        object_id=fix_charge.id,
                         defaults={
                             'bank': None,
-                            'charge_type': charge.charge_type,
-                            'fix_amount': charge.fix_amount,
+                            'charge_type': fix_charge.charge_type,
+                            'fix_amount': fix_charge.fix_amount,
+                            'amount': base_amount,
+                            'main_charge': fix_charge,
                             'charge_by_person_amount': 0,
                             'charge_by_area_amount': 0,
                             'fix_person_variable_amount': 0,
                             'fix_area_variable_amount': 0,
-                            'base_charge': charge.fix_amount,
-                            'penalty_percent': charge.payment_penalty_amount or 0,
+                            'base_charge': total_monthly,
+                            'penalty_percent': fix_charge.payment_penalty_amount or 0,
                             'civil': civil_amount,
                             'other_cost_amount': other_amount,
                             'penalty_amount': 0,
                             'total_charge_month': total_monthly,
-                            'details': charge.details or '',
-                            'title': charge.name,
+                            'details': fix_charge.details or '',
+                            'title': fix_charge.name,
                             'send_notification': False,
                             'send_notification_date': None,
-                            'payment_deadline_date': charge.payment_deadline,
+                            'payment_deadline_date': fix_charge.payment_deadline,
                         }
                     )
 
@@ -3625,9 +3628,9 @@ def middle_fix_charge_edit(request, pk):
         else:
             messages.error(request, 'خطا در ویرایش فرم. لطفا دوباره تلاش کنید.')
     else:
-        form = FixChargeForm(instance=charge)
+        form = FixChargeForm(instance=fix_charge)
 
-    return render(request, 'middleCharge/fix_charge_template.html', {'form': form, 'charge': charge})
+    return render(request, 'middleCharge/fix_charge_template.html', {'form': form, 'charge': fix_charge})
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -3869,13 +3872,10 @@ class MiddleAreaChargeCreateView(CreateView):
                     user=self.request.user,
                     unit=unit,
                     bank=None,
+                    main_charge=area_charge,
                     charge_type=area_charge.charge_type,
-                    fix_amount=0,
-                    charge_by_person_amount=0,
-                    charge_by_area_amount=area_charge.area_amount,
-                    fix_person_variable_amount=0,
-                    fix_area_variable_amount=0,
-                    base_charge=base_amount,
+                    amount=base_amount,
+                    base_charge=total_monthly_charge,
                     penalty_percent=area_charge.payment_penalty_amount,
                     civil=civil_amount,
                     other_cost_amount=other_amount,
@@ -3986,11 +3986,13 @@ def middle_area_charge_edit(request, pk):
                             'bank': None,
                             'charge_type': charge.charge_type,
                             'fix_amount': 0,
+                            'amount': base_amount,
+                            'main_charge': charge,
+                            'base_charge': total_monthly,
                             'charge_by_person_amount': 0,
                             'charge_by_area_amount': charge.area_amount,
                             'fix_person_variable_amount': 0,
                             'fix_area_variable_amount': 0,
-                            'base_charge': base_amount,
                             'penalty_percent': charge.payment_penalty_amount or 0,
                             'civil': civil_amount,
                             'other_cost_amount': other_amount,
@@ -4254,12 +4256,9 @@ class MiddlePersonChargeCreateView(CreateView):
                     unit=unit,
                     bank=None,
                     charge_type=person_charge.charge_type,
-                    fix_amount=0,
-                    charge_by_person_amount=person_charge.person_amount,
-                    charge_by_area_amount=0,
-                    fix_person_variable_amount=0,
-                    fix_area_variable_amount=0,
-                    base_charge=base_amount,
+                    amount=base_amount,
+                    base_charge=total_monthly_charge,
+                    main_charge=person_charge,
                     penalty_percent=person_charge.payment_penalty_amount,
                     civil=civil_amount,
                     other_cost_amount=other_amount,
@@ -4353,12 +4352,9 @@ def middle_person_charge_edit(request, pk):
                         defaults={
                             'bank': None,
                             'charge_type': charge.charge_type,
-                            'fix_amount': 0,
-                            'charge_by_person_amount': charge.person_amount,
-                            'charge_by_area_amount': 0,
-                            'fix_person_variable_amount': 0,
-                            'fix_area_variable_amount': 0,
-                            'base_charge': base_amount,
+                            'amount': base_amount,
+                            'base_charge': total_monthly,
+                            'main-charge': charge,
                             'penalty_percent': charge.payment_penalty_amount or 0,
                             'civil': civil_amount,
                             'other_cost_amount': other_amount,
@@ -4622,12 +4618,9 @@ class MiddleFixAreaChargeCreateView(CreateView):
                     unit=unit,
                     bank=None,
                     charge_type=fix_area_charge.charge_type,
-                    fix_amount=fix_area_charge.fix_charge_amount,
-                    charge_by_person_amount=0,
-                    charge_by_area_amount=fix_area_charge.area_amount,
-                    fix_person_variable_amount=0,
-                    fix_area_variable_amount=0,
-                    base_charge=base_amount,
+                    main_charge=fix_area_charge,
+                    amount=base_amount,
+                    base_charge=total_monthly_charge,
                     penalty_percent=fix_area_charge.payment_penalty_amount,
                     civil=civil_amount,
                     other_cost_amount=other_amount,
@@ -4720,12 +4713,9 @@ def middle_fix_area_charge_edit(request, pk):
                         defaults={
                             'bank': None,
                             'charge_type': charge.charge_type,
-                            'fix_amount': charge.fix_charge_amount,
-                            'charge_by_person_amount': 0,
-                            'charge_by_area_amount': charge.area_amount,
-                            'fix_person_variable_amount': 0,
-                            'fix_area_variable_amount': 0,
-                            'base_charge': base_amount,
+                            'main_charge': charge,
+                            'amount': base_amount,
+                            'base_charge': total_monthly,
                             'penalty_percent': charge.payment_penalty_amount or 0,
                             'civil': civil_amount,
                             'other_cost_amount': other_amount,
@@ -4988,12 +4978,9 @@ class MiddleFixPersonChargeCreateView(CreateView):
                     unit=unit,
                     bank=None,
                     charge_type=fix_person_charge.charge_type,
-                    fix_amount=fix_person_charge.fix_charge_amount,
-                    charge_by_person_amount=fix_person_charge.person_amount,
-                    charge_by_area_amount=0,
-                    fix_person_variable_amount=0,
-                    fix_area_variable_amount=0,
-                    base_charge=base_amount,
+                    main_charge=fix_person_charge,
+                    amount=base_amount,
+                    base_charge=total_monthly_charge,
                     penalty_percent=fix_person_charge.payment_penalty_amount,
                     civil=civil_amount,
                     other_cost_amount=other_amount,
@@ -5086,11 +5073,8 @@ def middle_fix_person_charge_edit(request, pk):
                         defaults={
                             'bank': None,
                             'charge_type': charge.charge_type,
-                            'fix_amount': charge.fix_charge_amount,
-                            'charge_by_person_amount': charge.person_amount,
-                            'charge_by_area_amount': 0,
-                            'fix_person_variable_amount': 0,
-                            'fix_area_variable_amount': 0,
+                            'main_charge': charge,
+                            'amount': base_amount,
                             'base_charge': base_amount,
                             'penalty_percent': charge.payment_penalty_amount or 0,
                             'civil': civil_amount,
@@ -5352,12 +5336,9 @@ class MiddlePersonAreaChargeCreateView(CreateView):
                     unit=unit,
                     bank=None,
                     charge_type=person_area_charge.charge_type,
-                    fix_amount=0,
-                    charge_by_person_amount=person_area_charge.person_amount,
-                    charge_by_area_amount=person_area_charge.area_amount,
-                    fix_person_variable_amount=0,
-                    fix_area_variable_amount=0,
-                    base_charge=base_amount,
+                    main_charge=person_area_charge,
+                    amount=base_amount,
+                    base_charge=total_monthly_charge,
                     penalty_percent=person_area_charge.payment_penalty_amount,
                     civil=civil_amount,
                     other_cost_amount=other_amount,
@@ -5453,12 +5434,9 @@ def middle_person_area_charge_edit(request, pk):
                         defaults={
                             'bank': None,
                             'charge_type': charge.charge_type,
-                            'fix_amount': 0,
-                            'charge_by_person_amount': charge.person_amount,
-                            'charge_by_area_amount': charge.area_amount,
-                            'fix_person_variable_amount': 0,
-                            'fix_area_variable_amount': 0,
-                            'base_charge': base_amount,
+                            'main_charge': charge,
+                            'amount': base_amount,
+                            'base_charge': total_monthly,
                             'penalty_percent': charge.payment_penalty_amount or 0,
                             'civil': civil_amount,
                             'other_cost_amount': other_amount,
@@ -5719,12 +5697,9 @@ class MiddlePersonAreaFixChargeCreateView(CreateView):
                     unit=unit,
                     bank=None,
                     charge_type=fix_person_area_charge.charge_type,
-                    fix_amount=fix_person_area_charge.fix_charge_amount,
-                    charge_by_person_amount=fix_person_area_charge.person_amount,
-                    charge_by_area_amount=fix_person_area_charge.area_amount,
-                    fix_person_variable_amount=0,
-                    fix_area_variable_amount=0,
-                    base_charge=base_amount,
+                    main_charge=fix_person_area_charge,
+                    amount=base_amount,
+                    base_charge=total_monthly_charge,
                     penalty_percent=fix_person_area_charge.payment_penalty_amount,
                     civil=civil_amount,
                     other_cost_amount=other_amount,
@@ -5818,12 +5793,9 @@ def middle_person_area_fix_charge_edit(request, pk):
                         defaults={
                             'bank': None,
                             'charge_type': charge.charge_type,
-                            'fix_amount': charge.fix_charge_amount,
-                            'charge_by_person_amount': charge.person_amount,
-                            'charge_by_area_amount': charge.area_amount,
-                            'fix_person_variable_amount': 0,
-                            'fix_area_variable_amount': 0,
-                            'base_charge': base_amount,
+                            'main_charge': charge,
+                            'amount': base_amount,
+                            'base_charge': total_monthly,
                             'penalty_percent': charge.payment_penalty_amount or 0,
                             'civil': civil_amount,
                             'other_cost_amount': other_amount,
@@ -6076,7 +6048,12 @@ class MiddleVariableFixChargeCreateView(CreateView):
             # مطمئن شدن که فیلدهای عددی عدد هستند
             civil_amount = fix_variable.civil or 0
             other_amount = fix_variable.other_cost_amount or 0
-            total_monthly_charge = base_amount + civil_amount + other_amount
+            parking_count = getattr(unit, 'parking_counts', 0) or 0
+
+            parking_price = fix_variable.extra_parking_amount or 0
+            parking_total = parking_count * parking_price
+
+            total_monthly_charge = base_amount + civil_amount + other_amount + parking_total
 
             unified_charges.append(
                 UnifiedCharge(
@@ -6084,12 +6061,10 @@ class MiddleVariableFixChargeCreateView(CreateView):
                     unit=unit,
                     bank=None,
                     charge_type=fix_variable.charge_type,
-                    fix_amount=fix_variable.unit_fix_amount,
-                    charge_by_person_amount=0,
-                    charge_by_area_amount=0,
-                    fix_person_variable_amount=fix_variable.unit_variable_person_amount,
-                    fix_area_variable_amount=fix_variable.unit_variable_area_amount,
-                    base_charge=base_amount,
+                    extra_parking_price= parking_total,
+                    main_charge=fix_variable,
+                    amount=base_amount,
+                    base_charge=total_monthly_charge,
                     penalty_percent=fix_variable.payment_penalty_amount,
                     civil=civil_amount,
                     other_cost_amount=other_amount,
@@ -6172,7 +6147,11 @@ def middle_variable_fix_charge_edit(request, pk):
                     base_amount = calculator.calculate(unit, charge)
                     civil_amount = charge.civil or 0
                     other_amount = charge.other_cost_amount or 0
-                    total_monthly = base_amount + civil_amount + other_amount
+                    parking_count = getattr(unit, 'parking_counts', 0) or 0
+                    parking_price = charge.extra_parking_amount or 0
+                    parking_total = parking_count * parking_price
+
+                    total_monthly = base_amount + civil_amount + other_amount + parking_total
 
                     # آپدیت یا ایجاد UnifiedCharge برای این واحد
                     UnifiedCharge.objects.update_or_create(
@@ -6183,12 +6162,10 @@ def middle_variable_fix_charge_edit(request, pk):
                         defaults={
                             'bank': None,
                             'charge_type': charge.charge_type,
-                            'fix_amount': charge.unit_fix_amount,
-                            'charge_by_person_amount':0,
-                            'charge_by_area_amount': 0,
-                            'fix_person_variable_amount': charge.unit_variable_person_amount,
-                            'fix_area_variable_amount': charge.unit_variable_area_amount,
-                            'base_charge': base_amount,
+                            'main_charge': charge,
+                            'amount': base_amount,
+                            'base_charge': total_monthly,
+                            'extra_parking_price': parking_total,
                             'penalty_percent': charge.payment_penalty_amount or 0,
                             'civil': civil_amount,
                             'other_cost_amount': other_amount,
@@ -6382,6 +6359,553 @@ def middle_remove_send_notification_fix_variable(request, pk):
 
 
 # ==============================================================================================
+
+def get_all_base_charges():
+    all_charges = chain(
+        FixCharge.objects.all(),
+        AreaCharge.objects.all(),
+        PersonCharge.objects.all(),
+        FixPersonCharge.objects.all(),
+        FixAreaCharge.objects.all(),
+        ChargeByPersonArea.objects.all(),
+        ChargeByFixPersonArea.objects.all(),
+        ChargeFixVariable.objects.all(),
+    )
+    return sorted(all_charges, key=lambda x: x.created_at, reverse=True)
+
+
+def base_charge_list(request):
+    # 🔍 جستجو
+    query = request.GET.get('q', '').strip()
+
+    # 📄 تعداد نمایش
+    paginate = int(request.GET.get('paginate', 20))
+
+    # 🔹 دریافت همه شارژهای پایه
+    charges = get_all_base_charges()
+
+    # 🔍 فیلتر جستجو (سازگار با BaseCharge)
+    if query:
+        charges = [
+            c for c in charges
+            if (
+                    query.lower() in (c.name or '').lower()
+                    or query.lower() in (getattr(c, 'name', '') or '').lower()
+            )
+        ]
+
+    charges_data = []
+
+    for charge in charges:
+        data = charge.to_dict()
+
+        # 🔔 تعداد واحدهای نوتیفای‌شده
+        data['notified_count'] = (
+            charge.unified_charges
+            .filter(
+                send_notification=True,
+                send_notification_date__isnull=False,
+                unit__isnull=False
+            )
+            .values_list('unit_id', flat=True)
+            .distinct()
+            .count()
+        )
+
+        charges_data.append(data)
+
+    # 📄 pagination
+    paginator = Paginator(charges_data, paginate)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(
+        request,
+        'middleCharge/middle_charges_list.html',
+        {
+            'charges': page_obj,  # 👈 مهم (برای loop)
+            'query': query,
+            'paginate': paginate,
+            'page_obj': page_obj,
+        }
+    )
+
+
+def middle_base_charges_pdf(request):
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(
+            residents=request.user
+        ).order_by('-created_at').first()
+
+    managed_users = request.user.managed_users.all()
+    unit_count = Unit.objects.filter(
+        is_active=True,
+        user__in=managed_users
+    ).count()
+
+    # 🔹 همان منبع ویوی لیست
+    charges = get_all_base_charges()
+
+    # 🔍 جستجو
+    query = request.GET.get('q', '').strip()
+    if query:
+        charges = [
+            c for c in charges
+            if (
+                    query.lower() in (c.name or '').lower() or
+                    query.lower() in (getattr(c, 'details', '') or '').lower()
+            )
+        ]
+
+    charges_data = []
+
+    for charge in charges:
+        data = charge.to_dict()
+
+        # ✅ محاسبه notified_count (دقیقاً مثل base_charge_list)
+        data['notified_count'] = (
+            charge.unified_charges
+            .filter(
+                send_notification=True,
+                send_notification_date__isnull=False,
+                unit__isnull=False
+            )
+            .values_list('unit_id', flat=True)
+            .distinct()
+            .count()
+        )
+
+        charges_data.append(data)
+
+    # 🧾 HTML برای PDF
+    html_string = render_to_string(
+        'middleCharge/middle_charges_list_pdf.html',
+        {
+            'charges': charges_data,
+            'query': query,
+            'today': datetime.now(),
+            'house': house,
+            'unit_count': unit_count,
+        }
+    )
+
+    # 🎨 فونت و CSS
+    font_url = request.build_absolute_uri(static('fonts/Vazir.ttf'))
+    css = CSS(string=f"""
+        @page {{ size: A4 landscape; margin: 1cm; }}
+        @font-face {{
+            font-family: 'Vazir';
+            src: url('{font_url}');
+        }}
+        body {{
+            font-family: 'Vazir', sans-serif;
+        }}
+    """)
+
+    html = HTML(string=html_string)
+    pdf_file = html.write_pdf(stylesheets=[css])
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="charge_main.pdf"'
+    return response
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_base_charges_excel(request):
+    managed_users = request.user.managed_users.all()
+    unit_count = Unit.objects.filter(
+        is_active=True,
+        user__in=managed_users
+    ).count()
+
+    # 🔹 منبع یکسان با HTML و PDF
+    charges = get_all_base_charges()
+
+    # 🔍 جستجو
+    query = request.GET.get('q', '').strip()
+    if query:
+        charges = [
+            c for c in charges
+            if (
+                    query.lower() in (c.name or '').lower()
+                    or query.lower() in (getattr(c, 'details', '') or '').lower()
+            )
+        ]
+
+    # -------------------------
+    # Create Excel workbook
+    # -------------------------
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Main Charges"
+    ws.sheet_view.rightToLeft = True
+
+    # Title
+    title_cell = ws.cell(row=1, column=1, value="لیست شارژهای اصلی ساختمان")
+    title_cell.font = Font(bold=True, size=16)
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=7)
+
+    # Headers
+    headers = ['#', 'عنوان', 'تاریخ ثبت', 'جریمه دیرکرد(%)', 'مهلت پرداخت', 'توضیحات', 'اعلام شارژ']
+    header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
+    header_font = Font(bold=True)
+
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=2, column=col, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+
+    # Data
+    row = 3
+    for index, charge in enumerate(charges, start=1):
+        notified_count = (
+            charge.unified_charges
+            .filter(
+                send_notification=True,
+                send_notification_date__isnull=False,
+                unit__isnull=False
+            )
+            .values_list('unit_id', flat=True)
+            .distinct()
+            .count()
+        )
+
+        ws.cell(row=row, column=1, value=index)
+        ws.cell(row=row, column=2, value=charge.name)
+        ws.cell(row=row, column=3, value=show_jalali(charge.created_at))
+        ws.cell(row=row, column=4, value=getattr(charge, 'payment_penalty_amount', None))
+        ws.cell(row=row, column=5, value=show_jalali(getattr(charge, 'payment_deadline', None)))
+        ws.cell(row=row, column=6, value=getattr(charge, 'details', ''))
+        ws.cell(
+            row=row,
+            column=7,
+            value=f"{notified_count} از {unit_count} واحد"
+        )
+        row += 1
+
+    # -------------------------
+    # Response
+    # -------------------------
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=main_charges.xlsx'
+    wb.save(response)
+    return response
+
+
+def charge_units_list(request, app_label, model_name, charge_id):
+    model = apps.get_model(app_label, model_name)
+    charge = get_object_or_404(model, id=charge_id)
+
+    # 🔥 آپدیت جریمه همه UnifiedCharge ها
+    unified_qs = charge.unified_charges.all()
+    for uc in unified_qs:
+        uc.update_penalty(save=True)
+
+    # -------------------------
+    # 🔍 جستجو
+    # -------------------------
+    query = request.GET.get('q', '').strip()
+
+    unified_charges = unified_qs.filter(
+        send_notification_date__isnull=False
+    ).select_related('unit', 'unit__user')
+
+    if query:
+        search_q = (
+                Q(unit__unit__icontains=query) |
+                Q(unit__user__full_name__icontains=query)
+        )
+
+        # اگر عدد بود → جستجو روی مقادیر عددی شارژ
+        if query.isdigit():
+            search_q |= (
+                    Q(penalty_amount=query) |
+                    Q(total_charge_month=query) |
+                    Q(base_charge=query)
+            )
+
+        unified_charges = unified_charges.filter(search_q)
+
+    # -------------------------
+    # 📄 pagination
+    # -------------------------
+    paginate = int(request.GET.get('paginate', 20))
+    paginator = Paginator(unified_charges, paginate)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # واحدها (مطابق صفحه‌بندی)
+    units = [uc.unit for uc in page_obj if uc.unit]
+
+    # 🧪 debug (در صورت نیاز)
+    print('ALL:', charge.unified_charges.count())
+    print(
+        charge.unified_charges.values(
+            'id',
+            'send_notification',
+            'send_notification_date'
+        )
+    )
+
+    return render(
+        request,
+        'middleCharge/middle_charges_detail.html',
+        {
+            'charge': charge,
+            'units': units,
+            'unified_charges': page_obj,  # 👈 مهم
+            'query': query,
+            'paginate': paginate,
+            'page_obj': page_obj,
+            'app_label': app_label,
+            'model_name': model_name,
+        }
+    )
+
+
+def charge_units_list_pdf(request, app_label, model_name, charge_id):
+    model = apps.get_model(app_label, model_name)
+    charge = get_object_or_404(model, id=charge_id)
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
+
+    unified_qs = charge.unified_charges.all()
+
+    # 🔍 جستجو
+    query = request.GET.get('q', '').strip()
+
+    unified_charges = unified_qs.filter(
+        send_notification_date__isnull=False
+    ).select_related('unit', 'unit__user')
+
+    if query:
+        search_q = (
+                Q(unit__unit__icontains=query) |
+                Q(unit__user__full_name__icontains=query)
+        )
+
+        try:
+            value = Decimal(query)
+            search_q |= (
+                    Q(penalty_amount=value) |
+                    Q(total_charge_month=value) |
+                    Q(base_charge=value)
+            )
+        except:
+            pass
+
+        unified_charges = unified_charges.filter(search_q)
+
+    unified_charges = unified_charges.order_by('-created_at')
+
+    html_string = render_to_string(
+        'middleCharge/middle_charges_detail_pdf.html',
+        {
+            'charge': charge,
+            'unified_charges': unified_charges,
+            'query': query,
+            'today': datetime.now(),
+            'house': house,
+            'font_url': request.build_absolute_uri('/static/fonts/Vazir.ttf')
+
+        }
+    )
+
+    font_url = request.build_absolute_uri(static('fonts/Vazir.ttf'))
+    css = CSS(string=f"""
+        @page {{ size: A4 landscape; margin: 1cm; }}
+        @font-face {{
+            font-family: 'Vazir';
+            src: url('{font_url}');
+        }}
+        body {{
+            font-family: 'Vazir', sans-serif;
+        }}
+    """)
+
+    pdf = HTML(string=html_string).write_pdf(stylesheets=[css])
+
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="charge_units.pdf"'
+    return response
+
+
+def charge_units_list_excel(request, app_label, model_name, charge_id):
+    model = apps.get_model(app_label, model_name)
+    charge = get_object_or_404(model, id=charge_id)
+
+    unified_qs = charge.unified_charges.all()
+
+    # 🔍 جستجو
+    query = request.GET.get('q', '').strip()
+
+    unified_charges = unified_qs.filter(
+        send_notification_date__isnull=False
+    ).select_related('unit', 'unit__user')
+
+    if query:
+        search_q = (
+                Q(unit__unit__icontains=query) |
+                Q(unit__user__full_name__icontains=query)
+        )
+
+        try:
+            value = Decimal(query)
+            search_q |= (
+                    Q(penalty_amount=value) |
+                    Q(total_charge_month=value) |
+                    Q(base_charge=value)
+            )
+        except:
+            pass
+
+        unified_charges = unified_charges.filter(search_q)
+
+    unified_charges = unified_charges.order_by('-created_at')
+
+    # -------------------------
+    # Excel
+    # -------------------------
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Charge Units"
+    ws.sheet_view.rightToLeft = True
+
+    headers = [
+        '#', 'واحد', 'مالک / ساکن', 'مبلغ پایه', 'جریمه',
+        'مبلغ نهایی', 'تاریخ اعلام', 'وضعیت پرداخت'
+    ]
+    num_columns = len(headers)
+
+    # عنوان
+    title_cell = ws.cell(row=1, column=1, value="لیست شارژ ساختمان")
+    title_cell.font = Font(bold=True, size=18)
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    title_cell.fill = PatternFill(fill_type="solid")
+
+    # merge سلول‌ها (فقط merge کنید، مقدار فقط در top-left)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=num_columns)
+
+    row = 2
+    for index, uc in enumerate(unified_charges, start=1):
+        ws.cell(row=row, column=1, value=index)
+        ws.cell(row=row, column=2, value=uc.title)
+        ws.cell(row=row, column=3, value=uc.unit.get_label())
+        ws.cell(row=row, column=4, value=uc.base_charge)
+        ws.cell(row=row, column=5, value=uc.details)
+        ws.cell(row=row, column=6, value=show_jalali(uc.send_notification_date))
+        ws.cell(row=row, column=7, value=show_jalali(uc.payment_deadline_date))
+        ws.cell(row=row, column=8, value=uc.penalty_amount)
+        ws.cell(row=row, column=9, value=uc.total_charge_month)
+        ws.cell(row=row, column=10, value="پرداخت شده" if uc.is_paid else "پرداخت نشده")
+
+        row += 1
+
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=charge_units.xlsx'
+    wb.save(response)
+    return response
+
+
+def charge_units_pdf(request, charge_id):
+    charge = get_object_or_404(UnifiedCharge, id=charge_id)
+    units = Unit.objects.filter(unified_charges=charge, is_active=True).order_by('unit')
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
+    bank = Bank.get_default(request.user, house)
+    html_string = render_to_string('middleCharge/single_charge_pdf.html', {
+        'charge': charge,
+        'units': units,
+        'house': house,
+        'bank': bank,
+        'font_url': request.build_absolute_uri('/static/fonts/Vazir.ttf')
+    })
+
+    pdf = HTML(string=html_string).write_pdf()
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="charge_{charge.id}_units.pdf"'
+    return response
+
+
+def all_invoices_pdf(request, app_label, model_name, charge_id):
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
+
+    model = apps.get_model(app_label, model_name)
+    charge = get_object_or_404(model, id=charge_id)
+
+    charges = (
+        charge.unified_charges
+        .filter(send_notification_date__isnull=False)
+        .select_related('unit', 'unit__user')
+        .order_by('unit__unit')
+    )
+    bank = Bank.get_default(request.user, house)
+
+    html_string = render_to_string(
+        'middleCharge/all_invoices_pdf.html',
+        {
+            'charge': charge,
+            'charges': charges,
+            'today': datetime.now(),
+            'house': house,
+            'bank': bank,
+            'font_url': request.build_absolute_uri('/static/fonts/Vazir.ttf')
+        }
+    )
+
+    font_base = request.build_absolute_uri('/static/fonts/')
+    css = CSS(string=f"""
+        @page {{
+            size: A5 portrait;
+            margin: 1cm;
+        }}
+        
+    @font-face {{
+        font-family: 'Vazir';
+        src: url('{font_base}Vazir-Regular.ttf') format('truetype');
+        font-weight: 400;
+    }}
+
+    @font-face {{
+        font-family: 'Vazir';
+        src: url('{font_base}Vazir-Bold.ttf') format('truetype');
+        font-weight: 700;
+    }}
+
+
+    body {{
+        font-family: 'Vazir';
+        direction: rtl;
+    }}
+
+    h1, h2, h3 {{
+        font-weight: 700;
+    }}
+
+    .page-break {{
+        page-break-after: always;
+    }}
+""")
+
+    pdf = HTML(string=html_string).write_pdf(stylesheets=[css])
+
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="all_invoices.pdf"'
+    return response
+
+
+
+# =================================================================================================
 
 @method_decorator(middle_admin_required, name='dispatch')
 class MiddleSmsManagementView(CreateView):

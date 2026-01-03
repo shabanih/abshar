@@ -1339,16 +1339,16 @@ class FixChargeForm(forms.ModelForm):
         fields = ['name', 'fix_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount',
                   'other_cost_amount']
 
-    def clean_payment_deadline(self):
-        deadline = self.cleaned_data.get('payment_deadline')
-
-        if deadline:
-            today = jdatetime.date.today()
-
-            if deadline < today:
-                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
-
-        return deadline
+    # def clean_payment_deadline(self):
+    #     deadline = self.cleaned_data.get('payment_deadline')
+    #
+    #     if deadline:
+    #         today = jdatetime.date.today()
+    #
+    #         if deadline < today:
+    #             raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+    #
+    #     return deadline
 
 
 class AreaChargeForm(forms.ModelForm):
@@ -1392,16 +1392,16 @@ class AreaChargeForm(forms.ModelForm):
         fields = ['name', 'area_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount',
                   'other_cost_amount']
 
-    def clean_payment_deadline(self):
-        deadline = self.cleaned_data.get('payment_deadline')
-
-        if deadline:
-            today = jdatetime.date.today()
-
-            if deadline < today:
-                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
-
-        return deadline
+    # def clean_payment_deadline(self):
+    #     deadline = self.cleaned_data.get('payment_deadline')
+    #
+    #     if deadline:
+    #         today = jdatetime.date.today()
+    #
+    #         if deadline < today:
+    #             raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+    #
+    #     return deadline
 
 
 class PersonChargeForm(forms.ModelForm):
@@ -1439,16 +1439,16 @@ class PersonChargeForm(forms.ModelForm):
         fields = ['name', 'person_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount',
                   'other_cost_amount']
 
-    def clean_payment_deadline(self):
-        deadline = self.cleaned_data.get('payment_deadline')
-
-        if deadline:
-            today = jdatetime.date.today()
-
-            if deadline < today:
-                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
-
-        return deadline
+    # def clean_payment_deadline(self):
+    #     deadline = self.cleaned_data.get('payment_deadline')
+    #
+    #     if deadline:
+    #         today = jdatetime.date.today()
+    #
+    #         if deadline < today:
+    #             raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+    #
+    #     return deadline
 
 
 class FixAreaChargeForm(forms.ModelForm):
@@ -1491,16 +1491,16 @@ class FixAreaChargeForm(forms.ModelForm):
                   'payment_penalty_amount',
                   'other_cost_amount']
 
-    def clean_payment_deadline(self):
-        deadline = self.cleaned_data.get('payment_deadline')
-
-        if deadline:
-            today = jdatetime.date.today()
-
-            if deadline < today:
-                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
-
-        return deadline
+    # def clean_payment_deadline(self):
+    #     deadline = self.cleaned_data.get('payment_deadline')
+    #
+    #     if deadline:
+    #         today = jdatetime.date.today()
+    #
+    #         if deadline < today:
+    #             raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+    #
+    #     return deadline
 
 
 class FixPersonChargeForm(forms.ModelForm):
@@ -1543,16 +1543,16 @@ class FixPersonChargeForm(forms.ModelForm):
         fields = ['name', 'person_amount', 'details', 'civil', 'fix_charge_amount', 'payment_deadline'
             , 'payment_penalty_amount', 'other_cost_amount']
 
-    def clean_payment_deadline(self):
-        deadline = self.cleaned_data.get('payment_deadline')
-
-        if deadline:
-            today = jdatetime.date.today()
-
-            if deadline < today:
-                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
-
-        return deadline
+    # def clean_payment_deadline(self):
+    #     deadline = self.cleaned_data.get('payment_deadline')
+    #
+    #     if deadline:
+    #         today = jdatetime.date.today()
+    #
+    #         if deadline < today:
+    #             raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+    #
+    #     return deadline
 
 
 class PersonAreaChargeForm(forms.ModelForm):
@@ -1594,16 +1594,16 @@ class PersonAreaChargeForm(forms.ModelForm):
         fields = ['name', 'area_amount', 'details', 'person_amount', 'civil', 'payment_deadline',
                   'payment_penalty_amount', 'other_cost_amount']
 
-    def clean_payment_deadline(self):
-        deadline = self.cleaned_data.get('payment_deadline')
-
-        if deadline:
-            today = jdatetime.date.today()
-
-            if deadline < today:
-                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
-
-        return deadline
+    # def clean_payment_deadline(self):
+    #     deadline = self.cleaned_data.get('payment_deadline')
+    #
+    #     if deadline:
+    #         today = jdatetime.date.today()
+    #
+    #         if deadline < today:
+    #             raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+    #
+    #     return deadline
 
 
 class PersonAreaFixChargeForm(forms.ModelForm):
@@ -1649,16 +1649,16 @@ class PersonAreaFixChargeForm(forms.ModelForm):
         fields = ['name', 'area_amount', 'details', 'person_amount', 'civil', 'fix_charge_amount', 'payment_deadline',
                   'payment_penalty_amount', 'other_cost_amount']
 
-    def clean_payment_deadline(self):
-        deadline = self.cleaned_data.get('payment_deadline')
-
-        if deadline:
-            today = jdatetime.date.today()
-
-            if deadline < today:
-                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
-
-        return deadline
+    # def clean_payment_deadline(self):
+    #     deadline = self.cleaned_data.get('payment_deadline')
+    #
+    #     if deadline:
+    #         today = jdatetime.date.today()
+    #
+    #         if deadline < today:
+    #             raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+    #
+    #     return deadline
 
 
 class VariableFixChargeForm(forms.ModelForm):
@@ -1712,16 +1712,16 @@ class VariableFixChargeForm(forms.ModelForm):
                   'unit_variable_person_amount', 'civil', 'details', 'other_cost_amount',
                   'payment_penalty_amount', 'payment_deadline']
 
-    def clean_payment_deadline(self):
-        deadline = self.cleaned_data.get('payment_deadline')
-
-        if deadline:
-            today = jdatetime.date.today()
-
-            if deadline < today:
-                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
-
-        return deadline
+    # def clean_payment_deadline(self):
+    #     deadline = self.cleaned_data.get('payment_deadline')
+    #
+    #     if deadline:
+    #         today = jdatetime.date.today()
+    #
+    #         if deadline < today:
+    #             raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+    #
+    #     return deadline
 
 
 class UnifiedChargePaymentForm(forms.ModelForm):

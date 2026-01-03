@@ -70,7 +70,7 @@
                  <td>{{ forloop.counter}}</td>
                  <td>{{ charge.title}}</td>
 {#                 <td>{{ charge.charge_type}}</td>#}
-                    <td>{{ charge.amount|three_digit_currency }} </td>
+                    <td>{{ charge.base_charge|three_digit_currency }} </td>
                     <td>
                              {% if charge.details %}
                                   <span class="text-danger"> دارد</span>

@@ -22,8 +22,8 @@
                                     <tr>
                                         <th>#</th>
                                         <th> عنوان شارژ </th>
-                                        <th class="p-0">تعداد کل نفرات</th>
-                                         <th class="p-0">مبلغ شارژ به ازای هر نفر(تومان)</th>
+{#                                        <th class="p-0">تعداد کل نفرات</th>#}
+                                         <th class="p-0">مبلغ شارژ به ازای هر نفر</th>
                                            <th> توضیحات </th>
                                          <th>تاریخ ثبت</th>
                                         <th>جریمه دیرکرد</th>
@@ -38,7 +38,7 @@
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
                                             <td>{{charge.name }}</td>
-                                            <td>{{total_people }}</td>
+{#                                            <td>{{total_people }}</td>#}
                                             <td class="bg-gradient-light">{{charge.person_amount|three_digit_currency }}</td>
                                          <td>
                                                  {% if charge.details %}

@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'ckeditor',
     'ckeditor_uploader',  # enables file & image uploads
     'azbankgateways',
+    'django_celery_beat',
     # 'django_select2',
 
 ]
@@ -227,3 +228,14 @@ JALALI_DATE_DEFAULTS = {
         }
     },
 }
+
+# Redis
+CELERY_BROKER_URL = 'redis://127.0.0.1:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+
+# Timezone (خیلی مهم)
+CELERY_ENABLE_UTC = True
+CELERY_TIMEZONE = 'Asia/Tehran'
+
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'

@@ -11,9 +11,9 @@
         <hr class="p-0">
      <div class="row g-2">
      
-{#        <div class="col-12 mb-3 text-start">#}
-{#            <a class="btn btn-gradient-primary px-3 py-2" href="{% url 'charge_list_report' %}">برگشت به لیست شارژها</a>#}
-{#        </div>#}
+        <div class="col-12 mb-3 text-start">
+            <a class="btn btn-gradient-primary px-3 py-2" href="{% url 'middle_main_charges' %}">برگشت به لیست </a>
+        </div>
   
         <!-- بخش جستجو -->
         <div class="col-12 col-md-4 col-xl-4 align-self-center">
@@ -31,14 +31,14 @@
             </form>
         </div>
        <div class=" col-12 col-md-6 col-xl-6 text-end text-md-center align-self-center">
-            <a href=""
+            <a href="{% url 'charge_units_list_excel' app_label model_name charge.id %}?{{ request.GET.urlencode }}"
                 class="btn btn-gradient-success px-4 py-2"> Excel</a>
-            <a href=""
+            <a href="{% url 'charge_units_list_pdf' app_label model_name charge.id %}?{{ request.GET.urlencode }}"
                    class="btn btn-gradient-danger px-4 py-2">
                     PDF
                 </a>
                 <a class="btn btn-gradient-warning px-4 py-2" 
-                   href=""> PDF همه صورتحساب ها</a>
+                   href="{% url 'all_invoices_pdf' app_label model_name charge.id  %}"> PDF همه صورتحساب ها</a>
 
             </div>
 
@@ -59,8 +59,9 @@
             </div>
         </div>
     </div>
+    
 
-   <div class="row mt-4">
+<div class="row mt-4">
                <div class="table-responsive p-0">
                 <table class="table table-bordered" >
                       <thead>
@@ -79,8 +80,8 @@
                             <th>مشاهده/دستورات</th>
                         </tr>
                     </thead>
-                  {% if page_obj %}
-            {% for charge in page_obj %}
+    {% if unified_charges  %}
+    {% for charge in unified_charges  %}
                 <tbody>
                 <tr>
                  <td>{{ forloop.counter}}</td>
@@ -112,17 +113,10 @@
                                 <span class="badge badge-danger p-1">پرداخت نشده</span>
                             {% endif %}
                         </td>
-                 
-{#                                     <td>#}
-{#                    {% if charge.payment_date %}#}
-{#                    	{{ charge.payment_date|show_jalali }}#}
-{#                    {% else %} #}
-{#                    ----#}
-{#                   {% endif %} #}
-{#                </td>#}
+                
            
                   <td class="shadow_style p-1">
-                      <a href="">
+                      <a href="{% url 'single_charge_invoice_pdf' charge.id %}">
                           <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
                                style="width: 35px; height: 33px">
                       </a>|
@@ -152,41 +146,46 @@
                             </div>
                           <hr/>
                             <div class="modal-body text-end">
-                                <p><strong>عنوان:</strong> {{ charge.charge_name }}</p>
-                                <p><strong>تعداد نفرات:</strong> {{ charge.unit.people_count}}نفر</p>
-                                <p><strong>متراژ واحد:</strong> {{ charge.unit.area}}متر</p>
-                               
-                         {% if charge.monthly_unit %}
-                                <p><strong>{{ charge.monthly_unit_label }}:</strong> {{ charge.monthly_unit|three_digit_currency }} تومان</p>
-                                {% endif %}
-                                
-                                {% if charge.monthly_per_person %}
-                                <p><strong>{{ charge.monthly_per_person_label }}:</strong> {{ charge.monthly_per_person|three_digit_currency }} تومان</p>
-                                {% endif %}
-                                
-                                {% if charge.monthly_per_meter %}
-                                <p><strong>{{ charge.monthly_per_meter_label }}:</strong> {{ charge.monthly_per_meter|three_digit_currency }} تومان</p>
-                                {% endif %}
+                                <p><strong>عنوان:</strong> {{ charge.title }}</p>
+                     <div class="d-flex gap-5 mb-3 ">
+                        <span>
+                            <strong>تعداد نفرات:</strong>
+                            {{ charge.unit.people_count|default:"—" }} نفر
+                        </span>
+                        <span>
+                            <strong>متراژ واحد:</strong>
+                            {{ charge.unit.area|default:"—" }} متر
+                        </span>
+                    </div>
 
-
-                                              <hr>
-                 
-                            
-                                         <p class="text-dark shadow_style text-center">
+                                    <hr/> 
+                                  <p class="text-dark shadow_style text-center">
                                             <strong>مبلغ شارژ ماهانه:</strong>
-                                            {{ charge.charge_monthly|three_digit_currency }} تومان
-                                        </p>                                       
-                            <hr/>
-                           
-                                       {% if charge.civil_charge %}
-                                <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
+                                            {{ charge.amount|three_digit_currency }} تومان
+                                        </p>
+                            
+                       
+
+                                       {% if charge.civil %}
+                                <p><strong>شارژ عمرانی:</strong> {{ charge.civil|three_digit_currency }} تومان</p>
+                                           {% else %}
+                                <p><strong>شارژ عمرانی:</strong> -- </p>
                             {% endif %}
-                               
-                            {% if charge.other_cost %}
-                            	 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+
+                            {% if charge.other_cost_amount %}
+                            	 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost_amount|three_digit_currency }} تومان</p>
+                                 {% else %}
+                            	 <p><strong>سایر هزینه ها:</strong> -- </p>
                                 {% endif %}
-                               {% if charge.payment_penalty_price %}
-                                <p><strong>جریمه دیرکرد:</strong> {{ charge.payment_penalty_price|three_digit_currency }} تومان</p>
+                               {% if charge.penalty_amount %}
+                                <p><strong>جریمه دیرکرد:</strong> {{ charge.penalty_amount|three_digit_currency }} تومان</p>
+                                   {% else %}
+                                   <p><strong>جریمه دیرکرد:</strong> -- </p>
+                                {% endif %}
+                             {% if charge.penalty_amount %}
+                                <p><strong>هزینه پارکینگ اضافه:</strong> {{ charge.extra_parking_price|three_digit_currency }} تومان</p>
+                                   {% else %}
+                                   <p><strong>هزینه پارکینگ اضافه:</strong> -- </p>
                                 {% endif %}
                                 <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                               <hr>
@@ -196,12 +195,11 @@
                                         {% else %}
                                          ثبت نشده است
                                     {% endif %} 
-                                    
+
                                 </p>
                                    <p><strong>تاریخ ارسال اطلاعیه:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>
                                    <p><strong>مهلت پرداخت:</strong> {{ charge.payment_deadline_date|show_jalali_date_only }}</p>
-
-                              <hr>
+                            
                            {% if charge.transaction_reference %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ charge.payment_date|show_jalali_date_only }}</p>
                                 <p><strong> کد پیگیری:</strong> {{ charge.transaction_reference }}</p>
@@ -231,6 +229,9 @@
                 </table>
             </div>
     </div>
+
+
+
         <!-- Pagination -->
 <div class="row mt-3">
     <div class="col-12">

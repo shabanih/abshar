@@ -104,6 +104,26 @@ urlpatterns = [
 
     # Charge Urls
     path('middle-add-charge', views.middle_charge_view, name='middle_add_charge'),
+    path('middle-manage-charges', views.base_charge_list, name='middle_main_charges'),
+    path('middle-main-charges-pdf/', views.middle_base_charges_pdf, name='middle_main_charges_pdf'),
+    path('middle_main_charges_excel/', views.middle_base_charges_excel, name='middle_main_charges_excel'),
+
+    path('base-charges/<str:app_label>/<str:model_name>/<int:charge_id>/units/', views.charge_units_list,
+         name='charge_units_list'),
+    path('middle-charge/<str:app_label>/<str:model_name>/<int:charge_id>/units/pdf/', views.charge_units_list_pdf,
+         name='charge_units_list_pdf'),
+    path('middle-charge/<str:app_label>/<str:model_name>/<int:charge_id>/units/excel/', views.charge_units_list_excel,
+         name='charge_units_list_excel'),
+    path(
+        'middle-charge<int:charge_id>',
+        views.charge_units_pdf,
+        name='single_charge_invoice_pdf'
+    ),
+    path(
+        'middle-charge_all/<str:app_label>/<str:model_name>/<int:charge_id>/invoices/pdf/',
+        views.all_invoices_pdf,
+        name='all_invoices_pdf'),
+
 
     # Fix Charge
     path('middle-add-fixed-Charge', views.MiddleFixChargeCreateView.as_view(), name='middle_add_fixed_charge'),

@@ -103,9 +103,9 @@ class ChargeFixVariableCalculator(BaseCalculator):
         fix = charge_obj.unit_fix_amount or 0
         person_var = charge_obj.unit_variable_person_amount or 0
         area_var = charge_obj.unit_variable_area_amount or 0
-        extra_parking = charge_obj.extra_parking_amount or 0
+        # extra_parking = charge_obj.extra_parking_amount or 0
 
-        return fix + (people * person_var) + (area * area_var) + extra_parking
+        return fix + (people * person_var) + (area * area_var)
 
 
 # -------------------------------

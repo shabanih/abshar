@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+{% load poll_extras %}
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>صورتحساب شارژ  </title>
+    <style>
+
+        body {
+            font-family: 'BYekan', sans-serif;
+            direction: rtl;
+            font-size: 15px;
+            line-height: 2;
+        }
+        .invoice-box {
+            padding: 10px;
+            border: 2px solid #0c0c0c;
+        }
+        .invoice-box h2{
+            
+            font-weight: bold;
+            
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            text-align: center;
+        }
+        p{
+            font-size: 16px;
+        }
+        th, td {
+            padding: 2px;
+            border: 1px solid #ccc;
+        }
+        th {
+            background-color: #eee;
+        }
+        .total {
+            background-color: #f9f9f9;
+            font-weight: bold;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .badge {
+            padding: 5px 10px;
+            color: white;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-box">
+         <h3 class="text-center font-weight-bold">مجتمع مسکونی {{ house.name }}</h3>
+
+        <h2 class="text-center font-weight-bold">صورتحساب {{ charge.title }}</h2>
+    <table>
+                  <tr>
+                <th>واحد</th>
+                <th>نام مالک/مستاجر</th>
+                <th>متِراژ</th>
+                <th>تعداد نفرات</th>
+            </tr>
+            <tr>
+                <td>{{ charge.unit.unit }} </td>
+                <td>{{ charge.unit.get_label_invoice }}</td>
+                <td>{{ charge.unit.area }}</td>
+                <td>{{ charge.unit.people_count }}</td>
+            </tr>
+    </table>
+         <table>
+                  <tr>
+                <th>تاریخ صدور</th>
+                <th>مهلت پرداخت</th>
+            </tr>
+            <tr>
+                <td class="shadow-lg"> {{ charge.send_notification_date|show_jalali_date_only }} </td>
+                <td>{{ charge.payment_deadline_date|show_jalali_date_only }}</td>
+            </tr>
+    </table>
+
+        <table>
+            <tr>
+                <th>شرح</th>
+                <th>مبلغ (تومان)</th>
+            </tr>
+            <tr>
+
+            <tr>
+                <td>شارژ ماهیانه واحد</td>
+                <td>
+                  {{ charge.amount|three_digit_currency }}
+                     
+                </td>
+            </tr>
+            <tr>
+                <td>شارژ عمرانی</td>
+                <td>{{ charge.civil|three_digit_currency }}</td>
+            </tr>
+          
+            <tr>
+                <td>سایر هزینه‌ها</td>
+                <td>{{ charge.other_cost_amount|three_digit_currency }}</td>
+            </tr>
+              <tr>
+                	     <td>اجاره پارکینگ اضافه ({{ charge.unit.parking_counts }})</td>
+                <td>{{ charge.extra_parking_price|three_digit_currency }}</td>
+            </tr>
+          <tr>
+                <td>جریمه دیرکرد</td>
+                <td>{{ charge.penalty_amount|three_digit_currency }}</td>
+            </tr>
+            <tr class="total">
+                <td colspan="1">جمع کل قابل پرداخت</td>
+                <td>{{ charge.total_charge_month|three_digit_currency }}</td>
+            </tr>
+        </table>
+
+       <table style="width: 100%; border: none; font-size: 13px; line-height: 1.8;">
+    <tr>
+        <td style="text-align: center; direction: rtl;">
+            {% if bank %}
+                <p style="padding: 10px; margin: 10px">
+                    خواهشمند است مبلغ شارژ را به شماره حساب
+                    <strong>{{ bank.account_no }}</strong>
+                    نزد بانک
+                    <strong>{{ bank.bank_name }}</strong>
+                    بنام
+                    <strong>{{ bank.account_holder_name }}</strong>
+                    واریز نمایید.
+                </p>
+                <p>شماره شبا: <strong>{{ bank.sheba_number }}</strong></p>
+                <p>شماره کارت: <strong>{{ bank.cart_number }}</strong></p>
+            {% else %}
+                <p style="color: red;">اطلاعات حساب بانکی ثبت نشده است.</p>
+            {% endif %}
+        </td>
+    </tr>
+</table>
+    </div>
+</body>
+</html>

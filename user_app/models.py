@@ -165,6 +165,10 @@ class Unit(models.Model):
         renter = self.get_active_renter()
         return f"واحد {self.unit} - {renter.renter_name}" if renter else f"واحد {self.unit} - {self.owner_name}"
 
+    def get_label_invoice(self):
+        renter = self.get_active_renter()
+        return f" {renter.renter_name}" if renter else f"{self.owner_name}"
+
     def save(self, *args, **kwargs):
         is_new = self.pk is None
         old = None

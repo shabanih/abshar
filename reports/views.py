@@ -2604,11 +2604,6 @@ def export_pay_receive_report_excel(request):
     ws.title = "units"
     ws.sheet_view.rightToLeft = True
 
-    # Title
-    title_cell = ws.cell(row=1, column=1, value=f"گردش مالی صندوق ")
-    title_cell.font = Font(bold=True, size=18)
-    title_cell.alignment = Alignment(horizontal="center", vertical="center")
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=5)
 
     # Headers
     headers = [' بانک', 'تاریخ پرداخت', 'شرح', 'پرداخت کننده/واریز کننده', 'شماره سند', 'بدهکار', 'بستانکار']
@@ -2656,7 +2651,7 @@ def charge_notify_report_list(request):
         )
 
         if search.isdigit():
-            q_obj |= Q(amount=search) | Q(total_charge_month=search)
+            q_obj |= Q(base_charge=search) | Q(total_charge_month=search)
 
         charges = charges.filter(q_obj)
 

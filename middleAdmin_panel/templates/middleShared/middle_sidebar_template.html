@@ -91,16 +91,32 @@
             </li>
 
           
-               <li class="nav-item border-top mt-0">
-                 {% url 'middle_add_charge' as address_url %}
-                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                <i class="menu-title"> مدیریت شارژ</i>
-                <i class="mdi mdi-square-inc-cash menu-icon"></i>
-              </a>
-            </li>
+{#               <li class="nav-item border-top mt-0">#}
+{#                 {% url 'middle_add_charge' as address_url %}#}
+{#                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">#}
+{#                <i class="menu-title"> مدیریت شارژ</i>#}
+{#                <i class="mdi mdi-square-inc-cash menu-icon"></i>#}
+{#              </a>#}
+{#            </li>#}
+                 <li class="nav-item border-top mt-0">
+  <a class="nav-link" data-bs-toggle="collapse" href="#general40"
+     aria-expanded="{% if request.resolver_match.url_name in 'middle_add_charge middle_add_expense    ' %}true{% else %}false{% endif %}"
+     aria-controls="general40">
+    <i class="menu-title">مدیریت شارژ</i>
+    <i class="menu-arrow"></i>
+        <i class="mdi mdi-square-inc-cash menu-icon"></i>
+  </a>
+  <div class="collapse {% if request.resolver_match.url_name in 'middle_add_charge middle_main_charges' %}show{% endif %}" id="general40">
+    <ul class="nav flex-column sub-menu">
+      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_add_charge' %}active{% endif %}" href="{% url 'middle_add_charge' %}">افزودن شارژ</a></li>
+      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_main_charges' %}active{% endif %}" href="{% url 'middle_main_charges' %}"> شارژ های من</a></li>
+
+    </ul>
+  </div>
+</li>
 
 
-             <li class="nav-item border-top mt-0">
+ <li class="nav-item border-top mt-0">
   <a class="nav-link" data-bs-toggle="collapse" href="#general23"
      aria-expanded="{% if request.resolver_match.url_name in 'middle_add_income middle_add_expense middle_add_receive middle_add_pay middle_add_property middle_add_maintenance' %}true{% else %}false{% endif %}"
      aria-controls="general23">
@@ -124,7 +140,7 @@
 
               <li class="nav-item mt-0">
   <a class="nav-link" data-bs-toggle="collapse" href="#general2"
-     aria-expanded="{% if request.resolver_match.url_name in 'fund_turn_over unit_reports debtor_creditor_reports unit_history_report expense_history_report income_history_report property_history_report maintenance_history_report' %}true{% else %}false{% endif %}"
+     aria-expanded="{% if request.resolver_match.url_name in 'fund_turn_over unit_reports debtor_creditor_reports unit_history_report expense_history_report income_history_report property_history_report maintenance_history_report pay_receive_report charge_list_report charge_notify_report_list' %}true{% else %}false{% endif %}"
      aria-controls="general2">
     <i class="menu-title">گزارشات</i>
     <i class="menu-arrow"></i>

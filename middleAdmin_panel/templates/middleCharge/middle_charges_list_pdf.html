@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+{% load poll_extras %}
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لیست شارژهای ساختمان </title>
+    <style>
+        body {
+            font-family: 'Vazir', sans-serif;
+            direction: rtl;
+            font-size: 13px;
+            line-height: 2;
+        }
+        .invoice-box {
+            padding: 10px;
+            border: 2px solid #0c0c0c;
+            margin-bottom: 20px;
+        }
+        .invoice-box h2{
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            text-align: center;
+        }
+        p{
+            font-size: 12px;
+        }
+        th, td {
+            font-family: Vazir, sans-serif;
+            padding: 2px;
+            border: 1px solid #ccc;
+        }
+        th {
+            background-color: #eee;
+        }
+        .total {
+            background-color: #f9f9f9;
+            font-weight: bold;
+        }
+        .text-center {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+
+ <div class="text-center mb-4" style="border-bottom: 2px solid #333; padding-bottom: 10px;">
+    {% if house %}
+        <h1 class="fw-bold mb-1" style="color: #202548F9;">{{ house.name }}</h1>
+    {% endif %}
+    
+    <h2 class="fw-bold mb-1 text-center" style="color: #222;">لیست شارژهای ساختمان</h2>
+    
+    <p class="text-muted mb-0" style="font-size: 0.9rem;">
+        تاریخ: {{ today|show_jalali_date_time }}
+    </p>
+</div>
+   
+ <div class="table-responsive mt-2">
+                            <table class="table table-bordered">
+                                <thead class="text-center">
+                                    <tr>
+                                        <th>#</th>
+                                        <th> عنوان شارژ </th>
+                                        <th>تاریخ ثبت</th>
+                                        <th>جریمه دیرکرد</th>
+                                        <th>مهلت پرداخت </th>
+                                             <th>توضیحات</th>
+                                        <th> اعلام شارژ </th>
+{#                                        <th>دستورات</th>#}
+                                    </tr>
+                                </thead>
+                            {% if charges %}
+                           {% for charge in charges %}
+                                    <tbody class="text-center">
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{charge.name }}</td>
+{#                                            <td>{{charge.unit_count }}</td>#}
+{#                                            <td class="bg-gradient-light">{{charge.bas|three_digit_currency }}</td>#}
+                                   
+                                            <td>{{charge.created_at|show_jalali }}</td>
+                                              	  <td>
+                                                   {% if charge.payment_penalty_amount %}
+                                                      % {{charge.payment_penalty_amount }}
+                                                {% else %}
+                                               ندارد
+                                            {% endif %} 
+                                          </td>
+                                             <td>
+                                                 {% if charge.payment_deadline %}
+                                                 	  {{charge.payment_deadline | show_jalali}}
+                                                   {% else %}
+                                                ----
+                                            {% endif %} 
+
+                                             </td>
+                                                 <td> {% if charge.details %}
+                                            	   دارد
+                                                {% else %}
+                                                ندارد
+                                            {% endif %} 
+                                             
+                                            </td>
+                                              <td class="bg-gradient-light">
+                                                     <span>{{ charge.notified_count }} از {{ unit_count }} واحد</span>
+
+                                                </td>
+                                        
+
+                                        </tr>
+                                    {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="11" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
+                                        </tr>
+                                 <tbody>
+                                {% endif %}
+
+                            </table>
+      
+
+               </div>
+
+
+
+</body>
+</html>
