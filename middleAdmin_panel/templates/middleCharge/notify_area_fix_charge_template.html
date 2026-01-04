@@ -3,7 +3,7 @@
 {% load poll_extras %}
 
 {% block page_title %}
-  اعلام شارژ واحدی متراژی ({{ charge.name }}  )
+  اعلام شارژ ({{ charge.name }}  )
 {% endblock page_title %}
 
 {% block main_content %}
@@ -62,7 +62,7 @@
         </div>
     
   
- <div class="row g-2 mt-3">
+ <div class="row gx-4 mt-3">
   <span class="text-danger text-notify">توجه: جهت مشاهده اطلاعات شارژ بر روی آن کلیک نمایید.</span>
    {% for item in page_obj %}
 {% with unit=item.unit renter=item.renter %}
@@ -90,16 +90,16 @@
                 <br>
                 مبلغ شارژ: {{ item.total_charge|three_digit_currency }} تومان
                 ">
-                <input class="form-check-input unit-checkbox mx-2"
+                <input class="form-check-input unit-checkbox mx-3"
                        type="checkbox"
                        name="units"
                        value="{{ unit.id }}">
                 واحد شماره {{ unit.unit }}
             </p>
-            <a href="#">
-                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="me-4" alt="" 
-                               style="width: 30px; height: 28px;">
-                      </a>
+{#            <a href="#">#}
+{#                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="me-4" alt="" #}
+{#                               style="width: 30px; height: 28px;">#}
+{#                      </a>#}
         </div>
      
     </div>

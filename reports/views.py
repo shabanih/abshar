@@ -619,450 +619,60 @@ def unified_charge_list(request):
     }
 
     return render(request, 'unified_charge_list.html', context)
-
-
-CHARGE_TYPE_FA = {
-    'fix': ' ثابت',
-    'area': ' متراژی',
-    'person': ' نفری',
-    'fix_person': 'واحدی نفری',
-    'fix_area': 'واحدی متراژی',
-    'person_area': 'نفری متراژی',
-    'fix_person_area': 'واحدی نفری متراژی',
-    'fix_variable': ' ثابت متغیر',
-}
-
-
-CHARGE_FK_FIELD = {
-    'fix': 'fix_charge_id',
-    'area': 'area_charge_id',
-    'person': 'person_charge_id',
-    'fix_person': 'fix_person_id',
-    'fix_area': 'fix_area_id',
-    'person_area': 'person_area_charge_id',
-    'fix_person_area': 'fix_person_area_id',
-    'fix_variable': 'fix_variable_charge_id',
-}
-
-monthly_field_map = {
-    'fix': 'amount',
-    'area': 'final_area_amount',
-    'person': 'final_person_amount',
-    'fix_area': 'amount',
-    'fix_person': 'amount',
-    'person_area': 'amount',
-    'fix_person_area': 'amount',
-    'fix_variable': 'amount'
-}
-
-
-def charge_units_list(request, charge_type, charge_id):
-    # انتخاب مدل محاسبه
-    model = CHARGE_CALC_MAP.get(charge_type)
-    if not model:
-        raise Http404("نوع شارژ نامعتبر است")
-
-    # فیلتر اولیه و انتخاب داده‌های مرتبط
-    qs = model.objects.filter(
-        **{CHARGE_FK_FIELD[charge_type]: charge_id},
-        is_active=True
-    ).select_related('unit__user').order_by('unit__unit')
-
-    for obj in qs.filter(
-            is_paid=False,
-            payment_deadline_date__isnull=False,
-            payment_penalty__gt=0
-    ):
-        obj.update_penalty()
-
-    # 🔍 جستجو
-    query = request.GET.get('q', '').strip()
-    if query:
-        search_q = Q(charge_name__icontains=query) | Q(details__icontains=query) | Q(unit__unit__icontains=query) | Q(
-            unit__user__full_name__icontains=query)
-        if query.isdigit():
-            search_q |= Q(amount=query) | Q(total_charge_month=query)
-        qs = qs.filter(search_q)
-
-    # 🧮 محاسبات اضافی (در صورت نیاز)
-    qs = qs.annotate(
-        unit_number=F('unit__unit'),
-        user_full_name=F('unit__user__full_name')
-    )
-
-    # 📄 پانجیگ
-    paginate = request.GET.get('paginate', '20')
-    if str(paginate).lower() == 'all':
-        paginate = qs.count() or 1
-    else:
-        try:
-            paginate = int(paginate)
-        except ValueError:
-            paginate = 20
-
-    paginator = Paginator(qs, paginate)
-    page_obj = paginator.get_page(request.GET.get('page'))
-
-    for charge in page_obj:
-        if charge_type == 'fix':
-            charge.monthly_unit = getattr(charge, 'amount', 0)
-            charge.monthly_unit_label = "مبلغ شارژ به ازای هر واحد"
-        elif charge_type == 'area':
-            charge.monthly_per_meter = getattr(charge, 'final_area_amount', 0)
-            charge.monthly_per_meter_label = "مبلغ شارژ به ازای هر متر"
-        elif charge_type == 'person':
-            charge.monthly_per_person = getattr(charge, 'final_person_amount', 0)
-            charge.monthly_per_person_label = "مبلغ شارژ به ازای هر نفر"
-        elif charge_type == 'fix_person':
-            charge.monthly_unit = getattr(charge, 'fix_charge', 0)
-            charge.monthly_unit_label = "مبلغ شارژ ثابت به ازای هر واحد"
-            charge.monthly_per_person = getattr(charge, 'amount', 0)
-            charge.monthly_per_person_label = "مبلغ شارژ به ازای هر نفر"
-        elif charge_type == 'fix_area':
-            charge.monthly_unit = getattr(charge, 'fix_charge', 0)
-            charge.monthly_unit_label = "مبلغ شارژ ثابت به ازای هر واحد"
-            charge.monthly_per_meter = getattr(charge, 'amount', 0)
-            charge.monthly_per_meter_label = "مبلغ شارژ به ازای هر متر"
-        elif charge_type == 'person_area':
-            charge.monthly_per_person = getattr(charge, 'person_charge', 0)
-            charge.monthly_per_person_label = "مبلغ شارژ به ازای هر نفر"
-            charge.monthly_per_meter = getattr(charge, 'area_charge', 0)
-            charge.monthly_per_meter_label = "مبلغ شارژ به ازای هر متر"
-        elif charge_type == 'fix_person_area':
-            charge.monthly_unit = getattr(charge, 'fix_charge', 0)
-            charge.monthly_unit_label = "مبلغ شارژ ثابت به ازای هر واحد"
-            charge.monthly_per_person = getattr(charge, 'person_charge', 0)
-            charge.monthly_per_person_label = "مبلغ شارژ به ازای هر نفر"
-            charge.monthly_per_meter = getattr(charge, 'area_charge', 0)
-            charge.monthly_per_meter_label = "مبلغ شارژ به ازای هر متر"
-        elif charge_type == 'fix_variable':
-            charge.monthly_unit = getattr(charge, 'unit_fix_charge_per_unit', 0)
-            charge.monthly_unit_label = "مبلغ شارژ ثابت به ازای هر واحد "
-            charge.monthly_per_person = getattr(charge, 'unit_variable_person_charge', 0)
-            charge.monthly_per_person_label = "مبلغ شارژ متغیر به ازای هر نفر "
-            charge.monthly_per_meter = getattr(charge, 'unit_variable_area_charge', 0)
-            charge.monthly_per_meter_label = "مبلغ شارژ متغیر به ازای هر متر "
-
-    charge_type_fa = CHARGE_TYPE_FA.get(charge_type, charge_type)
-
-    context = {
-        'page_obj': page_obj,
-        'charge_type': charge_type,
-        'charge_type_fa': charge_type_fa,
-        'charge_id': charge_id,
-        'query': query,
-        'paginate': paginate,
-
-    }
-
-    return render(request, 'charge_detail_report.html', context)
-
-
-def unit_charge_invoice_pdf_view(request, charge_type, charge_id):
-    house = None
-    if request.user.is_authenticated:
-        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
-
-    bank = Bank.get_default(request.user, house)
-    # 1️⃣ انتخاب مدل محاسبه
-    model = CHARGE_CALC_MAP.get(charge_type)
-    if not model:
-        raise Http404('نوع شارژ نامعتبر است')
-
-
-    # 2️⃣ گرفتن نمونه شارژ محاسبه شده
-    calc_charge = get_object_or_404(model, pk=charge_id, is_active=True)
-
-    # 3️⃣ گرفتن یا ساخت UnifiedCharge متناظر
-    unified_charge, created = UnifiedCharge.objects.get_or_create(
-        content_type=ContentType.objects.get_for_model(calc_charge),
-        object_id=calc_charge.id,
-        defaults={
-            'user': calc_charge.user,
-            'unit': getattr(calc_charge, 'unit', None),
-            'bank': getattr(calc_charge, 'bank', None),
-            'amount': getattr(calc_charge, 'amount', 0),
-            'charge_type': charge_type,
-            'total_charge_month': getattr(calc_charge, 'amount', 0),
-            'title': getattr(calc_charge, 'name', ''),
-        }
-    )
-
-    # 4️⃣ آماده‌سازی داده‌ها برای قالب PDF
-    context = {
-        'charge': unified_charge,
-        'calc_charge': calc_charge,
-        'house': house,
-        'bank': bank
-    }
-
-    # 5️⃣ رندر قالب به HTML
-    html_string = render_to_string('charge_invoice_template.html', context)
-
-    # 6️⃣ تولید PDF
-    font_url = request.build_absolute_uri(static('/static/fonts/Vazir.ttf'))
-    css = CSS(string=f"""
-         @page {{ size: A5 portrait; margin: 1cm; }}
-         body {{
-             font-family: 'BYekan', sans-serif;
-         }}
-         @font-face {{
-             font-family: 'BYekan';
-             src: url('{font_url}');
-         }}
-     """)
-    html = HTML(string=html_string)
-    pdf_file = html.write_pdf(stylesheets=[css])
-
-    response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="charge-unit_{unified_charge.unit.unit}.pdf"'
-    return response
-
-
-def all_charges_invoice_pdf_view(request, charge_type):
-    # 1️⃣ انتخاب مدل محاسبه
-    model = CHARGE_CALC_MAP.get(charge_type)
-    if not model:
-        raise Http404('نوع شارژ نامعتبر است')
-
-    # 2️⃣ گرفتن همه رکوردهای فعال مدل انتخاب شده
-    calc_charges = model.objects.filter(is_active=True).order_by('id')
-    if not calc_charges.exists():
-        return HttpResponse("هیچ صورتحساب فعالی برای این نوع شارژ وجود ندارد.", status=404)
-
-    all_charges = []
-    for calc_charge in calc_charges:
-        # 3️⃣ گرفتن یا ساخت UnifiedCharge متناظر برای هر calc_charge
-        unified_charge, created = UnifiedCharge.objects.get_or_create(
-            content_type=ContentType.objects.get_for_model(calc_charge),
-            object_id=calc_charge.id,
-            defaults={
-                'user': getattr(calc_charge, 'user', None),
-                'unit': getattr(calc_charge, 'unit', None),
-                'bank': getattr(calc_charge, 'bank', None),
-                'amount': getattr(calc_charge, 'amount', 0),
-                'charge_type': charge_type,
-                'total_charge_month': getattr(calc_charge, 'amount', 0),
-                'title': getattr(calc_charge, 'name', ''),
-            }
-        )
-        all_charges.append(unified_charge)
-
-    # بانک پیش‌فرض کاربر برای نمایش
-    house = None
-    if request.user.is_authenticated:
-        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
-    bank = Bank.get_default(request.user, house)
-
-    # 4️⃣ آماده‌سازی context برای قالب
-    context = {
-        'charges': all_charges,
-        'bank': bank,
-        'house': house,
-        'charge_type': charge_type,
-    }
-
-    # 5️⃣ رندر قالب HTML
-    html_string = render_to_string('all_units_charge_pdf.html', context)
-
-    # 6️⃣ تولید PDF
-    font_url = request.build_absolute_uri(static('/static/fonts/Vazir.ttf'))
-    css = CSS(string=f"""
-          @page {{ size: A5 portrait; margin: 1cm; }}
-         body {{
-             font-family: 'BYekan', sans-serif;
-         }}
-         @font-face {{
-             font-family: 'BYekan';
-             src: url('{font_url}');
-         }}
-         .invoice-box {{
-        page-break-after: always;  /* هر صورتحساب در یک صفحه جدید */
-         }}
-     """)
-    html = HTML(string=html_string)
-    pdf_file = html.write_pdf(stylesheets=[css])
-
-    response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="all_charges_{charge_type}.pdf"'
-    return response
-
-def export_units_charge_report_pdf(request, charge_type, charge_id):
-    house = None
-    if request.user.is_authenticated:
-        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
-    model = CHARGE_CALC_MAP.get(charge_type)
-    if not model:
-        raise Http404("نوع شارژ نامعتبر است")
-
-    qs = model.objects.filter(
-        **{CHARGE_FK_FIELD[charge_type]: charge_id},
-        is_active=True
-    ).select_related('unit__user').order_by('unit__unit')
-
-    # 🔍 جستجو
-    query = request.GET.get('q', '').strip()
-    if query:
-        search_q = (
-                Q(charge_name__icontains=query) |
-                Q(details__icontains=query) |
-                Q(unit__unit__icontains=query) |
-                Q(unit__user__full_name__icontains=query)
-        )
-        if query.isdigit():
-            search_q |= Q(amount=query) | Q(total_charge_month=query)
-        qs = qs.filter(search_q)
-
-    # محاسبات اضافی
-    qs = qs.annotate(
-        unit_number=F('unit__unit'),
-        user_full_name=F('unit__user__full_name')
-    )
-
-    # جمع کل
-    # total_amount = qs.aggregate(total=Sum('amount'))['total'] or 0
-
-    # آماده‌سازی محتوا
-    html_string = render_to_string('units_charge_report_pdf.html', {
-        'charges': qs,
-        'charge_type': charge_type,
-        'charge_id': charge_id,
-        # 'total_amount': total_amount,
-        'query': query,
-        'today': datetime.now(),
-        'house': house
-    })
-    # ساخت PDF
-    font_url = request.build_absolute_uri(static('/static/fonts/Vazir.ttf'))
-    css = CSS(string=f"""
-        @page {{ size: A4 landscape; margin: 1cm; }}
-          @font-face {{
-            font-family: 'Vazir';
-            src: url('{font_url}');
-        }}
-          body {{
-            font-family: 'Vazir', sans-serif;
-        }}
-    """)
-    html = HTML(string=html_string)
-    pdf_file = html.write_pdf(stylesheets=[css])
-
-    response = HttpResponse(pdf_file, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="charge_{charge_type}_{charge_id}.pdf"'
-    return response
-
-
-@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-def export_units_charge_report_excel(request, charge_type, charge_id):
-    model = CHARGE_CALC_MAP.get(charge_type)
-    if not model:
-        raise Http404("نوع شارژ نامعتبر است")
-
-    qs = model.objects.filter(
-        **{CHARGE_FK_FIELD[charge_type]: charge_id},
-        is_active=True
-    ).select_related('unit__user').order_by('unit__unit')
-
-    # 🔍 جستجو
-    query = request.GET.get('q', '').strip()
-    if query:
-        search_q = (
-                Q(charge_name__icontains=query) |
-                Q(details__icontains=query) |
-                Q(unit__unit__icontains=query) |
-                Q(unit__user__full_name__icontains=query)
-        )
-        if query.isdigit():
-            search_q |= Q(amount=query) | Q(total_charge_month=query)
-        qs = qs.filter(search_q)
-
-    # محاسبات اضافی
-    qs = qs.annotate(
-        unit_number=F('unit__unit'),
-        user_full_name=F('unit__user__full_name')
-    )
-
-    # Update penalties
-    for charge in qs:
-        charge.update_penalty()
-        charge.save(update_fields=['payment_penalty_price', 'total_charge_month'])
-
-    # Organize charges per unit
-    units = defaultdict(lambda: {'id': None, 'label': '', 'total_debt': 0, 'charges': []})
-    for charge in qs:
-        unit = charge.unit
-        renter = unit.get_active_renter()
-        label = f"واحد {unit.unit} - {renter.renter_name}" if renter else f"واحد {unit.unit} - {unit.owner_name}"
-
-        data = units[unit.id]
-        data['id'] = unit.id
-        data['label'] = label
-        data['total_debt'] += charge.total_charge_month or 0
-        data['charges'].append(charge)
-
-    # Sort units by unit number
-    units_with_debt = sorted(units.values(), key=lambda x: x['id'])
-
-    # -------------------------
-    # Create Excel workbook
-    # -------------------------
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "Debtor Report"
-    ws.sheet_view.rightToLeft = True
-
-    # Title
-
-    title_cell = ws.cell(row=1, column=1, value="لیست شارژ واحدهای ساختمان")
-    title_cell.font = Font(bold=True, size=16)
-    title_cell.alignment = Alignment(horizontal="center", vertical="center")
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=9)
-
-    current_row = 2
-
-    # Column headers
-    header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
-    header_font = Font(bold=True)
-
-    headers = ['#', 'عنوان', 'نام مالک/مستاجر', 'شارژ ماهیانه', 'توضیحات', 'مهلت پرداخت', 'تاریخ ارسال اطلاعیه',
-               'جریمه', 'قابل پرداخت']
-    for col_num, header in enumerate(headers, 1):
-        cell = ws.cell(row=current_row, column=col_num, value=header)
-        cell.font = header_font
-        cell.fill = header_fill
-    current_row += 1
-
-    # Charges per unit
-    current_row = 3
-    row_number = 1  # شماره ردیف کلی برای ستون #
-
-    for unit in units_with_debt:
-        # Charges ردیف‌ها بدون فاصله
-        for charge in unit['charges']:
-            ws.cell(row=current_row, column=1, value=row_number)  # شماره ردیف کلی
-            ws.cell(row=current_row, column=2, value=charge.charge_name)
-            ws.cell(row=current_row, column=3, value=unit['label'])
-            ws.cell(row=current_row, column=4, value=charge.base_charge)
-            ws.cell(row=current_row, column=5, value=charge.details)
-            ws.cell(row=current_row, column=6, value=show_jalali(charge.payment_deadline_date))
-            ws.cell(row=current_row, column=7,
-                    value=show_jalali(charge.send_notification_date))
-            ws.cell(row=current_row, column=8, value=charge.payment_penalty_price or 0)
-            ws.cell(row=current_row, column=9, value=charge.total_charge_month)
-
-            row_number += 1
-            current_row += 1  # فقط یک ردیف به جلو، بدون فاصله اضافی
-
-    # -------------------------
-    # Return Excel response
-    # -------------------------
-    response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-    response['Content-Disposition'] = 'attachment; filename=debtor_report.xlsx'
-    wb.save(response)
-    return response
-
+#
+#
+# CHARGE_TYPE_FA = {
+#     'fix': ' ثابت',
+#     'area': ' متراژی',
+#     'person': ' نفری',
+#     'fix_person': 'واحدی نفری',
+#     'fix_area': 'واحدی متراژی',
+#     'person_area': 'نفری متراژی',
+#     'fix_person_area': 'واحدی نفری متراژی',
+#     'fix_variable': ' ثابت متغیر',
+# }
+#
+#
+# CHARGE_FK_FIELD = {
+#     'fix': 'fix_charge_id',
+#     'area': 'area_charge_id',
+#     'person': 'person_charge_id',
+#     'fix_person': 'fix_person_id',
+#     'fix_area': 'fix_area_id',
+#     'person_area': 'person_area_charge_id',
+#     'fix_person_area': 'fix_person_area_id',
+#     'fix_variable': 'fix_variable_charge_id',
+# }
+#
+# monthly_field_map = {
+#     'fix': 'amount',
+#     'area': 'final_area_amount',
+#     'person': 'final_person_amount',
+#     'fix_area': 'amount',
+#     'fix_person': 'amount',
+#     'person_area': 'amount',
+#     'fix_person_area': 'amount',
+#     'fix_variable': 'amount'
+# }
+#
+#
+# def charge_units_list_repor(request, charge_type, charge_id):
+#     pass
+#
+#
+# def unit_charge_invoice_pdf_view(request, charge_type, charge_id):
+#     pass
+#
+#
+# def all_charges_invoice_pdf_view(request, charge_type):
+#     pass
+# def export_units_charge_report_pdf(request, charge_type, charge_id):
+#    pass
+#
+#
+# @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+# def export_units_charge_report_excel(request, charge_type, charge_id):
+#     pass
 
 # ===========================================================
 def debtor_creditor_report(request):

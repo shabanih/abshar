@@ -10,7 +10,7 @@ urlpatterns = [
     path('payment/charge/done/<int:pk>/', views.payment_done_view, name='payment_done'),
 
     path(
-        'unit-charge/payment/<str:charge_type>/<int:charge_id>/',
+        'unit-charge/payment<int:charge_id>/',
         views.unit_charge_payment_view,
         name='unit_charge_payment'
     ),

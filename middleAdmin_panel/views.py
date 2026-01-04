@@ -6411,6 +6411,16 @@ def base_charge_list(request):
             .distinct()
             .count()
         )
+        data['paid_count'] = (
+            charge.unified_charges
+            .filter(
+                is_paid=True,
+                unit__isnull=False
+            )
+            .values_list('unit_id', flat=True)
+            .distinct()
+            .count()
+        )
 
         charges_data.append(data)
 
@@ -6487,6 +6497,7 @@ def middle_base_charges_pdf(request):
             'today': datetime.now(),
             'house': house,
             'unit_count': unit_count,
+            'font_url': request.build_absolute_uri('/static/fonts/Vazir.ttf')
         }
     )
 
@@ -6600,10 +6611,21 @@ def charge_units_list(request, app_label, model_name, charge_id):
     model = apps.get_model(app_label, model_name)
     charge = get_object_or_404(model, id=charge_id)
 
+    # 🔥 بررسی نوع مدل و گرفتن unified charges
+    if hasattr(charge, 'unified_charges'):
+        # مدل اصلی شارژ → گرفتن همه UnifiedCharge ها
+        unified_qs = charge.unified_charges.all()
+    elif model_name.lower() == 'unifiedcharge':
+        # خود UnifiedCharge → تبدیل به QuerySet با یک عضو
+        unified_qs = model.objects.filter(id=charge.id)
+    else:
+        # هر حالت غیرمنتظره
+        unified_qs = model.objects.none()
+
     # 🔥 آپدیت جریمه همه UnifiedCharge ها
-    unified_qs = charge.unified_charges.all()
     for uc in unified_qs:
-        uc.update_penalty(save=True)
+        if hasattr(uc, 'update_penalty'):
+            uc.update_penalty(save=True)
 
     # -------------------------
     # 🔍 جستجو
@@ -6616,16 +6638,16 @@ def charge_units_list(request, app_label, model_name, charge_id):
 
     if query:
         search_q = (
-                Q(unit__unit__icontains=query) |
-                Q(unit__user__full_name__icontains=query)
+            Q(unit__unit__icontains=query) |
+            Q(unit__user__full_name__icontains=query)
         )
 
         # اگر عدد بود → جستجو روی مقادیر عددی شارژ
         if query.isdigit():
             search_q |= (
-                    Q(penalty_amount=query) |
-                    Q(total_charge_month=query) |
-                    Q(base_charge=query)
+                Q(penalty_amount=query) |
+                Q(total_charge_month=query) |
+                Q(base_charge=query)
             )
 
         unified_charges = unified_charges.filter(search_q)
@@ -6641,23 +6663,13 @@ def charge_units_list(request, app_label, model_name, charge_id):
     # واحدها (مطابق صفحه‌بندی)
     units = [uc.unit for uc in page_obj if uc.unit]
 
-    # 🧪 debug (در صورت نیاز)
-    print('ALL:', charge.unified_charges.count())
-    print(
-        charge.unified_charges.values(
-            'id',
-            'send_notification',
-            'send_notification_date'
-        )
-    )
-
     return render(
         request,
         'middleCharge/middle_charges_detail.html',
         {
             'charge': charge,
             'units': units,
-            'unified_charges': page_obj,  # 👈 مهم
+            'unified_charges': page_obj,
             'query': query,
             'paginate': paginate,
             'page_obj': page_obj,
@@ -6665,6 +6677,75 @@ def charge_units_list(request, app_label, model_name, charge_id):
             'model_name': model_name,
         }
     )
+# def charge_units_list(request, app_label, model_name, charge_id):
+#     model = apps.get_model(app_label, model_name)
+#     charge = get_object_or_404(model, id=charge_id)
+#
+#     # 🔥 آپدیت جریمه همه UnifiedCharge ها
+#     unified_qs = charge.unified_charges.all()
+#     for uc in unified_qs:
+#         uc.update_penalty(save=True)
+#
+#     # -------------------------
+#     # 🔍 جستجو
+#     # -------------------------
+#     query = request.GET.get('q', '').strip()
+#
+#     unified_charges = unified_qs.filter(
+#         send_notification_date__isnull=False
+#     ).select_related('unit', 'unit__user')
+#
+#     if query:
+#         search_q = (
+#                 Q(unit__unit__icontains=query) |
+#                 Q(unit__user__full_name__icontains=query)
+#         )
+#
+#         # اگر عدد بود → جستجو روی مقادیر عددی شارژ
+#         if query.isdigit():
+#             search_q |= (
+#                     Q(penalty_amount=query) |
+#                     Q(total_charge_month=query) |
+#                     Q(base_charge=query)
+#             )
+#
+#         unified_charges = unified_charges.filter(search_q)
+#
+#     # -------------------------
+#     # 📄 pagination
+#     # -------------------------
+#     paginate = int(request.GET.get('paginate', 20))
+#     paginator = Paginator(unified_charges, paginate)
+#     page_number = request.GET.get('page')
+#     page_obj = paginator.get_page(page_number)
+#
+#     # واحدها (مطابق صفحه‌بندی)
+#     units = [uc.unit for uc in page_obj if uc.unit]
+#
+#     # 🧪 debug (در صورت نیاز)
+#     print('ALL:', charge.unified_charges.count())
+#     print(
+#         charge.unified_charges.values(
+#             'id',
+#             'send_notification',
+#             'send_notification_date'
+#         )
+#     )
+#
+#     return render(
+#         request,
+#         'middleCharge/middle_charges_detail.html',
+#         {
+#             'charge': charge,
+#             'units': units,
+#             'unified_charges': page_obj,  # 👈 مهم
+#             'query': query,
+#             'paginate': paginate,
+#             'page_obj': page_obj,
+#             'app_label': app_label,
+#             'model_name': model_name,
+#         }
+#     )
 
 
 def charge_units_list_pdf(request, app_label, model_name, charge_id):

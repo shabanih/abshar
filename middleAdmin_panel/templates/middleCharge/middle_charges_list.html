@@ -32,14 +32,11 @@
         </div>
        <div class=" col-12 col-md-6 col-xl-6 text-end text-md-center align-self-center">
             <a href="{% url 'middle_main_charges_excel'  %}?{{ request.GET.urlencode }}"
-                class="btn btn-gradient-success px-4 py-2">خروجی Excel </a>
+                class="btn btn-facebook text-white px-4 py-2">خروجی Excel </a>
             <a href="{% url 'middle_main_charges_pdf'  %}?{{ request.GET.urlencode }}"
                    class="btn btn-gradient-danger px-4 py-2">
                    خروجی PDF 
                 </a>
-{#                <a class="btn btn-gradient-warning px-4 py-2" #}
-{#                   href=""> PDF همه صورتحساب ها</a>#}
-
             </div>
 
         <!-- بخش تعداد نمایش → فقط دسکتاپ -->
@@ -68,8 +65,9 @@
                                         <th>تاریخ ثبت</th>
                                         <th>جریمه دیرکرد</th>
                                         <th>مهلت پرداخت </th>
-                                             <th>توضیحات</th>
+                                        <th>توضیحات</th>
                                         <th> اعلام شارژ </th>
+                                        <th> پرداخت شده </th>
                                         <th>دستورات</th>
                                     </tr>
                                 </thead>
@@ -104,6 +102,9 @@
                                             </td>
                                               <td class="bg-gradient-light">
                                                 <span>{{ charge.notified_count  }} از {{ charge.unit_count }} واحد</span>
+                                                </td>
+                                           <td class="bg-gradient-success">
+                                                <span>{{ charge.paid_count  }} از {{ charge.unit_count }} واحد</span>
                                                 </td>
 
                                                <td class="p-0">

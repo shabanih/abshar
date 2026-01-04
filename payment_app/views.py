@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.http import HttpRequest, HttpResponse, JsonResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.utils import timezone
 
 from admin_panel.forms import UnifiedChargePaymentForm
@@ -208,47 +209,12 @@ def payment_done_view(request, pk):
     return render(request, 'payment_done.html', {'charge': charge})
 
 
-
-
-CHARGE_FK_FIELD = {
-    'fix': 'fix_charge_id',
-    'area': 'area_charge_id',
-    'person': 'person_charge_id',
-    'fix_person': 'fix_person_charge_id',
-    'fix_area': 'fix_area_charge_id',
-    'person_area': 'person_area_charge_id',
-    'fix_person_area': 'fix_person_area_id',
-    'fix_variable': 'fix_variable_id',
-}
-
 @login_required
-def unit_charge_payment_view(request, charge_type, charge_id):
-    # 1️⃣ انتخاب مدل محاسبه
-    model = CHARGE_CALC_MAP.get(charge_type)
-    if not model:
-        raise Http404('نوع شارژ نامعتبر است')
-
-    # 2️⃣ گرفتن نمونه شارژ محاسبه شده (مثل FixChargeCalc)
-    calc_charge = get_object_or_404(model, pk=charge_id, is_active=True)
-
-    # 3️⃣ گرفتن یا ساخت UnifiedCharge متناظر
-    unified_charge, created = UnifiedCharge.objects.get_or_create(
-        content_type=ContentType.objects.get_for_model(calc_charge),
-        object_id=calc_charge.id,
-        defaults={
-            'user': calc_charge.user,
-            'unit': getattr(calc_charge, 'unit', None),
-            'bank': getattr(calc_charge, 'bank', None),
-            'amount': getattr(calc_charge, 'amount', 0),
-            'charge_type': charge_type,
-            'total_charge_month': getattr(calc_charge, 'amount', 0),
-            'title': getattr(calc_charge, 'name', ''),
-        }
-    )
-
+def unit_charge_payment_view(request, charge_id):
+    charge = get_object_or_404(UnifiedCharge, id=charge_id, user=request.user, is_paid=False)
     # 4️⃣ پردازش فرم
     if request.method == "POST":
-        form = UnifiedChargePaymentForm(request.POST, instance=unified_charge)
+        form = UnifiedChargePaymentForm(request.POST, instance=charge)
         if form.is_valid():
             unified_charge = form.save(commit=False)
             unified_charge.is_paid = True
@@ -259,17 +225,17 @@ def unit_charge_payment_view(request, charge_type, charge_id):
             unified_charge.save(update_fields=['is_paid', 'payment_gateway', 'payment_date', 'transaction_reference'])
 
             # بروزرسانی مدل محاسبه اصلی
-            calc_charge.payment_date = unified_charge.payment_date
-            calc_charge.transaction_reference = unified_charge.transaction_reference
+            charge.payment_date = unified_charge.payment_date
+            charge.transaction_reference = unified_charge.transaction_reference
             fields_to_update = ['payment_date', 'transaction_reference']
-            if hasattr(calc_charge, 'is_paid'):
-                calc_charge.is_paid = True
+            if hasattr(charge, 'is_paid'):
+                charge.is_paid = True
                 fields_to_update.append('is_paid')
-            calc_charge.save(update_fields=fields_to_update)
+            charge.save(update_fields=fields_to_update)
 
-            # ثبت در صندوق
+            content_type = ContentType.objects.get_for_model(charge)
             Fund.objects.create(
-                content_type=ContentType.objects.get_for_model(calc_charge),
+                content_type=content_type,
                 object_id=unified_charge.id,
                 bank=unified_charge.bank,
                 unit=unified_charge.unit,
@@ -284,27 +250,47 @@ def unit_charge_payment_view(request, charge_type, charge_id):
                 payment_gateway='پرداخت الکترونیک'
             )
 
-            messages.success(request, "پرداخت شارژ واحد با موفقیت ثبت شد.")
-            return redirect(reverse('charge_payment_done', args=[unified_charge.id]))
+            main_charge = charge.main_charge
+
+            # نام شارژ برای نمایش در پیام
+            charge_name = getattr(main_charge, 'title', 'شارژ')  # اگر title موجود نباشه، 'شارژ' نمایش داده میشه
+
+            # پیام موفقیت
+            messages.success(request, f"پرداخت شارژ واحد '{charge_name}' با موفقیت ثبت شد.")
+
+            return redirect(
+                reverse(
+                    'charge_units_list',
+                    args=[
+                        main_charge._meta.app_label,
+                        main_charge._meta.model_name,
+                        main_charge.id
+                    ]
+                )
+            )
 
 
         else:
             messages.error(request, "خطا در ثبت اطلاعات پرداخت. لطفاً فرم را بررسی کنید.")
             return render(request, 'charge_payment_gateway.html', {
-                'charge': unified_charge,
-                'form': form
+                'charge': charge,
+                'form': form,
+                'app_label': charge._meta.app_label,
+                'model_name': charge._meta.model_name,
             })
 
     else:
         # نمایش فرم برای پرداخت
-        form = UnifiedChargePaymentForm(instance=unified_charge)
+        form = UnifiedChargePaymentForm(instance=charge)
         return render(request, 'charge_payment_gateway.html', {
-            'charge': unified_charge,
-            'form': form
+            'charge': charge,
+            'form': form,
+            'app_label': charge._meta.app_label,
+            'model_name': charge._meta.model_name,
         })
 
 
 @login_required
 def charge_payment_done_view(request, pk):
     charge = get_object_or_404(UnifiedCharge, pk=pk)
-    return render(request, 'charge_payment_done.html', {'charge': charge})
+    return render(request, 'charge_payment_gateway.html', {'charge': charge})

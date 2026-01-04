@@ -895,7 +895,7 @@ class IncomeForm(forms.ModelForm):
     unit = forms.ModelChoiceField(
         queryset=Unit.objects.none(),
         required=False,
-        label='انتخاب واحد',
+        label='پرداخت کننده توسط ساکنین',
         widget=forms.Select(
             attrs={
                 'class': 'form-control-sm ',
@@ -904,7 +904,7 @@ class IncomeForm(forms.ModelForm):
         )
     )
     payer_name = forms.CharField(
-        max_length=200, required=False, label='پرداخت کننده ', widget=forms.TextInput(attrs={'class': 'form-control'})
+        max_length=200, required=False, label='پرداخت کننده غیر از ساکنین ', widget=forms.TextInput(attrs={'class': 'form-control'})
     )
 
     amount = forms.CharField(error_messages=error_message, max_length=20, required=True,

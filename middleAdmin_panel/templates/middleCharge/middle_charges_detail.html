@@ -128,7 +128,7 @@
                          <button data-bs-toggle="modal" data-bs-target="#exampleModalLong77{{ charge.id }}"
                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
                       </button> | 
-                     <a href=""
+                     <a href="{% url 'unit_charge_payment' charge.id %}"
                          class="btn btn-gradient-success px-1 py-1" 
                           data-bs-toggle="tooltip"  title="امور مالی">
                          <i class="fas fa-money-check-alt"></i>
@@ -146,16 +146,27 @@
                             </div>
                           <hr/>
                             <div class="modal-body text-end">
-                                <p><strong>عنوان:</strong> {{ charge.title }}</p>
                      <div class="d-flex gap-5 mb-3 ">
+                        <span>
+                            <strong>عنوان:</strong>
+                            {{ charge.title }}
+                        </span>
+                             <span>
+                            <strong>متراژ واحد:</strong>
+                            {{ charge.unit.area|default:"—" }} متر
+                        </span>
+                       
+                    </div>
+                                <div class="d-flex gap-5 mb-3 ">
+                                     <span>
+                            <strong>نام مالک/مستاجر:</strong>
+                            {{ charge.unit.get_label }} 
+                        </span>
                         <span>
                             <strong>تعداد نفرات:</strong>
                             {{ charge.unit.people_count|default:"—" }} نفر
                         </span>
-                        <span>
-                            <strong>متراژ واحد:</strong>
-                            {{ charge.unit.area|default:"—" }} متر
-                        </span>
+                    
                     </div>
 
                                     <hr/> 
@@ -182,7 +193,7 @@
                                    {% else %}
                                    <p><strong>جریمه دیرکرد:</strong> -- </p>
                                 {% endif %}
-                             {% if charge.penalty_amount %}
+                             {% if charge.extra_parking_price %}
                                 <p><strong>هزینه پارکینگ اضافه:</strong> {{ charge.extra_parking_price|three_digit_currency }} تومان</p>
                                    {% else %}
                                    <p><strong>هزینه پارکینگ اضافه:</strong> -- </p>

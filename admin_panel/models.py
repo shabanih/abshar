@@ -510,15 +510,6 @@ class UnifiedCharge(models.Model):
 
         # ---------- ۱: اگر پرداخت شده → جریمه صفر ----------
         if self.is_paid:
-            if self.penalty_amount != 0:
-                self.penalty_amount = 0
-                self.total_charge_month = (
-                        base_total
-                        + (self.other_cost_amount or 0)
-                        + (self.civil or 0)
-                )
-                if save:
-                    self.save(update_fields=['penalty_amount', 'total_charge_month'])
             return
 
         # ---------- ۲: اگر deadline یا درصد جریمه ندارد ----------
@@ -529,11 +520,7 @@ class UnifiedCharge(models.Model):
         if today <= self.payment_deadline_date:
             if self.penalty_amount != 0:
                 self.penalty_amount = 0
-                self.total_charge_month = (
-                        base_total
-                        + (self.other_cost_amount or 0)
-                        + (self.civil or 0)
-                )
+                self.total_charge_month = self.total_charge_month
                 if save:
                     self.save(update_fields=['penalty_amount', 'total_charge_month'])
             return
@@ -649,3 +636,23 @@ class SmsManagement(models.Model):
         return self.notified_units.count()
 
 
+class Penalty(models.Model):
+    charge = models.ForeignKey(
+        UnifiedCharge,
+        related_name='penalties',
+        on_delete=models.CASCADE
+    )
+    title = models.CharField(max_length=255)
+    amount = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    is_waived = models.BooleanField(default=False)
+    waived_at = models.DateTimeField(null=True, blank=True)
+    waived_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
+
+    def __str__(self):
+        return self.title
