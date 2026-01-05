@@ -18,9 +18,9 @@ import openpyxl
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import user_passes_test, login_required
+from django.contrib.auth.decorators import user_passes_test, login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db import transaction, IntegrityError
+from django.db import transaction, IntegrityError, models
 from django.db.models import ProtectedError, Count, Q, Sum, F
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -46,7 +46,7 @@ from admin_panel.models import Announcement, ExpenseCategory, Expense, Fund, Exp
     MaintenanceDocument, FixCharge, AreaCharge, PersonCharge, \
     FixAreaCharge, FixPersonCharge, ChargeByPersonArea, \
     ChargeByFixPersonArea, ChargeFixVariable, SmsManagement, \
-    UnifiedCharge
+    UnifiedCharge, Penalty
 from admin_panel.services.calculators import CALCULATORS
 from admin_panel.views import admin_required
 from notifications.models import Notification, SupportUser
@@ -7154,3 +7154,147 @@ class MiddleSmsListView(ListView):
         context['query'] = self.request.GET.get('q', '')
         context['paginate'] = self.request.GET.get('paginate', '20')
         return context
+
+
+
+@login_required
+def waive_penalty_bulk(request):
+    try:
+        ids = request.POST.getlist('charge_ids[]')
+        if not ids:
+            return JsonResponse({'success': False, 'error': 'هیچ موردی انتخاب نشده'}, status=400)
+
+        charges = UnifiedCharge.objects.filter(id__in=ids, is_paid=False)
+
+        if not charges.exists():
+            return JsonResponse({'success': False, 'error': 'شارژی برای حذف جریمه یافت نشد'}, status=400)
+
+        titles = []
+        with transaction.atomic():
+            for charge in charges:
+                result = charge.waive_penalty(request.user)
+                if result:
+                    titles.append(result['title'])
+
+        # گرفتن app_label و model_name از اولین شیء
+        first_charge = charges.first()
+        app_label = first_charge._meta.app_label
+        model_name = first_charge._meta.model_name
+        charge_id = first_charge.id
+
+        return JsonResponse({
+            'success': True,
+            'titles': titles,
+            'app_label': app_label,
+            'model_name': model_name,
+            'charge_id': charge_id,
+            'message': 'جریمه با موفقیت حذف شد'
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+def restore_penalty_bulk(request):
+    try:
+        ids = request.POST.getlist('charge_ids[]')
+        if not ids:
+            return JsonResponse({'success': False, 'error': 'هیچ موردی انتخاب نشده'}, status=400)
+
+        charges = UnifiedCharge.objects.filter(id__in=ids, is_paid=False)
+
+        if not charges.exists():
+            return JsonResponse({'success': False, 'error': 'شارژی برای بازگردانی جریمه یافت نشد'}, status=400)
+
+        titles = []
+        with transaction.atomic():
+            for charge in charges:
+                result = charge.restore_penalty()
+                if result:
+                    titles.append(result['title'])
+
+        first_charge = charges.first()
+        app_label = first_charge._meta.app_label
+        model_name = first_charge._meta.model_name
+        charge_id = first_charge.id
+
+        return JsonResponse({
+            'success': True,
+            'titles': titles,
+            'app_label': app_label,
+            'model_name': model_name,
+            'charge_id': charge_id,
+            'message': 'جریمه با موفقیت بازگردانده شد'
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+# @require_POST
+# @login_required
+# def waive_penalty_bulk(request):
+#     try:
+#         ids = request.POST.getlist('charge_ids[]')
+#
+#         if not ids:
+#             return JsonResponse({'success': False, 'error': 'هیچ موردی انتخاب نشده'}, status=400)
+#
+#         charges = UnifiedCharge.objects.filter(id__in=ids, is_paid=False)
+#
+#         titles = []
+#         for charge in charges:
+#             result = charge.waive_penalty(request.user)
+#             if result:
+#                 titles.append(result['title'])
+#
+#         return JsonResponse({
+#             'success': True,
+#             'titles': titles,
+#             'message': 'جریمه با موفقیت حذف شد'
+#         })
+#
+#     except Exception as e:
+#         return JsonResponse({
+#             'success': False,
+#             'error': str(e)
+#         }, status=500)
+#
+#
+#
+# @require_POST
+# @login_required
+# def restore_penalty_bulk(request):
+#     try:
+#         ids = request.POST.getlist('charge_ids[]')
+#
+#         if not ids:
+#             return JsonResponse({'success': False, 'error': 'هیچ موردی انتخاب نشده'}, status=400)
+#
+#         charges = UnifiedCharge.objects.filter(id__in=ids)
+#
+#         restored = []
+#
+#         with transaction.atomic():
+#             for charge in charges:
+#                 result = charge.restore_penalty()
+#                 if result:
+#                     restored.append(result)
+#
+#         return JsonResponse({
+#             'success': True,
+#             'restored': restored,
+#             'message': 'جریمه‌ها با موفقیت بازیابی شدند'
+#         })
+#
+#     except Exception as e:
+#         return JsonResponse({
+#             'success': False,
+#             'error': str(e)
+#         }, status=500)

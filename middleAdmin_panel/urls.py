@@ -124,6 +124,17 @@ urlpatterns = [
         views.all_invoices_pdf,
         name='all_invoices_pdf'),
 
+    path(
+        'charges/penalty/waive/bulk/',
+        views.waive_penalty_bulk,
+        name='waive_penalty_bulk'
+    ),
+    path(
+        'charges/restore-penalty/',
+        views.restore_penalty_bulk,
+        name='restore_penalty'
+    ),
+
 
     # Fix Charge
     path('middle-add-fixed-Charge', views.MiddleFixChargeCreateView.as_view(), name='middle_add_fixed_charge'),

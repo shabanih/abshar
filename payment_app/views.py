@@ -111,6 +111,7 @@ def verify_pay(request: HttpRequest):
                     payment_charge.is_paid = True
                     payment_charge.payment_date = timezone.now()
                     payment_charge.payment_gateway = 'پرداخت اینترنتی'
+
                     payment_charge.save()
 
                     content_type = ContentType.objects.get_for_model(payment_charge)
@@ -214,7 +215,7 @@ def unit_charge_payment_view(request, charge_id):
     charge = get_object_or_404(UnifiedCharge, id=charge_id, user=request.user, is_paid=False)
     # 4️⃣ پردازش فرم
     if request.method == "POST":
-        form = UnifiedChargePaymentForm(request.POST, instance=charge)
+        form = UnifiedChargePaymentForm(request.POST, instance=charge, user=request.user)
         if form.is_valid():
             unified_charge = form.save(commit=False)
             unified_charge.is_paid = True
@@ -226,8 +227,9 @@ def unit_charge_payment_view(request, charge_id):
 
             # بروزرسانی مدل محاسبه اصلی
             charge.payment_date = unified_charge.payment_date
+            charge.bank = form.cleaned_data['bank']
             charge.transaction_reference = unified_charge.transaction_reference
-            fields_to_update = ['payment_date', 'transaction_reference']
+            fields_to_update = ['payment_date', 'transaction_reference', 'bank']
             if hasattr(charge, 'is_paid'):
                 charge.is_paid = True
                 fields_to_update.append('is_paid')
@@ -253,10 +255,10 @@ def unit_charge_payment_view(request, charge_id):
             main_charge = charge.main_charge
 
             # نام شارژ برای نمایش در پیام
-            charge_name = getattr(main_charge, 'title', 'شارژ')  # اگر title موجود نباشه، 'شارژ' نمایش داده میشه
+            charge_name = getattr(main_charge, 'name', 'شارژ')  # اگر title موجود نباشه، 'شارژ' نمایش داده میشه
 
             # پیام موفقیت
-            messages.success(request, f"پرداخت شارژ واحد '{charge_name}' با موفقیت ثبت شد.")
+            messages.success(request, f"پرداخت  '{charge_name}' با موفقیت ثبت شد.")
 
             return redirect(
                 reverse(
@@ -281,7 +283,7 @@ def unit_charge_payment_view(request, charge_id):
 
     else:
         # نمایش فرم برای پرداخت
-        form = UnifiedChargePaymentForm(instance=charge)
+        form = UnifiedChargePaymentForm(instance=charge, user=request.user)
         return render(request, 'charge_payment_gateway.html', {
             'charge': charge,
             'form': form,

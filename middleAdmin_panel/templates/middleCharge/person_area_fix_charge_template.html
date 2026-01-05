@@ -32,7 +32,7 @@
                                         <th>جریمه دیرکرد</th>
                                           <th> اعلام شارژ </th>
                                         <th>مهلت پرداخت </th>
-                                        <th>دستورات</th>
+                                        <th class="px-0">دستورات</th>
                                     </tr>
                                 </thead>
                             {% if charges %}
@@ -40,7 +40,7 @@
                                     <tbody class="text-center">
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
-                                            <td>{{charge.name }}</td>
+                                            <td class="col-12 col-md-2">{{charge.name }}</td>
 {#                                            <td>{{charge.unit_count }}</td>#}
                                             <td>{{charge.fix_charge_amount }}</td>
                                             <td>{{charge.person_amount|three_digit_currency }}</td>
@@ -75,7 +75,7 @@
                                       
                                           
                                             
-                                               <td class="p-0">
+                                               <td>
                                                   <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ charge.id }}"
                                                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
                                                 </button>

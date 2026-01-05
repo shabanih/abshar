@@ -1735,9 +1735,36 @@ class UnifiedChargePaymentForm(forms.ModelForm):
                                                required=False, min_value=0,
                                                label='کد پیگیری')
 
+    bank = forms.ModelChoiceField(
+        queryset=Bank.objects.none(),
+        widget=forms.Select(attrs=attr),
+        empty_label="شماره حساب را انتخاب کنید",
+        error_messages=error_message,
+        required=True,
+        label=' حساب بانکی'
+    )
+
     class Meta:
         model = UnifiedCharge
-        fields = ['payment_date', 'transaction_reference']
+        fields = ['payment_date', 'transaction_reference', 'bank']
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        if user:
+
+            banks = Bank.objects.filter(is_active=True, user=user)
+            self.fields['bank'].queryset = banks
+
+            # پیدا کردن بانک پیش‌فرض
+            default_bank = banks.filter(is_default=True).first()
+            if default_bank:
+                self.fields['bank'].initial = default_bank
+
+            # تغییر label برای نمایش "(پیش‌فرض)" کنار نام بانک
+            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
+                " (پیش‌فرض)" if obj.is_default else "")
 
 
 class SmsForm(forms.ModelForm):

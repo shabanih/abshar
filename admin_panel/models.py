@@ -484,10 +484,26 @@ class UnifiedCharge(models.Model):
         null=True,
         blank=True
     )
-    # related_object = GenericForeignKey('content_type', 'object_id')
+    is_penalty_waived = models.BooleanField(default=False)
+    penalty_waived_at = models.DateTimeField(null=True, blank=True)
+    penalty_waived_by = models.ForeignKey(
+        User,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='waived_penalties'
+    )
+    previous_penalty_amount = models.PositiveIntegerField(null=True, blank=True)
 
     # تاریخ ایجاد
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def app_label(self):
+        return self._meta.app_label
+
+    @property
+    def model_name(self):
+        return self._meta.model_name
 
     @property
     def notified_count_property(self):
@@ -500,47 +516,115 @@ class UnifiedCharge(models.Model):
             charge_type=self.charge_type
         ).values('unit').distinct().count()
 
+
+
+    def waive_penalty(self, user):
+        if not user:
+            raise ValueError('user is required to waive penalty')
+
+        # ذخیره جریمه قبل از صفر شدن
+        self.previous_penalty_amount = self.penalty_amount
+
+        self.is_penalty_waived = True
+        self.penalty_amount = 0
+        self.penalty_waived_at = timezone.now()
+        self.penalty_waived_by = user
+
+        # محاسبه مبلغ کل بدون جریمه
+        self.total_charge_month = self.base_charge or 0
+
+        self.save(update_fields=[
+            'is_penalty_waived',
+            'penalty_amount',
+            'previous_penalty_amount',
+            'penalty_waived_at',
+            'penalty_waived_by',
+            'total_charge_month'
+        ])
+
+    def restore_penalty(self):
+        if not self.is_penalty_waived or self.previous_penalty_amount is None:
+            return None  # جریمه‌ای برای بازیابی وجود ندارد
+
+        self.penalty_amount = self.previous_penalty_amount
+        self.is_penalty_waived = False
+        self.penalty_waived_at = None
+        self.penalty_waived_by = None
+        self.previous_penalty_amount = None
+        self.total_charge_month = (self.base_charge or 0) + self.penalty_amount
+        self.save()
+
+        return {
+            'title': getattr(self, 'name', f'واحد {self.id}'),
+            'penalty_amount': self.penalty_amount
+        }
+
     def update_penalty(self, save=True):
         """
-        محاسبه و بروزرسانی جریمه دیرکرد
+        محاسبه جریمه دیرکرد فقط در صورت مجاز بودن
         """
 
-        base_total = self.base_charge or 0
-        today = timezone.now().date()
-
-        # ---------- ۱: اگر پرداخت شده → جریمه صفر ----------
+        # 1️⃣ پرداخت شده → جریمه ندارد
         if self.is_paid:
             return
 
-        # ---------- ۲: اگر deadline یا درصد جریمه ندارد ----------
-        if self.payment_deadline_date is None or self.penalty_percent is None:
-            return
-
-        # ---------- ۳: اگر هنوز مهلت نگذشته ----------
-        if today <= self.payment_deadline_date:
+        # 2️⃣ جریمه توسط مدیر بخشیده شده
+        if self.is_penalty_waived:
             if self.penalty_amount != 0:
                 self.penalty_amount = 0
-                self.total_charge_month = self.total_charge_month
+                self.total_charge_month = self.base_charge or 0
                 if save:
                     self.save(update_fields=['penalty_amount', 'total_charge_month'])
             return
 
-        # ---------- ۴: محاسبه جریمه ----------
-        delay_days = (today - self.payment_deadline_date).days
-        new_penalty = int(base_total * self.penalty_percent / 100 * delay_days)
+        # 3️⃣ شرایط محاسبه
+        if not self.payment_deadline_date or not self.penalty_percent:
+            return
 
-        # ---------- ۵: ذخیره فقط در صورت تغییر ----------
+        today = timezone.now().date()
+
+        # 4️⃣ هنوز مهلت نگذشته
+        if today <= self.payment_deadline_date:
+            if self.penalty_amount != 0:
+                self.penalty_amount = 0
+                self.total_charge_month = self.base_charge or 0
+                if save:
+                    self.save(update_fields=['penalty_amount', 'total_charge_month'])
+            return
+
+        # 5️⃣ محاسبه جریمه
+        delay_days = (today - self.payment_deadline_date).days
+        base = self.base_charge or 0
+        new_penalty = int(base * self.penalty_percent / 100 * delay_days)
+
         if new_penalty != (self.penalty_amount or 0):
             self.penalty_amount = new_penalty
-            self.total_charge_month = (
-                    base_total
-                    + new_penalty
-                    # + (self.other_cost_amount or 0)
-                    # + (self.civil or 0)
-            )
+            self.total_charge_month = base + new_penalty
             if save:
                 self.save(update_fields=['penalty_amount', 'total_charge_month'])
 
+
+
+class Penalty(models.Model):
+    charge = models.ForeignKey(
+        UnifiedCharge,
+        related_name='penalties',
+        on_delete=models.CASCADE
+    )
+    title = models.CharField(max_length=255)
+    amount = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    is_waived = models.BooleanField(default=False)
+    waived_at = models.DateTimeField(null=True, blank=True)
+    waived_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
+
+    def __str__(self):
+        return self.title
 
 class Fund(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
@@ -636,23 +720,4 @@ class SmsManagement(models.Model):
         return self.notified_units.count()
 
 
-class Penalty(models.Model):
-    charge = models.ForeignKey(
-        UnifiedCharge,
-        related_name='penalties',
-        on_delete=models.CASCADE
-    )
-    title = models.CharField(max_length=255)
-    amount = models.PositiveIntegerField()
-    created_at = models.DateTimeField(auto_now_add=True)
 
-    is_waived = models.BooleanField(default=False)
-    waived_at = models.DateTimeField(null=True, blank=True)
-    waived_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True, blank=True,
-        on_delete=models.SET_NULL
-    )
-
-    def __str__(self):
-        return self.title
