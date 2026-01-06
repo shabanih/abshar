@@ -33,6 +33,7 @@
 
         <!-- خروجی -->
         <div class="col-12 col-md-3 d-flex gap-1">
+              {% if funds %}
             <a href="{% url 'export_middle_report_excel' %}"
                class="btn btn-gradient-success w-50">
                 Excel
@@ -41,10 +42,14 @@
                class="btn btn-gradient-danger w-50">
                 PDF
             </a>
+                {% else %}
+                <a class="btn btn-facebook text-white w-50" disabled> Excel</a>
+                <a class="btn btn-gradient-danger w-50" disabled> PDF</a>
+            {% endif %}
         </div>
 
         <!-- تعداد نمایش -->
-     <div class="col-12 col-md-2 col-xl-2 p-3 "> 
+     <div class="col-12 col-md-2 col-xl-2 p-3 ">
          <div class="d-flex align-items-center gap-1"> 
              <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label> 
              <select id="cardsPerPage" class="form-select select-fix" 

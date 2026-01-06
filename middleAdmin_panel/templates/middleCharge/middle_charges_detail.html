@@ -146,10 +146,24 @@
                             </div>
                           <hr/>
                             <div class="modal-body text-end">
-                     <div class="d-flex gap-5 mb-3 ">
+                    <div class="d-flex gap-3 mb-3 ">
                         <span>
                             <strong>عنوان:</strong>
                             {{ charge.title }}
+                        </span>
+                       
+                    </div>
+                                  <div class="d-flex gap-3 mb-3 ">
+                                     <span>
+                            <strong>نام مالک/مستاجر:</strong>
+                            {{ charge.unit.get_label }} 
+                        </span>
+                                    
+                                   </div>
+                               <div class="d-flex gap-4 mb-3 ">
+                       <span>
+                            <strong>تعداد نفرات:</strong>
+                            {{ charge.unit.people_count|default:"—" }} نفر
                         </span>
                              <span>
                             <strong>متراژ واحد:</strong>
@@ -157,18 +171,7 @@
                         </span>
                        
                     </div>
-                                <div class="d-flex gap-5 mb-3 ">
-                                     <span>
-                            <strong>نام مالک/مستاجر:</strong>
-                            {{ charge.unit.get_label }} 
-                        </span>
-                        <span>
-                            <strong>تعداد نفرات:</strong>
-                            {{ charge.unit.people_count|default:"—" }} نفر
-                        </span>
-                    
-                    </div>
-
+                          
                                     <hr/> 
                                   <p class="text-dark shadow_style text-center">
                                             <strong>مبلغ شارژ ماهانه:</strong>

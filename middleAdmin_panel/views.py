@@ -40,13 +40,13 @@ from admin_panel import helper
 from admin_panel.forms import announcementForm, BankForm, UnitForm, ExpenseCategoryForm, ExpenseForm, \
     IncomeCategoryForm, IncomeForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, MaintenanceForm, FixChargeForm, \
     FixAreaChargeForm, AreaChargeForm, PersonChargeForm, FixPersonChargeForm, PersonAreaChargeForm, \
-    PersonAreaFixChargeForm, VariableFixChargeForm, MyHouseForm, SmsForm, RenterAddForm
+    PersonAreaFixChargeForm, VariableFixChargeForm, MyHouseForm, SmsForm, RenterAddForm, ExpensePayForm
 from admin_panel.models import Announcement, ExpenseCategory, Expense, Fund, ExpenseDocument, IncomeCategory, Income, \
     IncomeDocument, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, FixCharge, AreaCharge, PersonCharge, \
     FixAreaCharge, FixPersonCharge, ChargeByPersonArea, \
     ChargeByFixPersonArea, ChargeFixVariable, SmsManagement, \
-    UnifiedCharge, Penalty
+    UnifiedCharge
 from admin_panel.services.calculators import CALCULATORS
 from admin_panel.views import admin_required
 from notifications.models import Notification, SupportUser
@@ -268,7 +268,7 @@ class middleAddBankView(CreateView):
         # ذخیره بانک
         form.instance.user = self.request.user
         response = super().form_valid(form)
-        bank = self.object  # بانکی که تازه ساخته شده
+        bank = self.object
 
         # اگر موجودی اولیه دارد → Fund افتتاحیه
         if bank.initial_fund and bank.initial_fund > 0:
@@ -289,6 +289,7 @@ class middleAddBankView(CreateView):
                     content_type=content_type,
                     object_id=bank.id,
                     is_initial=True,
+                    is_paid=True,
                     amount=Decimal(bank.initial_fund),
                     debtor_amount=Decimal(bank.initial_fund),
                     creditor_amount=Decimal(0),
@@ -327,36 +328,56 @@ class middleBankUpdateView(UpdateView):
         bank.refresh_from_db()  # مقدار جدید
         new_initial_fund = bank.initial_fund
 
-        # اگر موجودی اولیه تغییر نکرده → کاری نکن
-        if old_initial_fund == new_initial_fund:
-            messages.success(self.request, 'اطلاعات حساب بانکی با موفقیت ویرایش گردید!')
-            return response
-
-        # پیدا کردن Fund افتتاحیه
-        initial_fund = Fund.objects.filter(
-            bank=bank,
+        # پیدا کردن Fund افتتاحیه مرتبط با بانک
+        content_type = ContentType.objects.get_for_model(Bank)
+        initial_fund_obj = Fund.objects.filter(
+            content_type=content_type,
+            object_id=bank.id,
             is_initial=True
         ).first()
 
-        # اگر Fund افتتاحیه وجود دارد → ویرایش
-        if initial_fund:
-            diff = Decimal(new_initial_fund) - Decimal(old_initial_fund)
+        if new_initial_fund and new_initial_fund > 0:
+            if initial_fund_obj:
+                # اگر قبلاً Fund افتتاحیه وجود دارد → بروزرسانی
+                initial_fund_obj.amount = Decimal(new_initial_fund)
+                initial_fund_obj.debtor_amount = Decimal(new_initial_fund)
+                initial_fund_obj.creditor_amount = Decimal(0)
+                initial_fund_obj.payment_description = f'افتتاحیه حساب بانک {bank.bank_name}'
+                initial_fund_obj.save()
 
-            initial_fund.debtor_amount = Decimal(new_initial_fund)
-            initial_fund.creditor_amount = Decimal(0)
-            initial_fund.amount = Decimal(new_initial_fund)
-            initial_fund.save()
+                # 🔁 بازمحاسبه مانده‌ها از این سند به بعد
+                Fund.recalc_final_amounts_from(initial_fund_obj)
+            else:
+                # اگر وجود ندارد → ایجاد Fund افتتاحیه جدید
+                Fund.objects.create(
+                    user=self.request.user,
+                    bank=bank,
+                    payer_name=f'{bank.account_holder_name}',
+                    receiver_name='صندوق',
+                    payment_gateway='پرداخت الکترونیک',
+                    content_type=content_type,
+                    object_id=bank.id,
+                    is_initial=True,
+                    is_paid=True,
+                    amount=Decimal(new_initial_fund),
+                    debtor_amount=Decimal(new_initial_fund),
+                    creditor_amount=Decimal(0),
+                    payment_date=bank.create_at.date(),
+                    payment_description=f'افتتاحیه حساب بانک {bank.bank_name}'
+                )
+        else:
+            # اگر موجودی صفر شد یا حذف شد → حذف Fund افتتاحیه
+            if initial_fund_obj:
+                initial_fund_obj.delete()
 
-            # 🔁 بازمحاسبه مانده‌ها از این سند به بعد
-            Fund.recalc_final_amounts_from(initial_fund)
-
-        messages.success(self.request, 'اطلاعات حساب بانکی و موجودی افتتاحیه با موفقیت ویرایش شد!')
+        messages.success(self.request, 'اطلاعات حساب بانکی با موفقیت ثبت/ویرایش شد!')
         return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['banks'] = Bank.objects.filter(user=self.request.user)
         return context
+
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
@@ -1231,60 +1252,38 @@ class MiddleExpenseView(CreateView):
     form_class = ExpenseForm
     success_url = reverse_lazy('middle_add_expense')
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
         form.instance.user = self.request.user
+
         try:
             with transaction.atomic():
                 self.object = form.save(commit=False)
 
-                # مقدار هزینه
-                expense_amount = self.object.amount or 0
-
-                # آخرین Fund کلی
-                last_fund = Fund.objects.order_by('-doc_number').first()
-
-                if last_fund and last_fund.final_amount is not None:
-                    current_final = last_fund.final_amount
-                else:
-                    # اگر بانک مشخص شده باشد از initial_fund آن استفاده کن، در غیر این صورت صفر
-                    current_final = self.object.bank.initial_fund if self.object.bank else 0
-
-                print(f'Expense Amount: {expense_amount}')
-                print(f'Current Final: {current_final}')
-
-                # بررسی موجودی
-                if current_final - expense_amount < 0:
-                    messages.error(self.request, "موجودی صندوق کافی نیست. ثبت این هزینه ممکن نیست!")
-                    return self.form_invalid(form)
-
-                # ثبت هزینه
+                # هزینه هنوز پرداخت نشده
+                self.object.is_paid = False
                 self.object.save()
-
-                # ایجاد Fund مرتبط با Expense
-                content_type = ContentType.objects.get_for_model(self.object)
-                Fund.objects.create(
-                    content_type=content_type,
-                    object_id=self.object.id,
-                    bank=self.object.bank,  # ممکن است None باشد
-                    debtor_amount=0,
-                    amount=expense_amount,
-                    creditor_amount=expense_amount,
-                    user=self.request.user,
-                    payment_date=self.object.date,
-                    payment_gateway='پرداخت الکترونیک',
-                    payment_description=f"هزینه: {self.object.description[:50]}",
-                )
 
                 # ذخیره فایل‌ها
                 files = self.request.FILES.getlist('document')
                 for f in files:
-                    ExpenseDocument.objects.create(expense=self.object, document=f)
+                    ExpenseDocument.objects.create(
+                        expense=self.object,
+                        document=f
+                    )
 
-            messages.success(self.request, 'هزینه با موفقیت ثبت گردید')
-            return super().form_valid(form)
+            messages.success(
+                self.request,
+                'هزینه با موفقیت ثبت شد (در انتظار پرداخت)'
+            )
+            return redirect(self.success_url)
 
-        except ProtectedError:
-            messages.error(self.request, 'خطا در ثبت هزینه!')
+        except Exception:
+            messages.error(self.request, 'خطا در ثبت هزینه')
             return self.form_invalid(form)
 
     def get_queryset(self):
@@ -1330,10 +1329,6 @@ class MiddleExpenseView(CreateView):
             messages.warning(self.request, 'فرمت تاریخ وارد شده صحیح نیست.')
         return queryset
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        return kwargs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1345,6 +1340,142 @@ class MiddleExpenseView(CreateView):
         context['total_expense'] = Expense.objects.filter(user=self.request.user).count()
         context['categories'] = ExpenseCategory.objects.filter(user=self.request.user)
         return context
+
+
+
+@login_required
+def expense_pay_view(request, expense_id):
+    expense = get_object_or_404(
+        Expense,
+        id=expense_id,
+        is_paid=False,
+        is_active=True
+    )
+
+    if request.method == 'POST':
+        form = ExpensePayForm(request.POST, user=request.user)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    bank = form.cleaned_data['bank']
+                    reference = form.cleaned_data.get('transaction_reference')
+                    payment_date = form.cleaned_data.get('payment_date')
+
+                    # 🔹 موجودی فعلی صندوق
+                    last_fund = Fund.objects.order_by('-doc_number').first()
+                    current_final = (
+                        last_fund.final_amount
+                        if last_fund and last_fund.final_amount is not None
+                        else bank.initial_fund
+                    )
+
+                    # 🔴 بررسی موجودی
+                    if current_final - expense.amount < 0:
+                        messages.error(
+                            request,
+                            'موجودی صندوق کافی نیست'
+                        )
+                        return redirect(request.META.get('HTTP_REFERER'))
+
+                    # 🔹 ثبت Fund (هزینه → بستانکار)
+                    fund = Fund.objects.create(
+                        user=request.user,
+                        bank=bank,
+                        content_object=expense,
+                        amount=expense.amount,
+                        debtor_amount=0,
+                        creditor_amount=expense.amount,
+                        payment_date=payment_date,
+                        transaction_no= reference,
+                        payment_gateway='پرداخت الکترونیک',
+                        payment_description=f'پرداخت هزینه سند {expense.doc_no}',
+                        is_paid=True
+                    )
+
+                    # 🔹 بروزرسانی Expense
+                    expense.is_paid = True
+                    expense.bank = bank
+                    expense.transaction_reference = reference
+                    expense.payment_date = payment_date
+                    expense.save(update_fields=[
+                        'is_paid',
+                        'bank',
+                        'transaction_reference',
+                        'payment_date'
+                    ])
+
+                messages.success(request, 'پرداخت با موفقیت انجام شد')
+                return redirect('middle_add_expense')
+
+            except ValidationError as e:
+                messages.error(request, e.message)
+            except Exception as e:
+                messages.error(request, f'خطا در پرداخت: {e}')
+
+    else:
+        form = ExpensePayForm(user=request.user)
+
+    return render(
+        request,
+        'middle_expense_templates/expense_pay.html',
+        {
+            'expense': expense,
+            'form': form
+        }
+    )
+
+@login_required
+def expense_cancel_pay_view(request, expense_id):
+    # Expense فقط اگر پرداخت شده باشد قابل لغو است
+    expense = get_object_or_404(
+        Expense,
+        id=expense_id,
+        is_paid=True,
+        is_active=True
+    )
+
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # پیدا کردن Fund مربوطه
+                fund = Fund.objects.filter(
+                    content_type__model='expense',
+                    object_id=expense.id,
+                    user=request.user,
+                    is_paid=True
+                ).first()
+
+                if not fund:
+                    messages.error(request, 'Fund مرتبط با این پرداخت پیدا نشد!')
+                    return redirect(request.META.get('HTTP_REFERER'))
+
+                # حذف Fund
+                fund.delete()
+
+                # بازمحاسبه موجودی صندوق از این Fund به بعد
+                Fund.recalc_final_amounts_from(fund)
+
+                # بازگرداندن Expense به حالت پرداخت‌نشده
+                expense.is_paid = False
+                expense.bank = None
+                expense.transaction_reference = None
+                expense.payment_date = None
+                expense.save(update_fields=[
+                    'is_paid',
+                    'bank',
+                    'transaction_reference',
+                    'payment_date'
+                ])
+
+                messages.success(request, 'پرداخت با موفقیت لغو شد و صندوق اصلاح شد.')
+                return redirect(request.META.get('HTTP_REFERER'))
+
+        except Exception as e:
+            messages.error(request, f'خطا در لغو پرداخت: {e}')
+            return redirect(request.META.get('HTTP_REFERER'))
+
+    # اگر GET باشد، فقط برگرد به صفحه قبل
+    return redirect(request.META.get('HTTP_REFERER'))
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -1366,8 +1497,6 @@ def middle_expense_edit(request, pk):
         messages.error(request, "مقدار مبلغ وارد شده معتبر نیست.")
         return redirect('middle_add_expense')
 
-    bank = form.cleaned_data['bank']
-
     expense_ct = ContentType.objects.get_for_model(Expense)
 
     with transaction.atomic():
@@ -1377,7 +1506,6 @@ def middle_expense_edit(request, pk):
             object_id=expense.id,
             defaults={
                 'user': expense.user,
-                'bank': bank,
                 'amount': Decimal(0),
                 'debtor_amount': Decimal(0),
                 'creditor_amount': Decimal(0),
@@ -1409,7 +1537,6 @@ def middle_expense_edit(request, pk):
         fund.creditor_amount = new_amount
         fund.debtor_amount = Decimal(0)
         fund.amount = new_amount
-        fund.bank = bank
         fund.payment_date = expense.date
         fund.payment_gateway = 'پرداخت الکترونیک'
         fund.payment_description = f"هزینه: {(expense.description or '')[:50]}"
@@ -6616,8 +6743,10 @@ def charge_units_list(request, app_label, model_name, charge_id):
         # مدل اصلی شارژ → گرفتن همه UnifiedCharge ها
         unified_qs = charge.unified_charges.all()
     elif model_name.lower() == 'unifiedcharge':
-        # خود UnifiedCharge → تبدیل به QuerySet با یک عضو
-        unified_qs = model.objects.filter(id=charge.id)
+        unified_qs = model.objects.filter(
+            content_type=charge.content_type,
+            object_id=charge.object_id
+        )
     else:
         # هر حالت غیرمنتظره
         unified_qs = model.objects.none()
@@ -6677,75 +6806,6 @@ def charge_units_list(request, app_label, model_name, charge_id):
             'model_name': model_name,
         }
     )
-# def charge_units_list(request, app_label, model_name, charge_id):
-#     model = apps.get_model(app_label, model_name)
-#     charge = get_object_or_404(model, id=charge_id)
-#
-#     # 🔥 آپدیت جریمه همه UnifiedCharge ها
-#     unified_qs = charge.unified_charges.all()
-#     for uc in unified_qs:
-#         uc.update_penalty(save=True)
-#
-#     # -------------------------
-#     # 🔍 جستجو
-#     # -------------------------
-#     query = request.GET.get('q', '').strip()
-#
-#     unified_charges = unified_qs.filter(
-#         send_notification_date__isnull=False
-#     ).select_related('unit', 'unit__user')
-#
-#     if query:
-#         search_q = (
-#                 Q(unit__unit__icontains=query) |
-#                 Q(unit__user__full_name__icontains=query)
-#         )
-#
-#         # اگر عدد بود → جستجو روی مقادیر عددی شارژ
-#         if query.isdigit():
-#             search_q |= (
-#                     Q(penalty_amount=query) |
-#                     Q(total_charge_month=query) |
-#                     Q(base_charge=query)
-#             )
-#
-#         unified_charges = unified_charges.filter(search_q)
-#
-#     # -------------------------
-#     # 📄 pagination
-#     # -------------------------
-#     paginate = int(request.GET.get('paginate', 20))
-#     paginator = Paginator(unified_charges, paginate)
-#     page_number = request.GET.get('page')
-#     page_obj = paginator.get_page(page_number)
-#
-#     # واحدها (مطابق صفحه‌بندی)
-#     units = [uc.unit for uc in page_obj if uc.unit]
-#
-#     # 🧪 debug (در صورت نیاز)
-#     print('ALL:', charge.unified_charges.count())
-#     print(
-#         charge.unified_charges.values(
-#             'id',
-#             'send_notification',
-#             'send_notification_date'
-#         )
-#     )
-#
-#     return render(
-#         request,
-#         'middleCharge/middle_charges_detail.html',
-#         {
-#             'charge': charge,
-#             'units': units,
-#             'unified_charges': page_obj,  # 👈 مهم
-#             'query': query,
-#             'paginate': paginate,
-#             'page_obj': page_obj,
-#             'app_label': app_label,
-#             'model_name': model_name,
-#         }
-#     )
 
 
 def charge_units_list_pdf(request, app_label, model_name, charge_id):
@@ -6849,7 +6909,6 @@ def charge_units_list_excel(request, app_label, model_name, charge_id):
 
     unified_charges = unified_charges.order_by('-created_at')
 
-    # -------------------------
     # Excel
     # -------------------------
     wb = openpyxl.Workbook()
@@ -6857,40 +6916,44 @@ def charge_units_list_excel(request, app_label, model_name, charge_id):
     ws.title = "Charge Units"
     ws.sheet_view.rightToLeft = True
 
-    headers = [
-        '#', 'واحد', 'مالک / ساکن', 'مبلغ پایه', 'جریمه',
-        'مبلغ نهایی', 'تاریخ اعلام', 'وضعیت پرداخت'
-    ]
-    num_columns = len(headers)
-
-    # عنوان
-    title_cell = ws.cell(row=1, column=1, value="لیست شارژ ساختمان")
+    # عنوان اصلی
+    title_cell = ws.cell(row=1, column=1, value="لیست تراکنش های من")
     title_cell.font = Font(bold=True, size=18)
     title_cell.alignment = Alignment(horizontal="center", vertical="center")
-    title_cell.fill = PatternFill(fill_type="solid")
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=9)  # 9 ستون
 
-    # merge سلول‌ها (فقط merge کنید، مقدار فقط در top-left)
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=num_columns)
+    # هدرها
+    headers = [
+        '#', 'واحد', 'مالک / مستاجر', 'مبلغ پایه', 'جریمه',
+        'مبلغ نهایی', 'تاریخ اعلام', 'مهلت پرداخت', 'وضعیت پرداخت'
+    ]
+    header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
+    header_font = Font(bold=True, color="000000")
+    for col_num, column_title in enumerate(headers, 1):
+        cell = ws.cell(row=2, column=col_num, value=column_title)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
 
-    row = 2
+    # داده‌ها
+    row = 3  # داده‌ها از ردیف بعد از هدر شروع می‌شوند
     for index, uc in enumerate(unified_charges, start=1):
         ws.cell(row=row, column=1, value=index)
         ws.cell(row=row, column=2, value=uc.title)
         ws.cell(row=row, column=3, value=uc.unit.get_label())
         ws.cell(row=row, column=4, value=uc.base_charge)
-        ws.cell(row=row, column=5, value=uc.details)
-        ws.cell(row=row, column=6, value=show_jalali(uc.send_notification_date))
-        ws.cell(row=row, column=7, value=show_jalali(uc.payment_deadline_date))
-        ws.cell(row=row, column=8, value=uc.penalty_amount)
-        ws.cell(row=row, column=9, value=uc.total_charge_month)
-        ws.cell(row=row, column=10, value="پرداخت شده" if uc.is_paid else "پرداخت نشده")
-
+        ws.cell(row=row, column=5, value=uc.penalty_amount)
+        ws.cell(row=row, column=6, value=uc.total_charge_month)
+        ws.cell(row=row, column=7, value=show_jalali(uc.send_notification_date))
+        ws.cell(row=row, column=8, value=show_jalali(uc.payment_deadline_date))
+        ws.cell(row=row, column=9, value="پرداخت شده" if uc.is_paid else "پرداخت نشده")
         row += 1
 
+    # پاسخ Excel
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename=charge_units.xlsx'
+    response['Content-Disposition'] = 'attachment; filename=middle_charge_units.xlsx'
     wb.save(response)
     return response
 
@@ -7176,18 +7239,23 @@ def waive_penalty_bulk(request):
                 if result:
                     titles.append(result['title'])
 
-        # گرفتن app_label و model_name از اولین شیء
         first_charge = charges.first()
-        app_label = first_charge._meta.app_label
-        model_name = first_charge._meta.model_name
-        charge_id = first_charge.id
+        # app_label = first_charge._meta.app_label
+        # model_name = first_charge._meta.model_name
+
+        redirect_url = reverse(
+            'charge_units_list',  # همونی که داری
+            args=[
+                first_charge._meta.app_label,
+                first_charge._meta.model_name,
+                first_charge.id  # ❗ حتماً باید باشد
+            ]
+        )
 
         return JsonResponse({
             'success': True,
             'titles': titles,
-            'app_label': app_label,
-            'model_name': model_name,
-            'charge_id': charge_id,
+            'redirect_url': redirect_url,
             'message': 'جریمه با موفقیت حذف شد'
         })
 
@@ -7196,6 +7264,7 @@ def waive_penalty_bulk(request):
             'success': False,
             'error': str(e)
         }, status=500)
+
 
 
 @login_required
@@ -7218,16 +7287,19 @@ def restore_penalty_bulk(request):
                     titles.append(result['title'])
 
         first_charge = charges.first()
-        app_label = first_charge._meta.app_label
-        model_name = first_charge._meta.model_name
-        charge_id = first_charge.id
+        redirect_url = reverse(
+            'charge_units_list',  # همونی که داری
+            args=[
+                first_charge._meta.app_label,
+                first_charge._meta.model_name,
+                first_charge.id  # ❗ حتماً باید باشد
+            ]
+        )
 
         return JsonResponse({
             'success': True,
             'titles': titles,
-            'app_label': app_label,
-            'model_name': model_name,
-            'charge_id': charge_id,
+            'redirect_url': redirect_url,
             'message': 'جریمه با موفقیت بازگردانده شد'
         })
 
@@ -7236,65 +7308,3 @@ def restore_penalty_bulk(request):
             'success': False,
             'error': str(e)
         }, status=500)
-
-# @require_POST
-# @login_required
-# def waive_penalty_bulk(request):
-#     try:
-#         ids = request.POST.getlist('charge_ids[]')
-#
-#         if not ids:
-#             return JsonResponse({'success': False, 'error': 'هیچ موردی انتخاب نشده'}, status=400)
-#
-#         charges = UnifiedCharge.objects.filter(id__in=ids, is_paid=False)
-#
-#         titles = []
-#         for charge in charges:
-#             result = charge.waive_penalty(request.user)
-#             if result:
-#                 titles.append(result['title'])
-#
-#         return JsonResponse({
-#             'success': True,
-#             'titles': titles,
-#             'message': 'جریمه با موفقیت حذف شد'
-#         })
-#
-#     except Exception as e:
-#         return JsonResponse({
-#             'success': False,
-#             'error': str(e)
-#         }, status=500)
-#
-#
-#
-# @require_POST
-# @login_required
-# def restore_penalty_bulk(request):
-#     try:
-#         ids = request.POST.getlist('charge_ids[]')
-#
-#         if not ids:
-#             return JsonResponse({'success': False, 'error': 'هیچ موردی انتخاب نشده'}, status=400)
-#
-#         charges = UnifiedCharge.objects.filter(id__in=ids)
-#
-#         restored = []
-#
-#         with transaction.atomic():
-#             for charge in charges:
-#                 result = charge.restore_penalty()
-#                 if result:
-#                     restored.append(result)
-#
-#         return JsonResponse({
-#             'success': True,
-#             'restored': restored,
-#             'message': 'جریمه‌ها با موفقیت بازیابی شدند'
-#         })
-#
-#     except Exception as e:
-#         return JsonResponse({
-#             'success': False,
-#             'error': str(e)
-#         }, status=500)

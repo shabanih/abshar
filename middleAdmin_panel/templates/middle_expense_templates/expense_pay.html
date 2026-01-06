@@ -1,0 +1,47 @@
+{% extends 'middleShared/base_template.html' %}
+{% load poll_extras %}
+{% load static %}
+
+{% block page_title %}پرداخت هزینه{% endblock %}
+
+{% block main_content %}
+    <hr>
+<div class="container py-4">
+
+    <h4>پرداخت هزینه سند {{ expense.doc_no }}</h4>
+    <p>شرح: {{ expense.description }}</p>
+    <p>مبلغ: {{ expense.amount|three_digit_currency }}تومان</p>
+
+    <form method="post" action="">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-12 col-md-4">
+        {{ form.bank.label_tag }}
+        {{ form.bank }}
+        {{ form.bank.errors }}
+            </div>
+            
+      <div class="col-12 col-md-4">
+        {{ form.payment_date.label_tag }}
+        {{ form.payment_date }}
+        {{ form.payment_date.errors }}
+    </div>
+
+    <div class="col-12 col-md-4">
+        {{ form.transaction_reference.label_tag }}
+        {{ form.transaction_reference }}
+        {{ form.transaction_reference.errors }}
+    </div>
+  
+       
+        </div>
+        
+
+        <div class="text-start">
+        <button type="submit" class="btn btn-gradient-success">تأیید پرداخت</button>
+        <a href="{% url 'middle_add_expense' %}" class="btn btn-gradient-danger">انصراف</a>
+            </div>
+    </form>
+
+</div>
+{% endblock %}

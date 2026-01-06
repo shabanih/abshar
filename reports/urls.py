@@ -15,12 +15,14 @@ urlpatterns = [
     path('history/property/', views.ReportPropertyView.as_view(), name='property_history_report'),
     path('history/maintenance/', views.ReportMaintenanceView.as_view(), name='maintenance_history_report'),
     path('pay/receive/', views.PayReceiveReportView.as_view(), name='pay_receive_report'),
-    path('charges/', views.unified_charge_list, name='charge_list_report'),
-    # path(
-    #     'charges/<str:charge_type>/<int:charge_id>/units/',
-    #     views.charge_units_list,
-    #     name='charge_units_list'
-    # ),
+
+    path('middle-charge/report/pdf/', views.charge_units_list_report_pdf, name='charge_units_list_report_pdf'),
+    path('middle-charge-report/excel/', views.charge_units_list_report_excel, name='charge_units_list_report_excel'),
+    path(
+        'middle-charge<int:charge_id>',
+        views.charge_units_report_pdf,
+        name='single_charge_invoice_report_pdf'
+    ),
     path('charges/notify/list/', views.charge_notify_report_list, name='charge_notify_report_list'),
 
     path('report/export/excel/', views.export_units_report_excel, name='export_units_report_excel'),

@@ -1,9 +1,11 @@
 import io
 from collections import defaultdict
 from datetime import datetime
+from decimal import Decimal
 
 import jdatetime
 import openpyxl
+from django.apps import apps
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -16,7 +18,7 @@ from django.http import HttpResponse, Http404
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.context_processors import static
 from django.template.loader import get_template, render_to_string
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.generic import ListView
@@ -546,133 +548,222 @@ def export_user_report_pdf(request):
 
 
 # ============================================================
-def unified_charge_list(request):
-    unit_count = Unit.objects.filter(is_active=True, user__manager=request.user).count()
-    fix_charges = FixCharge.objects.filter(user=request.user).annotate(
-        notified_count=Count(
-            'fix_charge_amount',
-            filter=Q(fix_charge_amount__send_notification=True)
-        ),
-        total_units=Count('fix_charge_amount')
-    ).order_by('-created_at')
 
-    area_charges = AreaCharge.objects.filter(user=request.user).annotate(
-        notified_count=Count(
-            'area_charge_amount',
-            filter=Q(area_charge_amount__send_notification=True)
-        ),
-        total_units=Count('area_charge_amount')
-    ).order_by('-created_at')
-    person_charges = PersonCharge.objects.annotate(
-        notified_count=Count(
-            'person_charge_amount',
-            filter=Q(person_charge_amount__send_notification=True)
-        ),
-        total_units=Count('person_charge_amount')
-    ).order_by('-created_at')
-    fix_area_charges = FixAreaCharge.objects.annotate(
-        notified_count=Count(
-            'fix_area_charge',
-            filter=Q(fix_area_charge__send_notification=True)
-        ),
-        total_units=Count('fix_area_charge')
-    ).order_by('-created_at')
-    fix_person_charges = FixPersonCharge.objects.annotate(
-        notified_count=Count(
-            'fix_person_charge',
-            filter=Q(fix_person_charge__send_notification=True)
-        ),
-        total_units=Count('fix_person_charge')
-    ).order_by('-created_at')
+def charge_notify_report_list(request):
+    search = request.GET.get('q', '').strip()
 
-    charge_by_person_area = ChargeByPersonArea.objects.filter(user=request.user).annotate(
-        notified_count=Count(
-            'person_area_charge',
-            filter=Q(person_area_charge__send_notification=True)
-        ),
-        total_units=Count('person_area_charge')).order_by('-created_at')
-    charge_by_fix_person_area = ChargeByFixPersonArea.objects.annotate(
-        notified_count=Count(
-            'fix_person_area',
-            filter=Q(fix_person_area__send_notification=True)
-        ),
-        total_units=Count('fix_person_area')
-    ).order_by('-created_at')
-    charge_fix_variable = ChargeFixVariable.objects.annotate(
-        notified_count=Count(
-            'fix_variable_charge',
-            filter=Q(fix_variable_charge__send_notification=True)
-        ),
-        total_units=Count('fix_variable_charge')
-    ).order_by('-created_at')
+    charges = (
+        UnifiedCharge.objects
+        .filter(user=request.user, send_notification=True).order_by('-created_at'))
+
+    # 🔍 فیلتر جستجو
+    if search:
+        q_obj = (
+                Q(title__icontains=search) |
+                Q(details__icontains=search) |
+                Q(unit__unit__icontains=search) |
+                Q(unit__user__full_name__icontains=search)
+        )
+
+        if search.isdigit():
+            q_obj |= Q(base_charge=search) | Q(total_charge_month=search)
+
+        charges = charges.filter(q_obj)
+
+    # 🧮 annotate
+    charges = charges.annotate(
+        unit_number=F('unit__unit'),
+        user_full_name=F('unit__user__full_name')
+    )
+
+    # 📄 pagination
+    paginate = request.GET.get('paginate', '20')
+    if str(paginate).lower() == 'all':
+        paginate = charges.count() or 1
+    else:
+        try:
+            paginate = int(paginate)
+        except ValueError:
+            paginate = 20
+
+    paginator = Paginator(charges, paginate)
+    page_obj = paginator.get_page(request.GET.get('page'))
 
     context = {
-        'unit_count': unit_count,
-        'fix_charges': fix_charges,
-        'area_charges': area_charges,
-        'person_charges': person_charges,
-        'fix_person_charges': fix_person_charges,
-        'fix_area_charges': fix_area_charges,
-        'charge_by_person_area': charge_by_person_area,
-        'charge_by_fix_person_area': charge_by_fix_person_area,
-        'charge_fix_variable': charge_fix_variable,
+        'page_obj': page_obj,
+        'query': search,
+        'paginate': paginate,
     }
 
-    return render(request, 'unified_charge_list.html', context)
-#
-#
-# CHARGE_TYPE_FA = {
-#     'fix': ' ثابت',
-#     'area': ' متراژی',
-#     'person': ' نفری',
-#     'fix_person': 'واحدی نفری',
-#     'fix_area': 'واحدی متراژی',
-#     'person_area': 'نفری متراژی',
-#     'fix_person_area': 'واحدی نفری متراژی',
-#     'fix_variable': ' ثابت متغیر',
-# }
-#
-#
-# CHARGE_FK_FIELD = {
-#     'fix': 'fix_charge_id',
-#     'area': 'area_charge_id',
-#     'person': 'person_charge_id',
-#     'fix_person': 'fix_person_id',
-#     'fix_area': 'fix_area_id',
-#     'person_area': 'person_area_charge_id',
-#     'fix_person_area': 'fix_person_area_id',
-#     'fix_variable': 'fix_variable_charge_id',
-# }
-#
-# monthly_field_map = {
-#     'fix': 'amount',
-#     'area': 'final_area_amount',
-#     'person': 'final_person_amount',
-#     'fix_area': 'amount',
-#     'fix_person': 'amount',
-#     'person_area': 'amount',
-#     'fix_person_area': 'amount',
-#     'fix_variable': 'amount'
-# }
-#
-#
-# def charge_units_list_repor(request, charge_type, charge_id):
-#     pass
-#
-#
-# def unit_charge_invoice_pdf_view(request, charge_type, charge_id):
-#     pass
-#
-#
-# def all_charges_invoice_pdf_view(request, charge_type):
-#     pass
-# def export_units_charge_report_pdf(request, charge_type, charge_id):
-#    pass
-#
-#
-# @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-# def export_units_charge_report_excel(request, charge_type, charge_id):
-#     pass
+    return render(request, 'charge_notify_report.html', context)
+
+
+def charge_units_list_report_pdf(request):
+    manager = request.user
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
+
+    unified_qs = UnifiedCharge.objects.filter(user=manager).order_by('-created_at')
+
+    # 🔍 جستجو
+    query = request.GET.get('q', '').strip()
+
+    unified_charges = unified_qs.filter(
+        send_notification_date__isnull=False
+    ).select_related('unit', 'unit__user')
+
+    if query:
+        search_q = (
+                Q(unit__unit__icontains=query) |
+                Q(unit__user__full_name__icontains=query)
+        )
+
+        try:
+            value = Decimal(query)
+            search_q |= (
+                    Q(penalty_amount=value) |
+                    Q(total_charge_month=value) |
+                    Q(base_charge=value)
+            )
+        except:
+            pass
+
+        unified_charges = unified_charges.filter(search_q)
+
+    unified_charges = unified_charges.order_by('-created_at')
+
+    html_string = render_to_string(
+        'middleCharge/middle_charges_detail_pdf.html',
+        {
+            'unified_charges': unified_charges,
+            'query': query,
+            'today': datetime.now(),
+            'house': house,
+            'font_url': request.build_absolute_uri('/static/fonts/Vazir.ttf')
+
+        }
+    )
+
+    font_url = request.build_absolute_uri(static('fonts/Vazir.ttf'))
+    css = CSS(string=f"""
+        @page {{ size: A4 landscape; margin: 1cm; }}
+        @font-face {{
+            font-family: 'Vazir';
+            src: url('{font_url}');
+        }}
+        body {{
+            font-family: 'Vazir', sans-serif;
+        }}
+    """)
+
+    pdf = HTML(string=html_string).write_pdf(stylesheets=[css])
+
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="charge_units_report.pdf"'
+    return response
+
+
+def charge_units_list_report_excel(request):
+    unified_qs = UnifiedCharge.objects.all()
+
+    # 🔍 جستجو
+    query = request.GET.get('q', '').strip()
+
+    unified_charges = unified_qs.filter(
+        send_notification_date__isnull=False
+    ).select_related('unit', 'unit__user')
+
+    if query:
+        search_q = (
+                Q(unit__unit__icontains=query) |
+                Q(unit__user__full_name__icontains=query)
+        )
+
+        try:
+            value = Decimal(query)
+            search_q |= (
+                    Q(penalty_amount=value) |
+                    Q(total_charge_month=value) |
+                    Q(base_charge=value)
+            )
+        except:
+            pass
+
+        unified_charges = unified_charges.filter(search_q)
+
+    unified_charges = unified_charges.order_by('-created_at')
+
+    # -------------------------
+    # Excel
+    # -------------------------
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Charge Units"
+    ws.sheet_view.rightToLeft = True
+
+    # عنوان اصلی
+    title_cell = ws.cell(row=1, column=1, value="لیست تراکنش های من")
+    title_cell.font = Font(bold=True, size=18)
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=9)  # 9 ستون
+
+    # هدرها
+    headers = [
+        '#', 'واحد', 'مالک / مستاجر', 'مبلغ پایه', 'جریمه',
+        'مبلغ نهایی', 'تاریخ اعلام', 'مهلت پرداخت', 'وضعیت پرداخت'
+    ]
+    header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
+    header_font = Font(bold=True, color="000000")
+    for col_num, column_title in enumerate(headers, 1):
+        cell = ws.cell(row=2, column=col_num, value=column_title)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    # داده‌ها
+    row = 3  # داده‌ها از ردیف بعد از هدر شروع می‌شوند
+    for index, uc in enumerate(unified_charges, start=1):
+        ws.cell(row=row, column=1, value=index)
+        ws.cell(row=row, column=2, value=uc.title)
+        ws.cell(row=row, column=3, value=uc.unit.get_label())
+        ws.cell(row=row, column=4, value=uc.base_charge)
+        ws.cell(row=row, column=5, value=uc.penalty_amount)
+        ws.cell(row=row, column=6, value=uc.total_charge_month)
+        ws.cell(row=row, column=7, value=show_jalali(uc.send_notification_date))
+        ws.cell(row=row, column=8, value=show_jalali(uc.payment_deadline_date))
+        ws.cell(row=row, column=9, value="پرداخت شده" if uc.is_paid else "پرداخت نشده")
+        row += 1
+
+    # پاسخ Excel
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=charge_units_report.xlsx'
+    wb.save(response)
+    return response
+
+
+def charge_units_report_pdf(request, charge_id):
+    charge = get_object_or_404(UnifiedCharge, id=charge_id)
+    units = Unit.objects.filter(unified_charges=charge, is_active=True).order_by('unit')
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
+    bank = Bank.get_default(request.user, house)
+    html_string = render_to_string('middleCharge/single_charge_pdf.html', {
+        'charge': charge,
+        'units': units,
+        'house': house,
+        'bank': bank,
+        'font_url': request.build_absolute_uri('/static/fonts/Vazir.ttf')
+    })
+
+    pdf = HTML(string=html_string).write_pdf()
+    response = HttpResponse(pdf, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="charge_{charge.id}_units.pdf"'
+    return response
+
 
 # ===========================================================
 def debtor_creditor_report(request):
@@ -2214,7 +2305,6 @@ def export_pay_receive_report_excel(request):
     ws.title = "units"
     ws.sheet_view.rightToLeft = True
 
-
     # Headers
     headers = [' بانک', 'تاریخ پرداخت', 'شرح', 'پرداخت کننده/واریز کننده', 'شماره سند', 'بدهکار', 'بستانکار']
 
@@ -2242,52 +2332,3 @@ def export_pay_receive_report_excel(request):
     response['Content-Disposition'] = f'attachment; filename=report_pay_receive.xlsx'
     wb.save(response)
     return response
-
-
-def charge_notify_report_list(request):
-    search = request.GET.get('q', '').strip()
-
-    charges = (
-        UnifiedCharge.objects
-        .all())
-
-    # 🔍 فیلتر جستجو
-    if search:
-        q_obj = (
-            Q(charge_name__icontains=search) |
-            Q(details__icontains=search) |
-            Q(unit__unit__icontains=search) |
-            Q(unit__user__full_name__icontains=search)
-        )
-
-        if search.isdigit():
-            q_obj |= Q(base_charge=search) | Q(total_charge_month=search)
-
-        charges = charges.filter(q_obj)
-
-    # 🧮 annotate
-    charges = charges.annotate(
-        unit_number=F('unit__unit'),
-        user_full_name=F('unit__user__full_name')
-    )
-
-    # 📄 pagination
-    paginate = request.GET.get('paginate', '20')
-    if str(paginate).lower() == 'all':
-        paginate = charges.count() or 1
-    else:
-        try:
-            paginate = int(paginate)
-        except ValueError:
-            paginate = 20
-
-    paginator = Paginator(charges, paginate)
-    page_obj = paginator.get_page(request.GET.get('page'))
-
-    context = {
-        'page_obj': page_obj,
-        'query': search,
-        'paginate': paginate,
-    }
-
-    return render(request, 'charge_notify_report.html', context)

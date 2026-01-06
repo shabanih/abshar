@@ -46,6 +46,13 @@ urlpatterns = [
 
     # Expense Urls
     path('middle-add-expense', views.MiddleExpenseView.as_view(), name='middle_add_expense'),
+    path('expense/pay/<int:expense_id>/', views.expense_pay_view, name='expense_pay'),
+    path(
+        'expense/cancel-pay/<int:expense_id>/',
+        views.expense_cancel_pay_view,
+        name='expense_cancel_pay'
+    ),
+
     path('expense/middle/edit/<int:pk>/', views.middle_expense_edit, name='middle_expense_edit'),
     path('expense/middle/delete/<int:pk>/', views.middle_expense_delete, name='middle_expense_delete'),
     path('expense/middle/delete-document/', views.middle_delete_expense_document,

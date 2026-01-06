@@ -6,20 +6,20 @@
 {% endblock page_title %}
 
 {% block main_content %}
-{#    <hr>#}
+    <hr>
     
   <div class="container py-5">
-   <div class="col-12 mb-3 text-start">
-            <a class="btn btn-gradient-danger px-4 py-3"   href="{{ request.META.HTTP_REFERER }}">برگشت به لیست </a>
-        </div>
+{#   <div class="col-12 mb-3 text-start">#}
+{#            <a class="btn btn-gradient-danger px-4 py-3"   href="{{ request.META.HTTP_REFERER }}">برگشت به لیست </a>#}
+{#        </div>#}
 
          <div class="d-flex gap-2 mt-4 justify-content-center">
 
     <!-- کارت کارت به کارت -->
-    <div class="card p-2 text-center" style="width: 300px; cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#manualPayment{{ charge.id }}">
-      <img src="/static/img/payment1.png" class="card-img-top" style="height: 100px; object-fit: contain;" alt="کارت به کارت">
+    <div class="card p-2 text-center bg-gradient-info" style="width: 300px; cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#manualPayment{{ charge.id }}">
+      <img src="/static/img/payment1.png" class="card-img-top" style="height: 120px; object-fit: contain;" alt="کارت به کارت">
       <div class="card-body p-1">
-        <small>پرداخت شارژ</small>
+        <small class="text-white fw-bold">پرداخت شارژ</small>
       </div>
     </div>
 
@@ -36,8 +36,8 @@
         class="btn {% if not charge.is_penalty_waived %}btn-gradient-danger{% else %}btn-gradient-success{% endif %}" 
         data-bs-toggle="modal" 
         data-bs-target="#penaltyModal{{ charge.id }}">
-    <img src="/static/img/deadline.png" class="card-img-top" style="height: 100px; object-fit: contain;" alt="پرداخت آنلاین">
-    <span class="btn-text">
+    <img src="/static/img/deadline.png" class="card-img-top" style="height: 120px; object-fit: contain;" alt="پرداخت آنلاین">
+    <span class="btn-text fw-bold">
         {% if not charge.is_penalty_waived %}حذف جریمه{% elif charge.previous_penalty_amount > 0 %}بازگردانی جریمه{% endif %}
     </span>
 </button>
@@ -162,78 +162,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
     
 <script>
-{#function handlePenalty(chargeId) {#}
-{#    const btn = document.getElementById(`penaltyBtn${chargeId}`);#}
-{#    const action = btn.getAttribute('data-status'); // "waive" یا "restore"#}
-{#    let url = '';#}
-{#    let successMsg = '';#}
-{##}
-{#    if(action === 'waive') {#}
-{#        url = "{% url 'waive_penalty_bulk' %}";#}
-{#        successMsg = 'جریمه با موفقیت حذف شد';#}
-{#    } else if(action === 'restore') {#}
-{#        url = "{% url 'restore_penalty' %}";#}
-{#        successMsg = 'جریمه با موفقیت بازگردانده شد';#}
-{#    }#}
-{##}
-{#    fetch(url, {#}
-{#        method: 'POST',#}
-{#        headers: {#}
-{#            'X-CSRFToken': '{{ csrf_token }}',#}
-{#            'Content-Type': 'application/x-www-form-urlencoded'#}
-{#        },#}
-{#        body: new URLSearchParams({ 'charge_ids[]': chargeId })#}
-{#    })#}
-{#    .then(res => res.json())#}
-{#    .then(data => {#}
-{#        if(data.success) {#}
-{#            // بستن مودال#}
-{#            const modalEl = document.getElementById(`penaltyModal${chargeId}`);#}
-{#            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);#}
-{#            modal.hide();#}
-{##}
-{#            // تغییر دکمه و وضعیت#}
-{#            if(action === 'waive') {#}
-{#                btn.querySelector('.btn-text').textContent = 'بازگردانی جریمه';#}
-{#                btn.classList.remove('btn-gradient-danger');#}
-{#                btn.classList.add('btn-gradient-success');#}
-{#                btn.setAttribute('data-status', 'restore');#}
-{#            } else {#}
-{#                btn.querySelector('.btn-text').textContent = 'حذف جریمه';#}
-{#                btn.classList.remove('btn-gradient-success');#}
-{#                btn.classList.add('btn-gradient-danger');#}
-{#                btn.setAttribute('data-status', 'waive');#}
-{#            }#}
-{##}
-{#            // پیام موفقیت و هدایت به صفحه لیست شارژها#}
-{#            Swal.fire({#}
-{#                icon: 'success',#}
-{#                title: 'موفقیت',#}
-{#                html: successMsg,#}
-{#                confirmButtonText: 'باشه'#}
-{#            }).then(() => {#}
-{#                window.location.href = `/middle-admin-panel/base-charges/${data.app_label}/${data.model_name}/${data.charge_id}/units/`;#}
-{#            });#}
-{##}
-{#        } else {#}
-{#            Swal.fire({#}
-{#                icon: 'error',#}
-{#                title: 'خطا',#}
-{#                text: data.error || 'خطا در عملیات',#}
-{#                confirmButtonText: 'باشه'#}
-{#            });#}
-{#        }#}
-{#    })#}
-{#    .catch(err => {#}
-{#        Swal.fire({#}
-{#            icon: 'error',#}
-{#            title: 'خطا',#}
-{#            text: 'خطا در ارتباط با سرور',#}
-{#            confirmButtonText: 'باشه'#}
-{#        });#}
-{#    });#}
-
-
 function waiveChargePenalty(chargeId) {
     fetch("{% url 'waive_penalty_bulk' %}", {
         method: 'POST',
@@ -262,7 +190,8 @@ function waiveChargePenalty(chargeId) {
             confirmButtonText: 'باشه'
         }).then(() => {
             // هدایت کاربر به آدرس مورد نظر
-           window.location.href = `/middle-admin-panel/base-charges/${data.app_label}/${data.model_name}/${data.charge_id}/units/`;
+           window.location.href = data.redirect_url;
+
         });
         } else {
             Swal.fire({
@@ -311,7 +240,7 @@ function restoreChargePenalty(chargeId) {
             confirmButtonText: 'باشه'
             }).then(() => {
                 // هدایت کاربر به آدرس مورد نظر
-                window.location.href = `/middle-admin-panel/base-charges/${data.app_label}/${data.model_name}/${data.charge_id}/units/`;
+             window.location.href = data.redirect_url;
             });
         } else {
             Swal.fire({
@@ -331,8 +260,6 @@ function restoreChargePenalty(chargeId) {
         });
     });
 }
-
-
 </script>
 
 

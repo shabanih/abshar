@@ -11,10 +11,6 @@
         <hr class="p-0">
      <div class="row g-2">
      
-{#        <div class="col-12 mb-3 text-start">#}
-{#            <a class="btn btn-gradient-primary px-3 py-2" href="{% url 'charge_list_report' %}">برگشت به لیست شارژها</a>#}
-{#        </div>#}
-  
         <!-- بخش جستجو -->
         <div class="col-12 col-md-4 col-xl-4 align-self-center">
             <form method="get" action="" class="d-flex gap-2 align-items-center">
@@ -30,14 +26,19 @@
                 <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
             </form>
         </div>
-       <div class=" col-12 col-md-6 col-xl-6 text-end text-md-center align-self-center">
-            <a href="{% url 'middle_main_charges_excel'  %}?{{ request.GET.urlencode }}"
-                class="btn btn-facebook text-white px-4 py-2">خروجی Excel </a>
-            <a href="{% url 'middle_main_charges_pdf'  %}?{{ request.GET.urlencode }}"
-                   class="btn btn-gradient-danger px-4 py-2">
-                   خروجی PDF 
-                </a>
-            </div>
+     <div class=" col-12 col-md-6 col-xl-6 text-end text-md-center align-self-center">
+    {% if charges %}
+        <a href="{% url 'middle_main_charges_excel'  %}?{{ request.GET.urlencode }}"
+            class="btn btn-facebook text-white px-4 py-2">خروجی Excel </a>
+        <a href="{% url 'middle_main_charges_pdf'  %}?{{ request.GET.urlencode }}"
+               class="btn btn-gradient-danger px-4 py-2">
+               خروجی PDF 
+        </a>
+    {% else %}
+        <button class="btn btn-facebook text-white px-4 py-2" disabled>خروجی Excel</button>
+        <button class="btn btn-gradient-danger px-4 py-2" disabled>خروجی PDF</button>
+    {% endif %}
+</div>
 
         <!-- بخش تعداد نمایش → فقط دسکتاپ -->
         <div class="col-12 col-md-2 col-xl-2 text-start p-0 d-none d-md-block">
@@ -137,16 +138,32 @@
                           <hr/>
                             <div class="modal-body text-end">
                                 <p><strong>عنوان:</strong> {{ charge.name }}</p>
-{% for key, value in charge.items %}
-    {% if key not in 'id name charge_type created_at unit_count app_label model_name civil other_cost_amount payment_deadline payment_penalty_amount details notified_count' %}
-        {% if value %}
-            <p><strong>{{ key }}:</strong> {{ value|three_digit_currency }} تومان</p>
-        {% endif %}
-    {% endif %}
-{% endfor %}   
-                                <p><strong>شارژ عمرانی:</strong> {{ charge.civil|three_digit_currency }} تومان</p>
-                                <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost_amount|three_digit_currency }} تومان</p>
+                                {% for key, value in charge.items %}
+                                    {% if key not in 'id name charge_type created_at unit_count app_label model_name civil other_cost_amount payment_deadline payment_penalty_amount details notified_count' %}
+                                        {% if value %}
+                                            <p><strong>{{ key }}:</strong> {{ value|three_digit_currency }} تومان</p>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}   
+                            
+                                <p><strong>شارژ عمرانی:</strong> 
+                                    {% if charge.civil %}
+                                    {{ charge.civil|three_digit_currency }} تومان
+                                         {% else %}
+                                               ---
+                                            {% endif %} 
+                                </p>
+                            
+                                <p><strong>سایر هزینه ها:</strong>
+                                    {% if charge.other_cost_amount %}
+                                    {{ charge.other_cost_amount|three_digit_currency }} تومان
+                                         {% else %}
+                                             ---
+                                            {% endif %} 
+                                </p>
+                            
                                 <p><strong>تاریخ ثبت :</strong> {{ charge.created_at|show_jalali_date_only }} </p>
+                            
                                <p><strong>مهلت پرداخت :</strong>
                                           {% if charge.payment_deadline %}
                                                  	  {{charge.payment_deadline|show_jalali_date_only }}
@@ -165,7 +182,7 @@
                                     {% if charge.details %}
                                         <span class="bg-warning text-wrap">{{ charge.details }} </span>
                                         {% else %}
-                                        توضیحات ثبت نشده است
+                                        ندارد
                                     {% endif %} 
 
                                 </p>

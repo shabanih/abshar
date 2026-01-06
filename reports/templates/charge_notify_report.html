@@ -2,7 +2,7 @@
 {% load poll_extras %}
 
 {% block page_title %}
-    لیست شارژ {{ charge_type_fa }} 
+    لیست شارژهای اعلامی
 {% endblock page_title %}
 
 {% block main_content %}
@@ -31,15 +31,17 @@
             </form>
         </div>
        <div class=" col-12 col-md-6 col-xl-6 text-end text-md-center align-self-center">
-            <a href=""
-                class="btn btn-gradient-success px-4 py-2"> Excel</a>
-            <a href=""
+                {% if page_obj %}
+            <a href="{% url 'charge_units_list_report_excel' %}?{{ request.GET.urlencode }}"
+                class="btn btn-facebook text-white px-4 py-2"> خروجی Excel  </a>
+            <a href="{% url 'charge_units_list_report_pdf' %}?{{ request.GET.urlencode }}"
                    class="btn btn-gradient-danger px-4 py-2">
-                    PDF
+                    خروجی PDF 
                 </a>
-                <a class="btn btn-gradient-warning px-4 py-2" 
-                   href=""> PDF همه صورتحساب ها</a>
-
+            {% else %}
+        <button class="btn btn-facebook text-white px-4 py-2" disabled>خروجی Excel</button>
+        <button class="btn btn-gradient-danger px-4 py-2" disabled>خروجی PDF</button>
+    {% endif %}
             </div>
 
         <!-- بخش تعداد نمایش → فقط دسکتاپ -->
@@ -122,26 +124,13 @@
 {#                </td>#}
            
                   <td class="shadow_style p-1">
-                      <a href="">
-                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
-                               style="width: 35px; height: 33px">
-                      </a>|
-                      {% if charge.is_paid %}
-                       <button data-bs-toggle="modal" data-bs-target="#exampleModalLong77{{ charge.id }}"
-                        class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
-                        </button> 
-                            {% else %}
                          <button data-bs-toggle="modal" data-bs-target="#exampleModalLong77{{ charge.id }}"
                         class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
-                      </button> | 
-                     <a href=""
-                         class="btn btn-gradient-success px-1 py-1" 
-                          data-bs-toggle="tooltip"  title="امور مالی">
-                         <i class="fas fa-money-check-alt"></i>
-                            </a>
-                        {% endif %} 
-
-                 
+                        </button> |
+                      <a href="{% url 'single_charge_invoice_report_pdf' charge.id %}">
+                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
+                               style="width: 35px; height: 33px">
+                      </a>
                     </td>
                 <!-- Modal -->
                 <div class="modal fade"  id="exampleModalLong77{{ charge.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ charge.id }}" aria-hidden="true">
@@ -152,41 +141,61 @@
                             </div>
                           <hr/>
                             <div class="modal-body text-end">
-                                <p><strong>عنوان:</strong> {{ charge.charge_name }}</p>
-                                <p><strong>تعداد نفرات:</strong> {{ charge.unit.people_count}}نفر</p>
-                                <p><strong>متراژ واحد:</strong> {{ charge.unit.area}}متر</p>
-                               
-                         {% if charge.monthly_unit %}
-                                <p><strong>{{ charge.monthly_unit_label }}:</strong> {{ charge.monthly_unit|three_digit_currency }} تومان</p>
-                                {% endif %}
-                                
-                                {% if charge.monthly_per_person %}
-                                <p><strong>{{ charge.monthly_per_person_label }}:</strong> {{ charge.monthly_per_person|three_digit_currency }} تومان</p>
-                                {% endif %}
-                                
-                                {% if charge.monthly_per_meter %}
-                                <p><strong>{{ charge.monthly_per_meter_label }}:</strong> {{ charge.monthly_per_meter|three_digit_currency }} تومان</p>
-                                {% endif %}
+                     <div class="d-flex gap-3 mb-3 ">
+                        <span>
+                            <strong>عنوان:</strong>
+                            {{ charge.title }}
+                        </span>
+                       
+                    </div>
+                                  <div class="d-flex gap-3 mb-3 ">
+                                     <span>
+                            <strong>نام مالک/مستاجر:</strong>
+                            {{ charge.unit.get_label }} 
+                        </span>
+                                    
+                                   </div>
+                               <div class="d-flex gap-4 mb-3 ">
+                       <span>
+                            <strong>تعداد نفرات:</strong>
+                            {{ charge.unit.people_count|default:"—" }} نفر
+                        </span>
+                             <span>
+                            <strong>متراژ واحد:</strong>
+                            {{ charge.unit.area|default:"—" }} متر
+                        </span>
+                       
+                    </div>
+                          
 
-
-                                              <hr>
-                 
-                            
-                                         <p class="text-dark shadow_style text-center">
+                                    <hr/> 
+                                  <p class="text-dark shadow_style text-center">
                                             <strong>مبلغ شارژ ماهانه:</strong>
-                                            {{ charge.charge_monthly|three_digit_currency }} تومان
-                                        </p>                                       
-                            <hr/>
-                           
-                                       {% if charge.civil_charge %}
-                                <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
+                                            {{ charge.amount|three_digit_currency }} تومان
+                                        </p>
+                            
+                       
+
+                                       {% if charge.civil %}
+                                <p><strong>شارژ عمرانی:</strong> {{ charge.civil|three_digit_currency }} تومان</p>
+                                           {% else %}
+                                <p><strong>شارژ عمرانی:</strong> -- </p>
                             {% endif %}
-                               
-                            {% if charge.other_cost %}
-                            	 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost|three_digit_currency }} تومان</p>
+
+                            {% if charge.other_cost_amount %}
+                            	 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost_amount|three_digit_currency }} تومان</p>
+                                 {% else %}
+                            	 <p><strong>سایر هزینه ها:</strong> -- </p>
                                 {% endif %}
-                               {% if charge.payment_penalty_price %}
-                                <p><strong>جریمه دیرکرد:</strong> {{ charge.payment_penalty_price|three_digit_currency }} تومان</p>
+                               {% if charge.penalty_amount %}
+                                <p><strong>جریمه دیرکرد:</strong> {{ charge.penalty_amount|three_digit_currency }} تومان</p>
+                                   {% else %}
+                                   <p><strong>جریمه دیرکرد:</strong> -- </p>
+                                {% endif %}
+                             {% if charge.extra_parking_price %}
+                                <p><strong>هزینه پارکینگ اضافه:</strong> {{ charge.extra_parking_price|three_digit_currency }} تومان</p>
+                                   {% else %}
+                                   <p><strong>هزینه پارکینگ اضافه:</strong> -- </p>
                                 {% endif %}
                                 <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
                               <hr>
@@ -196,12 +205,11 @@
                                         {% else %}
                                          ثبت نشده است
                                     {% endif %} 
-                                    
+
                                 </p>
                                    <p><strong>تاریخ ارسال اطلاعیه:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>
                                    <p><strong>مهلت پرداخت:</strong> {{ charge.payment_deadline_date|show_jalali_date_only }}</p>
-
-                              <hr>
+                            
                            {% if charge.transaction_reference %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ charge.payment_date|show_jalali_date_only }}</p>
                                 <p><strong> کد پیگیری:</strong> {{ charge.transaction_reference }}</p>

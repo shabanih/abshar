@@ -68,7 +68,7 @@ class ExpenseCategory(models.Model):
 
 class Expense(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
 
     category = models.ForeignKey(ExpenseCategory, on_delete=models.CASCADE, verbose_name='گروه',
                                  related_name='expenses')
@@ -77,7 +77,13 @@ class Expense(models.Model):
     description = models.CharField(max_length=4000, verbose_name='شرح')
     amount = models.PositiveIntegerField(verbose_name='قیمت', null=True, blank=True, default=0)
     details = models.TextField(verbose_name='توضیحات', null=True, blank=True)
-    # document = models.FileField(upload_to='images/expense', verbose_name='تصاویر هزینه', null=True, blank=True)
+    is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده/ نشده')
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
+    payment_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="تاریخ پرداخت"
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 
@@ -110,7 +116,7 @@ class IncomeCategory(models.Model):
 
 class Income(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
     payer_name = models.CharField(max_length=400, null=True, blank=True)
     category = models.ForeignKey(IncomeCategory, on_delete=models.CASCADE, verbose_name='گروه', related_name='incomes')
@@ -603,28 +609,6 @@ class UnifiedCharge(models.Model):
             if save:
                 self.save(update_fields=['penalty_amount', 'total_charge_month'])
 
-
-
-class Penalty(models.Model):
-    charge = models.ForeignKey(
-        UnifiedCharge,
-        related_name='penalties',
-        on_delete=models.CASCADE
-    )
-    title = models.CharField(max_length=255)
-    amount = models.PositiveIntegerField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    is_waived = models.BooleanField(default=False)
-    waived_at = models.DateTimeField(null=True, blank=True)
-    waived_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True, blank=True,
-        on_delete=models.SET_NULL
-    )
-
-    def __str__(self):
-        return self.title
 
 class Fund(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)

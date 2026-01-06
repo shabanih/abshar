@@ -3,6 +3,7 @@ from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db.models import Q
+from django.utils import timezone
 from django_select2.forms import ModelSelect2MultipleWidget
 from jalali_date.fields import JalaliDateField
 from jalali_date.widgets import AdminJalaliDateWidget
@@ -591,7 +592,6 @@ class UnitForm(forms.ModelForm):
             self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
                 " (پیش‌فرض)" if obj.is_default else "")
 
-
     def save(self, commit=True):
         instance = super().save(commit=False)
 
@@ -767,14 +767,7 @@ class RenterAddForm(forms.ModelForm):
 # ======================== Expense Forms =============================
 
 class ExpenseForm(forms.ModelForm):
-    bank = forms.ModelChoiceField(
-        queryset=Bank.objects.none(),
-        widget=forms.Select(attrs=attr),
-        empty_label="شماره حساب را انتخاب کنید",
-        error_messages=error_message,
-        required=True,
-        label='شماره حساب بانکی'
-    )
+
     category = forms.ModelChoiceField(
         queryset=ExpenseCategory.objects.none(),
         widget=forms.Select(attrs=attr),
@@ -808,21 +801,67 @@ class ExpenseForm(forms.ModelForm):
 
     class Meta:
         model = Expense
-        fields = ['category', 'bank', 'amount', 'date', 'description', 'doc_no', 'details', 'document']
-
-    # def __init__(self, *args, **kwargs):
-    #     user = kwargs.pop('user', None)
-    #     super().__init__(*args, **kwargs)
-    #     if user:
-    #         self.fields['category'].queryset = ExpenseCategory.objects.filter(is_active=True, user=user)
-    #         self.fields['bank'].queryset = Bank.objects.filter(is_active=True, user=user)
+        fields = ['category', 'amount', 'date', 'description', 'doc_no', 'details', 'document']
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
         if user:
-            self.fields['category'].queryset = ExpenseCategory.objects.filter(is_active=True, user=user)
+            self.fields['category'].queryset = ExpenseCategory.objects.filter(
+                is_active=True,
+                user=user
+            )
+
+    def clean_amount(self):
+        """
+        تبدیل مبلغ به عدد + حذف کاما
+        """
+        amount = self.cleaned_data.get('amount')
+        try:
+            amount = int(str(amount).replace(',', ''))
+            if amount <= 0:
+                raise ValidationError('مبلغ باید بزرگتر از صفر باشد')
+            return amount
+        except ValueError:
+            raise ValidationError('مبلغ وارد شده معتبر نیست')
+
+    def clean_date(self):
+        """
+        اگر تاریخ وارد نشده بود → امروز
+        """
+        date = self.cleaned_data.get('date')
+        if not date:
+            return timezone.now().date()
+        return date
+
+
+class ExpensePayForm(forms.ModelForm):
+    bank = forms.ModelChoiceField(
+        queryset=Bank.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control form-control-sm'}),
+        empty_label="شماره حساب را انتخاب کنید",
+        error_messages=error_message,
+        required=True,
+        label='شماره حساب بانکی'
+    )
+    payment_date = JalaliDateField(
+        label='تاریخ پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    transaction_reference = forms.IntegerField(error_messages=error_message,
+                                               widget=forms.TextInput(attrs=attr),
+                                               required=False, min_value=0,
+                                               label='کد پیگیری')
+    class Meta:
+        model = Expense
+        fields = ['bank', 'transaction_reference', 'payment_date']
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
             banks = Bank.objects.filter(is_active=True, user=user)
             self.fields['bank'].queryset = banks
 
@@ -904,7 +943,8 @@ class IncomeForm(forms.ModelForm):
         )
     )
     payer_name = forms.CharField(
-        max_length=200, required=False, label='پرداخت کننده غیر از ساکنین ', widget=forms.TextInput(attrs={'class': 'form-control'})
+        max_length=200, required=False, label='پرداخت کننده غیر از ساکنین ',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
     )
 
     amount = forms.CharField(error_messages=error_message, max_length=20, required=True,
