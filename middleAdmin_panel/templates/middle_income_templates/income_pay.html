@@ -2,15 +2,15 @@
 {% load poll_extras %}
 {% load static %}
 
-{% block page_title %}پرداخت هزینه{% endblock %}
+{% block page_title %}دریافت درآمد {% endblock %}
 
 {% block main_content %}
     <hr>
 <div class="container py-4">
 
-    <h4>پرداخت هزینه سند {{ expense.doc_no }}</h4>
-    <p>شرح: {{ expense.description }}</p>
-    <p>مبلغ: {{ expense.amount|three_digit_currency }}تومان</p>
+    <h4>دریافت درآمد سند {{ income.doc_number }}</h4>
+    <p>شرح: {{ income.description }}</p>
+    <p>مبلغ: {{ income.amount|three_digit_currency }}تومان</p>
 
     <form method="post" action="">
         {% csrf_token %}
@@ -38,9 +38,9 @@
         {{ form.unit.errors }}
     </div>
               <div class="col-12 col-md-4">
-        {{ form.receiver_name.label_tag }}
-        {{ form.receiver_name }}
-        {{ form.receiver_name.errors }}
+        {{ form.payer_name.label_tag }}
+        {{ form.payer_name }}
+        {{ form.payer_name.errors }}
     </div>
   
        
@@ -48,7 +48,7 @@
         
 
         <div class="text-start">
-        <button type="submit" class="btn btn-gradient-success">تأیید پرداخت</button>
+        <button type="submit" class="btn btn-gradient-success">تأیید دریافت</button>
         <a href="{% url 'middle_add_expense' %}" class="btn btn-gradient-danger">انصراف</a>
             </div>
     </form>

@@ -86,19 +86,24 @@
                         <input type="text" name="doc_number" class="form-control" placeholder="شماره سند"
                                value="{{ request.GET.doc_no }}">
                     </div>
-                      <div class="col-md-3">
+                      <div class="col-md-5">
                 <input type="text" name="description" class="form-control" placeholder="شرح سند"
                        value="{{ request.GET.description }}">
             </div>
-                      <div class="col-md-5">
-                       <input type="text" name="details" class="form-control" placeholder="توضیحات سند"
-                       value="{{ request.GET.details }}">
+                      <div class="col-md-3">
+                       <input type="text" name="payer_name" class="form-control" placeholder="دریافت کننده"
+                       value="{{ request.GET.payer_name }}">
                       </div>
                    
                     </div>
              <div class="row">
-                     <div class="col-md-12 align-self-center text-start mb-2">
+                 <div class="col-md-9 align-self-center text-start mb-2">
+                       <input type="text" name="details" class="form-control" placeholder="توضیحات سند"
+                       value="{{ request.GET.details }}">
+                 </div>
+                     <div class="col-md-3 align-self-center mb-2">
                             <button type="submit" class="btn btn-facebook px-4 py-2">جستجوی پیشرفته</button>
+                            <button type="button" class="btn btn-gradient-danger px-2 py-2" onclick="window.location.href=window.location.pathname;">حذف فیلتر</button>
                         </div>
                         </div>
                </form>
@@ -117,8 +122,7 @@
                             <th>تاریخ سند</th>
                              <th>توضیحات سند</th>
                             <th>تصویر سند</th>
-                            <th> پرداخت کننده</th>
-                            <th>حساب بانکی</th>
+                             <th>وضعیت پرداخت</th>
                             <th>دستورات</th>
                         </tr>
                     </thead>
@@ -142,18 +146,16 @@
                                      !No File
                                     {% endfor %}
                                 </td>
-                                        <td>
-                                     {% if income.unit %}
-                                     	{{ income.unit }}
-                                         {% else %}
-                                     {{income.payer_name }}
-                                     {% endif %} 
-                                   
-                                 </td>
-                            <td>{{income.bank }}</td>
+                                       <td>
+                                {% if income.is_paid %}
+                                	<span class="text-success fw-bold">پرداخت شده</span>
+                                    {% else %}
+                                	<span class="text-danger fw-bold">پرداخت نشده</span>
+                                {% endif %} 
+                              
+                            </td>
                             
-
-                                   <td class="col-lg-1 col-xl-1 p-0">
+                                   <td class="col-lg-2 col-xl-2 p-0">
                                       <a
                                            class="btn btn-gradient-warning p-1 edit-m-income"
                                            data-id="{{ income.id }}"
@@ -176,8 +178,93 @@
                                            onclick="return confirmDeleteWithSweetAlert(event)">
                                                   <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                 </a>
+                                    <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ income.id }}"
+                                                        class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
+                                                </button>
+                                        {% if not income.is_paid %}
+                                    <a href="{% url 'income_pay' income.id %}"
+                                        class="btn btn-gradient-success px-2 py-2"
+                                        >
+                                        پرداخت
+                                    </a>
+                                {% else %}
+                                    <button
+                                        class="btn btn-gradient-danger px-2 py-2"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#cancelPayModal{{ income.id }}">
+                                        لغو پرداخت
+                                    </button>
+                                {% endif %}
 
                             </td>
+                       <div class="modal fade"  id="exampleModalLong2{{ income.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ income.id }}" aria-hidden="true">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalLabel{{ income.id }}">مشاهده جزئیات </h5>
+                            </div>
+                          <hr/>
+                            <div class="modal-body text-end">
+                                <p><strong>موضوع درآمد:</strong> {{ income.category }}</p>
+                                 <p><strong>شرح درآمد:</strong> {{ income.description }} تومان</p>
+                                <p><strong>مبلغ:</strong> {{ income.amount|three_digit_currency }} تومان</p>
+                                <p><strong>شماره سند:</strong> {{ income.doc_number }} </p>
+                                <p><strong>تاریخ سند :</strong> {{ income.doc_date|show_jalali_date_only}} </p>
+                                <p><strong>توضیحات:</strong>
+                                    {% if income.details %}
+                                        <span class="badge bg-warning">{{ income.details }} </span>
+                                        {% else %}
+                                        توضیحات ثبت نشده است
+                                    {% endif %}
+
+                                </p>
+                                <hr>
+                             {% if income.transaction_reference %} 
+                                <p><strong>تاریخ پرداخت:</strong> {{ income.payment_date|show_jalali_date_only }}</p>
+                                <p><strong> کد پیگیری:</strong> {{ income.transaction_reference }}</p>
+                                <p><strong> بانک:</strong> {{ income.bank }}</p>
+                                <p><strong> پرداخت کننده:</strong> 
+                                 {% if income.payer_name  %}
+                                 	 {{ income.payer_name }}
+                                     {% elif income.unit %}
+                                      {{ income.unit }}
+                                 {% endif %}   
+                                </p>
+                            {% endif %}
+                                    <p><strong>وضعیت:</strong> 
+                                    {% if income.is_paid %}
+                                    	<span class="badge bg-success">پرداخت شده</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span></p>
+                                    {% endif %} 
+
+                            </div>
+                            <hr/>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+ <div class="modal fade" id="cancelPayModal{{ income.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'income_cancel_pay' income.id %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title text-danger">لغو دریافت درآمد</h5>
+        </div>
+        <div class="modal-body">
+          ⚠️ با لغو دریافت درآمد، سند صندوق اصلاح می‌شود. ادامه می‌دهید؟
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-danger">لغو دریافت</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
                             </tr>
                         {% endfor %}
                             {% else %}
@@ -229,33 +316,12 @@
                 enctype="multipart/form-data" novalidate>
               {% csrf_token %}
                  <div class="row align-items-center p-0 g-2">
-                      <div class="col-12">
-                      {{ form.bank.label_tag }}
-                      {{ form.bank }}
-                      {{ form.bank.errors }}
-                  </div>
                   <div class="col-12">
                       {{ form.category.label_tag }}
                       {{ form.category }}
                       {{ form.category.errors }}
                   </div>
                      </div>
-                     <div class="row g-2 mt-2">
-                         <span class="text-small text-danger">توجه:انتخاب و یا تکمیل یک پرداخت کننده ضروری است</span>
-            <!-- انتخاب واحد -->
-            <div class="col-12 col-lg-6">
-              {{ form.unit.label_tag }}
-              {{ form.unit }}
-              {{ form.unit.errors }}
-            </div>
-
-            <!-- پرداخت کننده -->
-            <div class="col-12 col-lg-6">
-              {{ form.payer_name.label_tag }}
-              {{ form.payer_name }}
-              {{ form.payer_name.errors }}
-            </div>
-          </div>
                <div class="row m-0 g-2">
                    <div class="col-4 col-lg-4 col-xl-4 p-1">
                        {{ form.amount.label_tag }}

@@ -136,6 +136,8 @@
                                            data-amount="{{ receive.amount }}"
                                            data-payer_name="{{ receive.payer_name }}"
                                            data-doc_date="{{ receive.doc_date|show_jalali }}"
+                                           data-payment_date="{{ receive.payment_date|show_jalali }}"
+                                           data-transaction_reference="{{ receive.transaction_reference }}"
                                            data-doc_number="{{ receive.doc_number}}"
                                            data-description="{{ receive.description }}"
                                            data-details="{{ receive.details }}"
@@ -149,8 +151,61 @@
                                             onclick="return confirmDeleteWithSweetAlert(event)">
                                                   <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                 </a>
+                                               <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ receive.id }}"
+                                                        class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
+                                                </button>
 
                             </td>
+                                    <div class="modal fade"  id="exampleModalLong2{{ receive.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ receive.id }}" aria-hidden="true">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalLabel{{ receive.id }}">مشاهده جزئیات </h5>
+                            </div>
+                          <hr/>
+                            <div class="modal-body text-end">
+                                <p><strong>موضوع درآمد:</strong> {{ receive.category }}</p>
+                                 <p><strong>شرح درآمد:</strong> {{ receive.description }} تومان</p>
+                                <p><strong>مبلغ:</strong> {{ receive.amount|three_digit_currency }} تومان</p>
+                                <p><strong>شماره سند:</strong> {{ receive.doc_number }} </p>
+                                <p><strong>تاریخ سند :</strong> {{ receive.doc_date|show_jalali_date_only}} </p>
+                                <p><strong>توضیحات:</strong>
+                                    {% if income.details %}
+                                        <span class="badge bg-warning">{{ receive.details }} </span>
+                                        {% else %}
+                                        توضیحات ثبت نشده است
+                                    {% endif %}
+
+                                </p>
+                                <hr>
+                             {% if receive.transaction_reference %} 
+                                <p><strong>تاریخ پرداخت:</strong> {{ receive.payment_date|show_jalali_date_only }}</p>
+                                <p><strong> کد پیگیری:</strong> {{ receive.transaction_reference }}</p>
+                                <p><strong> بانک:</strong> {{ receive.bank }}</p>
+                                <p><strong> پرداخت کننده:</strong> 
+                                 {% if receive.payer_name  %}
+                                 	 {{ receive.payer_name }}
+                                     {% elif receive.unit %}
+                                      {{ receive.unit }}
+                                 {% endif %}   
+                                </p>
+                            {% endif %}
+                                    <p><strong>وضعیت:</strong> 
+                                    {% if receive.is_paid %}
+                                    	<span class="badge bg-success">پرداخت شده</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span></p>
+                                    {% endif %} 
+
+                            </div>
+                            <hr/>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                             </tr>
                         {% endfor %}
                             {% else %}
@@ -197,7 +252,40 @@
       <div class="modal-body">
         <form id="receiveForm" action="" method="POST" enctype="multipart/form-data" novalidate>
           {% csrf_token %}
+                 <!-- شرح سند -->
+          <div class="row">
+            <div class="col-12">
+              {{ form.description.label_tag }}
+              {{ form.description }}
+              {{ form.description.errors }}
+            </div>
+          </div>
+            
           <div class="row g-2">
+            <!-- تاریخ سند -->
+            <div class="col-12 col-lg-6">
+              {{ form.doc_date.label_tag }}
+              {{ form.doc_date }}
+              {{ form.doc_date.errors }}
+            </div>
+
+            <!-- شماره سند -->
+            <div class="col-12 col-lg-6">
+              {{ form.doc_number.label_tag }}
+              {{ form.doc_number }}
+              {{ form.doc_number.errors }}
+            </div>
+          </div>
+          <!-- توضیحات -->
+          <div class="row">
+            <div class="col-12">
+              {{ form.details.label_tag }}
+              {{ form.details }}
+              {{ form.details.errors }}
+            </div>
+          </div>
+            
+         <div class="row g-2">
             <!-- بانک -->
             <div class="col-12 col-lg-6">
               {{ form.bank.label_tag }}
@@ -213,7 +301,7 @@
             </div>
           </div>
 
-          <div class="row g-2 mt-2">
+          <div class="row g-2">
             <!-- انتخاب واحد -->
             <div class="col-12 col-lg-6">
               {{ form.unit.label_tag }}
@@ -228,38 +316,20 @@
               {{ form.payer_name.errors }}
             </div>
           </div>
-
-          <div class="row g-2 mt-2">
-            <!-- تاریخ سند -->
+            
+            <div class="row g-2">
+            <!-- انتخاب واحد -->
             <div class="col-12 col-lg-6">
-              {{ form.doc_date.label_tag }}
-              {{ form.doc_date }}
-              {{ form.doc_date.errors }}
+              {{ form.payment_date.label_tag }}
+              {{ form.payment_date }}
+              {{ form.payment_date.errors }}
             </div>
 
-            <!-- شماره سند -->
+            <!-- پرداخت کننده -->
             <div class="col-12 col-lg-6">
-              {{ form.doc_number.label_tag }}
-              {{ form.doc_number }}
-              {{ form.doc_number.errors }}
-            </div>
-          </div>
-
-          <!-- شرح سند -->
-          <div class="row mt-2">
-            <div class="col-12">
-              {{ form.description.label_tag }}
-              {{ form.description }}
-              {{ form.description.errors }}
-            </div>
-          </div>
-
-          <!-- توضیحات -->
-          <div class="row mt-2">
-            <div class="col-12">
-              {{ form.details.label_tag }}
-              {{ form.details }}
-              {{ form.details.errors }}
+              {{ form.transaction_reference.label_tag }}
+              {{ form.transaction_reference }}
+              {{ form.transaction_reference.errors }}
             </div>
           </div>
 

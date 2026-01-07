@@ -57,8 +57,8 @@ urlpatterns = [
     path('expense/middle/delete/<int:pk>/', views.middle_expense_delete, name='middle_expense_delete'),
     path('expense/middle/delete-document/', views.middle_delete_expense_document,
          name='middle_delete_expense_document'),
-    path('expense/export/excel/', views.export_units_excel, name='export_expense_excel'),
-    path('expense/export/pdf/', views.export_expense_pdf, name='export_expense_pdf'),
+    path('middle/expense/export/excel/', views.middle_export_expense_excel, name='middle_export_expense_excel'),
+    path('middle/expense/export/pdf/', views.middle_export_expense_pdf, name='middle_export_expense_pdf'),
 
     # Income_category Urls
     path('middle-add-category_income', views.MiddleIncomeCategoryView.as_view(), name='middle_add_category_income'),
@@ -69,6 +69,12 @@ urlpatterns = [
 
     # Income Urls
     path('middle-add-income', views.MiddleIncomeView.as_view(), name='middle_add_income'),
+    path('income/pay/<int:income_id>/', views.income_pay_view, name='income_pay'),
+    path(
+        'income/cancel-pay/<int:income_id>/',
+        views.income_cancel_pay_view,
+        name='income_cancel_pay'
+    ),
     path('income/middle/edit/<int:pk>/', views.middle_income_edit, name='middle_income_edit'),
     path('income/middle/delete/<int:pk>/', views.middle_income_delete, name='middle_income_delete'),
     path('income/middle/delete-document/', views.middle_delete_income_document, name='middle_delete_income_document'),

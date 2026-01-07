@@ -453,12 +453,15 @@ $(document).on('click', '.edit-Mreceive-btn', function () {
 
     // Ensure date is in YYYY-MM-DD format before setting it
     var receiveDate = $(this).data('doc_date');
-    // If the date is in a format other than YYYY-MM-DD, convert it here
-    // You can use moment.js or another library for conversion if necessary
-    $('#id_doc_date').val(receiveDate);  // Assuming it's already in correct format
+    $('#id_doc_date').val(receiveDate);
+
+    var receiveDatePay = $(this).data('payment_date');
+    $('#id_payment_date').val(receiveDatePay);
 
     $('#id_doc_number').val($(this).data('doc_number'));
     $('#id_description').val($(this).data('description'));
+    $('#id_transaction_reference').val($(this).data('transaction_reference'));
+
     $('#id_details').val($(this).data('details'));
 
     // Update the modal title and submit button text for editing

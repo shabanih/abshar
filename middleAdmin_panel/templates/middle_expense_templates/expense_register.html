@@ -11,8 +11,8 @@
  
       <div class="row align-self-center mb-2">
                 <div class="col-12 col-md-3 col-xl-3 align-self-center">
-                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">
-                          <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
+                <button type="button" class="btn btn-primary px-2 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">
+                          <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-1" width="20" alt="">
                     ثبت هزینه جدید
                 </button>
                  </div>
@@ -22,11 +22,11 @@
         <div class=" col-12 col-md-5 col-xl-4 text-center align-self-center">
             <button onclick="openQuery()" class="btn btn-gradient-info px-2 py-2">جستجوی پیشرفته</button>
              {% if page_obj %}
-             <a href="{% url 'export_expense_pdf' %}?{{ request.GET.urlencode }}"
+             <a href="{% url 'middle_export_expense_pdf' %}?{{ request.GET.urlencode }}"
                class="btn btn-gradient-danger px-2 py-2">
                خروجی PDF
             </a>
-            <a href="{% url 'export_expense_excel' %}?{{ request.GET.urlencode }}"
+            <a href="{% url 'middle_export_expense_excel' %}?{{ request.GET.urlencode }}"
                      class="btn btn-facebook text-white px-2 py-2">خروجی Excel</a>
          
                    {% else %}
@@ -37,7 +37,7 @@
           </div>
        <div id="query-form" style="display: none;" class="row mt-2">
             <form method="get">
-               <div class="row mt-2">
+               <div class="row mt-2 g-2">
                      <div class="col-md-3">
 {#                        <input type="text" name="category__title" class="form-control" placeholder="موضوع هزینه"#}
 {#                               value="{{ request.GET.category__title }}">#}
@@ -65,17 +65,22 @@
                                placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
                         </div>
                </div>
-                <div class="row mt-2 mb-2">
+                <div class="row mt-2 mb-2 g-2">
                       <div class="col-md-4">
                 <input type="text" name="description" class="form-control" placeholder="شرح سند"
                        value="{{ request.GET.description }}">
             </div>
-                      <div class="col-md-6">
+                      <div class="col-md-4">
                        <input type="text" name="details" class="form-control" placeholder="توضیحات سند"
                        value="{{ request.GET.details }}">
                       </div>
+                     <div class="col-md-2">
+                       <input type="text" name="receiver_name" class="form-control" placeholder="دریافت کننده"
+                       value="{{ request.GET.receiver_name }}">
+                      </div>
                       <div class="col-md-2 align-self-center text-center">
-                            <button type="submit" class="btn btn-facebook px-4 py-2">جستجوی پیشرفته</button>
+                                            <button type="submit" class="btn btn-facebook px-3 py-2">جستجو</button>
+                            <button type="button" class="btn btn-gradient-danger px-2 py-2" onclick="window.location.href=window.location.pathname;">حذف فیلتر</button>
                         </div>
                     </div>
                </form>
@@ -173,7 +178,7 @@
                                 {% endif %}
 
                             </td>
-                          <div class="modal fade"  id="exampleModalLong2{{ expense.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ expense.id }}" aria-hidden="true">
+             <div class="modal fade"  id="exampleModalLong2{{ expense.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ expense.id }}" aria-hidden="true">
                       <div class="modal-dialog" role="document">
                         <div class="modal-content">
                             <div class="modal-header">
@@ -198,6 +203,14 @@
                              {% if expense.transaction_reference %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ expense.payment_date|show_jalali_date_only }}</p>
                                 <p><strong> کد پیگیری:</strong> {{ expense.transaction_reference }}</p>
+                                <p><strong> بانک:</strong> {{ expense.bank }}</p>
+                                <p><strong> دریافت کننده:</strong> 
+                                 {% if expense.receiver_name  %}
+                                 	 {{ expense.receiver_name }}
+                                     {% elif expense.unit %}
+                                      {{ expense.unit }}
+                                 {% endif %}   
+                                </p>
                             {% endif %}
                                     <p><strong>وضعیت:</strong> 
                                     {% if expense.is_paid %}

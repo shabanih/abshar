@@ -69,6 +69,8 @@ class ExpenseCategory(models.Model):
 class Expense(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
+    receiver_name = models.CharField(max_length=400, null=True, blank=True)
 
     category = models.ForeignKey(ExpenseCategory, on_delete=models.CASCADE, verbose_name='گروه',
                                  related_name='expenses')
@@ -125,6 +127,13 @@ class Income(models.Model):
     description = models.CharField(max_length=4000, verbose_name='شرح')
     amount = models.PositiveIntegerField(verbose_name='قیمت', null=True, blank=True, default=0)
     details = models.TextField(verbose_name='توضیحات', null=True, blank=True)
+    is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده/ نشده')
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
+    payment_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="تاریخ پرداخت"
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 
@@ -158,12 +167,22 @@ class ReceiveMoney(models.Model):
     description = models.CharField(max_length=4000, verbose_name='شرح')
     amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True, default=0)
     details = models.TextField(verbose_name='توضیحات', null=True, blank=True)
+    is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده/ نشده')
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
+    payment_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="تاریخ پرداخت"
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
-    is_received = models.BooleanField(default=False, verbose_name='')
 
     def __str__(self):
         return str(self.unit.unit)
+
+    def save(self, *args, **kwargs):
+        self.is_paid = bool(self.transaction_reference and self.payment_date)
+        super().save(*args, **kwargs)
 
     def get_document_json(self):
         # Use the correct attribute to access the file URL in the related `ExpenseDocument` model

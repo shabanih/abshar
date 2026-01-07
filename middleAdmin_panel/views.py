@@ -40,7 +40,7 @@ from admin_panel import helper
 from admin_panel.forms import announcementForm, BankForm, UnitForm, ExpenseCategoryForm, ExpenseForm, \
     IncomeCategoryForm, IncomeForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, MaintenanceForm, FixChargeForm, \
     FixAreaChargeForm, AreaChargeForm, PersonChargeForm, FixPersonChargeForm, PersonAreaChargeForm, \
-    PersonAreaFixChargeForm, VariableFixChargeForm, MyHouseForm, SmsForm, RenterAddForm, ExpensePayForm
+    PersonAreaFixChargeForm, VariableFixChargeForm, MyHouseForm, SmsForm, RenterAddForm, ExpensePayForm, IncomePayForm
 from admin_panel.models import Announcement, ExpenseCategory, Expense, Fund, ExpenseDocument, IncomeCategory, Income, \
     IncomeDocument, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, FixCharge, AreaCharge, PersonCharge, \
@@ -1311,6 +1311,10 @@ class MiddleExpenseView(CreateView):
         if details:
             queryset = queryset.filter(details__icontains=details)
 
+        receiver_name = self.request.GET.get('receiver_name')
+        if receiver_name:
+            queryset = queryset.filter(receiver_name__icontains=receiver_name)
+
         # فیلتر بر اساس date
         from_date_str = self.request.GET.get('from_date')
         to_date_str = self.request.GET.get('to_date')
@@ -1360,6 +1364,9 @@ def expense_pay_view(request, expense_id):
                     bank = form.cleaned_data['bank']
                     reference = form.cleaned_data.get('transaction_reference')
                     payment_date = form.cleaned_data.get('payment_date')
+                    receiver_name = form.cleaned_data.get('receiver_name')
+                    unit = form.cleaned_data['unit']
+
 
                     # 🔹 موجودی فعلی صندوق
                     last_fund = Fund.objects.order_by('-doc_number').first()
@@ -1379,6 +1386,8 @@ def expense_pay_view(request, expense_id):
 
                     # 🔹 ثبت Fund (هزینه → بستانکار)
                     fund = Fund.objects.create(
+                        unit=unit if unit else None,
+                        receiver_name=receiver_name if not unit else f' {unit.get_label()}',
                         user=request.user,
                         bank=bank,
                         content_object=expense,
@@ -1386,10 +1395,11 @@ def expense_pay_view(request, expense_id):
                         debtor_amount=0,
                         creditor_amount=expense.amount,
                         payment_date=payment_date,
-                        transaction_no= reference,
+                        transaction_no=reference,
                         payment_gateway='پرداخت الکترونیک',
-                        payment_description=f'پرداخت هزینه سند {expense.doc_no}',
-                        is_paid=True
+                        payment_description=f' هزینه: پرداخت سند {expense.doc_no}',
+                        is_paid=True,
+
                     )
 
                     # 🔹 بروزرسانی Expense
@@ -1397,11 +1407,16 @@ def expense_pay_view(request, expense_id):
                     expense.bank = bank
                     expense.transaction_reference = reference
                     expense.payment_date = payment_date
+                    expense.unit = unit
+                    expense.receiver_name = unit.get_label() if unit else receiver_name
+
                     expense.save(update_fields=[
                         'is_paid',
                         'bank',
                         'transaction_reference',
-                        'payment_date'
+                        'payment_date',
+                        'unit',
+                        'receiver_name'
                     ])
 
                 messages.success(request, 'پرداخت با موفقیت انجام شد')
@@ -1607,8 +1622,11 @@ def middle_delete_expense_document(request):
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-def export_expense_pdf(request):
-    expenses = Expense.objects.all()
+def middle_export_expense_pdf(request):
+    expenses = Expense.objects.filter(user=request.user)
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
 
     filter_fields = {
         'category': 'category__id',
@@ -1655,10 +1673,12 @@ def export_expense_pdf(request):
         """)
 
     # Render HTML template
-    template = get_template("expense_templates/expense_pdf.html")
+    template = get_template("middle_expense_templates/expense_pdf.html")
     context = {
         'expenses': expenses,
         'font_path': font_url,
+        'house': house,
+        'today': timezone.now()
     }
     html = template.render(context)
 
@@ -1678,8 +1698,8 @@ def export_expense_pdf(request):
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-def export_expense_excel(request):
-    expenses = Expense.objects.all()
+def middle_export_expense_excel(request):
+    expenses = Expense.objects.filter(user=request.user)
 
     # Filter fields
     filter_fields = {
@@ -1719,13 +1739,13 @@ def export_expense_excel(request):
     title_cell = ws.cell(row=1, column=1, value="لیست هزینه‌ها")
     title_cell.font = Font(bold=True, size=18)
     title_cell.alignment = Alignment(horizontal="center", vertical="center")
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=7)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=9)
 
     # ✅ Style setup
     header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")  # Gold
     header_font = Font(bold=True, color="000000")  # Black bold text
 
-    headers = ['#', 'موضوع هزینه', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'توضیحات']
+    headers = ['#', 'موضوع هزینه', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'پرداخت به', 'تاریخ پرداخت', 'توضیحات']
 
     # ✅ Write header (row 2)
     for col_num, column_title in enumerate(headers, 1):
@@ -1740,9 +1760,10 @@ def export_expense_excel(request):
         ws.cell(row=row_num, column=3, value=expense.description)
         ws.cell(row=row_num, column=4, value=expense.doc_no)
         ws.cell(row=row_num, column=5, value=expense.amount)
-        jalali_date = jdatetime.date.fromgregorian(date=expense.date).strftime('%Y/%m/%d')
-        ws.cell(row=row_num, column=6, value=jalali_date)
-        ws.cell(row=row_num, column=7, value=expense.details)
+        ws.cell(row=row_num, column=6, value=show_jalali(expense.date))
+        ws.cell(row=row_num, column=7, value=expense.receiver_name)
+        ws.cell(row=row_num, column=8, value=show_jalali(expense.payment_date))
+        ws.cell(row=row_num, column=9, value=expense.details)
 
     # ✅ Return file
     response = HttpResponse(
@@ -1822,33 +1843,32 @@ class MiddleIncomeView(CreateView):
 
     def form_valid(self, form):
         form.instance.user = self.request.user
+
+
         try:
-            self.object = form.save()
-            content_type = ContentType.objects.get_for_model(self.object)
-            payer_name_for_fund = self.object.payer_name if not self.object.unit else f"{self.object.unit}"
+            with transaction.atomic():
+                self.object = form.save(commit=False)
 
-            Fund.objects.create(
-                user=self.request.user,
-                content_type=content_type,
-                object_id=self.object.id,
-                bank=self.object.bank,
-                amount=self.object.amount or 0,
-                debtor_amount=self.object.amount or 0,
-                creditor_amount=0,
-                payer_name=payer_name_for_fund,
-                payment_date=self.object.doc_date,
-                payment_gateway='پرداخت الکترونیک',
-                payment_description=f"درآمد: {self.object.description[:50]}",
+                # هزینه هنوز پرداخت نشده
+                self.object.is_paid = False
+                self.object.save()
+
+                # ذخیره فایل‌ها
+                files = self.request.FILES.getlist('document')
+                for f in files:
+                    IncomeDocument.objects.create(
+                        income=self.object,
+                        document=f
+                    )
+
+            messages.success(
+                self.request,
+                'درآمد با موفقیت ثبت شد (در انتظار دریافت)'
             )
+            return redirect(self.success_url)
 
-            files = self.request.FILES.getlist('document')
-
-            for f in files:
-                IncomeDocument.objects.create(income=self.object, document=f)
-            messages.success(self.request, 'درآمد با موفقیت ثبت گردید')
-            return super().form_valid(form)
-        except ProtectedError:
-            messages.error(self.request, 'خطا در ثبت درآمد!')
+        except Exception:
+            messages.error(self.request, 'خطا در ثبت درآمد')
             return self.form_invalid(form)
 
     def get_form_kwargs(self):
@@ -1894,6 +1914,10 @@ class MiddleIncomeView(CreateView):
         if details:
             queryset = queryset.filter(details__icontains=details)
 
+        payer_name = self.request.GET.get('payer_name')
+        if payer_name:
+            queryset = queryset.filter(payer_name__icontains=payer_name)
+
         # فیلتر بر اساس تاریخ
         from_date_str = self.request.GET.get('from_date')
         to_date_str = self.request.GET.get('to_date')
@@ -1926,6 +1950,137 @@ class MiddleIncomeView(CreateView):
         context['units'] = Unit.objects.filter(is_active=True, user__in=managed_users)
 
         return context
+
+
+@login_required
+def income_pay_view(request, income_id):
+    income = get_object_or_404(
+        Income,
+        id=income_id,
+        is_paid=False,
+        is_active=True
+    )
+
+    if request.method == 'POST':
+        form = IncomePayForm(request.POST, user=request.user)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    bank = form.cleaned_data['bank']
+                    reference = form.cleaned_data.get('transaction_reference')
+                    payment_date = form.cleaned_data.get('payment_date')
+                    payer_name = form.cleaned_data.get('payer_name')
+                    unit = form.cleaned_data['unit']
+
+
+                    fund = Fund.objects.create(
+                        unit=unit if unit else None,
+                        payer_name=payer_name if not unit else f' {unit.get_label()}',
+                        user=request.user,
+                        bank=bank,
+                        content_object=income,
+                        amount=income.amount,
+                        debtor_amount=income.amount,
+                        creditor_amount=0,
+                        payment_date=payment_date,
+                        transaction_no=reference,
+                        payment_gateway='پرداخت الکترونیک',
+                        payment_description=f' درآمد:پرداخت سند {income.doc_number}',
+                        is_paid=True,
+
+                    )
+
+                    # 🔹 بروزرسانی Expense
+                    income.is_paid = True
+                    income.bank = bank
+                    income.transaction_reference = reference
+                    income.payment_date = payment_date
+                    income.unit = unit
+                    income.payer_name = unit.get_label() if unit else payer_name
+
+                    income.save(update_fields=[
+                        'is_paid',
+                        'bank',
+                        'transaction_reference',
+                        'payment_date',
+                        'unit',
+                        'payer_name'
+                    ])
+
+                messages.success(request, 'دریافت با موفقیت انجام شد')
+                return redirect('middle_add_income')
+
+            except ValidationError as e:
+                messages.error(request, e.message)
+            except Exception as e:
+                messages.error(request, f'خطا در دریافت: {e}')
+
+    else:
+        form = IncomePayForm(user=request.user)
+
+    return render(
+        request,
+        'middle_income_templates/income_pay.html',
+        {
+            'income': income,
+            'form': form
+        }
+    )
+
+@login_required
+def income_cancel_pay_view(request, income_id):
+
+    income = get_object_or_404(
+        Income,
+        id=income_id,
+        is_paid=True,
+        is_active=True
+    )
+
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                # پیدا کردن Fund مربوطه
+                fund = Fund.objects.filter(
+                    content_type__model='income',
+                    object_id=income.id,
+                    user=request.user,
+                    is_paid=True
+                ).first()
+
+                if not fund:
+                    messages.error(request, 'Fund مرتبط با این پرداخت پیدا نشد!')
+                    return redirect(request.META.get('HTTP_REFERER'))
+
+                # حذف Fund
+                fund.delete()
+
+                # بازمحاسبه موجودی صندوق از این Fund به بعد
+                Fund.recalc_final_amounts_from(fund)
+
+                # بازگرداندن Expense به حالت پرداخت‌نشده
+                income.is_paid = False
+                income.bank = None
+                income.transaction_reference = None
+                income.payment_date = None
+                income.payer_name = None
+                income.save(update_fields=[
+                    'is_paid',
+                    'bank',
+                    'transaction_reference',
+                    'payment_date',
+                    'payer_name',
+                ])
+
+                messages.success(request, 'دریافت با موفقیت لغو شد و صندوق اصلاح شد.')
+                return redirect(request.META.get('HTTP_REFERER'))
+
+        except Exception as e:
+            messages.error(request, f'خطا در لغو دریافت: {e}')
+            return redirect(request.META.get('HTTP_REFERER'))
+
+    # اگر GET باشد، فقط برگرد به صفحه قبل
+    return redirect(request.META.get('HTTP_REFERER'))
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -2049,7 +2204,10 @@ def middle_delete_income_document(request):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def export_income_pdf(request):
-    incomes = Income.objects.all()
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
+    incomes = Income.objects.filter(user=request.user)
 
     filter_fields = {
         'category': 'category__id',
@@ -2092,10 +2250,12 @@ def export_income_pdf(request):
         """)
 
     # رندر قالب HTML
-    template = get_template("income_templates/income_pdf.html")
+    template = get_template("middle_income_templates/income_pdf.html")
     context = {
         'incomes': incomes,
         'font_path': font_url,
+        'house': house,
+        'today': timezone.now()
     }
 
     html = template.render(context)
@@ -2117,7 +2277,7 @@ def export_income_pdf(request):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def export_income_excel(request):
-    incomes = Income.objects.all()
+    incomes = Income.objects.filter(user=request.user)
 
     # Filter fields
     filter_fields = {
@@ -2157,13 +2317,13 @@ def export_income_excel(request):
     title_cell = ws.cell(row=1, column=1, value="لیست درآمدها")
     title_cell.font = Font(bold=True, size=18)
     title_cell.alignment = Alignment(horizontal="center", vertical="center")
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=7)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=9)
 
     # ✅ Style setup
     header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")  # Gold
     header_font = Font(bold=True, color="000000")  # Black bold text
 
-    headers = ['#', 'موضوع درآمد', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'توضیحات']
+    headers = ['#', 'موضوع درآمد', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'توضیحات', 'پرداخت کننده', 'تاریخ پرداخت']
 
     # ✅ Write header (row 2)
     for col_num, column_title in enumerate(headers, 1):
@@ -2178,9 +2338,10 @@ def export_income_excel(request):
         ws.cell(row=row_num, column=3, value=income.description)
         ws.cell(row=row_num, column=4, value=income.doc_number)
         ws.cell(row=row_num, column=5, value=income.amount)
-        jalali_date = jdatetime.date.fromgregorian(date=income.doc_date).strftime('%Y/%m/%d')
-        ws.cell(row=row_num, column=6, value=jalali_date)
+        ws.cell(row=row_num, column=6, value=show_jalali(income.doc_date))
         ws.cell(row=row_num, column=7, value=income.details)
+        ws.cell(row=row_num, column=8, value=income.payer_name)
+        ws.cell(row=row_num, column=9, value=show_jalali(income.payment_date))
 
     # ✅ Return file
     response = HttpResponse(
@@ -2217,9 +2378,10 @@ class MiddleReceiveMoneyCreateView(CreateView):
                 doc_number=self.object.doc_number,
                 payer_name=payer_name_for_fund,
                 payment_gateway='پرداخت الکترونیک',
-                payment_date=self.object.doc_date,
+                transaction_no= self.object.transaction_reference,
+                payment_date=self.object.payment_date,
                 payment_description=f"حسابهای دریافتنی: {self.object.description[:50]}",
-                is_received=True
+                is_paid=True,
             )
             files = self.request.FILES.getlist('document')
 
@@ -2330,10 +2492,12 @@ def middle_receive_edit(request, pk):
                 fund.amount = receive.amount or 0
                 fund.debtor_amount = receive.amount or 0
                 fund.creditor_amount = 0
-                fund.payment_date = receive.doc_date
+                fund.payment_date = receive.payment_date
+                fund.transaction_no = receive.transaction_reference
                 fund.doc_number = receive.doc_number
                 fund.payer_name = payer_name_for_fund
                 fund.payment_description = f"حسابهای دریافتنی: {(receive.description or '')[:50]}"
+                fund.is_paid = True
                 fund.save()
 
                 Fund.recalc_final_amounts_from(fund)
@@ -2348,12 +2512,13 @@ def middle_receive_edit(request, pk):
                     amount=receive.amount or 0,
                     debtor_amount=receive.amount or 0,
                     creditor_amount=0,
-                    payment_date=receive.doc_date,
+                    payment_date=receive.payment_date,
+                    transaction_no=receive.transaction_reference,
                     doc_number=receive.doc_number,
                     payment_gateway='پرداخت الکترونیک',
                     payer_name=payer_name_for_fund,
                     payment_description=f"حسابهای دریافتنی: {(receive.description or '')[:50]}",
-                    is_received=True
+                    is_paid=True
                 )
 
             # 📎 ذخیره فایل‌ها
