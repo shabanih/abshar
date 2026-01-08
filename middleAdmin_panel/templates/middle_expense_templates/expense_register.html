@@ -23,22 +23,23 @@
             <button onclick="openQuery()" class="btn btn-gradient-info px-2 py-2">جستجوی پیشرفته</button>
              {% if page_obj %}
              <a href="{% url 'middle_export_expense_pdf' %}?{{ request.GET.urlencode }}"
-               class="btn btn-gradient-danger px-2 py-2">
+               class="btn btn-gradient-danger px-2 px-md-4 py-2">
                خروجی PDF
             </a>
             <a href="{% url 'middle_export_expense_excel' %}?{{ request.GET.urlencode }}"
-                     class="btn btn-facebook text-white px-2 py-2">خروجی Excel</a>
+                     class="btn btn-facebook text-white px-2 px-md-4 py-2">خروجی Excel</a>
          
                    {% else %}
-                    <button class="btn btn-facebook text-white px-2 py-2" disabled>خروجی Excel</button>
-                    <button class="btn btn-gradient-danger px-2 py-2" disabled>خروجی PDF</button>
+                    <button class="btn btn-gradient-danger px-2 px-md-4 py-2" disabled>خروجی PDF</button>
+                    <button class="btn btn-facebook text-white px-2 px-md-4 py-2" disabled>خروجی Excel</button>
+                 
                 {% endif %}
             </div>
           </div>
        <div id="query-form" style="display: none;" class="row mt-2">
             <form method="get">
                <div class="row mt-2 g-2">
-                     <div class="col-md-3">
+                     <div class="col-md-2">
 {#                        <input type="text" name="category__title" class="form-control" placeholder="موضوع هزینه"#}
 {#                               value="{{ request.GET.category__title }}">#}
                          <select name="category" class="form-control form-control-sm">
@@ -48,7 +49,28 @@
                             {% endfor %}
                         </select>
                     </div>
-                     <div class="col-md-3">
+                               <div class="col-md-2">
+                             <select name="bank" class="form-control form-control-sm">
+                                <option value="">بانک را انتخاب کنید</option>
+                                {% for bank in banks %}
+                                    <option value="{{ bank.id }}" {% if request.GET.bank == bank.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ bank.bank_name }} - {{ bank.account_no }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                               </div>
+                      <div class="col-md-2">
+                   <select name="is_paid" class="form-control form-control-sm">
+                    <option value="">وضعیت پرداخت</option>
+                    <option value="1" {% if request.GET.is_paid == "1" %}selected{% endif %}>
+                        پرداخت شده
+                    </option>
+                    <option value="0" {% if request.GET.is_paid == "0" %}selected{% endif %}>
+                        پرداخت نشده
+                    </option>
+                </select>
+               </div>
+                     <div class="col-md-2">
                         <input type="text" name="amount" class="form-control" placeholder="مبلغ"
                                value="{{ request.GET.amount }}">
                     </div>
@@ -56,11 +78,11 @@
                         <input type="text" name="doc_no" class="form-control" placeholder="شماره سند"
                                value="{{ request.GET.doc_no }}">
                     </div>
-                     <div class="col-md-2">
+                     <div class="col-md-1">
                             <input type="text"  name="from_date" data-jdp data-jdp-only-date class="form-control" 
                                    placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
                           </div>
-                     <div class="col-md-2">
+                     <div class="col-md-1">
                         <input type="text"  name="to_date" data-jdp data-jdp-only-date class="form-control" 
                                placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
                         </div>
@@ -159,7 +181,7 @@
                                             onclick="return confirmDeleteWithSweetAlert(event)">
                                                   <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                 </a>
-                                               <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ expense.id }}"
+                                               <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ expense.id }}" title="نمایش جزئیات"
                                                         class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
                                                 </button>
                                   {% if not expense.is_paid %}

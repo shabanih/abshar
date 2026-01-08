@@ -6,8 +6,6 @@
                           <a href="{% url 'middle_manage_house' %}" class="nav-link">
                             <div class="nav-profile-image">
                               <img src="{% static 'admin_panel/icone8/icons8-home (1).gif' %}" width="20" alt="profile">
-            {#                  <span class="login-status online"></span>#}
-                              <!--change to offline or busy as needed-->
                             </div>
                               <br>
                            <div class="nav-profile-text ms-auto mt-3">
@@ -90,14 +88,6 @@
               </a>
             </li>
 
-          
-{#               <li class="nav-item border-top mt-0">#}
-{#                 {% url 'middle_add_charge' as address_url %}#}
-{#                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">#}
-{#                <i class="menu-title"> مدیریت شارژ</i>#}
-{#                <i class="mdi mdi-square-inc-cash menu-icon"></i>#}
-{#              </a>#}
-{#            </li>#}
                  <li class="nav-item border-top mt-0">
   <a class="nav-link" data-bs-toggle="collapse" href="#general40"
      aria-expanded="{% if request.resolver_match.url_name in 'middle_add_charge middle_add_expense    ' %}true{% else %}false{% endif %}"
@@ -140,13 +130,13 @@
 
               <li class="nav-item mt-0">
   <a class="nav-link" data-bs-toggle="collapse" href="#general2"
-     aria-expanded="{% if request.resolver_match.url_name in 'fund_turn_over unit_reports debtor_creditor_reports unit_history_report expense_history_report income_history_report property_history_report maintenance_history_report pay_receive_report charge_notify_report_list' %}true{% else %}false{% endif %}"
+     aria-expanded="{% if request.resolver_match.url_name in 'fund_turn_over unit_reports debtor_creditor_reports unit_history_report expense_history_report income_history_report property_history_report maintenance_history_report pay_receive_report charge_notify_report_list house_balance_view' %}true{% else %}false{% endif %}"
      aria-controls="general2">
     <i class="menu-title">گزارشات</i>
     <i class="menu-arrow"></i>
     <i class="mdi mdi-clipboard-text menu-icon"></i>
   </a>
-  <div class="collapse {% if request.resolver_match.url_name in 'fund_turn_over unit_reports debtor_creditor_reports unit_history_report expense_history_report income_history_report property_history_report maintenance_history_report pay_receive_report charge_notify_report_list' %}show{% endif %}" id="general2">
+  <div class="collapse {% if request.resolver_match.url_name in 'fund_turn_over unit_reports debtor_creditor_reports unit_history_report expense_history_report income_history_report property_history_report maintenance_history_report pay_receive_report charge_notify_report_list house_balance_view' %}show{% endif %}" id="general2">
     <ul class="nav flex-column sub-menu">
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'fund_turn_over' %}active{% endif %}" href="{% url 'fund_turn_over' %}">گردش صندوق</a></li>
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'unit_reports' %}active{% endif %}" href="{% url 'unit_reports' %}">گردش مالی اشخاص</a></li>
@@ -159,7 +149,8 @@
        <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'pay_receive_report' %}active{% endif %}" href="{% url 'pay_receive_report' %}">دریافت و پرداخت</a></li>
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'property_history_report' %}active{% endif %}" href="{% url 'property_history_report' %}">اموال ساختمان</a></li>
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'maintenance_history_report' %}active{% endif %}" href="{% url 'maintenance_history_report' %}">تعمیر و نگهداری</a></li>
-      <li class="nav-item mt-0"><a class="nav-link" href="#">بیلان ساختمان</a></li>
+      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'house_balance_view' %}active{% endif %}" href="{% url 'house_balance_view' %}">بیلان ساختمان</a></li>
+
     </ul>
   </div>
 </li>

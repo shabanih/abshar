@@ -355,7 +355,7 @@ $(document).on('click', '.edit-middle-btn', function () {
   });
 
 // ===================================================
-$(document).on('click', '.edit-receive-btn', function (e) {
+$(document).on('click', '.edit-Mreceive-btn', function (e) {
     e.preventDefault();
 
     var images = $(this).data('images');
@@ -477,7 +477,7 @@ $(document).on('click', '.edit-Mreceive-btn', function () {
     });
   });
 // ================================================= pay ====
-$(document).on('click', '.edit-pay-btn', function (e) {
+$(document).on('click', '.edit-m-pay', function (e) {
     e.preventDefault();
 
     var images = $(this).data('images');
@@ -574,6 +574,10 @@ $(document).on('click', '.edit-m-pay', function () {
     $('#id_amount').val($(this).data('amount'));
     $('#id_receiver_name').val($(this).data('receiver_name'));
     $('#id_document_date').val($(this).data('document_date'));
+
+    var receiveDatePay = $(this).data('payment_date');
+    $('#id_payment_date').val(receiveDatePay);
+    $('#id_transaction_reference').val($(this).data('transaction_reference'));
 
     $('#id_document_number').val($(this).data('document_number'));
     $('#id_description').val($(this).data('description'));

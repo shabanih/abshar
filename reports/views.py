@@ -2332,3 +2332,9 @@ def export_pay_receive_report_excel(request):
     response['Content-Disposition'] = f'attachment; filename=report_pay_receive.xlsx'
     wb.save(response)
     return response
+
+
+# ==============================================================
+
+def house_balance_view(request):
+    return render(request, 'house_balance.html')

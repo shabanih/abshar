@@ -7,51 +7,67 @@
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <meta charset="UTF-8">
+  <title>لیست اسناد </title>
 
-
-   <style>
-   @font-face {
-    font-family: 'BYekan';
-    src: url('{{ font_path }}') format('truetype');
-}
-body {
-    font-family: 'BYekan';
-    direction: rtl;
-    text-align: right;
-    font-size: 14px;
-}
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-thead tr {
-        background-color: #9b9797; /* طلایی */
-        color: #000000; /* مشکی */
-    }
-th{
-      border: 1px solid #ccc;
-        padding:10px 2px;
-        text-align: center;
-    }
-    
-
-     td {
-        border: 1px solid #ccc;
-        padding:10px 5px;
-        text-align: center;
-    }
-h1{
-    text-align: center;
-}
-.logo-style-pdf{
-    width: 200px;
-    height: 80px;
-    justify-content: center;
+  <style>
+        @font-face {
+            font-family: 'BYekan';
+            src: url('{{ font_path }}') format('truetype');
+        }
+        @font-face {
+            font-family: VazirB2;
+            src: url('{{ font_path }}');
+            src: url('{{ font_path }}') format('embedded-opentype'),
+            url('{{ font_path }}') format('woff2'),
+            url('{{ font_path }}') format('woff'),
+            url('{{ font_path }}') format('truetype');
+            font-weight: normal;
 }
 
+
+        @font-face {
+            font-family: Vazir;
+            src: url('{{ font_path }}');
+            src: url('{{ font_path }}') format('embedded-opentype'),
+            url('{{ font_path }}') format('woff2'),
+            url('{{ font_path }}') format('woff'),
+            url('{{ font_path }}') format('truetype');
+            font-weight: 100;
+        }
+        body {
+            font-family: 'Vazir', sans-serif;
+            direction: rtl;
+            text-align: right;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead tr {
+            background-color: #9b9797;
+            color: #000000;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: center;
+        }
+        h1, h2{
+            text-align: center;
+            font-family: VazirB2, sans-serif;
+        }
+        .logo-style-pdf{
+            width: 200px;
+            height: 80px;
+            display: block;
+            margin: 0 auto;
+        }
+        p{
+           text-align: center; 
+        }
     </style>
-    <title>لیست اسناد </title>
+  
 
 
 </head>
@@ -63,7 +79,17 @@ h1{
     </div>
   </div>
 </div>
- <h1 class="text-center">لیست اسناد پرداختنی {{ receive.bank.name }}   </h1>
+<div class="text-center mb-2" style="border-bottom: 2px solid #333; padding-bottom: 10px;">
+    {% if house %}
+        <h1 class="fw-bold mb-1" style="color: #202548F9;">{{ house.name }}</h1>
+    {% endif %}
+    
+    <h2 class="fw-bold mb-1 text-center" style="color: #222;">لیست اسناد پرداختنی</h2>
+    
+    <p class="text-muted mb-0" style="font-size: 0.9rem;">
+        تاریخ و ساعت صدور: {{ today|show_jalali_date_time }}
+    </p>
+</div>
   <div class="table-responsive">
                 <table class="table table-bordered " id="expenseTable">
                     <thead class="text-center">
@@ -76,7 +102,8 @@ h1{
                               <th>شماره سند</th>
                             <th>تاریخ سند</th>
                              <th>توضیحات سند</th>
-                            <th>تصویر سند</th>
+                            <th>تاریخ پرداخت</th>
+                            <th>شماره پیگیری</th>
                          
                         </tr>
                     </thead>
@@ -99,12 +126,25 @@ h1{
                                 <td>{{payment.description }}</td>
                                 <td>{{payment.document_number }}</td>
                                  <td>{{payment.document_date|show_jalali }}</td>
-                               <td>{{payment.details }}</td>
+                                <td>
+                                    {% if payment.details %}
+                                ندارد
+                                         {% else %}
+                                    ندارد
+                                {% endif %}
+                               </td>
                                   <td class="d-flex justify-content-center align-self-center">
-                                {% if payment.documents.exists %}
-                                   <span class="text-danger"> دارد</span>
+                                {% if payment.payment_date %}
+                                {{ payment.payment_date |show_jalali }}
                                 {% else %}
-                                    <span class="text-danger"> ندارد</span>
+                                    <span class="text-danger"> پرداخت نشده</span>
+                                {% endif %}
+                            </td>
+                                 <td class="d-flex justify-content-center align-self-center">
+                                {% if payment.transaction_reference %}
+                                {{ payment.transaction_reference}}
+                                {% else %}
+                                    <span class="text-danger"> ثبت نشده</span>
                                 {% endif %}
                             </td>
                             </tr>

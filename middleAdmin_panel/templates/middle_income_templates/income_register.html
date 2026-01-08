@@ -22,15 +22,17 @@
         <div class=" col-12 col-md-5 col-xl-4 text-center align-self-center">
             <button onclick="openQuery()" class="btn btn-gradient-info px-2 py-2">جستجوی پیشرفته</button>
              {% if page_obj %}
-            <a href="{% url 'export_income_excel' %}?{{ request.GET.urlencode }}"
-   class="btn btn-gradient-success px-2 py-2">خروجی Excel</a>
-            <a href="{% url 'export_income_pdf' %}?{{ request.GET.urlencode }}"
-               class="btn btn-gradient-danger px-2 py-2">
+                    <a href="{% url 'export_income_pdf' %}?{{ request.GET.urlencode }}"
+               class="btn btn-gradient-danger px-md-4 px-2 py-2">
                خروجی PDF
             </a>
+            <a href="{% url 'export_income_excel' %}?{{ request.GET.urlencode }}"
+   class="btn btn-facebook text-white px-2 px-md-4 py-2">خروجی Excel</a>
+         
                    {% else %}
-                    <button class="btn btn-facebook text-white px-2 py-2" disabled>خروجی Excel</button>
-                    <button class="btn btn-gradient-danger px-2 py-2" disabled>خروجی PDF</button>
+                        <button class="btn btn-gradient-danger px-2 px-md-4 py-2" disabled>خروجی PDF</button>
+                    <button class="btn btn-facebook text-white px-2 px-md-4 py-2" disabled>خروجی Excel</button>
+             
                 {% endif %}
             </div>
           </div>
@@ -86,11 +88,22 @@
                         <input type="text" name="doc_number" class="form-control" placeholder="شماره سند"
                                value="{{ request.GET.doc_no }}">
                     </div>
-                      <div class="col-md-5">
+                      <div class="col-md-4">
                 <input type="text" name="description" class="form-control" placeholder="شرح سند"
                        value="{{ request.GET.description }}">
             </div>
-                      <div class="col-md-3">
+                           <div class="col-md-2">
+                   <select name="is_paid" class="form-control form-control-sm">
+                    <option value="">وضعیت پرداخت</option>
+                    <option value="1" {% if request.GET.is_paid == "1" %}selected{% endif %}>
+                        پرداخت شده
+                    </option>
+                    <option value="0" {% if request.GET.is_paid == "0" %}selected{% endif %}>
+                        پرداخت نشده
+                    </option>
+                </select>
+               </div>
+                      <div class="col-md-2">
                        <input type="text" name="payer_name" class="form-control" placeholder="دریافت کننده"
                        value="{{ request.GET.payer_name }}">
                       </div>
@@ -103,7 +116,7 @@
                  </div>
                      <div class="col-md-3 align-self-center mb-2">
                             <button type="submit" class="btn btn-facebook px-4 py-2">جستجوی پیشرفته</button>
-                            <button type="button" class="btn btn-gradient-danger px-2 py-2" onclick="window.location.href=window.location.pathname;">حذف فیلتر</button>
+                            <button type="button" class="btn btn-gradient-danger px-4 py-2" onclick="window.location.href=window.location.pathname;">حذف فیلتر</button>
                         </div>
                         </div>
                </form>
@@ -178,7 +191,7 @@
                                            onclick="return confirmDeleteWithSweetAlert(event)">
                                                   <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                 </a>
-                                    <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ income.id }}"
+                                    <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ income.id }}" title="نمایش جزئیات"
                                                         class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
                                                 </button>
                                         {% if not income.is_paid %}

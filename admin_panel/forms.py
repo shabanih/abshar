@@ -1206,7 +1206,7 @@ class ReceiveMoneyForm(forms.ModelForm):
     )
     transaction_reference = forms.IntegerField(error_messages=error_message,
                                                widget=forms.TextInput(attrs=attr),
-                                               required=False, min_value=0, label='شماره پیگیری')
+                                               required=False, min_value=0, initial=0, label='شماره پیگیری')
 
     class Meta:
         model = ReceiveMoney
@@ -1244,8 +1244,6 @@ class ReceiveMoneyForm(forms.ModelForm):
                 " (پیش‌فرض)" if obj.is_default else "")
 
 
-
-
 # =========================================================
 class PayerMoneyForm(forms.ModelForm):
     bank = forms.ModelChoiceField(
@@ -1269,7 +1267,7 @@ class PayerMoneyForm(forms.ModelForm):
         )
     )
     receiver_name = forms.CharField(
-        max_length=200, required=False, label='شخص دریافت کننده',
+        max_length=200, required=False, label=' دریافت کننده',
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
 
@@ -1296,11 +1294,19 @@ class PayerMoneyForm(forms.ModelForm):
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
     is_active = forms.BooleanField(required=False)
+    payment_date = JalaliDateField(
+        label='تاریخ پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    transaction_reference = forms.IntegerField(error_messages=error_message,
+                                               widget=forms.TextInput(attrs=attr),
+                                               required=False, min_value=0, initial=0, label='شماره پیگیری')
 
     class Meta:
         model = PayMoney
         fields = ['bank', 'amount', 'document_date', 'description', 'document_number',
-                  'details', 'document', 'is_active', 'receiver_name', 'unit']
+                  'details', 'document', 'is_active', 'receiver_name', 'unit', 'payment_date', 'transaction_reference']
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
@@ -1331,15 +1337,15 @@ class PayerMoneyForm(forms.ModelForm):
             self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
                 " (پیش‌فرض)" if obj.is_default else "")
 
-    def clean(self):
-        cleaned_data = super().clean()
-        unit = cleaned_data.get('unit')
-        receiver_name = cleaned_data.get('receiver_name')
-
-        if not unit and not receiver_name:
-            raise forms.ValidationError("لطفا یا واحد را انتخاب کنید یا نام دریافت کننده را وارد نمایید.")
-
-        return cleaned_data
+    # def clean(self):
+    #     cleaned_data = super().clean()
+    #     unit = cleaned_data.get('unit')
+    #     receiver_name = cleaned_data.get('receiver_name')
+    #
+    #     if not unit and not receiver_name:
+    #         raise forms.ValidationError("لطفا یا واحد را انتخاب کنید یا نام دریافت کننده را وارد نمایید.")
+    #
+    #     return cleaned_data
 
 
 PROPERTY_CHOICES = {

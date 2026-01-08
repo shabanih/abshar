@@ -1294,6 +1294,10 @@ class MiddleExpenseView(CreateView):
         if category_id:
             queryset = queryset.filter(category__id=category_id)
 
+        bank_id = self.request.GET.get('bank')
+        if bank_id:
+            queryset = queryset.filter(bank__id=bank_id)
+
         # فیلتر بر اساس amount
         amount = self.request.GET.get('amount')
         if amount:
@@ -1331,6 +1335,12 @@ class MiddleExpenseView(CreateView):
                 queryset = queryset.filter(date__lte=gregorian_to)
         except ValueError:
             messages.warning(self.request, 'فرمت تاریخ وارد شده صحیح نیست.')
+
+        is_paid = self.request.GET.get('is_paid')
+        if is_paid == '1':
+            queryset = queryset.filter(is_paid=True)
+        elif is_paid == '0':
+            queryset = queryset.filter(is_paid=False)
         return queryset
 
 
@@ -1343,6 +1353,7 @@ class MiddleExpenseView(CreateView):
         context['page_obj'] = page_obj
         context['total_expense'] = Expense.objects.filter(user=self.request.user).count()
         context['categories'] = ExpenseCategory.objects.filter(user=self.request.user)
+        context['banks'] = Bank.objects.filter(user=self.request.user)
         return context
 
 
@@ -1630,10 +1641,12 @@ def middle_export_expense_pdf(request):
 
     filter_fields = {
         'category': 'category__id',
+        'bank': 'bank__id',
         'amount': 'amount__icontains',
         'doc_no': 'doc_no__icontains',
         'description': 'description__icontains',
         'details': 'details__icontains',
+        'is_paid': 'is_paid',
     }
 
     # Apply filters based on GET parameters
@@ -1704,10 +1717,12 @@ def middle_export_expense_excel(request):
     # Filter fields
     filter_fields = {
         'category': 'category__id',
+        'bank': 'bank__id',
         'amount': 'amount__icontains',
         'doc_no': 'doc_no__icontains',
         'description': 'description__icontains',
         'details': 'details__icontains',
+        'is_paid': 'is_paid'
     }
 
     # Apply filters based on query parameters
@@ -1934,6 +1949,12 @@ class MiddleIncomeView(CreateView):
         except ValueError:
             messages.warning(self.request, 'فرمت تاریخ وارد شده صحیح نیست.')
 
+        is_paid = self.request.GET.get('is_paid')
+        if is_paid == '1':
+            queryset = queryset.filter(is_paid=True)
+        elif is_paid == '0':
+            queryset = queryset.filter(is_paid=False)
+
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -2034,7 +2055,8 @@ def income_cancel_pay_view(request, income_id):
         Income,
         id=income_id,
         is_paid=True,
-        is_active=True
+        is_active=True,
+        user=request.user
     )
 
     if request.method == 'POST':
@@ -2211,10 +2233,12 @@ def export_income_pdf(request):
 
     filter_fields = {
         'category': 'category__id',
+        'bank': 'bank__id',
         'amount': 'amount__icontains',
         'doc_number': 'doc_number__icontains',
         'description': 'description__icontains',
         'details': 'details__icontains',
+        'is_paid': 'is_paid'
     }
 
     for field, lookup in filter_fields.items():
@@ -2282,12 +2306,13 @@ def export_income_excel(request):
     # Filter fields
     filter_fields = {
         'category': 'category__id',
+        'bank': 'bank__id',
         'amount': 'amount__icontains',
         'doc_number': 'doc_number__icontains',
         'description': 'description__icontains',
         'details': 'details__icontains',
+        'is_paid': 'is_paid'
     }
-
     # Apply filters based on query parameters
     for field, lookup in filter_fields.items():
         value = request.GET.get(field)
@@ -2363,7 +2388,10 @@ class MiddleReceiveMoneyCreateView(CreateView):
     def form_valid(self, form):
         form.instance.user = self.request.user
         try:
-            self.object = form.save()
+            self.object = form.save(commit=False)
+            self.object.payer_name = self.object.get_payer_display()
+            self.object.save()
+            form.save_m2m()
             content_type = ContentType.objects.get_for_model(self.object)
             payer_name_for_fund = self.object.payer_name if not self.object.unit else f"{self.object.unit}"
             Fund.objects.create(
@@ -2438,6 +2466,12 @@ class MiddleReceiveMoneyCreateView(CreateView):
                 queryset = queryset.filter(doc_date__lte=gregorian_to)
         except ValueError:
             messages.warning(self.request, 'فرمت تاریخ وارد شده صحیح نیست.')
+
+        is_paid = self.request.GET.get('is_paid')
+        if is_paid == '1':
+            queryset = queryset.filter(is_paid=True)
+        elif is_paid == '0':
+            queryset = queryset.filter(is_paid=False)
         return queryset
 
     def get_form_kwargs(self):
@@ -2454,12 +2488,17 @@ class MiddleReceiveMoneyCreateView(CreateView):
         context['page_obj'] = page_obj
         context['total_receives'] = ReceiveMoney.objects.filter(user=self.request.user).count()
         context['receives'] = ReceiveMoney.objects.filter(user=self.request.user)
+        context['banks'] = Bank.objects.filter(user=self.request.user)
         return context
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_receive_edit(request, pk):
-    receive = get_object_or_404(ReceiveMoney, pk=pk)
+    receive = get_object_or_404(
+        ReceiveMoney,
+        pk=pk,
+        user=request.user
+    )
 
     if request.method == 'POST':
         form = ReceiveMoneyForm(
@@ -2470,64 +2509,59 @@ def middle_receive_edit(request, pk):
         )
 
         if form.is_valid():
-            receive = form.save()
+            try:
+                with transaction.atomic():
 
-            # ✅ تعیین payer_name برای Fund
-            if receive.unit:
-                payer_name_for_fund = str(receive.unit)
-            else:
-                payer_name_for_fund = receive.payer_name
+                    receive = form.save(commit=False)
+                    receive.payer_name = receive.get_payer_display()
+                    receive.save()
+                    form.save_m2m()
 
-            content_type = ContentType.objects.get_for_model(ReceiveMoney)
+                    payer_name_for_fund = (
+                        str(receive.unit) if receive.unit else receive.payer_name
+                    )
 
-            fund = Fund.objects.filter(
-                content_type=content_type,
-                object_id=receive.id
-            ).first()
+                    content_type = ContentType.objects.get_for_model(receive)
 
-            if fund:
-                fund.bank = receive.bank
-                fund.unit = receive.unit
-                fund.payment_gateway = 'پرداخت الکترونیک'
-                fund.amount = receive.amount or 0
-                fund.debtor_amount = receive.amount or 0
-                fund.creditor_amount = 0
-                fund.payment_date = receive.payment_date
-                fund.transaction_no = receive.transaction_reference
-                fund.doc_number = receive.doc_number
-                fund.payer_name = payer_name_for_fund
-                fund.payment_description = f"حسابهای دریافتنی: {(receive.description or '')[:50]}"
-                fund.is_paid = True
-                fund.save()
+                    fund, created = Fund.objects.get_or_create(
+                        content_type=content_type,
+                        object_id=receive.id,
+                        defaults={
+                            'user': request.user,
+                        }
+                    )
 
-                Fund.recalc_final_amounts_from(fund)
+                    fund.bank = receive.bank
+                    fund.unit = receive.unit
+                    fund.amount = receive.amount or 0
+                    fund.debtor_amount = receive.amount or 0
+                    fund.creditor_amount = 0
+                    fund.payment_date = receive.payment_date
+                    fund.transaction_no = receive.transaction_reference
+                    fund.doc_number = receive.doc_number
+                    fund.payment_gateway = 'پرداخت الکترونیک'
+                    fund.payer_name = payer_name_for_fund
+                    fund.payment_description = (
+                        f"حسابهای دریافتنی: {(receive.description or '')[:50]}"
+                    )
+                    fund.is_paid = True
+                    fund.save()
 
-            else:
-                Fund.objects.create(
-                    user=request.user,
-                    content_type=content_type,
-                    object_id=receive.id,
-                    bank=receive.bank,
-                    unit=receive.unit,
-                    amount=receive.amount or 0,
-                    debtor_amount=receive.amount or 0,
-                    creditor_amount=0,
-                    payment_date=receive.payment_date,
-                    transaction_no=receive.transaction_reference,
-                    doc_number=receive.doc_number,
-                    payment_gateway='پرداخت الکترونیک',
-                    payer_name=payer_name_for_fund,
-                    payment_description=f"حسابهای دریافتنی: {(receive.description or '')[:50]}",
-                    is_paid=True
-                )
+                    Fund.recalc_final_amounts_from(fund)
 
-            # 📎 ذخیره فایل‌ها
-            files = request.FILES.getlist('document')
-            for f in files:
-                ReceiveDocument.objects.create(receive=receive, document=f)
+                    # 📎 ذخیره فایل‌ها
+                    files = request.FILES.getlist('document')
+                    for f in files:
+                        ReceiveDocument.objects.create(
+                            receive=receive,
+                            document=f
+                        )
 
-            messages.success(request, 'سند با موفقیت ویرایش گردید.')
-            return redirect(reverse('middle_add_receive'))
+                messages.success(request, 'سند با موفقیت ویرایش گردید.')
+                return redirect('middle_add_receive')
+
+            except Exception as e:
+                messages.error(request, f'خطا در ذخیره اطلاعات: {e}')
 
         else:
             messages.error(request, 'خطا در ویرایش فرم. لطفاً دوباره تلاش کنید.')
@@ -2538,7 +2572,10 @@ def middle_receive_edit(request, pk):
     return render(
         request,
         'MiddleReceiveMoney/add_receive_money.html',
-        {'form': form, 'receive': receive}
+        {
+            'form': form,
+            'receive': receive,
+        }
     )
 
 
@@ -2596,6 +2633,9 @@ def middle_delete_receive_document(request):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def export_receive_pdf(request):
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
     receives = ReceiveMoney.objects.select_related('bank').filter(user=request.user)
 
     filter_fields = {
@@ -2644,6 +2684,8 @@ def export_receive_pdf(request):
     context = {
         'receives': receives,
         'font_path': font_url,
+        'house': house,
+        'today': timezone.now()
     }
 
     html = template.render(context)
@@ -2668,7 +2710,7 @@ def export_receive_pdf(request):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def export_receive_excel(request):
-    receives = ReceiveMoney.objects.all()
+    receives = ReceiveMoney.objects.filter(user=request.user)
 
     filter_fields = {
         'bank': 'bank__id',
@@ -2708,13 +2750,13 @@ def export_receive_excel(request):
     title_cell = ws.cell(row=1, column=1, value="لیست اسناد دریافتنی")
     title_cell.font = Font(bold=True, size=18)
     title_cell.alignment = Alignment(horizontal="center", vertical="center")
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=8)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=10)
 
     # ✅ Style setup
     header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")  # Gold
     header_font = Font(bold=True, color="000000")  # Black bold text
 
-    headers = ['#', 'شماره جساب', 'دریافت کننده', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'توضیحات']
+    headers = ['#', 'شماره جساب', 'دریافت کننده', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'توضیحات', 'تاریخ پرداخت', 'شماره پیگیری']
 
     # ✅ Write header (row 2)
     for col_num, column_title in enumerate(headers, 1):
@@ -2738,15 +2780,16 @@ def export_receive_excel(request):
         ws.cell(row=row_num, column=4, value=receive.description)
         ws.cell(row=row_num, column=5, value=receive.doc_number)
         ws.cell(row=row_num, column=6, value=receive.amount)
-        jalali_date = jdatetime.date.fromgregorian(date=receive.doc_date).strftime('%Y/%m/%d')
-        ws.cell(row=row_num, column=7, value=jalali_date)
+        ws.cell(row=row_num, column=7, value=show_jalali(receive.doc_date))
         ws.cell(row=row_num, column=8, value=receive.details)
+        ws.cell(row=row_num, column=9, value=show_jalali(receive.payment_date))
+        ws.cell(row=row_num, column=10, value=receive.transaction_reference)
 
     # ✅ Return file
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename=receive.xlsx'
+    response['Content-Disposition'] = 'attachment; filename=receive_doc.xlsx'
     wb.save(response)
     return response
 
@@ -2762,7 +2805,11 @@ class MiddlePaymentMoneyCreateView(CreateView):
     def form_valid(self, form):
         form.instance.user = self.request.user
         try:
-            self.object = form.save()
+            self.object = form.save(commit=False)
+            self.object.receiver_name = self.object.get_receiver_display()
+            self.object.save()
+            form.save_m2m()
+
             content_type = ContentType.objects.get_for_model(self.object)
             receiver_name_for_fund = self.object.receiver_name if not self.object.unit else f"{self.object.unit}"
 
@@ -2814,9 +2861,9 @@ class MiddlePaymentMoneyCreateView(CreateView):
         if description:
             queryset = queryset.filter(description__icontains=description)
 
-        doc_number = self.request.GET.get('doc_number')
-        if doc_number:
-            queryset = queryset.filter(doc_number__icontains=doc_number)
+        document_number = self.request.GET.get('document_number')
+        if document_number:
+            queryset = queryset.filter(document_number__icontains=document_number)
 
         details = self.request.GET.get('details')
         if details:
@@ -2838,6 +2885,12 @@ class MiddlePaymentMoneyCreateView(CreateView):
                 queryset = queryset.filter(document_date__lte=gregorian_to)
         except ValueError:
             messages.warning(self.request, 'فرمت تاریخ وارد شده صحیح نیست.')
+
+        is_paid = self.request.GET.get('is_paid')
+        if is_paid == '1':
+            queryset = queryset.filter(is_paid=True)
+        elif is_paid == '0':
+            queryset = queryset.filter(is_paid=False)
         return queryset
 
     def get_form_kwargs(self):
@@ -2854,6 +2907,7 @@ class MiddlePaymentMoneyCreateView(CreateView):
         context['page_obj'] = page_obj
         context['total_payments'] = PayMoney.objects.filter(user=self.request.user).count()
         context['payments'] = PayMoney.objects.filter(user=self.request.user)
+        context['banks'] = Bank.objects.filter(user=self.request.user)
         return context
 
 
@@ -2867,7 +2921,10 @@ def middle_pay_edit(request, pk):
         form = PayerMoneyForm(request.POST, request.FILES, instance=payment, user=request.user)
 
         if form.is_valid():
-            payment = form.save()
+            payment = form.save(commit=False)
+            payment.receiver_name = payment.get_receiver_display()
+            payment.save()
+            form.save_m2m()
 
             if payment.unit:
                 receiver_name_for_fund = str(payment.unit)
@@ -2981,7 +3038,10 @@ def middle_delete_pay_document(request):
 
 
 def export_pay_pdf(request):
-    payments = PayMoney.objects.all()
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
+    payments = PayMoney.objects.filter(user=request.user)
 
     filter_fields = {
         'bank': 'bank__id',
@@ -2990,6 +3050,7 @@ def export_pay_pdf(request):
         'document_number': 'doc_number__icontains',
         'description': 'description__icontains',
         'details': 'details__icontains',
+        'is_paid': 'is_paid'
     }
 
     for field, lookup in filter_fields.items():
@@ -3029,6 +3090,8 @@ def export_pay_pdf(request):
     context = {
         'payments': payments,
         'font_path': font_url,
+        'house': house,
+        'today': timezone.now()
     }
 
     html = template.render(context)
@@ -3049,7 +3112,7 @@ def export_pay_pdf(request):
 
 
 def export_pay_excel(request):
-    payments = PayMoney.objects.all()
+    payments = PayMoney.objects.filter(user=request.user)
 
     filter_fields = {
         'bank': 'bank__id',
@@ -3058,6 +3121,7 @@ def export_pay_excel(request):
         'doc_number': 'doc_number__icontains',
         'description': 'description__icontains',
         'details': 'details__icontains',
+        'is_paid': 'is_paid'
     }
 
     # Apply filters based on query parameters
@@ -3089,13 +3153,14 @@ def export_pay_excel(request):
     title_cell = ws.cell(row=1, column=1, value="لیست اسناد پرداختنی")
     title_cell.font = Font(bold=True, size=18)
     title_cell.alignment = Alignment(horizontal="center", vertical="center")
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=8)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=10)
 
     # ✅ Style setup
     header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")  # Gold
     header_font = Font(bold=True, color="000000")  # Black bold text
 
-    headers = ['#', 'شماره جساب', 'دریافت کننده', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'توضیحات']
+    headers = ['#', 'شماره جساب', 'دریافت کننده', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'توضیحات',
+               'تاریخ پرداخت', 'شماره پیگیری']
 
     # ✅ Write header (row 2)
     for col_num, column_title in enumerate(headers, 1):
@@ -3121,9 +3186,10 @@ def export_pay_excel(request):
         ws.cell(row=row_num, column=4, value=payment.description)
         ws.cell(row=row_num, column=5, value=payment.document_number)
         ws.cell(row=row_num, column=6, value=payment.amount)
-        jalali_date = jdatetime.date.fromgregorian(date=payment.document_date).strftime('%Y/%m/%d')
-        ws.cell(row=row_num, column=7, value=jalali_date)
+        ws.cell(row=row_num, column=7, value=show_jalali(payment.document_date))
         ws.cell(row=row_num, column=8, value=payment.details)
+        ws.cell(row=row_num, column=9, value=show_jalali(payment.payment_date))
+        ws.cell(row=row_num, column=10, value=payment.transaction_reference)
 
     # ✅ Return file
     response = HttpResponse(

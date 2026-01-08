@@ -88,10 +88,9 @@
     <h2 class="fw-bold mb-1 text-center" style="color: #222;">لیست درآمدها</h2>
     
     <p class="text-muted mb-0" style="font-size: 0.9rem;">
-        تاریخ: {{ today|show_jalali_date_time }}
+        تاریخ و ساعت صدور: {{ today|show_jalali_date_time }}
     </p>
 </div>
- <h1 class="text-center">لیست درآمدها</h1>
   <div class="table-responsive">
                 <table class="table table-bordered " id="expenseTable">
                     <thead class="text-center">
@@ -117,7 +116,13 @@
                                 <td>{{income.amount|three_digit_currency }}</td>
                                 <td>{{income.doc_number }}</td>
                                  <td>{{income.doc_date|show_jalali_date_only }}</td>
-                               <td>{{income.details }}</td>
+                                   <td>
+                                    {% if income.details %}
+                                ندارد
+                                         {% else %}
+                                    ندارد
+                                {% endif %}
+                               </td>
                                         <td>
                                       {% if income.payer_name  %}
                                  	 {{ income.payer_name }}

@@ -61,27 +61,8 @@ urlpatterns = [
          name='export_debtor_report_excel'),
     path('report/debtor/export/pdf/', views.export_debtor_report_pdf,
          name='export_debtor_report_pdf'),
-    # path(
-    #     'charges/<str:charge_type>/<int:charge_id>/pdf/',
-    #     views.export_units_charge_report_pdf,
-    #     name='charge_units_list_pdf'
-    # ),
-    # path(
-    #     'charges/<str:charge_type>/<int:charge_id>/excel/',
-    #     views.export_units_charge_report_excel,
-    #     name='charge_units_list_excel'
-    # ),
-    # path(
-    #     'charges/pdf/<str:charge_type>/<int:charge_id>/pdf/',
-    #     views.unit_charge_invoice_pdf_view,
-    #     name='unit_charge_invoice_pdf_view'
-    # ),
-    # path(
-    #     'charges/pdf/<str:charge_type>/pdf/',
-    #     views.all_charges_invoice_pdf_view,
-    #     name='all_unit_charges_invoice_pdf'
-    # ),
 
+    path('report/balance/', views.house_balance_view, name='house_balance_view'),
 
 
 ]

@@ -168,7 +168,7 @@ class ReceiveMoney(models.Model):
     amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True, default=0)
     details = models.TextField(verbose_name='توضیحات', null=True, blank=True)
     is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده/ نشده')
-    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True, default=0)
     payment_date = models.DateField(
         null=True,
         blank=True,
@@ -213,12 +213,26 @@ class PayMoney(models.Model):
     description = models.CharField(max_length=4000, verbose_name='شرح')
     amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True, default=0)
     details = models.TextField(verbose_name='توضیحات', null=True, blank=True)
+    is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده/ نشده')
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True, default=0)
+    payment_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="تاریخ پرداخت"
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
-    is_payed = models.BooleanField(default=False, verbose_name='')
 
     def __str__(self):
         return str(self.receiver_name)
+
+    def save(self, *args, **kwargs):
+        self.is_paid = bool(self.transaction_reference and self.payment_date)
+        super().save(*args, **kwargs)
+
+
+    def get_receiver_display(self):
+        return str(self.unit) if self.unit else self.receiver_name
 
     def get_document_urls_json(self):
         # Use the correct attribute to access the file URL in the related `ExpenseDocument` model
