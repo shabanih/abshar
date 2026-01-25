@@ -9,6 +9,8 @@ urlpatterns = [
     path('login-middleAdmin/', views.middle_admin_login_view, name='login_middle_admin'),
     path('log-out/', views.logout__middle_admin, name='logout_middle_admin'),
 
+    path('middle/profile/', views.middle_profile, name='middle_profile'),
+
     path('middle-send-announcement/', views.MiddleAnnouncementView.as_view(), name='middle_send_announcement'),
     path('middle-announcement/', views.MiddleAnnouncementListView.as_view(), name='middle_announcement'),
     path('edit/middle/announcement/<int:pk>/', views.MiddleAnnouncementUpdateView.as_view(),
@@ -148,7 +150,6 @@ urlpatterns = [
         name='restore_penalty'
     ),
 
-
     # Fix Charge
     path('middle-add-fixed-Charge', views.MiddleFixChargeCreateView.as_view(), name='middle_add_fixed_charge'),
     path('charge/middle/edit/<int:pk>/', views.middle_fix_charge_edit, name='middle_charge_edit'),
@@ -239,7 +240,8 @@ urlpatterns = [
          views.middle_remove_send_notification_fix_variable,
          name='middle_remove_send_notification_fix_variable_charge'),
 
-    # path('middle/charge/management/', views.fetch_middle_charges, name='middle_charge_management'),
+    # path('middle-add-expense-charge', views.MiddleExpenseCharge.as_view(),
+    #      name='middle_add_expense_charge'),
 
     # Sms_Management
     path('middle/sms/register/', views.MiddleSmsManagementView.as_view(), name='middle_register_sms'),

@@ -38,7 +38,7 @@
   <div class="collapse mt-2" id="manualPayment{{ charge.id }}">
      
       
-<form id="paymentForm{{ charge.id }}" method="post" class="mx-auto" style="max-width: 400px;">
+<form method="post" action="{% url 'payment_gateway' charge.id %}" class="mx-auto" style="max-width: 400px;">
     {% csrf_token %}
     <div class="row mt-4">
         <div class="col-12">
@@ -76,34 +76,34 @@
 
   
 
-    <script>
-document.addEventListener('DOMContentLoaded', function() {
-    {% for charge in page_obj %}
-    const form{{ charge.id }} = document.getElementById('paymentForm{{ charge.id }}');
-    form{{ charge.id }}.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const data = new FormData(form{{ charge.id }});
-        fetch("{% url 'manual_payment_ajax' charge.id %}", {
-            method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-            body: data
-        })
-        .then(res => res.json())
-        .then(result => {
-            if(result.success) {
-                alert(result.message);
-                // بروز رسانی مبلغ کل و جریمه در جدول
-                document.querySelector('#chargeRow{{ charge.id }} .total_charge').innerText = result.total_charge_month.toLocaleString();
-                document.querySelector('#chargeRow{{ charge.id }} .penalty_amount').innerText = result.penalty_amount.toLocaleString();
-                form{{ charge.id }}.closest('.collapse').classList.remove('show'); // فرم مخفی شود
-            } else {
-                alert('خطا در ثبت پرداخت');
-            }
-        });
-    });
-    {% endfor %}
-});
-</script>
+{#    <script>#}
+{#document.addEventListener('DOMContentLoaded', function() {#}
+{#    {% for charge in page_obj %}#}
+{#    const form{{ charge.id }} = document.getElementById('paymentForm{{ charge.id }}');#}
+{#    form{{ charge.id }}.addEventListener('submit', function(e) {#}
+{#        e.preventDefault();#}
+{#        const data = new FormData(form{{ charge.id }});#}
+{#        fetch("{% url 'manual_payment_ajax' charge.id %}", {#}
+{#            method: 'POST',#}
+{#            headers: { 'X-CSRFToken': '{{ csrf_token }}' },#}
+{#            body: data#}
+{#        })#}
+{#        .then(res => res.json())#}
+{#        .then(result => {#}
+{#            if(result.success) {#}
+{#                alert(result.message);#}
+{#                // بروز رسانی مبلغ کل و جریمه در جدول#}
+{#                document.querySelector('#chargeRow{{ charge.id }} .total_charge').innerText = result.total_charge_month.toLocaleString();#}
+{#                document.querySelector('#chargeRow{{ charge.id }} .penalty_amount').innerText = result.penalty_amount.toLocaleString();#}
+{#                form{{ charge.id }}.closest('.collapse').classList.remove('show'); // فرم مخفی شود#}
+{#            } else {#}
+{#                alert('خطا در ثبت پرداخت');#}
+{#            }#}
+{#        });#}
+{#    });#}
+{#    {% endfor %}#}
+{#});#}
+{#</script>#}
 
     
 {% endblock main_content %}

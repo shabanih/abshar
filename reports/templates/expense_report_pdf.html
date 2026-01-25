@@ -85,14 +85,13 @@
                             <th>#</th>
                             <th> موضوع هزینه</th>
                             <th>شرح سند</th>
-                          
                               <th>شماره سند</th>
                             <th>تاریخ سند</th>
                              <th>توضیحات سند</th>
-                            <th>تصویر سند</th>
                             <th>حساب بانکی</th>
-                              <th>مبلغ</th>
-{#                            <th>دستورات</th>#}
+                             <th>پرداخت به</th>
+                            <th>تاریخ پرداخت </th>
+                             <th>مبلغ</th>
                         </tr>
                     </thead>
                 {% if expenses %}
@@ -102,20 +101,38 @@
                                 <td>{{ forloop.counter }}</td>
                                 <td>{{expense.category }}</td>
                                 <td>{{expense.description }}</td>
-                                
                                 <td>{{expense.doc_no }}</td>
-                                 <td>{{expense.date|show_jalali_date_only }}</td>
-                               <td>{{expense.details }}</td>
-                                <td class="d-flex justify-content-center align-self-center">
-                                  {% for doc in expense.documents.all %}
-                                        <a href="{{ doc.document.url }}" target="_blank" 
-                                           > 
-                                            <i class="fas fa-image fa-2x me-2"></i></a>
-                                    {% empty %}
-                                     !No File
-                                    {% endfor %}
-                                </td>
-                            <td>{{expense.bank }}</td>
+                                 <td>{{expense.date|show_jalali }}</td>
+                             <td>
+                                    {% if expense.details %}
+                                ندارد
+                                         {% else %}
+                                    ندارد
+                                {% endif %}
+                               </td>
+                                 <td>
+                                       {% if expense.is_paid  %}
+                                     {{expense.bank }}
+                                            {% else %}
+                                   ---
+                                 {% endif %}  
+                                 </td>
+                               
+                            <td>
+                                      {% if expense.is_paid  %}
+                                 	 {{ expense.receiver_name }}
+                                     {% else %}
+                                   ---
+                                 {% endif %}  
+                            </td>
+                            <td>
+                                {% if expense.is_paid %}
+                                	  {{ expense.payment_date|show_jalali }}
+                                    {% else %}
+                                   ---
+                                 {% endif %}  
+                              
+                            </td>
                             <td>{{expense.amount|three_digit_currency }}</td>
                             </tr>
                         {% endfor %}
@@ -125,12 +142,12 @@
                             </tr>
                      <tbody>
                     {% endif %}
-                              <tfoot>
-                            <tr>
-                                <th colspan="8" class="text-center">جمع کل</th>
-                                <th class="text-center fw-bold">{{ total_amount|three_digit_currency }}</th>
-                            </tr>
-                        </tfoot>
+{#                              <tfoot>#}
+{#                            <tr>#}
+{#                                <th colspan="9" class="text-center">جمع کل</th>#}
+{#                                <th class="text-center fw-bold">{{ total_amount|three_digit_currency }}</th>#}
+{#                            </tr>#}
+{#                        </tfoot>#}
                 </table>
                    <div class="col-12">
                     <div class="pagination d-flex justify-content-center mt-5">

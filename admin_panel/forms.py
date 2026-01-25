@@ -46,19 +46,6 @@ class announcementForm(forms.ModelForm):
 
 
 class MessageToUserForm(forms.ModelForm):
-    unit = forms.ModelMultipleChoiceField(
-        queryset=Unit.objects.none(),  # خالی → ajax پرش می‌کنه
-        required=True,
-        label='انتخاب واحدها',
-        widget=forms.SelectMultiple(
-            attrs={
-                'class': 'form-control select2-ajax rtl',
-                'style': 'width:100%',
-                # 'data-placeholder': 'واحد / مالک یا مستاجر را انتخاب کنید1'
-            }
-        )
-    )
-
     title = forms.CharField(
         error_messages=error_message,
         required=True,
@@ -82,7 +69,7 @@ class MessageToUserForm(forms.ModelForm):
 
     class Meta:
         model = MessageToUser
-        fields = ['unit', 'title', 'message', 'is_active']
+        fields = ['title', 'message', 'is_active']
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
@@ -96,12 +83,12 @@ class MessageToUserForm(forms.ModelForm):
                 user__in=managed_users
             ).select_related('user')
 
-        # نمایش نام مستاجر فعال یا مالک
-        self.fields['unit'].label_from_instance = lambda obj: (
-            f"واحد {obj.unit} - {obj.get_active_renter().renter_name}"
-            if obj.get_active_renter() else
-            f"واحد {obj.unit} - {obj.owner_name}"
-        )
+        # # نمایش نام مستاجر فعال یا مالک
+        # self.fields['unit'].label_from_instance = lambda obj: (
+        #     f"واحد {obj.unit} - {obj.get_active_renter().renter_name}"
+        #     if obj.get_active_renter() else
+        #     f"واحد {obj.unit} - {obj.owner_name}"
+        # )
 
 
 RESIDENCE_STATUS_CHOICES = {
@@ -378,7 +365,21 @@ class MyHouseForm(forms.ModelForm):
 class UnitForm(forms.ModelForm):
     unit = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr1),
                            label='شماره واحد')
-    bank = forms.ModelChoiceField(
+    owner_bank = forms.ModelChoiceField(
+        queryset=Bank.objects.none(),
+        empty_label="شماره حساب را انتخاب کنید",
+        error_messages=error_message,
+        required=False,
+        label=' حساب بانکی جهت واریز شارژ',
+        widget=forms.Select(
+            attrs={
+                'class': 'form-control-sm ',
+                'style': 'width:100%',
+                # 'data-placeholder': 'واحد / مالک یا مستاجر را انتخاب کنید1'
+            }
+        )
+    )
+    renter_bank = forms.ModelChoiceField(
         queryset=Bank.objects.none(),
         empty_label="شماره حساب را انتخاب کنید",
         error_messages=error_message,
@@ -514,14 +515,6 @@ class UnitForm(forms.ModelForm):
     renter_details = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'rows': 8}), required=False,
                                      label='توضیحات مستاجر')
     is_active = forms.BooleanField(required=False, initial=True, label='فعال/غیرفعال نمودن')
-    # mobile = forms.CharField(
-    #     required=True,
-    #     max_length=11,
-    #     min_length=11,
-    #     error_messages=error_message,
-    #     label='نام کاربری',
-    #     widget=forms.TextInput(attrs=attr)
-    # )
     password = forms.CharField(
         required=False,
         label='رمز عبور',
@@ -570,27 +563,45 @@ class UnitForm(forms.ModelForm):
                   'owner_national_code', 'unit_phone', 'owner_details',
                   'parking_number', 'parking_count', 'status_residence', 'purchase_date', 'renter_name',
                   'renter_national_code', 'renter_details', 'extra_parking_first', 'extra_parking_second',
-                  'renter_mobile', 'is_renter', 'owner_people_count',
+                  'renter_mobile', 'is_renter', 'owner_people_count', 'renter_bank',
                   'renter_people_count', 'start_date', 'end_date', 'first_charge_owner', 'first_charge_renter',
-                  'contract_number', 'bank', 'owner_transaction_no', 'owner_payment_date', 'renter_payment_date',
+                  'contract_number', 'owner_bank', 'owner_transaction_no', 'owner_payment_date', 'renter_payment_date',
                   'estate_name', 'is_active', 'password', 'confirm_password', 'renter_transaction_no']
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
+        # بانک‌ها
         if user:
             banks = Bank.objects.filter(is_active=True, user=user)
-            self.fields['bank'].queryset = banks
-
-            # پیدا کردن بانک پیش‌فرض
-            default_bank = banks.filter(is_default=True).first()
-            if default_bank:
-                self.fields['bank'].initial = default_bank
-
-            # تغییر label برای نمایش "(پیش‌فرض)" کنار نام بانک
-            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
+            self.fields['owner_bank'].queryset = banks
+            self.fields['renter_bank'].queryset = banks
+            self.fields['owner_bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
                 " (پیش‌فرض)" if obj.is_default else "")
+            self.fields['renter_bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
+                " (پیش‌فرض)" if obj.is_default else "")
+
+        # مقداردهی مستاجر از instance
+        if self.instance.pk:
+            active_renter = self.instance.get_active_renter()
+            if active_renter:
+                self.fields['renter_name'].initial = active_renter.renter_name
+                self.fields['renter_mobile'].initial = active_renter.renter_mobile
+                self.fields['renter_national_code'].initial = active_renter.renter_national_code
+                self.fields['renter_people_count'].initial = active_renter.renter_people_count
+                self.fields['renter_bank'].initial = active_renter.renter_bank
+                self.fields['start_date'].initial = active_renter.start_date
+                self.fields['end_date'].initial = active_renter.end_date
+                self.fields['contract_number'].initial = active_renter.contract_number
+                self.fields['estate_name'].initial = active_renter.estate_name
+                self.fields['first_charge_renter'].initial = active_renter.first_charge_renter
+                self.fields['renter_details'].initial = active_renter.renter_details
+                self.fields['renter_payment_date'].initial = active_renter.renter_payment_date
+                self.fields['renter_transaction_no'].initial = active_renter.renter_transaction_no
+                self.fields['is_renter'].initial = True
+            else:
+                self.fields['is_renter'].initial = False
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -631,7 +642,7 @@ class UnitForm(forms.ModelForm):
 
 
 class RenterAddForm(forms.ModelForm):
-    bank = forms.ModelChoiceField(
+    renter_bank = forms.ModelChoiceField(
         queryset=Bank.objects.none(),
         empty_label="شماره حساب را انتخاب کنید",
         error_messages=error_message,
@@ -731,7 +742,7 @@ class RenterAddForm(forms.ModelForm):
             'renter_is_active',
             'renter_transaction_no',
             'renter_payment_date',
-            'bank',
+            'renter_bank',
             'password',
             'confirm_password'
         ]
@@ -752,15 +763,8 @@ class RenterAddForm(forms.ModelForm):
 
         if user:
             banks = Bank.objects.filter(is_active=True, user=user)
-            self.fields['bank'].queryset = banks
-
-            # پیدا کردن بانک پیش‌فرض
-            default_bank = banks.filter(is_default=True).first()
-            if default_bank:
-                self.fields['bank'].initial = default_bank
-
-            # تغییر label برای نمایش "(پیش‌فرض)" کنار نام بانک
-            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
+            self.fields['renter_bank'].queryset = banks
+            self.fields['renter_bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
                 " (پیش‌فرض)" if obj.is_default else "")
 
 
@@ -806,11 +810,30 @@ class ExpenseForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
+        default_categories = ['هزینه آب', 'هزینه برق', 'هزینه گاز']  # آیتم های پیش‌فرض
         if user:
+            # ابتدا مطمئن می‌شویم که آیتم‌های پیش‌فرض وجود دارند
+            for title in default_categories:
+                obj, created = ExpenseCategory.objects.get_or_create(
+                    title=title,
+                    defaults={'is_active': True, 'user': user}
+                )
+
+            # سپس queryset فرم را تعریف می‌کنیم
             self.fields['category'].queryset = ExpenseCategory.objects.filter(
                 is_active=True,
                 user=user
             )
+
+    # def __init__(self, *args, **kwargs):
+    #     user = kwargs.pop('user', None)
+    #     super().__init__(*args, **kwargs)
+    #
+    #     if user:
+    #         self.fields['category'].queryset = ExpenseCategory.objects.filter(
+    #             is_active=True,
+    #             user=user
+    #         )
 
     def clean_amount(self):
         """
@@ -895,11 +918,16 @@ class ExpensePayForm(forms.ModelForm):
             self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
                 " (پیش‌فرض)" if obj.is_default else "")
 
-            self.fields['unit'].label_from_instance = lambda obj: (
-                f"واحد {obj.unit} - {obj.get_active_renter().renter_name}"
-                if obj.get_active_renter() else
-                f"واحد {obj.unit} - {obj.owner_name}"
-            )
+            def get_unit_label(obj):
+                renter = obj.get_active_renter()
+                if renter and getattr(renter, 'renter_name', None):
+                    return f"واحد {obj.unit} - {renter.renter_name}"
+                elif obj.owner_name:
+                    return f"واحد {obj.unit} - {obj.owner_name}"
+                else:
+                    return f"واحد {obj.unit} - نام نامشخص"
+
+            self.fields['unit'].label_from_instance = get_unit_label
 
     def clean(self):
         cleaned_data = super().clean()
@@ -1094,11 +1122,16 @@ class IncomePayForm(forms.ModelForm):
             self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
                 " (پیش‌فرض)" if obj.is_default else "")
 
-            self.fields['unit'].label_from_instance = lambda obj: (
-                f"واحد {obj.unit} - {obj.get_active_renter().renter_name}"
-                if obj.get_active_renter() else
-                f"واحد {obj.unit} - {obj.owner_name}"
-            )
+            def get_unit_label(obj):
+                renter = obj.get_active_renter()
+                if renter and getattr(renter, 'renter_name', None):
+                    return f"واحد {obj.unit} - {renter.renter_name}"
+                elif obj.owner_name:
+                    return f"واحد {obj.unit} - {obj.owner_name}"
+                else:
+                    return f"واحد {obj.unit} - نام نامشخص"
+
+            self.fields['unit'].label_from_instance = get_unit_label
 
     def clean(self):
         cleaned_data = super().clean()
@@ -1154,94 +1187,105 @@ class SearchIncomeForm(forms.Form):
 class ReceiveMoneyForm(forms.ModelForm):
     bank = forms.ModelChoiceField(
         queryset=Bank.objects.none(),
-        widget=forms.Select(attrs=attr),
+        widget=forms.Select(attrs={'class': 'form-control'}),
         empty_label="شماره حساب را انتخاب کنید",
-        error_messages=error_message,
         required=True,
-        label=' حساب بانکی'
-
+        label='حساب بانکی'
     )
+
     unit = forms.ModelChoiceField(
-        queryset=Unit.objects.none(),  # خالی → ajax پرش می‌کنه
+        queryset=Unit.objects.none(),
         required=False,
         label='انتخاب واحد',
-        widget=forms.Select(
-            attrs={
-                'class': 'form-control-sm ',
-                'style': 'width:100%',
-                # 'data-placeholder': 'واحد / مالک یا مستاجر را انتخاب کنید1'
-            }
-        )
-    )
-    payer_name = forms.CharField(
-        max_length=200, required=False, label='پرداخت کننده ', widget=forms.TextInput(attrs={'class': 'form-control'})
+        widget=forms.Select(attrs={'class': 'form-control-sm', 'style': 'width:100%'})
     )
 
-    amount = forms.CharField(error_messages=error_message, max_length=20, required=True,
-                             widget=forms.TextInput(attrs=attr),
-                             label='مبلغ')
-    description = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=True,
-                                  label='شرح سند')
+    payer_name = forms.CharField(
+        max_length=200, required=False, label='پرداخت کننده',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+
+    amount = forms.CharField(
+        max_length=20, required=True, label='مبلغ',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+
+    description = forms.CharField(
+        required=True, label='شرح سند',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+
     doc_date = JalaliDateField(
         label='تاریخ ثبت سند',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
-        error_messages=error_message, required=False
+        required=False
     )
-    doc_number = forms.CharField(error_messages=error_message, max_length=10, widget=forms.TextInput(attrs=attr),
-                                 required=True,
-                                 label='شماره سند')
+
+    doc_number = forms.CharField(
+        max_length=10, required=True, label='شماره سند',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+
     document = forms.FileField(
-        required=False,
-        error_messages=error_message,
-        widget=forms.ClearableFileInput(attrs=attr),
-        label='تصویر سند'
+        required=False, label='تصویر سند',
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control'})
     )
-    details = forms.CharField(error_messages=error_message, required=False,
-                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-                              label='توضیحات ')
+
+    details = forms.CharField(
+        required=False, label='توضیحات',
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3})
+    )
+
     payment_date = JalaliDateField(
         label='تاریخ پرداخت',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
-        error_messages=error_message, required=False
+        required=False
     )
-    transaction_reference = forms.IntegerField(error_messages=error_message,
-                                               widget=forms.TextInput(attrs=attr),
-                                               required=False, min_value=0, initial=0, label='شماره پیگیری')
+
+    transaction_reference = forms.IntegerField(
+        required=False, min_value=0, initial=0,
+        label='شماره پیگیری',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
 
     class Meta:
         model = ReceiveMoney
-        fields = ['bank', 'amount', 'doc_date', 'description', 'doc_number',
-                  'details', 'document', 'unit', 'payer_name', 'payment_date', 'transaction_reference']
+        fields = [
+            'bank', 'amount', 'doc_date', 'description', 'doc_number',
+            'details', 'document', 'unit', 'payer_name', 'payment_date', 'transaction_reference'
+        ]
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
         if user:
-            # تمام کاربران تحت مدیریت این مدیر + خودش
+            # بانک‌ها
+            banks = Bank.objects.filter(is_active=True, user=user)
+            self.fields['bank'].queryset = banks
+            default_bank = banks.filter(is_default=True).first()
+            if default_bank:
+                self.fields['bank'].initial = default_bank
+
+            # واحدها: کاربران تحت مدیریت + خودش
             managed_users = User.objects.filter(Q(manager=user) | Q(pk=user.pk))
             self.fields['unit'].queryset = Unit.objects.filter(
                 is_active=True,
                 user__in=managed_users
             ).select_related('user')
 
-            # نمایش نام مستاجر فعال یا مالک
-            self.fields['unit'].label_from_instance = lambda obj: (
-                f"واحد {obj.unit} - {obj.get_active_renter().renter_name}"
-                if obj.get_active_renter() else
-                f"واحد {obj.unit} - {obj.owner_name}"
-            )
-            banks = Bank.objects.filter(is_active=True, user=user)
-            self.fields['bank'].queryset = banks
+            # label امن برای unit (مستاجر یا مالک)
+            def get_unit_label(obj):
+                renter = obj.get_active_renter()
+                if renter and getattr(renter, 'renter_name', None):
+                    return f"واحد {obj.unit} - {renter.renter_name}"
+                elif obj.owner_name:
+                    return f"واحد {obj.unit} - {obj.owner_name}"
+                else:
+                    return f"واحد {obj.unit} - نام نامشخص"
 
-            # پیدا کردن بانک پیش‌فرض
-            default_bank = banks.filter(is_default=True).first()
-            if default_bank:
-                self.fields['bank'].initial = default_bank
+            self.fields['unit'].label_from_instance = get_unit_label
 
-            # تغییر label برای نمایش "(پیش‌فرض)" کنار نام بانک
-            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
-                " (پیش‌فرض)" if obj.is_default else "")
 
 
 # =========================================================
@@ -1313,29 +1357,31 @@ class PayerMoneyForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         if user:
+            # بانک‌ها
+            banks = Bank.objects.filter(is_active=True, user=user)
+            self.fields['bank'].queryset = banks
+            default_bank = banks.filter(is_default=True).first()
+            if default_bank:
+                self.fields['bank'].initial = default_bank
+
+            # واحدها: کاربران تحت مدیریت + خودش
             managed_users = User.objects.filter(Q(manager=user) | Q(pk=user.pk))
             self.fields['unit'].queryset = Unit.objects.filter(
                 is_active=True,
                 user__in=managed_users
             ).select_related('user')
 
-            # نمایش نام مستاجر فعال یا مالک
-            self.fields['unit'].label_from_instance = lambda obj: (
-                f"واحد {obj.unit} - {obj.get_active_renter().renter_name}"
-                if obj.get_active_renter() else
-                f"واحد {obj.unit} - {obj.owner_name}"
-            )
-            banks = Bank.objects.filter(is_active=True, user=user)
-            self.fields['bank'].queryset = banks
+            # label امن برای unit (مستاجر یا مالک)
+            def get_unit_label(obj):
+                renter = obj.get_active_renter()
+                if renter and getattr(renter, 'renter_name', None):
+                    return f"واحد {obj.unit} - {renter.renter_name}"
+                elif obj.owner_name:
+                    return f"واحد {obj.unit} - {obj.owner_name}"
+                else:
+                    return f"واحد {obj.unit} - نام نامشخص"
 
-            # پیدا کردن بانک پیش‌فرض
-            default_bank = banks.filter(is_default=True).first()
-            if default_bank:
-                self.fields['bank'].initial = default_bank
-
-            # تغییر label برای نمایش "(پیش‌فرض)" کنار نام بانک
-            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
-                " (پیش‌فرض)" if obj.is_default else "")
+            self.fields['unit'].label_from_instance = get_unit_label
 
     # def clean(self):
     #     cleaned_data = super().clean()
@@ -1479,16 +1525,16 @@ class FixChargeForm(forms.ModelForm):
         fields = ['name', 'fix_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount',
                   'other_cost_amount']
 
-    # def clean_payment_deadline(self):
-    #     deadline = self.cleaned_data.get('payment_deadline')
-    #
-    #     if deadline:
-    #         today = jdatetime.date.today()
-    #
-    #         if deadline < today:
-    #             raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
-    #
-    #     return deadline
+    def clean_payment_deadline(self):
+        deadline = self.cleaned_data.get('payment_deadline')
+
+        if deadline:
+            today = jdatetime.date.today()
+
+            if deadline < today:
+                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+
+        return deadline
 
 
 class AreaChargeForm(forms.ModelForm):
@@ -1532,16 +1578,16 @@ class AreaChargeForm(forms.ModelForm):
         fields = ['name', 'area_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount',
                   'other_cost_amount']
 
-    # def clean_payment_deadline(self):
-    #     deadline = self.cleaned_data.get('payment_deadline')
-    #
-    #     if deadline:
-    #         today = jdatetime.date.today()
-    #
-    #         if deadline < today:
-    #             raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
-    #
-    #     return deadline
+    def clean_payment_deadline(self):
+        deadline = self.cleaned_data.get('payment_deadline')
+
+        if deadline:
+            today = jdatetime.date.today()
+
+            if deadline < today:
+                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+
+        return deadline
 
 
 class PersonChargeForm(forms.ModelForm):
@@ -1579,16 +1625,16 @@ class PersonChargeForm(forms.ModelForm):
         fields = ['name', 'person_amount', 'details', 'civil', 'payment_deadline', 'payment_penalty_amount',
                   'other_cost_amount']
 
-    # def clean_payment_deadline(self):
-    #     deadline = self.cleaned_data.get('payment_deadline')
-    #
-    #     if deadline:
-    #         today = jdatetime.date.today()
-    #
-    #         if deadline < today:
-    #             raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
-    #
-    #     return deadline
+    def clean_payment_deadline(self):
+        deadline = self.cleaned_data.get('payment_deadline')
+
+        if deadline:
+            today = jdatetime.date.today()
+
+            if deadline < today:
+                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+
+        return deadline
 
 
 class FixAreaChargeForm(forms.ModelForm):
@@ -1631,16 +1677,16 @@ class FixAreaChargeForm(forms.ModelForm):
                   'payment_penalty_amount',
                   'other_cost_amount']
 
-    # def clean_payment_deadline(self):
-    #     deadline = self.cleaned_data.get('payment_deadline')
-    #
-    #     if deadline:
-    #         today = jdatetime.date.today()
-    #
-    #         if deadline < today:
-    #             raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
-    #
-    #     return deadline
+    def clean_payment_deadline(self):
+        deadline = self.cleaned_data.get('payment_deadline')
+
+        if deadline:
+            today = jdatetime.date.today()
+
+            if deadline < today:
+                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+
+        return deadline
 
 
 class FixPersonChargeForm(forms.ModelForm):
@@ -1683,16 +1729,16 @@ class FixPersonChargeForm(forms.ModelForm):
         fields = ['name', 'person_amount', 'details', 'civil', 'fix_charge_amount', 'payment_deadline'
             , 'payment_penalty_amount', 'other_cost_amount']
 
-    # def clean_payment_deadline(self):
-    #     deadline = self.cleaned_data.get('payment_deadline')
-    #
-    #     if deadline:
-    #         today = jdatetime.date.today()
-    #
-    #         if deadline < today:
-    #             raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
-    #
-    #     return deadline
+    def clean_payment_deadline(self):
+        deadline = self.cleaned_data.get('payment_deadline')
+
+        if deadline:
+            today = jdatetime.date.today()
+
+            if deadline < today:
+                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+
+        return deadline
 
 
 class PersonAreaChargeForm(forms.ModelForm):
@@ -1734,16 +1780,16 @@ class PersonAreaChargeForm(forms.ModelForm):
         fields = ['name', 'area_amount', 'details', 'person_amount', 'civil', 'payment_deadline',
                   'payment_penalty_amount', 'other_cost_amount']
 
-    # def clean_payment_deadline(self):
-    #     deadline = self.cleaned_data.get('payment_deadline')
-    #
-    #     if deadline:
-    #         today = jdatetime.date.today()
-    #
-    #         if deadline < today:
-    #             raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
-    #
-    #     return deadline
+    def clean_payment_deadline(self):
+        deadline = self.cleaned_data.get('payment_deadline')
+
+        if deadline:
+            today = jdatetime.date.today()
+
+            if deadline < today:
+                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+
+        return deadline
 
 
 class PersonAreaFixChargeForm(forms.ModelForm):
@@ -1789,16 +1835,16 @@ class PersonAreaFixChargeForm(forms.ModelForm):
         fields = ['name', 'area_amount', 'details', 'person_amount', 'civil', 'fix_charge_amount', 'payment_deadline',
                   'payment_penalty_amount', 'other_cost_amount']
 
-    # def clean_payment_deadline(self):
-    #     deadline = self.cleaned_data.get('payment_deadline')
-    #
-    #     if deadline:
-    #         today = jdatetime.date.today()
-    #
-    #         if deadline < today:
-    #             raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
-    #
-    #     return deadline
+    def clean_payment_deadline(self):
+        deadline = self.cleaned_data.get('payment_deadline')
+
+        if deadline:
+            today = jdatetime.date.today()
+
+            if deadline < today:
+                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+
+        return deadline
 
 
 class VariableFixChargeForm(forms.ModelForm):
@@ -1852,16 +1898,72 @@ class VariableFixChargeForm(forms.ModelForm):
                   'unit_variable_person_amount', 'civil', 'details', 'other_cost_amount',
                   'payment_penalty_amount', 'payment_deadline']
 
-    # def clean_payment_deadline(self):
-    #     deadline = self.cleaned_data.get('payment_deadline')
-    #
-    #     if deadline:
-    #         today = jdatetime.date.today()
-    #
-    #         if deadline < today:
-    #             raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
-    #
-    #     return deadline
+    def clean_payment_deadline(self):
+        deadline = self.cleaned_data.get('payment_deadline')
+
+        if deadline:
+            today = jdatetime.date.today()
+
+            if deadline < today:
+                raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+
+        return deadline
+
+
+# class ExpenseChargeForm(forms.ModelForm):
+#     name = forms.CharField(error_messages=error_message, max_length=200, widget=forms.TextInput(attrs=attr),
+#                            required=True,
+#                            label='عنوان شارژ ')
+#     unit_power_amount = forms.IntegerField(error_messages=error_message,
+#                                            widget=forms.TextInput(attrs=attr),
+#                                            required=True,
+#                                            label='جمع کل هزینه برق')
+#     unit_water_amount = forms.IntegerField(error_messages=error_message,
+#                                            widget=forms.TextInput(attrs=attr),
+#                                            required=True,
+#                                            label='جمع کل هزینه آب')
+#     unit_gas_amount = forms.IntegerField(error_messages=error_message,
+#                                          widget=forms.TextInput(attrs=attr),
+#                                          required=True,
+#                                          label='جمع کل هزینه گاز')
+#
+#     details = forms.CharField(error_messages=error_message, required=False,
+#                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+#                               label='توضیحات ')
+#     civil = forms.IntegerField(error_messages=error_message,
+#                                widget=forms.TextInput(attrs=attr),
+#                                required=False, min_value=0,
+#                                label='سایر هزینه ها')
+#
+#     other_cost_amount = forms.IntegerField(error_messages=error_message,
+#                                            widget=forms.TextInput(attrs=attr),
+#                                            required=False, min_value=0,
+#                                            label='شارژ عمرانی')
+#     payment_penalty_amount = forms.IntegerField(error_messages=error_message,
+#                                                 widget=forms.TextInput(attrs=attr),
+#                                                 required=False, min_value=0,
+#                                                 label='جریمه دیرکرد به درصد')
+#
+#     payment_deadline = JalaliDateField(
+#         label='مهلت پرداخت',
+#         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+#         error_messages=error_message, required=False
+#     )
+#
+#     class Meta:
+#         model = ChargeFixVariable
+#         fields = ['name', 'civil', 'details', 'other_cost_amount', 'payment_penalty_amount', 'payment_deadline']
+#
+#     def clean_payment_deadline(self):
+#         deadline = self.cleaned_data.get('payment_deadline')
+#
+#         if deadline:
+#             today = jdatetime.date.today()
+#
+#             if deadline < today:
+#                 raise forms.ValidationError('مهلت پرداخت نمی‌تواند قبل از امروز باشد')
+#
+#         return deadline
 
 
 class UnifiedChargePaymentForm(forms.ModelForm):

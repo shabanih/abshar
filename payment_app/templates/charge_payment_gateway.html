@@ -33,14 +33,18 @@
 {#    </a>#}
              
 <button id="penaltyBtn{{ charge.id }}" 
-        class="btn {% if not charge.is_penalty_waived %}btn-gradient-danger{% else %}btn-gradient-success{% endif %}" 
+        class="btn {% if charge.penalty_amount > 0 %}btn-gradient-danger{% else %}btn-secondary disabled{% endif %}" 
         data-bs-toggle="modal" 
-        data-bs-target="#penaltyModal{{ charge.id }}">
+        data-bs-target="#penaltyModal{{ charge.id }}"
+        {% if charge.penalty_amount == 0 %}disabled{% endif %}>
+    
     <img src="/static/img/deadline.png" class="card-img-top" style="height: 120px; object-fit: contain;" alt="پرداخت آنلاین">
+    
     <span class="btn-text fw-bold">
-        {% if not charge.is_penalty_waived %}حذف جریمه{% elif charge.previous_penalty_amount > 0 %}بازگردانی جریمه{% endif %}
+        {% if charge.penalty_amount > 0 %}حذف جریمه{% else %}جریمه‌ای وجود ندارد{% endif %}
     </span>
 </button>
+
 
 <div class="modal fade" id="penaltyModal{{ charge.id }}" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">

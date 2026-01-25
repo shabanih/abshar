@@ -27,10 +27,51 @@ class Announcement(models.Model):
 
 class MessageToUser(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    units = models.ManyToManyField(
+    title = models.CharField(max_length=400, null=True, blank=True)
+    message = models.TextField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    send_notification = models.BooleanField(default=False)
+    send_notification_date = models.DateTimeField(null=True, blank=True)
+
+    notified_units = models.ManyToManyField(
         Unit,
-        related_name='messages',
-        verbose_name='واحدها'
+        related_name='notified_messages',
+        blank=True
+    )
+
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.title or str(self.id)
+
+
+class MessageReadStatus(models.Model):
+    message = models.ForeignKey(
+        MessageToUser,
+        on_delete=models.CASCADE,
+        related_name='read_statuses'
+    )
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE)
+    is_read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('message', 'unit')
+
+    def __str__(self):
+        return f"{self.unit} - {self.message.title} - {'خوانده شده' if self.is_read else 'خوانده نشده'}"
+
+
+
+# ------------------- Admin Message To MiddleAdmin --------------------------
+
+class AdminMessageToMiddle(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    middleAdmins = models.ManyToManyField(
+        User,
+        related_name='middleMessages',
+        verbose_name='مدیران'
     )
     title = models.CharField(max_length=400, null=True, blank=True)
     message = models.CharField(max_length=400, null=True, blank=True)
@@ -42,8 +83,8 @@ class MessageToUser(models.Model):
         return self.user.full_name
 
 
-class MessageReadStatus(models.Model):
-    message = models.ForeignKey('MessageToUser', on_delete=models.CASCADE, related_name='read_statuses')
+class MiddleMessageReadStatus(models.Model):
+    message = models.ForeignKey('AdminMessageToMiddle', on_delete=models.CASCADE, related_name='admin_read_statuses')
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     is_read = models.BooleanField(default=False)
     read_at = models.DateTimeField(null=True, blank=True)
@@ -167,6 +208,7 @@ class ReceiveMoney(models.Model):
     description = models.CharField(max_length=4000, verbose_name='شرح')
     amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True, default=0)
     details = models.TextField(verbose_name='توضیحات', null=True, blank=True)
+    is_received_money = models.BooleanField(default=False)
     is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده/ نشده')
     transaction_reference = models.CharField(max_length=20, null=True, blank=True, default=0)
     payment_date = models.DateField(
@@ -191,7 +233,16 @@ class ReceiveMoney(models.Model):
         return mark_safe(json.dumps(image_urls))
 
     def get_payer_display(self):
-        return str(self.unit) if self.unit else self.payer_name
+        if self.unit:
+            renter = self.unit.get_active_renter()
+            if renter and getattr(renter, 'renter_name', None):
+                return f"واحد {self.unit.unit} - {renter.renter_name}"  # نام مستاجر
+            elif self.unit.owner_name:
+                return f"واحد {self.unit.unit} - {self.unit.owner_name}"  # نام مالک
+            else:
+                return f"واحد {self.unit.unit}"  # fallback امن
+        else:
+            return self.payer_name
 
 
 class ReceiveDocument(models.Model):
@@ -213,6 +264,7 @@ class PayMoney(models.Model):
     description = models.CharField(max_length=4000, verbose_name='شرح')
     amount = models.PositiveIntegerField(verbose_name='مبلغ', null=True, blank=True, default=0)
     details = models.TextField(verbose_name='توضیحات', null=True, blank=True)
+    is_paid_money = models.BooleanField(default=False)
     is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده/ نشده')
     transaction_reference = models.CharField(max_length=20, null=True, blank=True, default=0)
     payment_date = models.DateField(
@@ -230,7 +282,7 @@ class PayMoney(models.Model):
         self.is_paid = bool(self.transaction_reference and self.payment_date)
         super().save(*args, **kwargs)
 
-
+    @property
     def get_receiver_display(self):
         return str(self.unit) if self.unit else self.receiver_name
 
@@ -395,7 +447,7 @@ class FixPersonCharge(BaseCharge):
 class FixAreaCharge(BaseCharge):
     fix_charge_amount = models.PositiveIntegerField(null=True, blank=True, verbose_name='مبلغ شارژ به ازای هر واحد')
     area_amount = models.PositiveIntegerField(null=True, blank=True, verbose_name='مبلغ شارژ به ازای هر متر')
-    total_area = models.PositiveIntegerField(null=True, blank=True,)
+    total_area = models.PositiveIntegerField(null=True, blank=True, )
     total_people = models.PositiveIntegerField(null=True, blank=True)
     charge_type = 'fix_area'
     display_fields = ['fix_charge_amount', 'area_amount']
@@ -407,7 +459,7 @@ class ChargeByPersonArea(BaseCharge):
     total_area = models.PositiveIntegerField(null=True, blank=True)
     total_people = models.PositiveIntegerField(null=True, blank=True)
     charge_type = 'person_area'
-    display_fields = ['area_amount', 'person_amount',]
+    display_fields = ['area_amount', 'person_amount', ]
 
 
 class ChargeByFixPersonArea(BaseCharge):
@@ -418,18 +470,29 @@ class ChargeByFixPersonArea(BaseCharge):
     total_people = models.PositiveIntegerField(null=True, blank=True)
     parking_count = models.PositiveIntegerField(null=True, blank=True)
     charge_type = 'fix_person_area'
-    display_fields = ['fix_charge_amount', 'area_amount', 'person_amount',]
+    display_fields = ['fix_charge_amount', 'area_amount', 'person_amount', ]
 
 
 class ChargeFixVariable(BaseCharge):
     unit_fix_amount = models.PositiveIntegerField(null=True, blank=True, verbose_name='مبلغ شارژ ثابت به ازای هر واحد')
-    unit_variable_person_amount = models.PositiveIntegerField(null=True, blank=True, verbose_name='مبلغ شارژ متغیر به ازای هر نفر')
-    unit_variable_area_amount = models.PositiveIntegerField(null=True, blank=True, verbose_name='مبلغ شارژ متغیر به ازای هر متر')
+    unit_variable_person_amount = models.PositiveIntegerField(null=True, blank=True,
+                                                              verbose_name='مبلغ شارژ متغیر به ازای هر نفر')
+    unit_variable_area_amount = models.PositiveIntegerField(null=True, blank=True,
+                                                            verbose_name='مبلغ شارژ متغیر به ازای هر متر')
     extra_parking_amount = models.PositiveIntegerField(null=True, blank=True, verbose_name='مبلغ هزینه پارکینگ اضافه')
     total_area = models.PositiveIntegerField(null=True, blank=True)
     total_people = models.PositiveIntegerField(null=True, blank=True)
     charge_type = 'fix_variable'
-    display_fields = ['unit_fix_amount', 'unit_variable_amount', 'unit_variable_area_amount', 'extra_parking_amount',]
+    display_fields = ['unit_fix_amount', 'unit_variable_amount', 'unit_variable_area_amount', 'extra_parking_amount', ]
+
+
+class ChargeByExpense(BaseCharge):
+    unit_power_amount = models.PositiveIntegerField(null=True, blank=True, verbose_name='')
+    unit_water_amount = models.PositiveIntegerField(null=True)
+    unit_gas_amount = models.PositiveIntegerField(null=True)
+    extra_parking_amount = models.PositiveIntegerField(null=True)
+    charge_type = 'expense_charge'
+    display_fields = ['unit_power_amount', 'unit_water_amount', 'unit_gas_amount', 'extra_parking_amount', ]
 
 
 class UnifiedCharge(models.Model):
@@ -442,6 +505,7 @@ class UnifiedCharge(models.Model):
         PERSON_AREA = 'person_area', 'نفر + متراژ'  # Person Area Charge → نفر + متراژ
         FIX_PERSON_AREA = 'fix_person_area', 'ثابت + نفر + متراژ'  # Fixed Person Area → ثابت + نفر + متراژ
         FIX_VARIABLE = 'fix_variable', 'ثابت و متغیر'  # Variable Fixed Charge → ثابت متغیر
+        EXPENSE_CHARGE = 'expense_charge', 'هزینه ها'  # Variable Fixed Charge → ثابت متغیر
 
     main_charge = GenericForeignKey('content_type', 'object_id')
     # کاربر صاحب شارژ
@@ -555,8 +619,6 @@ class UnifiedCharge(models.Model):
             charge_type=self.charge_type
         ).values('unit').distinct().count()
 
-
-
     def waive_penalty(self, user):
         if not user:
             raise ValueError('user is required to waive penalty')
@@ -647,7 +709,7 @@ class Fund(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
-    doc_number = models.PositiveIntegerField(unique=True, editable=False, null=True, blank=True)
+    doc_number = models.PositiveIntegerField(null=True, blank=True)
     payer_name = models.CharField(max_length=200, null=True, blank=True)
     receiver_name = models.CharField(max_length=200, null=True, blank=True)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
@@ -665,7 +727,8 @@ class Fund(models.Model):
     payment_description = models.CharField(max_length=500, blank=True, null=True)
     is_initial = models.BooleanField(default=False, verbose_name='افتتاحیه حساب')
     created_at = models.DateTimeField(auto_now_add=True)
-    is_received = models.BooleanField(default=False)
+    is_received_money = models.BooleanField(default=False)
+    is_paid_money = models.BooleanField(default=False)
     is_paid = models.BooleanField(default=False)
 
     def __str__(self):
@@ -735,6 +798,3 @@ class SmsManagement(models.Model):
     @property
     def notified_units_count(self):
         return self.notified_units.count()
-
-
-

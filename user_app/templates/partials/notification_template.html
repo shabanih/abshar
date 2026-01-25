@@ -13,8 +13,9 @@
                   <span id="total-count-products" class="position-absolute bg-warning rounded-circle d-flex align-items-center justify-content-center text-dark px-1"
                         style="top: 20px; left: 15px; height: 20px; min-width: 2px;" >{{ new_charges_count }}</span>
               </a>
-              <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="messageDropdown">
-
+{#                {% if new_charges_count   %}#}
+                	  <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="messageDropdown">
+            
                 <div class="dropdown-divider"></div>
                 <a class="dropdown-item preview-item">
                   <div class="preview-thumbnail rounded-circle">
@@ -35,6 +36,8 @@
                 </h6>
                       </a>
               </div>
+
+{#                {% endif %} #}
             </li>
               <li class="nav-item dropdown ">
               <a class="nav-link count-indicator dropdown-toggle" id="notificationDropdown" href="#" data-bs-toggle="dropdown">
@@ -44,10 +47,11 @@
                       {{ new_messages_count }}
                   </span>
               </a>
+{#                       {% if new_messages_count %}#}
               <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="notificationDropdown">
-                  {% if new_messages_count %}
+             
                   	<p class="p-3 mb-0 rtl">{{ new_messages_count }} پیام از طرف مدیر</p>
-                  {% endif %} 
+             
                 <div class="dropdown-divider"></div>
 
                 <div class="dropdown-divider"></div>
@@ -57,7 +61,8 @@
                     <h6 class="p-3 mb-0 text-center">نمایش همه پیام ها</h6>
                   </a>
               </div>
-            </li>
+{#                 {% endif %} #}
+              </li>
           
               <li class="nav-item nav-profile dropdown">
               <a class="nav-link dropdown-toggle" id="profileDropdown" href="#" data-bs-toggle="dropdown" aria-expanded="false">

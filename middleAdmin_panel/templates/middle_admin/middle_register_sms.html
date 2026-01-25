@@ -79,8 +79,8 @@
                             <th>تاریخ ایجاد</th>
                             <th>فعال/غیرفعال</th>
                             <th>وضعیت</th>
-                            <th>تاریخ ارسال</th>
-                            <th>تعداد پیامک ارسالی</th>
+{#                            <th>تاریخ ارسال</th>#}
+{#                            <th>تعداد پیامک ارسالی</th>#}
                             <th>دستورات</th>
                         </tr>
                     </thead>
@@ -108,14 +108,14 @@
                                        <button class="btn btn-warning p-2">در انتظار ارسال</button>
                                    {% endif %}
                                 </td>
-                     <td>
-                        {% if sms.send_notification_date %}
-                            {{ sms.send_notification_date|show_jalali }}
-                        {% else %}
-                            -
-                        {% endif %}
-                    </td>
-                           <td>{{ sms.notified_units_count }}</td>
+{#                     <td>#}
+{#                        {% if sms.send_notification_date %}#}
+{#                            {{ sms.send_notification_date|show_jalali }}#}
+{#                        {% else %}#}
+{#                            -#}
+{#                        {% endif %}#}
+{#                    </td>#}
+{#                           <td>{{ sms.notified_units_count }}</td>#}
 
                                <td class="col-1 p-0">
                                    <a href="{% url 'middle_edit_sms' sms.id %}" class="btn btn-primary p-1">

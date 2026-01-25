@@ -29,7 +29,6 @@ urlpatterns = [
     path('update/MiddleAdmin/ticket/<int:pk>/', views.MiddleAdmin_ticket_detail, name='MAdmin_ticket_detail'),
     path('middleAdmin/ticket/close/<int:pk>/', views.middlAdmin_close_ticket, name='middleAdmin_close_ticket'),
 
-
     path('admin/tickets/', views.AdminTicketsView.as_view(), name='admin_tickets'),
     path('admin-ticket/<int:pk>/', views.admin_ticket_detail, name='admin_ticket_detail'),
 
@@ -39,7 +38,14 @@ urlpatterns = [
     path('admin/ticket/continue/<int:pk>/', views.admin_is_continue, name='admin_continue_ticket'),
 
     path('message/to/user/', views.MessageToUserListCreateView.as_view(), name='message_to_user'),
-    # path('edit/message/to/user/<int:pk>/', views.MessageToUserUpdateView.as_view(), name='edit_message_to_user'),
+    path('edit/message/to/user/<int:pk>/', views.MiddleMessageUpdateView.as_view(), name='edit_message_to_user'),
     path('message-to-user-delete/<int:pk>/', views.message_user_delete, name='delete_message_to_user'),
-    path('ajax/units/', views.ajax_units, name='ajax_units'),
+    path('middle/message/send/form/<int:pk>/', views.middle_show_message_form, name='middle_show_message_form'),
+    path('middle-send-message/<int:pk>/', views.middle_send_message, name='middle_send_message'),
+    path('middle/message/management/', views.MiddleMessageToUserListView.as_view(), name='middle_message_management'),
+
+    path('message/to/middle/', views.MessageToMiddleListCreateView.as_view(), name='message_to_middle'),
+    # path('edit/message/to/user/<int:pk>/', views.MessageToUserUpdateView.as_view(), name='edit_message_to_user'),
+    path('message-to-middle-delete/<int:pk>/', views.message_middle_delete, name='delete_message_to_middle'),
+    path('ajax/units/middle/', views.ajax_admin_to_middle, name='ajax_admin_to_middle'),
 ]

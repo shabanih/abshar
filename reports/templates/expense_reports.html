@@ -30,9 +30,11 @@
             </div>
           </div>
        <div id="query-form" style="display: none;" class="row mt-2">
-            <form method="get">
+             <form method="get">
                <div class="row mt-2 g-2">
-                     <div class="col-md-3">
+                     <div class="col-md-2">
+{#                        <input type="text" name="category__title" class="form-control" placeholder="موضوع هزینه"#}
+{#                               value="{{ request.GET.category__title }}">#}
                          <select name="category" class="form-control form-control-sm">
                             <option value="">انتخاب کنید</option>
                             {% for cat in categories %}
@@ -40,7 +42,28 @@
                             {% endfor %}
                         </select>
                     </div>
-                     <div class="col-md-3">
+                               <div class="col-md-2">
+                             <select name="bank" class="form-control form-control-sm">
+                                <option value="">بانک را انتخاب کنید</option>
+                                {% for bank in banks %}
+                                    <option value="{{ bank.id }}" {% if request.GET.bank == bank.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ bank.bank_name }} - {{ bank.account_no }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                               </div>
+                      <div class="col-md-2">
+                   <select name="is_paid" class="form-control form-control-sm">
+                    <option value="">وضعیت پرداخت</option>
+                    <option value="1" {% if request.GET.is_paid == "1" %}selected{% endif %}>
+                        پرداخت شده
+                    </option>
+                    <option value="0" {% if request.GET.is_paid == "0" %}selected{% endif %}>
+                        پرداخت نشده
+                    </option>
+                </select>
+               </div>
+                     <div class="col-md-2">
                         <input type="text" name="amount" class="form-control" placeholder="مبلغ"
                                value="{{ request.GET.amount }}">
                     </div>
@@ -48,27 +71,31 @@
                         <input type="text" name="doc_no" class="form-control" placeholder="شماره سند"
                                value="{{ request.GET.doc_no }}">
                     </div>
-                     <div class="col-md-2">
+                     <div class="col-md-1">
                             <input type="text"  name="from_date" data-jdp data-jdp-only-date class="form-control" 
                                    placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
                           </div>
-                     <div class="col-md-2">
+                     <div class="col-md-1">
                         <input type="text"  name="to_date" data-jdp data-jdp-only-date class="form-control" 
                                placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
                         </div>
                </div>
-                <div class="row mt-2 g-2 mb-2">
+                <div class="row mt-2 mb-2 g-2">
                       <div class="col-md-4">
                 <input type="text" name="description" class="form-control" placeholder="شرح سند"
                        value="{{ request.GET.description }}">
             </div>
-                      <div class="col-md-6">
+                      <div class="col-md-4">
                        <input type="text" name="details" class="form-control" placeholder="توضیحات سند"
                        value="{{ request.GET.details }}">
                       </div>
+                     <div class="col-md-2">
+                       <input type="text" name="receiver_name" class="form-control" placeholder="دریافت کننده"
+                       value="{{ request.GET.receiver_name }}">
+                      </div>
                       <div class="col-md-2 align-self-center text-center">
-                            <button type="submit" class="btn btn-facebook px-3 py-2">جستجو</button>
-                            <button type="button" class="btn btn-gradient-danger px-3 py-2" onclick="window.location.href=window.location.pathname;">حذف فیلتر</button>
+                                            <button type="submit" class="btn btn-facebook px-3 py-2">جستجو</button>
+                            <button type="button" class="btn btn-gradient-danger px-2 py-2" onclick="window.location.href=window.location.pathname;">حذف فیلتر</button>
                         </div>
                     </div>
                </form>
@@ -84,19 +111,22 @@
                             <th>شرح سند</th>
                               <th>شماره سند</th>
                             <th>تاریخ سند</th>
-                             <th>توضیحات سند</th>
+                             <th>توضیحات </th>
                             <th>تصویر سند</th>
-                            <th>حساب بانکی</th>
+                            <th>دریافت کننده</th>
+                            <th>وضعیت پرداخت</th>
                               <th>مبلغ</th>
-{#                            <th>دستورات</th>#}
+                              <th>دستورات</th>
+                            
                         </tr>
                     </thead>
                      <thead>
                                     <tr class="fw-bold sticky-summary">
-                                        <th class="bg-body text-dark fw-bold" colspan="8">جمع کل</th>
+                                        <th class="bg-body text-dark fw-bold" colspan="9">جمع کل</th>
                                           <th class="bg-light text-dark fw-bold">
                                             {{ total_amount|three_digit_currency }}
                                         </th>
+                                        <th></th>
                                       
                                     </tr>
                             </thead>
@@ -110,7 +140,14 @@
                                 
                                 <td>{{expense.doc_no }}</td>
                                  <td>{{expense.date|show_jalali }}</td>
-                               <td>{{expense.details }}</td>
+                               <td>
+                                   {% if expense.details %}
+                                   	دارد
+                                       {% else %}
+                                       ندارد
+                                   {% endif %} 
+                                 
+                               </td>
                                 <td class="d-flex justify-content-center align-self-center">
                                   {% for doc in expense.documents.all %}
                                         <a href="{{ doc.document.url }}" target="_blank" 
@@ -120,13 +157,83 @@
                                      !No File
                                     {% endfor %}
                                 </td>
-                            <td>{{expense.bank }}</td>
+                  
+                            <td>
+                                {% if expense.is_paid %}
+                                {{expense.receiver_name }}
+                                    {% else %}
+                                    ---
+                                {% endif %} 
+                            </td>
+                                  <td>
+                                {% if expense.is_paid %}
+                                	<span class="text-success fw-bold">پرداخت شده</span>
+                                    {% else %}
+                                	<span class="text-danger fw-bold">پرداخت نشده</span>
+                                {% endif %} 
+                              
+                            </td>
                             <td>{{expense.amount|three_digit_currency }}</td>
+                            <td>
+                                      <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ expense.id }}" title="نمایش جزئیات"
+                                                        class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
+                                                </button>
+                            </td>
+                                   <div class="modal fade"  id="exampleModalLong2{{ expense.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ expense.id }}" aria-hidden="true">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalLabel{{ expense.id }}">مشاهده جزئیات </h5>
+                            </div>
+                          <hr/>
+                            <div class="modal-body text-end">
+                                <p><strong>موضوع هزینه:</strong> {{ expense.category }}</p>
+                                 <p><strong>شرح هزینه:</strong> {{ expense.description }} تومان</p>
+                                <p><strong>مبلغ:</strong> {{ expense.amount|three_digit_currency }} تومان</p>
+                                <p><strong>شماره سند:</strong> {{ expense.doc_no }} </p>
+                                <p><strong>تاریخ سند :</strong> {{ expense.date|show_jalali_date_only}} </p>
+                                <p><strong>توضیحات:</strong>
+                                    {% if expense.details %}
+                                        <span class="badge bg-warning">{{ expense.details }} </span>
+                                        {% else %}
+                                        توضیحات ثبت نشده است
+                                    {% endif %}
+
+                                </p>
+                                <hr>
+                             {% if expense.transaction_reference %} 
+                                <p><strong>تاریخ پرداخت:</strong> {{ expense.payment_date|show_jalali_date_only }}</p>
+                                <p><strong> کد پیگیری:</strong> {{ expense.transaction_reference }}</p>
+                                <p><strong> بانک:</strong> {{ expense.bank }}</p>
+                                <p><strong> دریافت کننده:</strong> 
+                                 {% if expense.receiver_name  %}
+                                 	 {{ expense.receiver_name }}
+                                     {% elif expense.unit %}
+                                      {{ expense.unit }}
+                                 {% endif %}   
+                                </p>
+                            {% endif %}
+                                    <p><strong>وضعیت:</strong> 
+                                    {% if expense.is_paid %}
+                                    	<span class="badge bg-success">پرداخت شده</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span></p>
+                                    {% endif %} 
+
+                            </div>
+                            <hr/>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                             </tr>
                         {% endfor %}
                             {% else %}
                             <tr>
-                                <td colspan="9" class="text-center">هیچ هزینه ای برای نمایش وجود ندارد.</td>
+                                <td colspan="11" class="text-center">هیچ هزینه ای برای نمایش وجود ندارد.</td>
                             </tr>
                      <tbody>
                     {% endif %}

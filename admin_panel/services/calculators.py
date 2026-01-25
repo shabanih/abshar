@@ -109,6 +109,23 @@ class ChargeFixVariableCalculator(BaseCalculator):
 
 
 # -------------------------------
+# 89⃣ Charge Expense Charge
+# -------------------------------
+class ExpenseChargeCalculator(BaseCalculator):
+    def calculate(self, unit, charge_obj):
+        return charge_obj.expense_amount or 0
+
+    def calculate_penalty(self, charge_obj, base_total):
+        # مثال: جریمه ثابت 10٪
+        if not charge_obj.payment_deadline_date:
+            return 0
+        check_date = charge_obj.payment_date or timezone.now().date()
+        if check_date <= charge_obj.payment_deadline_date:
+            return 0
+        return int(base_total * 0.10)  # جریمه 10٪ ثابت
+
+
+# -------------------------------
 # Mapping charge_type to Calculator
 # -------------------------------
 CALCULATORS = {
@@ -120,4 +137,5 @@ CALCULATORS = {
     "person_area": ChargeByPersonAreaCalculator(),
     "fix_person_area": ChargeByFixPersonAreaCalculator(),
     "fix_variable": ChargeFixVariableCalculator(),
+    "expense_charge": ExpenseChargeCalculator(),
 }

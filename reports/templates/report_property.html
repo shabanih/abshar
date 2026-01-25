@@ -77,6 +77,7 @@
 
             <div class="table-responsive">
                 <table class="table table-bordered " id="expenseTable">
+                
                     <thead class="text-center">
                         <tr>
                             <th>#</th>
@@ -84,13 +85,23 @@
                             <th>واحد</th>
                              <th>کد </th>
                              <th>موقعیت</th>
-                            <th>ارزش(ریال)</th>
+                     
                               <th>تایخ خرید</th>
                              <th>توضیحات </th>
                             <th>تصویر </th>
+                                   <th>ارزش(ریال)</th>
 {#                            <th>دستورات</th>#}
                         </tr>
                     </thead>
+                         <thead>
+                                    <tr class="fw-bold sticky-summary">
+                                        <th class="bg-body text-dark fw-bold" colspan="8">جمع کل ارزش اموال</th>
+                                          <th class="bg-light text-dark fw-bold">
+                                            {{ total_amount|three_digit_currency }}
+                                        </th>
+                                      
+                                    </tr>
+                            </thead>
                 {% if page_obj %}
                {% for property in page_obj %}
                         <tbody class="text-center">
@@ -100,7 +111,7 @@
                                  <td>{{property.property_unit }}</td>
                                 <td>{{property.property_code }}</td>
                                 <td>{{property.property_location }}</td>
-                                <td>{{property.property_price|three_digit_currency }}</td>
+                           
                                  <td>{{property.property_purchase_date|show_jalali }}</td>
                                <td>{{property.details }}</td>
                                 <td class="d-flex justify-content-center align-self-center">
@@ -112,7 +123,7 @@
                                      !No File
                                     {% endfor %}
                                 </td>
-                            
+                                 <td>{{property.property_price|three_digit_currency }}</td>
                             </tr>
                         {% endfor %}
                             {% else %}

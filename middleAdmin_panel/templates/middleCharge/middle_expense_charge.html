@@ -1,0 +1,284 @@
+{% extends 'middleShared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+
+{% block page_title %}
+محاسبه شارژ بر اساس شارژ تسهیم هزینه ها
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr>
+<div class="container mt-3">
+ <div class="col-12 mb-2">
+                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">
+{#                  <i class="mdi mdi-plus" aria-hidden="true"></i>#}
+                    <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
+                    افزودن شارژ جدید
+                    
+                    
+                </button>
+                 </div>
+{#     <p class="text-danger text-sm-end">توجه: کلیه مبالغ ثبت شده به تومان میباشد.</p>#}
+
+               <div class="table-responsive">
+                  <table class="table table-bordered">
+                                <thead class="text-center">
+                                        <tr>
+                                        <th>#</th>
+                                        <th> عنوان شارژ </th>
+                                       <th class="p-0"> جمع کل هزینه برق</th>
+                                       <th class="p-0"> جمع کل هزینه آب</th>
+                                       <th class="p-0"> جمع کل هزینه گاز</th>
+                                        <th>توضیحات</th>
+                                        <th class="p-0">تاریخ ثبت</th>
+                                        <th>جریمه دیرکرد</th>
+                                          <th> اعلام شارژ </th>
+                                        <th>مهلت پرداخت </th>
+                                        <th>دستورات</th>
+                                    </tr>
+                                </thead>
+                            {% if charges %}
+                           {% for charge in charges %}
+                                    <tbody class="text-center">
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{charge.name }}</td>
+                                            <td>{{charge.unit_power_amount|three_digit_currency }}</td>
+                                            <td>{{charge.unit_water_amount|three_digit_currency }}</td>
+                                            <td>{{charge.unit_gas_amount|three_digit_currency }}</td>
+                                       <td>
+                                                 {% if charge.details %}
+                                                 	 دارد
+                                                   {% else %}
+                                              ندارد
+                                            {% endif %} 
+                                            
+                                          </td>
+                                         <td>{{charge.created_at|show_jalali }}</td>
+                                       <td>
+                                                   {% if charge.payment_penalty_amount %}
+                                                      % {{charge.payment_penalty_amount }}
+                                                {% else %}
+                                                ثبت نشده است
+                                            {% endif %} 
+                                          </td>
+                                             <td class="bg-light">
+                                                <span>{{ charge.notified_count }} از {{ unit_count }} واحد</span>
+                                                </td>
+                                                         <td>
+                                                 {% if charge.payment_deadline %}
+                                                 	  {{charge.payment_deadline|show_jalali }}
+                                                   {% else %}
+                                                ثبت نشده است
+                                            {% endif %}
+                                             </td>
+                                               <td class="p-0">
+                                                  <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ charge.id }}"
+                                                        class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
+                                                </button>
+                                                                   <a
+                                           class="btn btn-gradient-info p-1 edit-variable-fix-btn"
+                                           data-id="{{ charge.id }}"
+                                           data-name="{{ charge.name }}"
+                                           data-unit_power_amount="{{ charge.unit_power_amount }}"
+                                           data-extra_parking_amount="{{ charge.extra_parking_amount }}"
+                                           data-unit_water_amount="{{ charge.unit_water_amount }}"
+                                           data-unit_gas_amount="{{ charge.unit_gas_amount }}"
+                                           data-other_cost_amount="{{ charge.other_cost_amount }}"
+                                           data-payment_penalty_amount="{{ charge.payment_penalty_amount }}"
+                                           data-payment_deadline="{{ charge.payment_deadline|show_jalali }}"
+                                           data-civil="{{ charge.civil }}"
+                                           data-details="{{ charge.details }}"
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#exampleModalLong">
+                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
+                                        </a>
+                             
+                                            <a href="{% url 'middle_charge_variable_fix_delete' charge.id %}" class="btn btn-gradient-danger p-1"
+                                       onclick="return confirmDeleteWithSweetAlert(event)">
+                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                            </a>
+                                         <a href="{% url 'middle_show_notification_fix_variable_charge_form' charge.id %}"
+                                         class="btn btn-gradient-success px-3 py-1" 
+                                          data-bs-toggle="tooltip"  title="اعلان شارژ">
+                                         <i class="fas fa-bullhorn fa-flip-horizontal"></i>
+                                            </a>
+
+                                        </td>
+<div class="modal fade" id="exampleModalLong2{{ charge.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ charge.id }}" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalLabel{{ charge.id }}">مشاهده جزئیات</h5>
+      </div>
+      <hr/>
+      <div class="modal-body text-end">
+        <p><strong>عنوان:</strong> {{ charge.name }}</p>
+        <p><strong>هزینه برق:</strong> {{ charge.unit_power_amount|three_digit_currency }} تومان</p>
+        <p><strong>هزینه آب:</strong> {{ charge.unit_water_amount|three_digit_currency }} تومان</p>
+        <p><strong>هزینه گاز:</strong> {{ charge.unit_gas_amount|three_digit_currency }} تومان</p>
+        <p><strong>جمع کل هزینه‌ها:</strong> 
+          {{ charge.unit_power_amount|default:0|add:charge.unit_water_amount|default:0|add:charge.unit_gas_amount|default:0|add:charge.civil|default:0|add:charge.other_cost_amount|default:0|three_digit_currency }}
+          تومان
+        </p>
+        <p><strong>هزینه عمرانی:</strong> {{ charge.civil|three_digit_currency }} تومان</p>
+        <p><strong>سایر هزینه‌ها:</strong> {{ charge.other_cost_amount|three_digit_currency }} تومان</p>
+        <p><strong>تاریخ ثبت:</strong> {{ charge.created_at|show_jalali_date_only }}</p>
+        <p><strong>مهلت پرداخت:</strong> 
+          {% if charge.payment_deadline %}
+            {{ charge.payment_deadline|show_jalali_date_only }}
+          {% else %}
+            ثبت نشده است
+          {% endif %}
+        </p>
+        <p><strong>جریمه دیرکرد:</strong> 
+          {% if charge.payment_penalty_amount %} % {{ charge.payment_penalty_amount }} {% else %} ثبت نشده است {% endif %}
+        </p>
+        <p><strong>توضیحات:</strong> 
+          {% if charge.details %} {{ charge.details }} {% else %} ثبت نشده است {% endif %}
+        </p>
+      </div>
+      <hr/>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+                                        </tr>
+                                    {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="12" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
+                                        </tr>
+                                 <tbody>
+                                {% endif %}
+
+                            </table>
+               </div>
+
+    <hr>
+
+</div>
+    
+<div class="modal fade" id="exampleModalLong" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header" id="exampleModalLongTitle">
+        <h5 class="modal-title">محاسبه شارژ بر اساس تسهیم هزینه‌ها</h5>
+      </div>
+      <hr>
+      <div class="modal-body">
+        {{ form.non_field_errors }}
+        <form id="expenseChargeForm" action="" method="POST" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+
+          <div class="row g-2 justify-content-start">
+            <!-- عنوان شارژ -->
+            <div class="col-6">
+              {{ form.name.label_tag }}
+              {{ form.name }}
+              {{ form.name.errors }}
+            </div>
+
+            <!-- هزینه برق -->
+               <div class="col-6">
+                         <label for="">تعداد کل نفرات:</label>
+                         <input type="text" class="form-control" placeholder="کل نفرات"
+                               value="{{ unit_power_amount }}" readonly>
+                     </div>
+
+            <!-- هزینه آب -->
+            <div class="col-6">
+              {{ form.unit_water_amount.label_tag }}
+              {{ form.unit_water_amount }}
+              {{ form.unit_water_amount.errors }}
+            </div>
+
+            <!-- هزینه گاز -->
+            <div class="col-6">
+              {{ form.unit_gas_amount.label_tag }}
+              {{ form.unit_gas_amount }}
+              {{ form.unit_gas_amount.errors }}
+            </div>
+
+            <!-- سایر هزینه‌ها -->
+            <div class="col-6">
+              {{ form.civil.label_tag }}
+              {{ form.civil }}
+              {{ form.civil.errors }}
+            </div>
+
+            <div class="col-6">
+              {{ form.other_cost_amount.label_tag }}
+              {{ form.other_cost_amount }}
+              {{ form.other_cost_amount.errors }}
+            </div>
+
+            <!-- جمع کل هزینه‌ها (غیرقابل ویرایش) -->
+            <div class="col-6">
+              <label class="form-label">جمع کل هزینه‌ها</label>
+              <input type="text" class="form-control" 
+                     value="{{ form.unit_power_amount.value|default:0|add:form.unit_water_amount.value|default:0|add:form.unit_gas_amount.value|default:0|add:form.civil.value|default:0|add:form.other_cost_amount.value|default:0|intcomma }}" 
+                     readonly>
+            </div>
+
+            <!-- مهلت پرداخت و جریمه دیرکرد -->
+            <div class="col-6">
+              {{ form.payment_deadline.label_tag }}
+              {{ form.payment_deadline }}
+              {{ form.payment_deadline.errors }}
+            </div>
+
+            <div class="col-6">
+              {{ form.payment_penalty_amount.label_tag }}
+              {{ form.payment_penalty_amount }}
+              {{ form.payment_penalty_amount.errors }}
+            </div>
+
+            <!-- توضیحات -->
+            <div class="form-group col-12">
+              {{ form.details.label_tag }}
+              {{ form.details }}
+              {{ form.details.errors }}
+            </div>
+          </div>
+
+          <hr class="mt-2" style="color: #0f1531">
+          <div class="d-flex justify-content-between">
+            <button type="submit" class="btn btn-gradient-success px-4 py-2">ثبت شارژ</button>
+            <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% if request.GET.error == 'paid' %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      Swal.fire({
+        icon: 'error',
+        text: 'امکان ویرایش وجود ندارد زیرا حداقل یک واحد شارژ خود را پرداخت کرده است. لطفا اصلاحیه شارژ ثبت کنید!',
+        confirmButtonText: 'باشه'
+      });
+    });
+  </script>
+{% elif request.GET.error == 'notify' %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      Swal.fire({
+        icon: 'error',
+        text: 'امکان ویرایش وجود ندارد، باید ابتدا اطلاعیه های ارسال را حذف کنید سپس ویرایش و مجددا ارسال نمایید!',
+        confirmButtonText: 'باشه'
+      });
+    });
+  </script>
+{% endif %}
+{% endblock %}
+
+

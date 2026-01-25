@@ -81,42 +81,76 @@
 <table>
     <thead>
         <tr>
-            <th>تاریخ</th>
-            <th>دسته‌بندی</th>
-            <th>شماره سند</th>
-            <th>شرح</th>
-              <th>واریز کننده</th>
-            <th>مبلغ (تومان)</th>
+             <th>#</th>
+            <th> موضوع درآمد</th>
+            <th>شرح سند</th>
+              <th>شماره سند</th>
+            <th>تاریخ سند</th>
+             <th>توضیحات </th>
+            <th> واریز کننده</th>
+            <th>بانک</th>
+            <th>تاریخ پرداخت</th>
+            <th>وضعیت پرداخت</th>
+                  <th>مبلغ</th>
         </tr>
     </thead>
     <tbody>
         {% for income in incomes %}
         <tr>
-            <td>{{ income.doc_date|show_jalali }}</td>
-            <td>{{ income.category.subject }}</td>
-   
-            <td>{{ income.doc_number}}</td>
-            <td>{{ income.description }}</td>
-                     <td>
-                {% if income.unit %}
-                	{{ income.unit }}
-                    {% else %}
-                    {{ income.payer_name }}
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{income.category.subject }}</td>
+                                <td>{{income.description }}</td>
+                                
+                                <td>{{income.doc_number }}</td>
+                                 <td>{{income.doc_date|show_jalali }}</td>
+                               <td>
+                                   {% if income.details  %}
+                                   	دارد
+                                       {% else %}
+                                       ندارد
+                                   {% endif %} 
+                            
+                               </td>
+                      
+                                        <td>
+                                     {% if income.is_paid %}
+                                 {{income.payer_name }}
+                                         {% else %}
+                                ---
+                                     {% endif %} 
+                                   
+                                 </td>
+                                 <td>
+                                     {% if income.is_paid %}
+                                 {{income.bank.bank_name }}
+                                         {% else %}
+                                ---
+                                     {% endif %} 
+                                   
+                                 </td>
+                            <td>
+                                     {% if income.is_paid %}
+                                 {{income.payment_date|show_jalali }}
+                                         {% else %}
+                                ---
+                                     {% endif %}
+                                 </td>
+                                  <td>
+                                   {% if income.is_paid %}
+                                   	<span class="text-success fw-bold">پرداخت شده</span>
+                                    {% else %}
+                                	<span class="text-danger fw-bold">پرداخت نشده</span>
+                                    {% endif %}
+                                    </td>
+                                    <td>{{income.amount|three_digit_currency }}</td>
+                            </tr>
+                    {% endfor %}
 
-                {% endif %} 
-            </td>
-            <td>{{ income.amount|three_digit_currency }}</td>
-        </tr>
-        {% endfor %}
-        <tr class="total-row">
-            <td colspan="5">جمع کل</td>
-            <td>{{ total_amount|three_digit_currency }}</td>
-        </tr>
     </tbody>
 </table>
 
 
-<p style="text-align: right; font-size: 11px;">تولید شده توسط سیستم مدیریت ساختمان</p>
+{#<p style="text-align: right; font-size: 11px;">تولید شده توسط سیستم مدیریت ساختمان</p>#}
 
 </body>
 </html>

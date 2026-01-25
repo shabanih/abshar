@@ -29,7 +29,7 @@
             </div>
           </div>
        <div id="query-form" style="display: none;" class="row mt-2">
-            <form method="get">
+                <form method="get">
                <div class="row mt-2 g-2">
                      <div class="col-md-2">
                       <select name="category" class="form-control form-control-sm">
@@ -61,15 +61,16 @@
                     </select>
                     </div>
                
-                       <div class="col-md-2">
-                            <input type="text"  name="from_date" data-jdp data-jdp-only-date class="form-control" 
+                     <div class="col-md-2">
+                            <input type="text"  name="from_date2" data-jdp data-jdp-only-date  class="form-control" 
                                    placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
                           </div>
                      <div class="col-md-2">
-                        <input type="text"  name="to_date" data-jdp data-jdp-only-date class="form-control" 
+                        <input type="text"  name="to_date2" data-jdp data-jdp-only-date class="form-control" 
                                placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
                         </div>
                        </div>
+            
                 <div class="row mt-2 mb-2 g-2">
                        <div class="col-md-2">
                         <input type="text" name="amount" class="form-control" placeholder="مبلغ"
@@ -79,20 +80,35 @@
                         <input type="text" name="doc_number" class="form-control" placeholder="شماره سند"
                                value="{{ request.GET.doc_no }}">
                     </div>
-                      <div class="col-md-3">
+                      <div class="col-md-4">
                 <input type="text" name="description" class="form-control" placeholder="شرح سند"
                        value="{{ request.GET.description }}">
             </div>
-                      <div class="col-md-5">
-                       <input type="text" name="details" class="form-control" placeholder="توضیحات سند"
-                       value="{{ request.GET.details }}">
+                           <div class="col-md-2">
+                   <select name="is_paid" class="form-control form-control-sm">
+                    <option value="">وضعیت پرداخت</option>
+                    <option value="1" {% if request.GET.is_paid == "1" %}selected{% endif %}>
+                        پرداخت شده
+                    </option>
+                    <option value="0" {% if request.GET.is_paid == "0" %}selected{% endif %}>
+                        پرداخت نشده
+                    </option>
+                </select>
+               </div>
+                      <div class="col-md-2">
+                       <input type="text" name="payer_name" class="form-control" placeholder="دریافت کننده"
+                       value="{{ request.GET.payer_name }}">
                       </div>
                    
                     </div>
              <div class="row">
-                       <div class="col-md-12 align-self-center text-start mb-2">
-                            <button type="submit" class="btn btn-facebook px-3 py-2">جستجو</button>
-                            <button type="button" class="btn btn-gradient-danger px-3 py-2" onclick="window.location.href=window.location.pathname;">حذف فیلتر</button>
+                 <div class="col-md-9 align-self-center text-start mb-2">
+                       <input type="text" name="details" class="form-control" placeholder="توضیحات سند"
+                       value="{{ request.GET.details }}">
+                 </div>
+                     <div class="col-md-3 align-self-center mb-2">
+                            <button type="submit" class="btn btn-facebook px-4 py-2">جستجوی پیشرفته</button>
+                            <button type="button" class="btn btn-gradient-danger px-4 py-2" onclick="window.location.href=window.location.pathname;">حذف فیلتر</button>
                         </div>
                         </div>
                </form>
@@ -106,15 +122,14 @@
                             <th>#</th>
                             <th> موضوع درآمد</th>
                             <th>شرح سند</th>
-                      
                               <th>شماره سند</th>
                             <th>تاریخ سند</th>
-                             <th>توضیحات سند</th>
+                             <th>توضیحات </th>
                             <th>تصویر سند</th>
-                            <th> پرداخت کننده</th>
-                            <th>حساب بانکی</th>
-{#                            <th>دستورات</th>#}
+                            <th> واریز کننده</th>
+                            <th>وضعیت پرداخت</th>
                                   <th>مبلغ</th>
+                                  <th>دستورات</th>
                         </tr>
                     </thead>
                       <thead>
@@ -123,6 +138,7 @@
                                           <th class="bg-light text-dark fw-bold">
                                             {{ total_amount|three_digit_currency }}
                                         </th>
+                                        <th></th>
                                       
                                     </tr>
                             </thead>
@@ -136,7 +152,14 @@
                                 
                                 <td>{{income.doc_number }}</td>
                                  <td>{{income.doc_date|show_jalali }}</td>
-                               <td>{{income.details }}</td>
+                               <td>
+                                   {% if income.details  %}
+                                   	دارد
+                                       {% else %}
+                                       ندارد
+                                   {% endif %} 
+                            
+                               </td>
                                 <td class="d-flex justify-content-center align-self-center">
                                   {% for doc in income.documents.all %}
                                         <a href="{{ doc.document.url }}" target="_blank" 
@@ -147,23 +170,85 @@
                                     {% endfor %}
                                 </td>
                                         <td>
-                                     {% if income.unit %}
-                                     	{{ income.unit }}
+                                     {% if income.is_paid %}
+                                 {{income.payer_name }}
                                          {% else %}
-                                     {{income.payer_name }}
+                                ---
                                      {% endif %} 
                                    
                                  </td>
-                            <td>{{income.bank }}</td>
+                      
+                            <td>
+                                {% if income.is_paid %}
+                                   	<span class="text-success fw-bold">پرداخت شده</span>
+                                    {% else %}
+                                	<span class="text-danger fw-bold">پرداخت نشده</span>
+                                {% endif %} 
+                              
+                            </td>
                             <td>{{income.amount|three_digit_currency }}</td>
-                            
+                            <td>
+                                 <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ income.id }}" title="نمایش جزئیات"
+                                                        class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
+                                                </button>
+                            </td>
+                          <div class="modal fade"  id="exampleModalLong2{{ income.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ income.id }}" aria-hidden="true">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalLabel{{ income.id }}">مشاهده جزئیات </h5>
+                            </div>
+                          <hr/>
+                            <div class="modal-body text-end">
+                                <p><strong>موضوع درآمد:</strong> {{ income.category }}</p>
+                                 <p><strong>شرح درآمد:</strong> {{ income.description }} تومان</p>
+                                <p><strong>مبلغ:</strong> {{ income.amount|three_digit_currency }} تومان</p>
+                                <p><strong>شماره سند:</strong> {{ income.doc_number }} </p>
+                                <p><strong>تاریخ سند :</strong> {{ income.doc_date|show_jalali_date_only}} </p>
+                                <p><strong>توضیحات:</strong>
+                                    {% if income.details %}
+                                        <span class="badge bg-warning">{{ income.details }} </span>
+                                        {% else %}
+                                        توضیحات ثبت نشده است
+                                    {% endif %}
+
+                                </p>
+                                <hr>
+                             {% if income.transaction_reference %} 
+                                <p><strong>تاریخ پرداخت:</strong> {{ income.payment_date|show_jalali_date_only }}</p>
+                                <p><strong> کد پیگیری:</strong> {{ income.transaction_reference }}</p>
+                                <p><strong> بانک:</strong> {{ income.bank }}</p>
+                                <p><strong> پرداخت کننده:</strong> 
+                                 {% if income.payer_name  %}
+                                 	 {{ income.payer_name }}
+                                     {% elif income.unit %}
+                                      {{ income.unit }}
+                                 {% endif %}   
+                                </p>
+                            {% endif %}
+                                    <p><strong>وضعیت:</strong> 
+                                    {% if income.is_paid %}
+                                    	<span class="badge bg-success">پرداخت شده</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span></p>
+                                    {% endif %} 
+
+                            </div>
+                            <hr/>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                             </tr>
                    
                         {% endfor %}
                               {% else %}
                  
                             <tr>
-                                <td colspan="10" class="text-center">هیچ درآمدی برای نمایش وجود ندارد.</td>
+                                <td colspan="11" class="text-center">هیچ درآمدی برای نمایش وجود ندارد.</td>
                             </tr>
                     </tbody>
                     {% endif %}

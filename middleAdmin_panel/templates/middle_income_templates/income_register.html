@@ -149,7 +149,14 @@
                                 <td>{{income.amount|three_digit_currency }}</td>
                                 <td>{{income.doc_number }}</td>
                                  <td>{{income.doc_date|show_jalali }}</td>
-                               <td>{{income.details }}</td>
+                               <td>
+                                   {% if income.details %}
+                                       دارد
+                                   	{% else %}
+                                       ندارد
+                                   {% endif %} 
+                             
+                               </td>
                                 <td class="d-flex justify-content-center align-self-center">
                                   {% for doc in income.documents.all %}
                                         <a href="{{ doc.document.url }}" target="_blank" 

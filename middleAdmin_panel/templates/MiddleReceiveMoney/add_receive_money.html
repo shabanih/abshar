@@ -107,14 +107,14 @@
                     <thead class="text-center">
                         <tr>
                             <th>#</th>
-                            <th>شماره حساب</th>
-                             <th>مبلغ</th>
-                             <th>پرداخت کننده</th>
                             <th>شرح سند</th>
+                             <th>مبلغ</th>
                               <th>شماره سند</th>
                             <th>تاریخ سند</th>
-                             <th>توضیحات سند</th>
+                             <th>توضیحات </th>
                             <th>تصویر سند</th>
+                            <th>بانک</th>
+                             <th>در وجه</th>
                             <th>وضعیت پرداخت</th>
                             <th>دستورات</th>
                         </tr>
@@ -124,20 +124,16 @@
                         <tbody class="text-center">
                             <tr>
                                 <td>{{ forloop.counter }}</td>
-                               <td>{{ receive.bank.account_no }}-{{ receive.bank.bank_name }}</td>
-                              <td>{{receive.amount|three_digit_currency }}</td>
-                                 <td>
-                                     {% if receive.unit %}
-                                     	{{ receive.unit }}
-                                         {% else %}
-                                           {{receive.payer_name }}
-                                     {% endif %} 
-                                   
-                                 </td>
                                 <td>{{receive.description }}</td>
+                                <td>{{receive.amount|three_digit_currency }}</td>
                                 <td>{{receive.doc_number }}</td>
                                  <td>{{receive.doc_date|show_jalali }}</td>
-                               <td>{{receive.details }}</td>
+                               <td>{% if receive.details  %}
+                                   دارد
+                               	{% else %}
+                                   ندارد
+                               {% endif %}
+                               </td>
                                 <td class="d-flex justify-content-center align-self-center">
                                   {% for doc in receive.documents.all %}
                                         <a href="{{ doc.document.url }}" target="_blank" 
@@ -147,6 +143,23 @@
                                      !No File
                                     {% endfor %}
                                 </td>
+                             <td>
+                                 {% if receive.is_paid %}
+                                 	 {{ receive.bank.bank_name }}
+                                     {% else %}
+                                     ---
+                                 {% endif %} 
+                                
+                             </td>
+                          
+                                 <td>
+                                     {% if receive.is_paid %}
+                                     {{receive.payer_name }}
+                                         {% else %}
+                                          ---
+                                     {% endif %} 
+                                   
+                                 </td>
                             <td>
                                     {% if receive.is_paid %}
                                     	<span class="badge bg-success">پرداخت شده</span>
@@ -212,7 +225,7 @@
                                  {% if receive.payer_name  %}
                                  	 {{ receive.payer_name }}
                                      {% elif receive.unit %}
-                                      {{ receive.unit }}
+                                      {{ receive.get_unit }}
                                  {% endif %}   
                                 </p>
                             {% endif %}

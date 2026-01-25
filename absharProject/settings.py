@@ -95,7 +95,7 @@ AUTH_USER_MODEL = 'user_app.User'
 ROOT_URLCONF = 'absharProject.urls'
 
 LOGIN_URL_ADMIN = '/admin-panel/login-admin/'
-LOGIN_URL_MIDDLE_ADMIN = '/middle-admin-panel/login-middleAdmin/'
+LOGIN_URL_MIDDLE_ADMIN = '/'
 
 TEMPLATES = [
     {

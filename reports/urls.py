@@ -8,7 +8,7 @@ urlpatterns = [
     path('fund/turnover', views.fund_middle_turnover, name='fund_turn_over'),
     path('tarakonesh', views.fund_turnover_user, name='fund_turn_over_user'),
     path('units/fund/', views.UnitReportsTurnOver.as_view(), name='unit_reports'),
-    path('debtor/creditor/report/', views.debtor_creditor_report, name='debtor_creditor_reports'),
+    path('debtor/units/report/', views.debtor_units_report, name='debtor_units_report'),
     path('history/unit/report/', views.HistoryUnitReports.as_view(), name='unit_history_report'),
     path('history/expense/', views.ReportExpenseView.as_view(), name='expense_history_report'),
     path('history/income/', views.ReportIncomeView.as_view(), name='income_history_report'),
@@ -63,6 +63,9 @@ urlpatterns = [
          name='export_debtor_report_pdf'),
 
     path('report/balance/', views.house_balance_view, name='house_balance_view'),
+
+    # admin Urls
+    path('admin/fund/turnover', views.admin_fund_turnover, name='admin_fund_turn_over'),
 
 
 ]

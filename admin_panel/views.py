@@ -27,6 +27,7 @@ from openpyxl.styles import PatternFill, Font, Alignment
 from pypdf import PdfWriter
 from weasyprint import HTML, CSS
 
+from absharProject.settings import LOGIN_URL_ADMIN
 from admin_panel import helper
 from admin_panel.forms import announcementForm, UnitForm, ExpenseForm, ExpenseCategoryForm, \
     IncomeForm, IncomeCategoryForm, BankForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, \
@@ -47,7 +48,7 @@ def admin_required(view_func):
     return user_passes_test(lambda u: u.is_superuser, login_url=settings.LOGIN_URL_ADMIN)(view_func)
 
 
-@method_decorator(login_required(), name='dispatch')
+@method_decorator(admin_required, name='dispatch')
 class MiddleAdminCreateView(CreateView):
     model = User
     template_name = 'admin_panel/add_middleAdmin.html'
@@ -77,6 +78,7 @@ class MiddleAdminCreateView(CreateView):
         return context
 
 
+@method_decorator(admin_required, name='dispatch')
 class MiddleAdminUpdateView(UpdateView):
     model = User
     template_name = 'admin_panel/add_middleAdmin.html'
@@ -116,6 +118,7 @@ class MiddleAdminUpdateView(UpdateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def middleAdmin_delete(request, pk):
     middleAdmin = get_object_or_404(User, id=pk)
     print(middleAdmin.id)
@@ -128,8 +131,7 @@ def middleAdmin_delete(request, pk):
     return redirect(reverse('create_middle_admin'))
 
 
-@login_required
-@admin_required
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def admin_dashboard(request):
     announcements = Announcement.objects.filter(is_active=True).order_by('-created_at')[:4]
     tickets = AdminTicket.objects.filter(user__manager=request.user).order_by('-created_at')[:5]
@@ -1645,6 +1647,7 @@ def receive_delete(request, pk):
     return redirect(reverse('add_receive'))
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 @csrf_exempt
 def delete_receive_document(request):
     if request.method == 'POST':
@@ -1953,7 +1956,7 @@ def pay_delete(request, pk):
         messages.error(request, " امکان حذف وجود ندارد! ")
     return redirect(reverse('add_pay'))
 
-
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 @csrf_exempt
 def delete_pay_document(request):
     if request.method == 'POST':
@@ -2256,7 +2259,7 @@ def property_delete(request, pk):
         messages.error(request, " امکان حذف وجود ندارد! ")
     return redirect(reverse('add_property'))
 
-
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 @csrf_exempt
 def delete_property_document(request):
     if request.method == 'POST':
@@ -2558,7 +2561,7 @@ def maintenance_delete(request, pk):
         messages.error(request, " امکان حذف وجود ندارد! ")
     return redirect(reverse('add_maintenance'))
 
-
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 @csrf_exempt
 def delete_maintenance_document(request):
     if request.method == 'POST':
@@ -2791,7 +2794,6 @@ def charge_category_delete(request, pk):
     return redirect(reverse('add_charge_category'))
 
 
-
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def charge_view(request):
     return render(request, 'charge/add_charge.html')
@@ -2849,8 +2851,8 @@ class FixChargeCreateView(CreateView):
 def fix_charge_edit(request, pk):
     charge = get_object_or_404(FixCharge, pk=pk)
 
-    any_paid = FixedChargeCalc.objects.filter(fix_charge=charge, is_paid=True).exists()
-    any_notify = FixedChargeCalc.objects.filter(fix_charge=charge, send_notification=True).exists()
+    any_paid = UnifiedCharge.objects.filter(fix_charge=charge, is_paid=True).exists()
+    any_notify = UnifiedCharge.objects.filter(fix_charge=charge, send_notification=True).exists()
     if any_paid:
         return redirect(f"{reverse('add_fixed_charge')}?error=paid")
 
@@ -2900,7 +2902,7 @@ def show_fix_charge_notification_form(request, pk):
     charge = get_object_or_404(FixCharge, id=pk)  # شیء اصلی شارژ ثابت
     units = Unit.objects.filter(is_active=True).order_by('unit')
 
-    notified_ids = FixedChargeCalc.objects.filter(
+    notified_ids = UnifiedCharge.objects.filter(
         fix_charge=charge,
         send_notification=True,
     ).values_list('unit_id', flat=True)
@@ -2917,7 +2919,7 @@ def show_fix_charge_notification_form(request, pk):
 
     calc_map = {
         (calc.unit_id): calc
-        for calc in FixedChargeCalc.objects.filter(fix_charge=charge, user__manager=request.user)
+        for calc in UnifiedCharge.objects.filter(fix_charge=charge, user__manager=request.user)
     }
     for unit in units:
         active_renter = unit.renters.filter(renter_is_active=True).first()
@@ -2967,7 +2969,7 @@ def send_notification_fix_charge_to_user(request, pk):
     notified_units = []
     with transaction.atomic():
         for unit in units_to_notify:
-            fixed_calc, created = FixedChargeCalc.objects.get_or_create(
+            fixed_calc, created = UnifiedCharge.objects.get_or_create(
                 unit=unit,
                 fix_charge=fix_charge,
                 defaults={
@@ -3021,7 +3023,7 @@ def remove_send_notification_fix(request, pk):
 
     try:
         if selected_units == ['all']:
-            deleted_count, _ = FixedChargeCalc.objects.filter(
+            deleted_count, _ = UnifiedCharge.objects.filter(
                 fix_charge=charge,
                 is_paid=False
             ).delete()
@@ -3044,14 +3046,14 @@ def remove_send_notification_fix(request, pk):
         if not units_qs.exists():
             return JsonResponse({'warning': 'هیچ واحد معتبری یافت نشد.'})
 
-        deleted_count, _ = FixedChargeCalc.objects.filter(
+        deleted_count, _ = UnifiedCharge.objects.filter(
             fix_charge=charge,
             unit__in=units_qs,
             is_paid=False
         ).delete()
 
         # بررسی اینکه آیا رکوردی باقی مانده یا نه
-        if not FixedChargeCalc.objects.filter(fix_charge=charge).exists():
+        if not UnifiedCharge.objects.filter(fix_charge=charge).exists():
             charge.send_notification = False
             charge.save()
 
@@ -3117,8 +3119,8 @@ class AreaChargeCreateView(CreateView):
 def area_charge_edit(request, pk):
     charge = get_object_or_404(AreaCharge, pk=pk)
 
-    any_paid = AreaChargeCalc.objects.filter(area_charge=charge, is_paid=True).exists()
-    any_notify = AreaChargeCalc.objects.filter(area_charge=charge, send_notification=True).exists()
+    any_paid = UnifiedCharge.objects.filter(area_charge=charge, is_paid=True).exists()
+    any_notify = UnifiedCharge.objects.filter(area_charge=charge, send_notification=True).exists()
     if any_paid:
         return redirect(f"{reverse('add_area_charge')}?error=paid")
 
@@ -3151,7 +3153,7 @@ def area_charge_edit(request, pk):
                 final_amount = (area_amount * (unit.area or 0))
                 total = (area_amount * (unit.area or 0)) + civil
 
-                calc = AreaChargeCalc.objects.filter(
+                calc = UnifiedCharge.objects.filter(
                     unit=unit,
                     area_charge=area_charge,
                 ).first()
@@ -3167,7 +3169,7 @@ def area_charge_edit(request, pk):
                     calc.send_notification = False
                     calc.save()
                 else:
-                    new_calculations.append(AreaChargeCalc(
+                    new_calculations.append(UnifiedCharge(
                         user=unit.user,
                         unit=unit,
                         area_charge=area_charge,
@@ -3182,7 +3184,7 @@ def area_charge_edit(request, pk):
                     ))
 
             if new_calculations:
-                AreaChargeCalc.objects.bulk_create(new_calculations)
+                UnifiedCharge.objects.bulk_create(new_calculations)
 
             messages.success(request, 'شارژ با موفقیت ویرایش شد.')
             return redirect('add_area_charge')
@@ -3365,7 +3367,6 @@ def send_notification_area_charge_to_user(request, pk):
         area_charge.send_notification = True
         area_charge.send_sms = True
         area_charge.save()
-
 
     if notified_units:
         messages.success(request, 'اطلاعیه برای واحدهای انتخابی ارسال شد!')
@@ -5387,6 +5388,7 @@ def remove_send_notification_fix_variable(request, pk):
 
     return JsonResponse({'error': 'درخواست نامعتبر است.'}, status=400)
 
+
 # ==================================
 @method_decorator(admin_required, name='dispatch')
 class SmsManagementView(CreateView):
@@ -5563,4 +5565,3 @@ def delete_note(request):
         CalendarNote.objects.filter(user=request.user, year=year, month=month, day=day).delete()
         return JsonResponse({"status": "ok"})
     return JsonResponse({"status": "error"}, status=400)
-

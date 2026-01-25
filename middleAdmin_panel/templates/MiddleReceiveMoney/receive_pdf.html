@@ -95,13 +95,13 @@
                     <thead class="text-center">
                         <tr>
                               <th>#</th>
-                            <th>شماره حساب</th>
-                             <th>مبلغ</th>
-                             <th>پرداخت کننده</th>
                             <th>شرح سند</th>
+                             <th>مبلغ</th>
                               <th>شماره سند</th>
                             <th>تاریخ سند</th>
                              <th>توضیحات </th>
+                               <th>بانک</th>
+                             <th>پرداخت کننده</th>
                             <th>تاریخ پرداخت</th>
                             <th>شماره پیگیری</th>
                          
@@ -113,23 +113,8 @@
                         <tbody class="text-center">
                             <tr>
                                 <td>{{ forloop.counter }}</td>
-                                <td>
-                                    {% if receive.bank %}
-                                        {% if receive.bank.bank_name or receive.bank.account_no %}
-                                            {{ receive.bank.bank_name }}{% if receive.bank.bank_name and receive.bank.account_no %} - {% endif %}{{ receive.bank.account_no }}
-                                        {% else %}
-                                            -
-                                        {% endif %}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                              <td>{{receive.amount|three_digit_currency }}</td>
-                                 <td>
-                                {{ receive.get_payer_display }}
-                                   
-                                 </td>
                                 <td>{{receive.description }}</td>
+                               <td>{{receive.amount|three_digit_currency }}</td>
                                 <td>{{receive.doc_number }}</td>
                                  <td>{{receive.doc_date|show_jalali }}</td>
                                <td>
@@ -139,18 +124,34 @@
                                     ندارد
                                 {% endif %}
                                </td>
-                                  <td class="d-flex justify-content-center align-self-center">
+                                      <td>
+                                    {% if receive.bank %}
+                                        {{ receive.bank.bank_name }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                 <td>
+                                     {% if receive.is_paid %}
+                                     	 {{ receive.payer_name }}
+                                         {% else %}
+                                         ---
+                                     {% endif %} 
+                               
+                                   
+                                 </td>
+                            <td>
                                 {% if receive.payment_date %}
                                 {{ receive.payment_date |show_jalali }}
                                 {% else %}
-                                    <span class="text-danger"> پرداخت نشده</span>
+                                  ---
                                 {% endif %}
-                            </td>
+                                 </td>
                                  <td class="d-flex justify-content-center align-self-center">
                                 {% if receive.transaction_reference %}
                                 {{ receive.transaction_reference}}
                                 {% else %}
-                                    <span class="text-danger"> ثبت نشده</span>
+                                    ---
                                 {% endif %}
                             </td>
                             </tr>

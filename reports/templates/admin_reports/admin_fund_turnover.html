@@ -1,0 +1,143 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+گردش صندوق
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container mt-3">
+  <div class="container pt-3">
+
+    <div class="row g-2 align-items-center mb-3">
+
+        <!-- جستجو -->
+        <div class="col-12 col-md-7">
+            <form method="get" class="d-flex gap-2">
+                <input type="text"
+                       class="form-control"
+                       name="q"
+                       value="{{ query }}"
+                       placeholder="جستجو..."
+                       dir="rtl"
+                       autocomplete="off"
+                       oninput="if(this.value==='') this.form.submit();">
+                <button type="submit" class="btn btn-info py-2">
+                    جستجو
+                </button>
+            </form>
+        </div>
+
+        <!-- خروجی -->
+        <div class="col-12 col-md-3 d-flex gap-1">
+              {% if funds %}
+            <a href="{% url 'export_middle_report_excel' %}"
+               class="btn btn-gradient-success w-50">
+                Excel
+            </a>
+            <a href="{% url 'export_middle_report_pdf' %}?{{ request.GET.urlencode }}"
+               class="btn btn-gradient-danger w-50">
+                PDF
+            </a>
+                {% else %}
+                <a class="btn btn-facebook text-white w-50" disabled> Excel</a>
+                <a class="btn btn-gradient-danger w-50" disabled> PDF</a>
+            {% endif %}
+        </div>
+
+        <!-- تعداد نمایش -->
+     <div class="col-12 col-md-2 col-xl-2 p-3 ">
+         <div class="d-flex align-items-center gap-1"> 
+             <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label> 
+             <select id="cardsPerPage" class="form-select select-fix" 
+                     style="width: auto;" onchange="window.location.href='?q={{ query }}&paginate=' + this.value;"> 
+                 <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option> 
+                 <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option> 
+                 <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option> 
+                 <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+             </select>
+         </div> 
+     </div>
+
+    </div>
+
+
+
+      <div class="table-responsive mt-3">
+                            <table class="table table-bordered">
+                                <thead class="text-center">
+                          
+                                    <tr>
+                                        <th>#</th>
+                                        <th>ایجاد کننده</th>
+                                        <th>بانک</th>
+                                        <th>تاریخ سند</th>
+                                        <th>شرح سند</th>
+                                        <th>دریافت کننده/ پرداخت کننده</th>
+                                        <th>روش پرداخت</th>
+                                        <th>بدهکار</th>
+                                        <th>بستانکار</th>
+{#                                        <th>موجودی نهایی</th>#}
+                                    </tr>
+                                </thead>
+                            {% if funds %}
+                           {% for fund in funds %}
+                                    <tbody class="text-center">
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{ fund.user.full_name }}</td>
+                                            <td>{{ fund.bank }}</td>
+                                               <td>{{fund.payment_date|show_jalali }}</td>
+                                            <td>{{fund.payment_description }}</td>
+                                            <td>
+                                                
+                                                    {% if fund.payer_name %}
+                                                    {{fund.payer_name }}
+                                                    {% else %}
+                                                    {{fund.receiver_name}}
+                                                {% endif %} 
+                                            </td>
+                                            <td>{{fund.payment_gateway}}</td>
+                                            <td class="text-success">{{fund.debtor_amount|three_digit_currency}}</td>
+                                            <td class="text-danger">{{fund.creditor_amount|three_digit_currency }}</td>
+{#                                            <td class="btn-gradient-light"></td>#}
+                                        </tr>
+                                    {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="9" class="text-center">هیچ تراکنشی برای نمایش وجود ندارد.</td>
+                                        </tr>
+                                 <tbody>
+                                {% endif %}
+                            </table>
+               </div>
+   <!-- Pagination -->
+      <div class="col-12">
+        <div class="pagination d-flex justify-content-center mt-5">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+            {% endif %}
+
+            {% for page_number in page_obj.paginator.page_range %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_number }}"
+                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
+                    {{ page_number }}
+                </a>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</div>
+
+
+
+{% endblock %}
+
+

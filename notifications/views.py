@@ -1,73 +1,28 @@
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.db.models import Q, ProtectedError
+from django.db import transaction
+from django.db.models import Q, ProtectedError, F, Count
 from django.http import JsonResponse
 from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import reverse_lazy, reverse
+from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.views.generic import CreateView, ListView, UpdateView
 from django.views.generic.edit import FormMixin
 
 from admin_panel.forms import MessageToUserForm
 from admin_panel.models import MessageToUser
+from middleAdmin_panel.views import middle_admin_required
 from notifications.models import SupportUser, SupportFile, SupportMessage, Notification, AdminTicket, AdminTicketFile, \
     AdminTicketMessage, MiddleAdminNotification
 from user_app.forms import SupportUserForm, SupportMessageForm, MiddleAdminTicketForm, MiddleAdminMessageForm
 from user_app.models import User, Unit
 
 
-# class SupportUserCreateView(CreateView):
-#     model = SupportUser
-#     template_name = 'user_send_ticket.html'
-#     form_class = SupportUserForm
-#     success_url = reverse_lazy('user_support_ticket')
-#
-#     def form_valid(self, form):
-#         obj = form.save(commit=False)
-#         obj.user = self.request.user
-#         obj.is_sent = True
-#         obj.is_read = False  # مدیر هنوز پیام را نخوانده
-#         obj.save()
-#
-#         # ذخیره فایل‌ها
-#         files = self.request.FILES.getlist('file')
-#         file_objects = [SupportFile.objects.create(support_user=obj, file=f) for f in files]
-#
-#         # پیام اولیه
-#         initial_message = form.cleaned_data.get('message')
-#         if initial_message:
-#             msg = SupportMessage.objects.create(
-#                 support_user=obj,
-#                 sender=self.request.user,
-#                 message=initial_message
-#             )
-#             for fobj in file_objects:
-#                 msg.attachments.add(fobj)
-#
-#         # نوتیفیکیشن برای همه مدیران میانی
-#         middle_admin_users = User.objects.filter(is_middle_admin=True)
-#         for admin in middle_admin_users:
-#             Notification.objects.create(
-#                 user=admin,
-#                 ticket=obj,
-#                 title="تیکت جدید",
-#                 message=f"یک پیام جدید از کاربر {self.request.user.mobile} دریافت شد.",
-#                 link=f"/admin-panel/ticket/{obj.id}/"
-#             )
-#
-#         messages.success(
-#             self.request,
-#             'تیکت با موفقیت ارسال گردید. کارشناسان ما طی ۳ تا ۵ ساعت آینده پاسخ خواهند داد.'
-#         )
-#         return redirect(self.success_url)
-#
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         context['tickets'] = SupportUser.objects.filter(
-#             user=self.request.user
-#         ).order_by('-created_at')
-#         return context
+@method_decorator(login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN), name='dispatch')
 class SupportUserCreateView(CreateView):
     model = SupportUser
     template_name = 'user_send_ticket.html'
@@ -129,6 +84,7 @@ class SupportUserCreateView(CreateView):
         return context
 
 
+@method_decorator(login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN), name='dispatch')
 class TicketsView(ListView):
     model = SupportUser
     template_name = 'user_ticket.html'
@@ -157,6 +113,7 @@ class TicketsView(ListView):
         return context
 
 
+@login_required
 def user_ticket_detail(request, pk):
     ticket = get_object_or_404(SupportUser, id=pk, user=request.user)
     form = SupportMessageForm()
@@ -231,6 +188,7 @@ def user_ticket_detail(request, pk):
     })
 
 
+@login_required
 def close_ticket(request, pk):
     ticket = get_object_or_404(SupportUser, id=pk)
     ticket.is_closed = True
@@ -240,7 +198,7 @@ def close_ticket(request, pk):
 
 
 # =============================================
-
+@method_decorator(login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN), name='dispatch')
 class MiddleTicketsView(ListView):
     model = SupportUser
     template_name = 'middle_tickets.html'
@@ -269,6 +227,7 @@ class MiddleTicketsView(ListView):
         return context
 
 
+@login_required
 def middleAdmin_ticket_detail(request, pk):
     ticket = get_object_or_404(SupportUser, id=pk)
     form = SupportMessageForm()
@@ -327,6 +286,7 @@ def middleAdmin_ticket_detail(request, pk):
     })
 
 
+@login_required
 def middle_close_ticket(request, pk):
     ticket = get_object_or_404(SupportUser, id=pk)
     ticket.is_closed = True
@@ -335,6 +295,7 @@ def middle_close_ticket(request, pk):
     return redirect('middleAdmin_ticket_detail', pk=ticket.id)
 
 
+@login_required
 def middle_open_ticket(request, pk):
     ticket = get_object_or_404(SupportUser, id=pk)
     ticket.is_closed = False
@@ -343,6 +304,7 @@ def middle_open_ticket(request, pk):
     return redirect('middleAdmin_ticket_detail', pk=ticket.id)
 
 
+@login_required
 def middle_is_waiting(request, pk):
     ticket = get_object_or_404(SupportUser, id=pk)
     ticket.is_waiting = True
@@ -350,6 +312,7 @@ def middle_is_waiting(request, pk):
     return redirect('middleAdmin_ticket_detail', pk=ticket.id)
 
 
+@login_required
 def middle_is_continue(request, pk):
     ticket = get_object_or_404(SupportUser, id=pk)
     ticket.is_waiting = False
@@ -358,7 +321,7 @@ def middle_is_continue(request, pk):
 
 
 # =================================================
-
+@method_decorator(login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN), name='dispatch')
 class MiddleAdminTicketCreateView(CreateView):
     model = AdminTicket
     template_name = 'middleAdmin_send_ticket.html'
@@ -415,6 +378,7 @@ class MiddleAdminTicketCreateView(CreateView):
         return redirect(self.success_url)
 
 
+@method_decorator(login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN), name='dispatch')
 class MiddleAdminTicketsView(ListView):
     model = AdminTicket
     template_name = 'middleAdmin_ticket.html'
@@ -443,6 +407,7 @@ class MiddleAdminTicketsView(ListView):
         return context
 
 
+@login_required
 def MiddleAdmin_ticket_detail(request, pk):
     ticket = get_object_or_404(AdminTicket, id=pk)
 
@@ -510,6 +475,7 @@ def MiddleAdmin_ticket_detail(request, pk):
     })
 
 
+@login_required
 def middlAdmin_close_ticket(request, pk):
     ticket = get_object_or_404(AdminTicket, id=pk)
     ticket.is_closed = True
@@ -519,6 +485,7 @@ def middlAdmin_close_ticket(request, pk):
 
 
 # -------------------------------------------------------------------------------
+@method_decorator(middle_admin_required, name='dispatch')
 class AdminTicketsView(ListView):
     model = AdminTicket
     template_name = 'admin_tickets.html'
@@ -547,6 +514,7 @@ class AdminTicketsView(ListView):
         return context
 
 
+@login_required
 def admin_ticket_detail(request, pk):
     ticket = get_object_or_404(AdminTicket, id=pk)
 
@@ -621,6 +589,7 @@ def admin_ticket_detail(request, pk):
     })
 
 
+@login_required
 def admin_close_ticket(request, pk):
     ticket = get_object_or_404(AdminTicket, id=pk)
     ticket.is_closed = True
@@ -629,6 +598,7 @@ def admin_close_ticket(request, pk):
     return redirect('admin_ticket_detail', pk=ticket.id)
 
 
+@login_required
 def admin_open_ticket(request, pk):
     ticket = get_object_or_404(AdminTicket, id=pk)
     ticket.is_closed = False
@@ -637,6 +607,7 @@ def admin_open_ticket(request, pk):
     return redirect('admin_ticket_detail', pk=ticket.id)
 
 
+@login_required
 def admin_is_waiting(request, pk):
     ticket = get_object_or_404(AdminTicket, id=pk)
     ticket.is_waiting = True
@@ -644,6 +615,7 @@ def admin_is_waiting(request, pk):
     return redirect('admin_ticket_detail', pk=ticket.id)
 
 
+@login_required
 def admin_is_continue(request, pk):
     ticket = get_object_or_404(AdminTicket, id=pk)
     ticket.is_waiting = False
@@ -652,13 +624,175 @@ def admin_is_continue(request, pk):
 
 
 # ========================= Message To User ======
-
-class MessageToUserListCreateView(FormMixin, ListView):
+@method_decorator(login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN), name='dispatch')
+class MessageToUserListCreateView(CreateView):
     model = MessageToUser
     form_class = MessageToUserForm
     template_name = 'message_to_user.html'
-    context_object_name = 'user_messages'
-    success_url = reverse_lazy('message_to_user')  # نام url همین صفحه
+    success_url = reverse_lazy('message_to_user')
+
+    def form_valid(self, form):
+        message = form.save(commit=False)
+        message.user = self.request.user
+        message.save()  # بدون اختصاص واحدها
+        messages.success(self.request, 'پیام با موفقیت ثبت شد.')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['all_messages'] = MessageToUser.objects.filter(user=self.request.user,
+                                                               send_notification=False).order_by(
+            '-created_at')
+        context['units'] = Unit.objects.all()
+
+        return context
+
+
+@method_decorator(middle_admin_required, name='dispatch')
+class MiddleMessageUpdateView(UpdateView):
+    model = MessageToUser
+    form_class = MessageToUserForm
+    template_name = 'message_to_user.html'
+    success_url = reverse_lazy('message_to_user')
+
+    def form_valid(self, form):
+        edit_instance = form.instance
+        self.object = form.save(commit=False)
+        messages.success(self.request, 'پیامک با موفقیت ویرایش گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['all_messages'] = MessageToUser.objects.filter(
+            is_active=True,
+            user=self.request.user,
+            send_notification=False
+        ).order_by('-created_at')
+        return context
+
+
+def message_user_delete(request, pk):
+    message = get_object_or_404(MessageToUser, id=pk)
+    try:
+        message.delete()
+        messages.success(request, 'پیام با موفقیت حذف گردید!')
+    except ProtectedError:
+        messages.error(request, " امکان حذف وجود ندارد! ")
+    return redirect(reverse('message_to_user'))
+
+
+def middle_show_message_form(request, pk):
+    message = get_object_or_404(MessageToUser, id=pk, user=request.user)
+    units = Unit.objects.filter(is_active=True, user__manager=request.user).prefetch_related('renters').order_by('unit')
+
+    units_with_details = []
+    for unit in units:
+        active_renter = unit.renters.filter(renter_is_active=True).first()
+        units_with_details.append({
+            'unit': unit,
+            'active_renter': active_renter
+        })
+
+    return render(request, 'middle_send_message.html', {
+        'message': message,
+        'units_with_details': units_with_details,
+        # 'units_to_notify': units_to_notify
+    })
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_send_message(request, pk):
+    message = get_object_or_404(MessageToUser, id=pk, user=request.user)
+
+    if request.method == "POST":
+        selected_units = request.POST.getlist('units')
+        if not selected_units:
+            messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
+            return redirect('message_to_user')
+
+        units_qs = Unit.objects.filter(is_active=True, user__manager=request.user)
+        if 'all' in selected_units:
+            units_to_notify = units_qs
+        else:
+            units_to_notify = units_qs.filter(id__in=selected_units)
+
+        if not units_to_notify.exists():
+            messages.warning(request, 'هیچ واحد معتبری برای ارسال پیامک پیدا نشد.')
+            return redirect('message_to_user')
+
+        notified_units = []
+        with transaction.atomic():
+            for unit in units_to_notify:
+                if unit.user and unit.user.mobile:
+                    notified_units.append(unit)
+
+        if notified_units:
+            message.notified_units.set(notified_units)
+            message.send_notification = True
+            message.send_notification_date = timezone.now().date()
+            message.save()
+            messages.success(request,
+                             f'پیامک برای واحدهای زیر ارسال شد: {", ".join(str(u.unit) for u in notified_units)}')
+        else:
+            messages.info(request, 'پیامکی ارسال نشد؛ ممکن است شماره موبایل واحدها موجود نباشد.')
+
+        return redirect('middle_message_management')
+
+    # اگر GET بود، فرم را رندر کن
+    units_with_details = Unit.objects.filter(is_active=True)
+    return render(request, 'middle_send_message.html', {
+        'message': message,
+        'units_with_details': units_with_details,
+    })
+
+
+@method_decorator(middle_admin_required, name='dispatch')
+class MiddleMessageToUserListView(ListView):
+    model = MessageToUser
+    template_name = 'middle_message_management.html'
+    context_object_name = 'all_messages'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        qs = MessageToUser.objects.filter(
+            user=self.request.user,
+            is_active=True,
+            send_notification=True
+        ).annotate(
+            sent_users_count=Count('notified_units', distinct=True)
+        ).prefetch_related('notified_units')
+
+        if query:
+            qs = qs.filter(
+                Q(title__icontains=query) |
+                Q(message__icontains=query)
+            )
+
+        return qs.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        return context
+
+
+
+# ========================= Message to middleAdmin ===============
+@method_decorator(middle_admin_required, name='dispatch')
+class MessageToMiddleListCreateView(FormMixin, ListView):
+    model = MessageToUser
+    form_class = MessageToUserForm
+    template_name = 'message_to_middle.html'
+    context_object_name = 'middle_messages'
+    success_url = reverse_lazy('message_to_middle')  # نام url همین صفحه
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -720,7 +854,7 @@ class MessageToUserListCreateView(FormMixin, ListView):
 
 
 @login_required
-def ajax_units(request):
+def ajax_admin_to_middle(request):
     if not request.user.is_authenticated:
         return JsonResponse({'results': []})
 
@@ -759,7 +893,9 @@ def ajax_units(request):
 
     return JsonResponse({'results': results})
 
-def message_user_delete(request, pk):
+
+@login_required
+def message_middle_delete(request, pk):
     message = get_object_or_404(MessageToUser, id=pk)
     try:
         message.delete()

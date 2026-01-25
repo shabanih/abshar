@@ -74,8 +74,8 @@
                                           <th class="{% if balance < 0 %}bg-danger{% else %}bg-success{% endif %}">
                                             {{ balance|three_digit_currency }}
                                         </th>
-                                        <th class="bg-warning">{{ totals.total_income|three_digit_currency }}</th>
-                                        <th class="bg-danger">{{ totals.total_expense|three_digit_currency }}</th>
+                                        <th class="bg-warning">{{ totals.total_debtor|three_digit_currency }}</th>
+                                        <th class="bg-danger">{{ totals.total_creditor|three_digit_currency }}</th>
                                       
                                     </tr>
                             </thead>

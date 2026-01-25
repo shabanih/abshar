@@ -66,7 +66,7 @@
 {#                                        <th>شماره سند</th>#}
                                         <th>تاریخ پرداخت</th>
                                         <th>شرح </th>
-                                     
+
                                         <th>روش پرداخت</th>
                                         <th>شماره تراکنش</th>
                                            <th>مبلغ تراکنش</th>
@@ -75,6 +75,16 @@
 {#                                        <th>دستورات</th>#}
                                     </tr>
                                 </thead>
+                                       <thead>
+                                    <tr class="fw-bold sticky-summary">
+                                        <th class="bg-body text-dark fw-bold" colspan="5">جمع کل</th>
+                                          <th class="bg-light text-dark fw-bold">
+                                            {{ total_amount|three_digit_currency }}
+                                        </th>
+                             
+                                      
+                                    </tr>
+                            </thead>
                             {% if funds %}
                            {% for fund in funds %}
                                     <tbody class="text-center">
@@ -98,12 +108,12 @@
                                         </tr>
                                  <tbody>
                                 {% endif %}
-                                   <tfoot>
-        <tr>
-            <th colspan="5" class="text-center">جمع کل</th>
-            <th class="text-center fw-bold">{{ total_amount|three_digit_currency }}</th>
-        </tr>
-    </tfoot>
+{#                                   <tfoot>#}
+{#        <tr>#}
+{#            <th colspan="5" class="text-center">جمع کل</th>#}
+{#            <th class="text-center fw-bold">{{ total_amount|three_digit_currency }}</th>#}
+{#        </tr>#}
+{#    </tfoot>#}
                             </table>
     
         

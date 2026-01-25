@@ -1,0 +1,153 @@
+﻿{% extends 'middleShared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+مدیریت پیام ها
+{% endblock page_title %}
+
+{% block main_content %}
+        <div class="row mb-4">
+        <!-- بخش جستجو -->
+        <div class="col-12 col-md-10 col-xl-10 align-self-center">
+            <form method="get" action="" class="d-flex gap-2 align-items-center">
+                <input type="text"
+                       class="p-2 w-25 w-md-75"
+                       name="q"
+                       id="searchInput"
+                       autocomplete="off"
+                       value="{{ query }}"
+                       placeholder="جستجوی ..."
+                       dir="rtl"
+                       oninput="if(this.value === '') this.form.submit();">
+                <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
+            </form>
+        </div>
+
+        <!-- بخش تعداد نمایش → فقط دسکتاپ -->
+        <div class="col-12 col-md-2 col-xl-2 p-0 d-none d-md-block">
+            <div class="d-flex align-items-center gap-1">
+                <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label>
+           <select id="cardsPerPage" 
+        class="form-select select-fix"
+        style="width: auto;"
+        onchange="window.location.href='?q={{ query }}&paginate=' + this.value;">
+    <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option>
+    <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option>
+    <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option>
+    <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+</select>
+
+            </div>
+        </div>
+    </div>
+    <div class="container p-0 mt-2">
+        <div class="row mt-2">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th>عنوان </th>
+                            <th>متن پیام </th>
+                            <th>تاریخ ایجاد</th>
+                            <th>وضعیت</th>
+                            <th>تاریخ ارسال</th>
+                            <th>تعداد پیام ارسالی</th>
+                            <th>دستورات</th>
+                        </tr>
+                    </thead>
+                    {% if all_messages %}
+                        {% for message in all_messages %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+{#                                <td>{{sms.user.full_name }}</td>#}
+                                <td>{{ message.title }}</td>
+                                <td>{{ message.message }}</td>
+
+                                <td>{{ message.created_at|show_jalali}}</td>
+{#                                  <td>#}
+{#                                   {% if sms.is_active == True %}#}
+{#                                    <button class="btn btn-gradient-success bg-success p-2">فعال</button>#}
+{#                                       {% else %}#}
+{#                                       <button class="btn btn-gradient-danger p-2">غیر فعال</button>#}
+{#                                   {% endif %}#}
+{#                                </td>#}
+                                       <td>
+                                   {% if message.send_notification == True %}
+                                    <button class="btn btn-gradient-success bg-success p-2">ارسال گردید</button>
+                                       {% else %}
+                                       <button class="btn btn-gradient-warning p-2">در انتظار ارسال</button>
+                                   {% endif %}
+                                </td>
+                     <td>
+                        {% if message.send_notification_date %}
+                            {{ message.send_notification_date|show_jalali }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                           <td>{{ message.sent_users_count  }}</td>
+                                       <td>
+              <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ message.id }}" title="نمایش جزئیات"
+        class="btn btn-gradient-info text-dark px-2 py-1">
+    <i class="mdi mdi-eye"></i>
+</button>
+                                       </td>
+<div class="modal fade" id="exampleModalLong2{{ message.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ message.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLabel{{ message.id }}">مشاهده جزئیات</h5>
+            </div>
+            <hr/>
+            <div class="modal-body text-end">
+                <p><strong>لیست واحدهای ارسالی:</strong></p>
+       {% for unit in message.notified_units.all %}
+                    {{ unit.get_label }}<br/>
+                {% empty %}
+                    هیچ واحدی ارسال نشده است.
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+                            </tr>
+                        </tbody>
+                        {% endfor %}
+                    {% else %}
+                        <tbody>
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                            </tr>
+                        </tbody>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+   <!-- Pagination -->
+    <div class="col-12">
+        <div class="pagination d-flex justify-content-center mt-5">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+            {% endif %}
+
+            {% for page_number in page_obj.paginator.page_range %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_number }}"
+                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
+                    {{ page_number }}
+                </a>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+
+

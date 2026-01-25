@@ -56,7 +56,11 @@
       {% for announcement in announcements %}
       <tbody>
       <tr>
-          <td class="col-10">{{ announcement.title|safe }}</td>
+          <td class="col-10 p-0 m-0">
+              <p class="text-small">
+              {{ announcement.title|safe }}
+                  </p>
+          </td>
           <td class="col-2">{{ announcement.created_at|show_jalali_date_only }}</td>
       </tr>
       </tbody>

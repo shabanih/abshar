@@ -94,17 +94,17 @@
                 <table class="table table-bordered " id="expenseTable">
                     <thead class="text-center">
                         <tr>
-                              <th>#</th>
-                            <th>شماره حساب</th>
-                             <th>مبلغ</th>
-                             <th>شخص دریافت کننده</th>
+                            <th>#</th>
                             <th>شرح سند</th>
                               <th>شماره سند</th>
+                             <th>مبلغ</th>
                             <th>تاریخ سند</th>
-                             <th>توضیحات سند</th>
+                             <th>توضیحات </th>
+                             <th>شماره حساب</th>
+                             <th>در وجه</th>
                             <th>تاریخ پرداخت</th>
                             <th>شماره پیگیری</th>
-                         
+                          
                         </tr>
                     </thead>
                  {% if payments %}
@@ -112,41 +112,48 @@
                         <tbody class="text-center">
                             <tr>
                                 <td>{{ forloop.counter }}</td>
-                               <td>{{ payment.bank}}</td>
-                              <td>{{payment.amount|three_digit_currency }}</td>
-                                             <td>
-                                     {% if payment.unit %}
-                                     	{{ payment.unit }}
+                                <td>{{payment.description }}</td>
+                                 <td>{{payment.amount|three_digit_currency }}</td>
+                                <td>{{payment.document_number }}</td>
+                                 <td>{{payment.document_date|show_jalali }}</td>
+                               <td>{% if payment.details  %}
+                                   دارد
+                               	{% else %}
+                                   ندارد
+                               {% endif %} 
+                                  
+                               </td>
+                                 <td>
+                                     {% if payment.is_paid  %}
+                                     {{ payment.bank.bank_name }}
+                                        {% else %}
+                                   ---
+                                     {% endif %} 
+                                 </td>
+                         
+                                        <td>
+                                     {% if payment.is_paid  %}
+                                      {{payment.receiver_name }}
                                          {% else %}
-                                     {{payment.receiver_name }}
+                                   ---
                                      {% endif %} 
                                    
                                  </td>
-                                  
-                                <td>{{payment.description }}</td>
-                                <td>{{payment.document_number }}</td>
-                                 <td>{{payment.document_date|show_jalali }}</td>
-                                <td>
-                                    {% if payment.details %}
-                                ندارد
-                                         {% else %}
-                                    ندارد
-                                {% endif %}
-                               </td>
-                                  <td class="d-flex justify-content-center align-self-center">
-                                {% if payment.payment_date %}
-                                {{ payment.payment_date |show_jalali }}
-                                {% else %}
-                                    <span class="text-danger"> پرداخت نشده</span>
-                                {% endif %}
-                            </td>
-                                 <td class="d-flex justify-content-center align-self-center">
-                                {% if payment.transaction_reference %}
-                                {{ payment.transaction_reference}}
-                                {% else %}
-                                    <span class="text-danger"> ثبت نشده</span>
-                                {% endif %}
-                            </td>
+                                  <td>
+                                    {% if payment.is_paid %}
+                                    	{{ payment.payment_date|show_jalali }}
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span>
+                                    {% endif %} 
+                                </td>
+                                 <td>
+                                    {% if payment.is_paid %}
+                                    	{{ payment.transaction_reference }}
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span>
+                                    {% endif %} 
+                                </td>
+                              
                             </tr>
                         {% endfor %}
                             {% else %}

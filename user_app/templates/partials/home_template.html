@@ -42,7 +42,14 @@
                         <i class="mdi mdi-square-inc-cash mdi-24px float-right"></i>
                          کل هزینه شارژ پرداختی
                     </h4>
-                    <h2 class="mb-1">{{ total_unpaid_amount|three_digit_currency }} تومان</h2>
+                    <h2 class="mb-1">
+                        {% if total_charge_paid %}
+                        	{{ total_paid_amount|three_digit_currency }} تومان
+                            {% else %}
+                            0
+                        {% endif %} 
+                        
+                    </h2>
                   </div>
                 </div>
                       </a>
@@ -106,7 +113,13 @@
                         <td class="p-2">{{ charge.title }}</td>
                         <td class="p-2">{{ charge.total_charge_month|three_digit_currency }}</td>
                         <td class="p-2">{{ charge.send_notification_date|show_jalali }}</td>
-                        <td class="p-2">{{ charge.payment_deadline_date|show_jalali }}</td>
+                              <td class="p-2">
+                            {% if charge.payment_deadline_date %}
+                              {{ charge.payment_deadline_date|show_jalali }}
+                               {% else %} 
+                                    ----
+                                   {% endif %} 
+                           </td>
                         <td class="p-2">
                             {% if charge.is_paid %}
                                 <span class="badge badge-success p-2">پرداخت شده</span>

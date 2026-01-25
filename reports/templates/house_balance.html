@@ -1,0 +1,150 @@
+{% extends 'middleShared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% block page_title %}
+  بیلان ساختمان
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+    <div class="container p-0">
+     
+         <div class="row row-cols-1 py-3">
+      <div class="col">
+        <div class="card h-100 shadow-lg">
+               <div class="card-footer text-center bg-gradient-success">
+            <h5 class="fw-bold shadow_lg text-white mt-2">وضعیت کلی ساختمان</h5>
+          </div>
+          <div class="card-body py-1">
+               <div class="row mt-2">
+                  <div class="col"  style="font-size: 14px">موجودی صندوق</div>
+                  <div class="col text-start">
+                      <p class="fw-bold" style="font-size: 14px">
+                      {{ balance |three_digit_currency }}  تومان  
+                      </p>
+                  </div>
+              </div>
+    
+          
+               <div class="row">
+                  <div class="col"  style="font-size: 14px">شارژ پرداخت نشده</div>
+                  <div class="col text-start">
+                      <p class="fw-bold" style="font-size: 14px">
+                      {{ total_charge_unpaid |three_digit_currency }}  تومان 
+                      </p>
+                  </div>
+              </div>
+          </div>
+       
+        </div>
+      </div>
+         </div>
+        
+        <div class="row py-3">
+      <div class="col-sm-6 mb-3 mb-sm-0">
+        <div class="card text-center">
+          <div class="card-body g-2">
+            <h6 class="card-title">مجموع درآمدهای دریافت نشده</h6>
+            <p class="card-text text-muted py-2">از تاریخ 1404/10/10 تا امروز</p>
+            <p class="card-text text-success fw-bold">{{ total_incomes_exclude_unpaid | three_digit_currency }} تومان </p>
+            <a href="{% url 'income_history_report' %}" class="btn btn-primary px-3 py-2 mt-3">مشاهده جزئیات</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-6">
+        <div class="card text-center shadow_lg">
+             <div class="card-body">
+            <h6 class="card-title">مجموع هزینه های پرداخت نشده</h6>
+            <p class="card-text text-muted py-2">از تاریخ 1404/10/10 تا امروز</p>
+            <p class="card-text text-danger fw-bold">{{ total_expenses_exclude_unpaid | three_digit_currency }}تومان </p>
+            <a href="{% url 'expense_history_report' %}" class="btn btn-primary px-3 py-2 mt-3">مشاهده جزئیات</a>
+          </div>
+        </div>
+      </div>
+    </div>
+        <div class="row row-cols-1 row-cols-md-2 py-3">
+      <div class="col">
+        <div class="card h-100 shadow-lg">
+               <div class="card-footer text-center bg-gradient-success">
+            <small class="fw-bold shadow_lg" style="font-size: 15px">جمع کل دارائی ها : {{ total_assets|three_digit_currency }} تومان</small>
+          </div>
+          <div class="card-body">
+               <div class="row mb-2">
+                  <div class="col"  style="font-size: 14px">جمع درآمدها</div>
+                  <div class="col text-start">
+                      <p class="fw-bold" style="font-size: 14px">
+                      {{ total_incomes |three_digit_currency }}  تومان  
+                      </p>
+                  </div>
+              </div>
+          
+               <div class="row">
+                  <div class="col"  style="font-size: 14px">جمع اسناد دریافتی</div>
+                  <div class="col text-start">
+                      <p class="fw-bold" style="font-size: 14px">
+                      {{ total_receive_money |three_digit_currency }}  تومان 
+                      </p>
+                  </div>
+              </div>
+          </div>
+       
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100 shadow_lg">
+             <div class="card-footer bg-gradient-danger text-center">
+            <small class="fw-bold shadow-lg" style="font-size: 15px">جمع کل بدهی ها : {{ total_debts|three_digit_currency }}  تومان </small>
+          </div>
+          <div class="card-body">
+{#            <h5 class="card-title">Card title</h5>#}
+                 <div class="row mb-2" style="font-size: 14px">
+                  <div class="col">جمع کل هزینه ها</div>
+                  <div class="col text-start">
+                      <p class="text-lg fw-bold" style="font-size: 14px">
+                      {{ total_expenses |three_digit_currency }}  تومان 
+                      </p>
+                  </div>
+              </div>
+                   <div class="row">
+                  <div class="col" style="font-size: 14px">جمع اسناد پرداختی</div>
+                  <div class="col text-start">
+                      <p class="fw-bold" style="font-size: 14px">
+                           {{ total_pay_money |three_digit_currency }}  تومان 
+                      </p>
+                     
+                  </div>
+              </div>
+          </div>
+         
+        </div>
+      </div>
+    </div>
+    <div class="row row-cols-1">
+      <div class="col">
+       <div class="card h-100 shadow-lg py-1">
+          <div class="card-body py-1">
+               <div class="row mt-2">
+                  <div class="col"  style="font-size: 14px">جمع کل </div>
+                  <div class="col text-start">
+                      <p class="fw-bold" style="font-size: 14px">
+                      {{ total_amount_assets_debts |three_digit_currency }}  تومان  
+                      </p>
+                  </div>
+              </div>
+    
+          </div>
+       
+        </div>
+      </div>
+         </div>
+      
+    </div>
+{% endblock %}
+
+
+
+
+
+
+
+

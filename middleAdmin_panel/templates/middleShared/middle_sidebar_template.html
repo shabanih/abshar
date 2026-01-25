@@ -64,12 +64,46 @@
                     </ul>
                   </div>
                 </li>
-      <li class="nav-item border-top mt-0">
-                 {% url 'message_to_user' as address_url %}
-                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                <i class="menu-title"> مدیریت پیام ها</i>
-                <i class="fas fa-bank menu-icon menu-icon"></i>
+{#      <li class="nav-item border-top mt-0">#}
+{#                 {% url 'message_to_user' as address_url %}#}
+{#                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">#}
+{#                <i class="menu-title"> مدیریت پیام ها</i>#}
+{#                <i class="fas fa-bank menu-icon menu-icon"></i>#}
+{#              </a>#}
+{#            </li>#}
+
+                       {% url 'message_to_user' as url_message_to_user %}
+            {% url 'middle_message_management' as url_middle_message_list %}
+
+            <li class="nav-item border-top mt-0">
+              <a class="nav-link" data-bs-toggle="collapse"
+                 href="#general145"
+                 aria-expanded="true"
+                 aria-controls="general145">
+                <i class="menu-title"> مدیریت پیام ها </i>
+                <i class="menu-arrow"></i>
+                <i class="fas fa-bullhorn fa-flip-horizontal menu-icon"></i>
               </a>
+
+              <div class="collapse {% if request.path == url_message_to_user or request.path == url_middle_message_list %}show{% endif %}" id="general145">
+                <ul class="nav flex-column sub-menu">
+
+                  <li class="nav-item mt-0">
+                    <a class="nav-link {% if request.path == url_message_to_user %}active{% endif %}"
+                       href="{{ url_message_to_user }}">
+                       ثبت پیام
+                    </a>
+                  </li>
+
+                  <li class="nav-item mt-0">
+                    <a class="nav-link {% if request.path == url_middle_message_list %}active{% endif %}"
+                       href="{{ url_middle_message_list }}">
+                       پیامک های من
+                    </a>
+                  </li>
+
+                </ul>
+              </div>
             </li>
 
                  <li class="nav-item border-top mt-0">
@@ -87,6 +121,20 @@
                 <i class="mdi mdi-city menu-icon menu-icon"></i>
               </a>
             </li>
+{#                      <li class="nav-item  mt-0">#}
+{#                 {% url 'house_balance_view' as address_url %}#}
+{#                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">#}
+{#                <i class="menu-title"> بیلان</i>#}
+{#                <i class="mdi mdi-city menu-icon menu-icon"></i>#}
+{#              </a>#}
+{#            </li>#}
+{#                               <li class="nav-item  mt-0">#}
+{#                 {% url 'middle_add_expense' as address_url %}#}
+{#                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">#}
+{#                <i class="menu-title"> هزینه</i>#}
+{#                <i class="mdi mdi-city menu-icon menu-icon"></i>#}
+{#              </a>#}
+{#            </li>#}
 
                  <li class="nav-item border-top mt-0">
   <a class="nav-link" data-bs-toggle="collapse" href="#general40"
@@ -130,19 +178,19 @@
 
               <li class="nav-item mt-0">
   <a class="nav-link" data-bs-toggle="collapse" href="#general2"
-     aria-expanded="{% if request.resolver_match.url_name in 'fund_turn_over unit_reports debtor_creditor_reports unit_history_report expense_history_report income_history_report property_history_report maintenance_history_report pay_receive_report charge_notify_report_list house_balance_view' %}true{% else %}false{% endif %}"
+     aria-expanded="{% if request.resolver_match.url_name in 'fund_turn_over unit_reports debtor_units_report unit_history_report expense_history_report income_history_report property_history_report maintenance_history_report pay_receive_report charge_notify_report_list house_balance_view' %}true{% else %}false{% endif %}"
      aria-controls="general2">
     <i class="menu-title">گزارشات</i>
     <i class="menu-arrow"></i>
     <i class="mdi mdi-clipboard-text menu-icon"></i>
   </a>
-  <div class="collapse {% if request.resolver_match.url_name in 'fund_turn_over unit_reports debtor_creditor_reports unit_history_report expense_history_report income_history_report property_history_report maintenance_history_report pay_receive_report charge_notify_report_list house_balance_view' %}show{% endif %}" id="general2">
+  <div class="collapse {% if request.resolver_match.url_name in 'fund_turn_over unit_reports debtor_units_report unit_history_report expense_history_report income_history_report property_history_report maintenance_history_report pay_receive_report charge_notify_report_list house_balance_view' %}show{% endif %}" id="general2">
     <ul class="nav flex-column sub-menu">
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'fund_turn_over' %}active{% endif %}" href="{% url 'fund_turn_over' %}">گردش صندوق</a></li>
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'unit_reports' %}active{% endif %}" href="{% url 'unit_reports' %}">گردش مالی اشخاص</a></li>
 {#      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'charge_list_report' %}active{% endif %}" href="{% url 'charge_list_report' %}">شارژ های اعلامی</a></li>#}
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'charge_notify_report_list' %}active{% endif %}" href="{% url 'charge_notify_report_list' %}">شارژ های اعلامی</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'debtor_creditor_reports' %}active{% endif %}" href="{% url 'debtor_creditor_reports' %}">واحدهای بدهکار</a></li>
+      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'debtor_units_report' %}active{% endif %}" href="{% url 'debtor_units_report' %}">واحدهای بدهکار</a></li>
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'unit_history_report' %}active{% endif %}" href="{% url 'unit_history_report' %}">سوابق سکونت واحدها</a></li>
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'expense_history_report' %}active{% endif %}" href="{% url 'expense_history_report' %}">هزینه‌ها</a></li>
       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'income_history_report' %}active{% endif %}" href="{% url 'income_history_report' %}">درآمدها</a></li>
@@ -230,7 +278,7 @@
                         <li class="nav-item mt-0">
                             <a class="nav-link {% if request.path == url_support_ticket %}active{% endif %}"
                                href="{{ url_support_ticket }}">
-                                ارسال تیکت
+                                 ارسال تیکت به ادمین
                             </a>
                         </li>
 

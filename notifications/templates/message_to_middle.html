@@ -1,0 +1,210 @@
+﻿{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+مدیریت پیام ها
+{% endblock page_title %}
+
+{% block main_content %}
+<div class="container mt-3">
+
+    <form action="" method="post" novalidate>
+        {% csrf_token %}
+       <div class="row mb-3">
+    <div class="col-12">
+        {{ form.unit.label_tag }}
+        {{ form.unit }}
+        {{ form.unit.errors }}
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-8">
+        {{ form.title.label_tag }}
+        {{ form.title }}
+        {{ form.title.errors }}
+    </div>
+    <div class="col-4 py-2">
+        {{ form.is_active.label_tag }}
+        {{ form.is_active }}
+        {{ form.is_active.errors }}
+    </div>
+</div>
+    <div class="row">
+    <div class="col-12">
+        {{ form.message.label_tag }}
+        {{ form.message }}
+        {{ form.message.errors }}
+    </div>
+    </div>
+
+        <div class="row">
+                          {% if form.instance.id %}
+                    <div class=" col-12 pt-2 text-start">
+                         <button type="submit" class="btn btn-gradient-success">ذخیره پیام</button>
+                      </div>
+                     {% else %}
+                     <div class="col-12 pt-2 text-start">
+                         <button type="submit" class="btn btn-gradient-success">ثبت پیام</button>
+                      </div>
+                {% endif %}
+        
+                </div>
+
+
+    </form>
+{#         {{ form.media }}#}
+
+    <div class="container p-3">
+       <div class="row mb-2 mt-4">
+        <!-- بخش جستجو -->
+        <div class="col-12 col-md-10 col-xl-10 align-self-center">
+            <form method="get" action="" class="d-flex gap-2 align-items-center">
+                <input type="text"
+                       class="p-2 w-50 w-md-75"
+                       name="q"
+                       id="searchInput"
+                       autocomplete="off"
+                       value="{{ query }}"
+                       placeholder="جستجوی ..."
+                       dir="rtl"
+                       oninput="if(this.value === '') this.form.submit();">
+                <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
+            </form>
+        </div>
+
+        <!-- بخش تعداد نمایش → فقط دسکتاپ -->
+        <div class="col-12 col-md-2 col-xl-2 p-0 d-none d-md-block">
+            <div class="d-flex align-items-center gap-1">
+                <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label>
+           <select id="cardsPerPage" 
+        class="form-select select-fix"
+        style="width: auto;"
+        onchange="window.location.href='?q={{ query }}&paginate=' + this.value;">
+    <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option>
+    <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option>
+    <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option>
+    <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+</select>
+
+            </div>
+        </div>
+    </div>
+
+        <div class="row mt-2">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th>نام واحد</th>
+                            <th>موضوع پیام</th>
+                            <th>متن پیام</th>
+                            <th>تاریخ ایجاد</th>
+                            <th>دستورات</th>
+                        </tr>
+                    </thead>
+                    {% if user_messages %}
+                        {% for user_message in user_messages %}
+                        <tbody class="text-center p-0">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{user_message.user.get_full_name}}</td>
+                                <td>{{ user_message.title|safe }}</td>
+                                <td>{{ user_message.message|safe }}</td>
+
+                                <td>{{ user_message.created_at|show_jalali}}</td>
+{#                                  <td>#}
+{#                                   {% if user_message.is_active == True %}#}
+{#                                    <button class="btn btn-primary bg-success p-2">فعال</button>#}
+{#                                       {% else %}#}
+{#                                       <button class="btn btn-danger p-2">غیر فعال</button>#}
+{#                                   {% endif %}#}
+{#                                </td>#}
+
+                               <td class="col-lg-1 col-xl-1">
+{#                                   <a href="{% url 'edit_announcement' announcement.id %}" class="btn btn-primary p-1">#}
+{#                              <i class="mdi mdi-lead-pencil" aria-hidden="true"></i></a>#}
+                                  <a href="{% url 'delete_message_to_user' user_message.id %}"
+                                     class="btn btn-danger p-1" onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                      <i class="mdi mdi-delete" aria-hidden="true"></i></a>
+
+                            </td>
+
+                            </tr>
+                        </tbody>
+                        {% endfor %}
+                    {% else %}
+                        <tbody>
+                            <tr>
+                                <td colspan="7" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                            </tr>
+                        </tbody>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+ <!-- Pagination -->
+      <div class="col-12">
+        <div class="pagination d-flex justify-content-center mt-5">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+            {% endif %}
+
+            {% for page_number in page_obj.paginator.page_range %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_number }}"
+                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
+                    {{ page_number }}
+                </a>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+$(function () {
+    $('.select2-ajax').select2({
+        {#placeholder: 'واحد / مالک یا مستاجر را انتخاب کنید',#}
+        width: '100%',
+        minimumInputLength: 0,   // ⭐ خیلی مهم
+        language: {
+        inputTooShort: () => 'برای جستجو حداقل یک حرف وارد کنید'
+        },
+      ajax: {
+        url: "{% url 'ajax_units' %}",
+        dataType: 'json',
+        delay: 250,
+        data: params => ({
+            q: params.term,
+            initial: !params.term
+        }),
+           processResults: function (data) {
+            return { results: data.results };
+        }
+}
+    });
+});
+</script>
+    
+
+{% endblock main_content %}
+
+
+
+
+
+
+
+
+

@@ -11,6 +11,7 @@
 
      <div class="row g-2 mt-2">
               <div class="col-md-3">
+                  <a href="{% url 'middle_manage_unit' %}">
                 <div class="card bg-gradient-danger card-img-holder text-white">
                   <div class="card-body text-center justify-content-center p-2 m-0">
                     <h4 class="font-weight-normal mb-3"><i class="mdi mdi-city mdi-24px float-right"></i>
@@ -19,6 +20,7 @@
                     <h2 class="mb-1">{{ unit_count }} </h2>
                   </div>
                 </div>
+                  </a>
               </div>
               <div class="col-md-3">
                   <a href="">
@@ -34,26 +36,26 @@
                       </a>
               </div>
               <div class="col-md-3">
-                  <a href="">
+                  <a href="{% url 'fund_turn_over' %}">
                 <div class="card bg-gradient-success card-img-holder text-white">
                  <div class="card-body text-center p-2 m-0">
                     <h4 class="font-weight-normal mb-3"><i class="mdi mdi-square-inc-cash mdi-24px float-right"></i>
-                        موجودی بانک
+                        موجودی صندوق
                     </h4>
-                    <h2 class="mb-1">0</h2>
+                    <h2 class="mb-1">{{ fund_amount|three_digit_currency }}</h2>
                   </div>
                 </div>
                       </a>
               </div>
               <div class="col-md-3">
-                  <a href="">
+                  <a href="{% url 'debtor_units_report' %}">
                 <div class="card bg-gradient-warning card-img-holder text-white">
                   <div class="card-body text-center justify-content-center p-2 m-0">
                     <h4 class="font-weight-normal mb-3">
                         <i class="mdi mdi-account-minus mdi-24px float-right"></i>
-                         واحدهای بدهکار/بستانکار
+                         واحدهای بدهکار
                     </h4>
-                    <h2 class="mb-1">0</h2>
+                    <h2 class="mb-1">{{ unit_count_unpaid_charges }}</h2>
                   </div>
                 </div>
                   </a>

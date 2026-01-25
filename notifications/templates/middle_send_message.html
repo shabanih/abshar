@@ -1,0 +1,95 @@
+﻿{% extends 'middleShared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}ارسال پیام{% endblock %}
+
+{% block main_content %}
+<div class="container mt-3">
+    <div class="card shadow-lg border-0 rounded-4">
+{#        <div class="card-header bg-gradient-secondary text-white text-center py-3 rounded-top-4">#}
+{#            <h4 class="mb-0"><i class="fas fa-sms me-2"></i>مدیریت ارسال پیامک‌ها</h4>#}
+{#        </div>#}
+
+        <div class="card-body p-4">
+            <form method="POST" action="{% url 'middle_send_message' message.id %}">
+                {% csrf_token %}
+
+                <div class="row g-4 ">
+                    <!-- واحدهای موجود -->
+                    <div class="col-md-5">
+                        <div class="card border-0 shadow-sm rounded-3 h-100">
+                            <div class="card-header bg-light text-center fw-bold">
+                                <i class="fas fa-building text-primary me-1"></i> واحدهای موجود
+                            </div>
+                            <div class="card-body">
+                                <input type="text" id="searchAvailable" class="form-control mb-3"
+                                       placeholder="جستجو..." />
+                                <select id="availableUnits" multiple size="15" class="form-select rounded-3">
+                                    {% for item in units_with_details %}
+                                        {% with unit=item.unit active_renter=item.active_renter %}
+                                        <option value="{{ unit.id }}">
+                                            واحد {{ unit.unit }} -
+                                            {% if unit.is_renter %}
+                                                مستاجر: {% if active_renter %}{{ active_renter.renter_name }}{% else %}ندارد{% endif %}
+                                                {% if active_renter and active_renter.renter_mobile %} ({{ active_renter.renter_mobile }}){% endif %}
+                                            {% else %}
+                                                مالک: {{ unit.owner_name }}
+                                                {% if unit.user and unit.user.mobile %} ({{ unit.user.mobile }}){% endif %}
+                                            {% endif %}
+                                        </option>
+                                        {% endwith %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- دکمه‌های انتقال -->
+                    <div class="col-md-2 d-flex flex-column justify-content-center align-items-center gap-3">
+                        <button type="button" class="btn btn-outline-primary btn-lg rounded-circle shadow-sm"
+                                id="addAllBtn" title="افزودن همه">
+                            <i class="fas fa-angle-double-left"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-success btn-lg rounded-circle shadow-sm"
+                                id="addBtn" title="افزودن انتخاب‌شده‌ها">
+                            <i class="fas fa-angle-left"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-warning btn-lg rounded-circle shadow-sm"
+                                id="removeBtn" title="حذف انتخاب‌شده‌ها">
+                            <i class="fas fa-angle-right"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-lg rounded-circle shadow-sm"
+                                id="removeAllBtn" title="حذف همه">
+                            <i class="fas fa-angle-double-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- واحدهای انتخاب‌شده -->
+                    <div class="col-md-5">
+                        <div class="card border-0 shadow-sm rounded-3 h-100">
+                            <div class="card-header bg-light text-center fw-bold">
+                                <i class="fas fa-list text-primary me-1"></i> واحدهای انتخاب‌شده
+                            </div>
+                            <div class="card-body">
+                                <input type="text" id="searchSelected" class="form-control mb-3"
+                                       placeholder="جستجو..." />
+                                <select id="selectedUnits" name="units" multiple size="15" class="form-select rounded-3"></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- دکمه ارسال -->
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-gradient-success btn-lg px-5 shadow">
+                        <i class="fas fa-paper-plane me-2"></i>ارسال پیام
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+    
+
+{% endblock %}

@@ -27,7 +27,7 @@ from django.views.generic.edit import FormMixin
 from admin_panel.forms import UnifiedChargePaymentForm
 from admin_panel.models import Fund, Expense, Income, Property, ExpenseCategory, IncomeCategory, Maintenance, \
     UnifiedCharge, PersonCharge, FixPersonCharge, FixAreaCharge, AreaCharge, \
-    FixCharge, ChargeByPersonArea, ChargeFixVariable, ChargeByFixPersonArea
+    FixCharge, ChargeByPersonArea, ChargeFixVariable, ChargeByFixPersonArea, PayMoney, ReceiveMoney
 from middleAdmin_panel.views import middle_admin_required
 from polls.templatetags.poll_extras import show_jalali
 from user_app.forms import UnitReportForm
@@ -44,18 +44,17 @@ def to_jalali(date_obj):
     return jalali_date.strftime('%Y/%m/%d')
 
 
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def fund_middle_turnover(request):
     manager = request.user
     query = request.GET.get('q', '').strip()
     paginate = int(request.GET.get('paginate', 20) or 20)
     paginate = paginate if paginate > 0 else 20
 
-    funds = (
-        Fund.objects
-        .select_related('bank', 'content_type')
-        .filter(Q(user=manager) | Q(user__manager=manager))
-        .order_by('-payment_date')
-    )
+    funds = Fund.objects.select_related('bank', 'content_type', 'unit').filter(
+        Q(unit__user=manager) | Q(unit__user__manager=manager) | Q(user=manager)
+    ).order_by('-payment_date')
+
 
     if query:
         funds = funds.filter(
@@ -69,11 +68,11 @@ def fund_middle_turnover(request):
         )
 
     totals = funds.aggregate(
-        total_income=Sum('debtor_amount'),
-        total_expense=Sum('creditor_amount'),
+        total_debtor=Sum('debtor_amount'),
+        total_creditor=Sum('creditor_amount'),
     )
 
-    balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
+    balance = (totals['total_debtor'] or 0) - (totals['total_creditor'] or 0)
 
     paginator = Paginator(funds, paginate)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -213,7 +212,173 @@ def export_middle_report_excel(request):
     return response
 
 
+# -------------------- Admin ------------------------------
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def admin_fund_turnover(request):
+    query = request.GET.get('q', '').strip()
+    paginate = int(request.GET.get('paginate', 20) or 20)
+    paginate = paginate if paginate > 0 else 20
+
+    funds = (
+        Fund.objects
+        .select_related('bank', 'content_type')
+        .all()
+        .order_by('-payment_date')
+    )
+
+    if query:
+        funds = funds.filter(
+            Q(payment_description__icontains=query) |
+            Q(payer_name__icontains=query) |
+            Q(receiver_name__icontains=query) |
+            Q(transaction_no__icontains=query) |
+            Q(creditor_amount__icontains=query) |
+            Q(debtor_amount__icontains=query) |
+            Q(bank__bank_name__icontains=query)
+        )
+
+    totals = funds.aggregate(
+        total_debtor=Sum('debtor_amount'),
+        total_creditor=Sum('creditor_amount'),
+    )
+
+    balance = (totals['total_debtor'] or 0) - (totals['total_creditor'] or 0)
+
+    paginator = Paginator(funds, paginate)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'admin_reports/admin_fund_turnover.html', {
+        'funds': page_obj,
+        'query': query,
+        'paginate': paginate,
+        'page_obj': page_obj,
+        'totals': totals,
+        'balance': balance,
+    })
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def admin_export_middle_report_pdf(request):
+
+    # Queryset اصلی
+    funds = Fund.objects.all()
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
+
+    # فیلترها
+    query = request.GET.get('q', '').strip()
+    if query:
+        funds = funds.filter(
+            Q(payment_description__icontains=query) |
+            Q(unit__unit__icontains=query) |
+            Q(payer_name__icontains=query) |
+            Q(receiver_name__icontains=query) |
+            Q(payment_gateway__icontains=query) |
+            Q(debtor_amount__icontains=query) |
+            Q(creditor_amount__icontains=query)
+        )
+
+    # محاسبه totals و balance
+    totals = funds.aggregate(
+        total_income=Sum('debtor_amount'),
+        total_expense=Sum('creditor_amount'),
+    )
+    balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
+
+    # PDF settings
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+        @page {{ size: A4 landscape; margin: 1cm; }}
+        body {{
+            font-family: 'BYekan', sans-serif;
+        }}
+        @font-face {{
+            font-family: 'BYekan';
+            src: url('{font_url}');
+        }}
+        table {{
+            border-collapse: collapse;
+            width: 100%;
+        }}
+        th, td {{
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: center;
+        }}
+        th {{
+            background-color: #FFD700;
+        }}
+    """)
+
+    template = get_template("admin_report_pdf.html")
+    context = {
+        'funds': funds,
+        'query': query,
+        'totals': totals,
+        'balance': balance,
+        'font_path': font_url,
+        'today': datetime.now(),
+        'house': house,
+    }
+    html = template.render(context)
+    pdf_file = io.BytesIO()
+    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
+    pdf_file.seek(0)
+
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="admin_fund_report.pdf"'
+    return response
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def admin_export_middle_report_excel(request):
+    manager = request.user
+    report = Fund.objects.filter(Q(user=manager) | Q(user__manager=manager)).order_by('-payment_date')
+
+    # Create Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "units"
+    ws.sheet_view.rightToLeft = True
+
+    # Title
+    title_cell = ws.cell(row=1, column=1, value=f"گردش مالی صندوق ")
+    title_cell.font = Font(bold=True, size=18)
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=5)
+
+    # Headers
+    headers = [' بانک', 'تاریخ پرداخت', 'شرح', 'پرداخت کننده/واریز کننده', 'روش پرداخت', 'بدهکار', 'بستانکار']
+
+    header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
+    header_font = Font(bold=True, color="000000")
+    for col_num, column_title in enumerate(headers, 1):
+        cell = ws.cell(row=2, column=col_num, value=column_title)
+        cell.fill = header_fill
+        cell.font = header_font
+
+    # Write data
+    for row_num, fund in enumerate(report, start=3):
+        ws.cell(row=row_num, column=1, value=f"{fund.bank.bank_name} - {fund.bank.account_no}")
+        ws.cell(row=row_num, column=2, value=show_jalali(fund.payment_date))
+        ws.cell(row=row_num, column=3, value=fund.payment_description)
+        ws.cell(row=row_num, column=4, value=f"{fund.payer_name} - {fund.receiver_name}")
+        ws.cell(row=row_num, column=5, value=fund.payment_gateway)
+        ws.cell(row=row_num, column=6, value=fund.debtor_amount)
+        ws.cell(row=row_num, column=7, value=fund.creditor_amount)
+
+    # Return response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename=fund-report.xlsx'
+    wb.save(response)
+    return response
+
+
 # ========================================================================
+@method_decorator(middle_admin_required, name='dispatch')
 class UnitReportsTurnOver(FormMixin, ListView):
     model = Fund
     form_class = UnitReportForm
@@ -385,6 +550,7 @@ def export_units_report_pdf(request):
 
 
 # ======================================================================================
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def fund_turnover_user(request):
     user = request.user
     query = request.GET.get('q', '').strip()
@@ -548,7 +714,7 @@ def export_user_report_pdf(request):
 
 
 # ============================================================
-
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def charge_notify_report_list(request):
     search = request.GET.get('q', '').strip()
 
@@ -571,7 +737,7 @@ def charge_notify_report_list(request):
         charges = charges.filter(q_obj)
 
     # 🧮 annotate
-    charges = charges.annotate(
+    charges = charges.filter(user=request.user).annotate(
         unit_number=F('unit__unit'),
         user_full_name=F('unit__user__full_name')
     )
@@ -598,6 +764,7 @@ def charge_notify_report_list(request):
     return render(request, 'charge_notify_report.html', context)
 
 
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def charge_units_list_report_pdf(request):
     manager = request.user
     house = None
@@ -663,7 +830,7 @@ def charge_units_list_report_pdf(request):
     response['Content-Disposition'] = 'attachment; filename="charge_units_report.pdf"'
     return response
 
-
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def charge_units_list_report_excel(request):
     unified_qs = UnifiedCharge.objects.all()
 
@@ -744,6 +911,7 @@ def charge_units_list_report_excel(request):
     return response
 
 
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def charge_units_report_pdf(request, charge_id):
     charge = get_object_or_404(UnifiedCharge, id=charge_id)
     units = Unit.objects.filter(unified_charges=charge, is_active=True).order_by('unit')
@@ -766,14 +934,15 @@ def charge_units_report_pdf(request, charge_id):
 
 
 # ===========================================================
-def debtor_creditor_report(request):
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def debtor_units_report(request):
     query = request.GET.get('q', '').strip()
     # -------------------------
     # Unpaid charges
     # -------------------------
     charges = (
         UnifiedCharge.objects
-        .filter(is_paid=False, unit__isnull=False)
+        .filter(is_paid=False, unit__isnull=False, user=request.user)
         .select_related('unit')
         .order_by('-created_at')
     )
@@ -1036,7 +1205,7 @@ def export_debtor_report_excel(request):
 
 
 # ======================================================
-
+@method_decorator(middle_admin_required, name='dispatch')
 class HistoryUnitReports(FormMixin, ListView):
     model = UnitResidenceHistory
     form_class = UnitReportForm
@@ -1211,7 +1380,7 @@ def export_unit_history_report_excel(request):
 
 
 # ====================================================================
-
+@method_decorator(middle_admin_required, name='dispatch')
 class ReportExpenseView(ListView):
     model = Expense
     template_name = 'expense_reports.html'
@@ -1262,6 +1431,11 @@ class ReportExpenseView(ListView):
                 queryset = queryset.filter(date__lte=gregorian_to)
         except ValueError:
             messages.warning(self.request, 'فرمت تاریخ وارد شده صحیح نیست.')
+        is_paid = self.request.GET.get('is_paid')
+        if is_paid == '1':
+            queryset = queryset.filter(is_paid=True)
+        elif is_paid == '0':
+            queryset = queryset.filter(is_paid=False)
         return queryset
 
     def get_context_data(self, **kwargs):
@@ -1275,6 +1449,7 @@ class ReportExpenseView(ListView):
         context['categories'] = ExpenseCategory.objects.filter(user=self.request.user)
         context['total_amount'] = Expense.objects.filter(user=self.request.user).aggregate(total=Sum('amount'))[
                                       'total'] or 0
+        context['banks'] = Bank.objects.filter(user=self.request.user)
         return context
 
 
@@ -1293,6 +1468,7 @@ def export_expense_report_pdf(request):
         'doc_no': 'doc_no__icontains',
         'description': 'description__icontains',
         'details': 'details__icontains',
+        'is_paid': 'is_paid'
     }
 
     # Apply filters based on GET parameters
@@ -1359,16 +1535,17 @@ def export_expense_report_pdf(request):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def export_expense_report_excel(request):
-    user = request.user
-    expenses = Expense.objects.filter(user=user)
+    expenses = Expense.objects.filter(user=request.user)
 
     # Filter fields
     filter_fields = {
         'category': 'category__id',
+        'bank': 'bank__id',
         'amount': 'amount__icontains',
         'doc_no': 'doc_no__icontains',
         'description': 'description__icontains',
         'details': 'details__icontains',
+        'is_paid': 'is_paid'
     }
 
     # Apply filters based on query parameters
@@ -1400,13 +1577,14 @@ def export_expense_report_excel(request):
     title_cell = ws.cell(row=1, column=1, value="لیست هزینه‌ها")
     title_cell.font = Font(bold=True, size=18)
     title_cell.alignment = Alignment(horizontal="center", vertical="center")
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=7)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=9)
 
     # ✅ Style setup
     header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")  # Gold
     header_font = Font(bold=True, color="000000")  # Black bold text
 
-    headers = ['#', 'موضوع هزینه', 'شرح سند', ' شماره سند', 'تاریخ سند', 'توضیحات', 'بانک', 'مبلغ']
+    headers = ['#', 'موضوع هزینه', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'پرداخت به', 'شماره حساب',
+               'تاریخ پرداخت', 'توضیحات']
 
     # ✅ Write header (row 2)
     for col_num, column_title in enumerate(headers, 1):
@@ -1420,11 +1598,12 @@ def export_expense_report_excel(request):
         ws.cell(row=row_num, column=2, value=expense.category.title)
         ws.cell(row=row_num, column=3, value=expense.description)
         ws.cell(row=row_num, column=4, value=expense.doc_no)
-        jalali_date = jdatetime.date.fromgregorian(date=expense.date).strftime('%Y/%m/%d')
-        ws.cell(row=row_num, column=5, value=jalali_date)
-        ws.cell(row=row_num, column=6, value=expense.details)
-        ws.cell(row=row_num, column=7, value=expense.bank.bank_name if expense.bank else '-')
-        ws.cell(row=row_num, column=8, value=expense.amount)
+        ws.cell(row=row_num, column=5, value=expense.amount)
+        ws.cell(row=row_num, column=6, value=show_jalali(expense.date))
+        ws.cell(row=row_num, column=7, value=expense.receiver_name)
+        ws.cell(row=row_num, column=8, value=expense.bank.bank_name)
+        ws.cell(row=row_num, column=9, value=show_jalali(expense.payment_date))
+        ws.cell(row=row_num, column=10, value=expense.details)
 
     # ✅ Return file
     response = HttpResponse(
@@ -1436,6 +1615,7 @@ def export_expense_report_excel(request):
 
 
 # =======================================================
+@method_decorator(middle_admin_required, name='dispatch')
 class ReportIncomeView(ListView):
     model = Income
     template_name = 'income_reports.html'
@@ -1494,6 +1674,12 @@ class ReportIncomeView(ListView):
         except ValueError:
             messages.warning(self.request, 'فرمت تاریخ وارد شده صحیح نیست.')
 
+        is_paid = self.request.GET.get('is_paid')
+        if is_paid == '1':
+            queryset = queryset.filter(is_paid=True)
+        elif is_paid == '0':
+            queryset = queryset.filter(is_paid=False)
+
         return queryset
 
     def get_form_kwargs(self):
@@ -1532,6 +1718,7 @@ def export_income_report_pdf(request):
         'doc_number': 'doc_number__icontains',
         'description': 'description__icontains',
         'details': 'details__icontains',
+        'is_paid': 'is_paid'
     }
 
     for field, lookup in filter_fields.items():
@@ -1567,7 +1754,7 @@ def export_income_report_pdf(request):
         """)
 
     # رندر قالب HTML
-    template = get_template("income_templates/income_pdf.html")
+    template = get_template("income_report_pdf.html")
     context = {
         'incomes': incomes,
         'font_path': font_url,
@@ -1594,17 +1781,18 @@ def export_income_report_pdf(request):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def export_income_report_excel(request):
-    incomes = Income.objects.all()
+    incomes = Income.objects.filter(user=request.user)
 
     # Filter fields
     filter_fields = {
         'category': 'category__id',
+        'bank': 'bank__id',
         'amount': 'amount__icontains',
         'doc_number': 'doc_number__icontains',
         'description': 'description__icontains',
         'details': 'details__icontains',
+        'is_paid': 'is_paid'
     }
-
     # Apply filters based on query parameters
     for field, lookup in filter_fields.items():
         value = request.GET.get(field)
@@ -1634,13 +1822,14 @@ def export_income_report_excel(request):
     title_cell = ws.cell(row=1, column=1, value="لیست درآمدها")
     title_cell.font = Font(bold=True, size=18)
     title_cell.alignment = Alignment(horizontal="center", vertical="center")
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=7)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=9)
 
     # ✅ Style setup
     header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")  # Gold
     header_font = Font(bold=True, color="000000")  # Black bold text
 
-    headers = ['#', 'موضوع درآمد', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'توضیحات']
+    headers = ['#', 'موضوع درآمد', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'توضیحات', 'پرداخت کننده',
+               'تاریخ پرداخت']
 
     # ✅ Write header (row 2)
     for col_num, column_title in enumerate(headers, 1):
@@ -1655,15 +1844,16 @@ def export_income_report_excel(request):
         ws.cell(row=row_num, column=3, value=income.description)
         ws.cell(row=row_num, column=4, value=income.doc_number)
         ws.cell(row=row_num, column=5, value=income.amount)
-        jalali_date = jdatetime.date.fromgregorian(date=income.doc_date).strftime('%Y/%m/%d')
-        ws.cell(row=row_num, column=6, value=jalali_date)
+        ws.cell(row=row_num, column=6, value=show_jalali(income.doc_date))
         ws.cell(row=row_num, column=7, value=income.details)
+        ws.cell(row=row_num, column=8, value=income.payer_name)
+        ws.cell(row=row_num, column=9, value=show_jalali(income.payment_date))
 
     # ✅ Return file
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename=incomes_report.xlsx'
+    response['Content-Disposition'] = 'attachment; filename=incomes.xlsx'
     wb.save(response)
     return response
 
@@ -1729,6 +1919,8 @@ class ReportPropertyView(ListView):
         context['page_obj'] = page_obj
         context['total_properties'] = Property.objects.filter(user=self.request.user).count()
         context['properties'] = Property.objects.filter(user=self.request.user)
+        context['total_amount'] = Property.objects.filter(user=self.request.user).aggregate(total=Sum('property_price'))[
+                                      'total'] or 0
         return context
 
 
@@ -1887,6 +2079,7 @@ def export_property_report_excel(request):
 
 
 # ==========================================================
+@method_decorator(middle_admin_required, name='dispatch')
 class ReportMaintenanceView(ListView):
     model = Maintenance
     template_name = 'report_maintenance.html'
@@ -1961,7 +2154,7 @@ def parse_jalali_to_gregorian(date_str):
     except Exception:
         return None
 
-
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def export_maintenance_report_pdf(request):
     maintenances = Maintenance.objects.filter(user=request.user).order_by('-created_at')
     total_amount = maintenances.filter(user=request.user).aggregate(total=Sum('maintenance_price'))[
@@ -2030,7 +2223,7 @@ def export_maintenance_report_pdf(request):
     pdf_merger.write(response)
     return response
 
-
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def export_maintenance_report_excel(request):
     maintenances = Maintenance.objects.filter(user=request.user)
 
@@ -2103,7 +2296,7 @@ def export_maintenance_report_excel(request):
 
 
 # =================================================
-
+@method_decorator(middle_admin_required, name='dispatch')
 class PayReceiveReportView(ListView):
     model = Fund
     template_name = 'pay_receive_report.html'
@@ -2114,7 +2307,7 @@ class PayReceiveReportView(ListView):
         qs = Fund.objects.filter(
             user=self.request.user
         ).filter(
-            Q(is_received=True) | Q(is_paid=True)
+            Q(is_received_money=True) | Q(is_paid_money=True)
         ).order_by('-payment_date')
 
         if bank := self.request.GET.get('bank'):
@@ -2146,10 +2339,10 @@ class PayReceiveReportView(ListView):
         transaction_type = self.request.GET.get('transaction_type')
 
         if transaction_type == 'received':
-            qs = qs.filter(is_received=True)
+            qs = qs.filter(is_received_money=True)
 
         elif transaction_type == 'paid':
-            qs = qs.filter(is_paid=True)
+            qs = qs.filter(is_paid_money=True)
 
         try:
             if from_date := self.request.GET.get('from_date'):
@@ -2202,7 +2395,7 @@ def export_pay_receive_report_pdf(request):
     funds = Fund.objects.filter(
         Q(user=manager) | Q(user__manager=manager)
     ).filter(
-        Q(is_received=True) | Q(is_paid=True)
+        Q(is_received_money=True) | Q(is_paid_money=True)
     ).order_by('-payment_date')
     house = None
     if request.user.is_authenticated:
@@ -2210,11 +2403,11 @@ def export_pay_receive_report_pdf(request):
 
     transaction_type = request.GET.get('transaction_type')
     if transaction_type == 'received':
-        funds = funds.filter(is_received=True)
+        funds = funds.filter(is_received_money=True)
     elif transaction_type == 'paid':
-        funds = funds.filter(is_paid=True)
+        funds = funds.filter(is_paid_money=True)
     else:
-        funds = funds.filter(Q(is_received=True) | Q(is_paid=True))
+        funds = funds.filter(Q(is_received_money=True) | Q(is_paid_money=True))
 
     # فیلتر جستجو
     q = request.GET.get('q')
@@ -2335,6 +2528,57 @@ def export_pay_receive_report_excel(request):
 
 
 # ==============================================================
-
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def house_balance_view(request):
-    return render(request, 'house_balance.html')
+    total_incomes_exclude_unpaid = Income.objects.filter(is_paid=False, user=request.user).aggregate(Sum('amount'))[
+        'amount__sum']
+
+    total_expenses_exclude_unpaid = Expense.objects.filter(is_paid=False, user=request.user).aggregate(Sum('amount'))[
+        'amount__sum']
+
+    total_incomes = Income.objects.filter(user=request.user).aggregate(Sum('amount'))[
+        'amount__sum']
+    total_pay_money = PayMoney.objects.filter(user=request.user).aggregate(Sum('amount'))[
+        'amount__sum']
+    total_receive_money = ReceiveMoney.objects.filter(is_paid=True, user=request.user).aggregate(Sum('amount'))[
+        'amount__sum']
+    total_expenses = Expense.objects.filter(is_paid=True, user=request.user).aggregate(Sum('amount'))[
+        'amount__sum']
+
+    total_assets = (total_incomes or 0) + (total_receive_money or 0)
+    total_debts = (total_pay_money or 0) + (total_expenses or 0)
+
+    total_amount_assets_debts = (total_assets or 0) - (total_debts or 0)
+
+    funds = (
+        Fund.objects
+        .select_related('bank', 'content_type')
+        .filter(Q(user=request.user) | Q(user__manager=request.user))
+        .order_by('-payment_date')
+    )
+
+    totals = funds.aggregate(
+        total_income=Sum('debtor_amount'),
+        total_expense=Sum('creditor_amount'),
+    )
+
+    balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
+
+    total_charge_unpaid = \
+    UnifiedCharge.objects.filter(is_paid=False, user=request.user).aggregate(Sum('total_charge_month'))[
+        'total_charge_month__sum']
+
+    context = {
+        'total_incomes_exclude_unpaid': total_incomes_exclude_unpaid,
+        'total_expenses_exclude_unpaid': total_expenses_exclude_unpaid,
+        'total_incomes': total_incomes,
+        'total_expenses': total_expenses,
+        'total_pay_money': total_pay_money,
+        'total_receive_money': total_receive_money,
+        'total_assets': total_assets,
+        'total_debts': total_debts,
+        'balance': balance,
+        'total_charge_unpaid': total_charge_unpaid,
+        'total_amount_assets_debts': total_amount_assets_debts
+    }
+    return render(request, 'house_balance.html', context)

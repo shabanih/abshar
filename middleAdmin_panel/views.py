@@ -4,11 +4,9 @@ import time
 from datetime import timezone, datetime
 from decimal import Decimal
 from itertools import chain
-
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
 from django.apps import apps
 from django.conf.urls.static import static
+from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
@@ -17,9 +15,8 @@ import jdatetime
 import openpyxl
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import user_passes_test, login_required, permission_required
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth.decorators import user_passes_test, login_required
 from django.db import transaction, IntegrityError, models
 from django.db.models import ProtectedError, Count, Q, Sum, F
 from django.http import HttpResponse, JsonResponse
@@ -27,10 +24,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import get_template, render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
-from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, UpdateView, DetailView, ListView, TemplateView
+from django.views.generic import CreateView, UpdateView, DetailView, ListView
 from openpyxl.styles import PatternFill, Alignment, Font
 from pypdf import PdfWriter
 from sweetify import sweetify
@@ -48,11 +43,11 @@ from admin_panel.models import Announcement, ExpenseCategory, Expense, Fund, Exp
     ChargeByFixPersonArea, ChargeFixVariable, SmsManagement, \
     UnifiedCharge
 from admin_panel.services.calculators import CALCULATORS
-from admin_panel.views import admin_required
+from middleAdmin_panel.services.unit_services import UnitUpdateService
 from notifications.models import Notification, SupportUser
 from polls.templatetags.poll_extras import show_jalali
 
-from user_app.models import Bank, Unit, User, Renter, MyHouse
+from user_app.models import Bank, Unit, User, Renter, MyHouse, UnitResidenceHistory
 
 
 def middle_admin_required(view_func):
@@ -62,21 +57,43 @@ def middle_admin_required(view_func):
     )(view_func)
 
 
-@middle_admin_required
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_admin_dashboard(request):
     announcements = Announcement.objects.filter(is_active=True, user=request.user).order_by('-created_at')[:3]
     unit_count = Unit.objects.filter(user__manager=request.user).count()
-    fund_amount = Fund.objects.filter(user__manager=request.user)
+    # fund_amount = Fund.objects.filter(user__manager=request.user)
     tickets = SupportUser.objects.filter(user__manager=request.user).order_by('-created_at')[:5]
+
+    funds = (
+        Fund.objects
+        .select_related('bank', 'content_type')
+        .filter(Q(user=request.user) | Q(user__manager=request.user))
+        .order_by('-payment_date')
+    )
+    totals = funds.aggregate(
+        total_income=Sum('debtor_amount'),
+        total_expense=Sum('creditor_amount'),
+    )
+    balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
+
+    unit_count_unpaid_charges = (
+        UnifiedCharge.objects
+        .filter(is_paid=False, unit__isnull=False, user=request.user)
+        .select_related('unit')
+    ).count()
+
     context = {
         'announcements': announcements,
         'unit_count': unit_count,
-        'fund_amount': fund_amount,
-        'tickets': tickets
+        'fund_amount': balance,
+        'tickets': tickets,
+        'unit_count_unpaid_charges': unit_count_unpaid_charges
+
     }
     return render(request, 'middleShared/home_template.html', context)
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def middle_admin_login_view(request):
     if request.method == 'POST':
         mobile = request.POST.get('mobile')
@@ -99,16 +116,47 @@ def middle_admin_login_view(request):
     return render(request, 'middleShared/middle_login.html')
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def logout__middle_admin(request):
     logout(request)
     return redirect('index')
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def site_header_component(request):
     context = {
         'user': request.user,
     }
     return render(request, 'middleShared/notification_template.html', context)
+
+
+# =====================================Middle Profile ============================
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def middle_profile(request):
+    user = request.user
+
+    # اگر فرم ارسال شد
+    if request.method == 'POST':
+        password_form = PasswordChangeForm(user, request.POST)
+        if password_form.is_valid():
+            password_form.save()
+            update_session_auth_hash(request, user)  # مهم: کاربر بعد از تغییر رمز لاگ‌اوت نشود
+            messages.success(request, 'رمز عبور با موفقیت تغییر کرد!')
+            return redirect('user_profile')  # redirect باعث می‌شود پیام ظاهر شود
+        else:
+            messages.warning(request, 'رمز عبور باید حداقل 8 رقم و شامل حروف و اعداد باشد. مجددا بررسی فرمایید.')
+    else:
+        password_form = PasswordChangeForm(user)
+
+    # اطلاعات واحد
+    # unit = Unit.objects.filter(user=user).first()
+
+    context = {
+        'user_obj': user,
+        # 'unit': unit,
+        'password_form': password_form,
+    }
+    return render(request, 'middle_admin/middle_my_profile.html', context)
 
 
 # ========================== My House Views ========================
@@ -186,6 +234,7 @@ class MiddleAnnouncementView(CreateView):
         return context
 
 
+@method_decorator(middle_admin_required, name='dispatch')
 class MiddleAnnouncementListView(ListView):
     model = Announcement
     template_name = 'middle_admin/middle_announcement.html'
@@ -379,7 +428,6 @@ class middleBankUpdateView(UpdateView):
         return context
 
 
-
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def middle_bank_delete(request, pk):
     bank = get_object_or_404(Bank, id=pk)
@@ -406,8 +454,8 @@ def middle_bank_delete(request, pk):
 class MiddleUnitRegisterView(CreateView):
     model = Unit
     form_class = UnitForm
-    success_url = reverse_lazy('middle_manage_unit')
     template_name = 'middle_unit_templates/unit_register.html'
+    success_url = reverse_lazy('middle_manage_unit')
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -419,121 +467,116 @@ class MiddleUnitRegisterView(CreateView):
             with transaction.atomic():
                 is_renter = str(form.cleaned_data.get('is_renter')).lower() == 'true'
 
-                # فقط یک موبایل داریم (یوزرنیم)
-                # تعیین شماره موبایل مناسب
+                # 1️⃣ ساخت یا گرفتن یوزر
                 if is_renter:
                     mobile = form.cleaned_data.get('renter_mobile')
+                    full_name = form.cleaned_data.get('renter_name')
                 else:
                     mobile = form.cleaned_data.get('owner_mobile')
+                    full_name = form.cleaned_data.get('owner_name')
 
-                password = form.cleaned_data.get('password')
-                full_name = (
-                    form.cleaned_data.get('renter_name')
-                    if is_renter
-                    else form.cleaned_data.get('owner_name')
-                )
-
-                # بررسی وجود کاربر با همان موبایل
-                if User.objects.filter(mobile=mobile).exists():
-                    form.add_error('mobile', 'کاربری با این شماره موبایل قبلاً ثبت شده است.')
-                    return self.form_invalid(form)
-
-                # ساخت کاربر
-                user = User.objects.create(
+                user, created = User.objects.get_or_create(
                     mobile=mobile,
-                    username=mobile,
-                    full_name=full_name,
-                    is_staff=True,
-                    is_active=True,
-                    manager=self.request.user,
-                    otp_create_time=timezone.now(),
+                    defaults={
+                        'username': mobile,
+                        'full_name': full_name,
+                        'is_active': True,
+                        'manager': self.request.user,
+                        'otp_create_time': timezone.now(),
+                    }
                 )
 
-                # ست کردن رمز عبور
-                user.set_password(password)
-                user.save()
+                # اگر پسورد وارد شده بود
+                password = form.cleaned_data.get('password')
+                if password:
+                    user.set_password(password)
+                    user.save()
 
-                # اتصال به خانه
-                house = MyHouse.objects.filter(user=self.request.user).first()
-                if house:
-                    house.residents.add(user)
-
-                # ساخت واحد
+                # 2️⃣ ست کردن user قبل از save
                 unit = form.save(commit=False)
                 unit.user = user
-                unit.is_renter = is_renter
+
+                # 3️⃣ ست کردن people_count
+                if is_renter:
+                    unit.people_count = form.cleaned_data.get('renter_people_count') or 0
+                else:
+                    unit.people_count = form.cleaned_data.get('owner_people_count') or 0
+
+                # 4️⃣ حالا ذخیره کنیم
                 unit.save()
 
-                # اگر مستاجر داریم → فقط پروفایل Renter
-                first_charge_renter = 0
-                if is_renter:
-                    Renter.objects.create(
-                        unit=unit,
-                        user=user,
-                        renter_name=form.cleaned_data.get('renter_name'),
-                        renter_mobile=mobile,
-                        renter_national_code=form.cleaned_data.get('renter_national_code'),
-                        renter_people_count=form.cleaned_data.get('renter_people_count'),
-                        start_date=form.cleaned_data.get('start_date'),
-                        end_date=form.cleaned_data.get('end_date'),
-                        contract_number=form.cleaned_data.get('contract_number'),
-                        estate_name=form.cleaned_data.get('estate_name'),
-                        first_charge_renter=form.cleaned_data.get('first_charge_renter') or 0,
-                        renter_details=form.cleaned_data.get('renter_details'),
-                        renter_is_active=True,
-                        renter_payment_date=form.cleaned_data.get('renter_payment_date'),
-                        renter_transaction_no=form.cleaned_data.get('renter_transaction_no'),
+                messages.success(self.request, 'واحد با موفقیت ثبت شد.')
+                return super().form_valid(form)
 
-                    )
-
-                # شارژ اولیه
-                first_charge_owner = int(form.cleaned_data.get('first_charge_owner') or 0)
-                first_charge_renter = int(form.cleaned_data.get('first_charge_renter') or 0)
-
-                bank = Bank.objects.first()
-
-                if is_renter and first_charge_renter > 0:
-                    Fund.objects.create(
-                        user=user,
-                        unit=unit,
-                        bank=bank,
-                        debtor_amount=Decimal(first_charge_renter),
-                        creditor_amount=0,
-                        amount=Decimal(first_charge_renter),
-                        is_initial=True,
-                        payment_date=form.cleaned_data.get('renter_payment_date'),
-                        payer_name=unit.get_label(),
-                        payment_description='شارژ اولیه مستاجر',
-                        payment_gateway='پرداخت الکترونیک',
-                        content_object=unit,
-                        transaction_no=form.cleaned_data.get('renter_transaction_no'),
-                    )
-
-                elif not is_renter and first_charge_owner > 0:
-                    Fund.objects.create(
-                        user=user,
-                        unit=unit,
-                        bank=bank,
-                        debtor_amount=Decimal(first_charge_owner),
-                        creditor_amount=0,
-                        amount=Decimal(first_charge_owner),
-                        is_initial=True,
-                        payment_date=form.cleaned_data.get('owner_payment_date'),
-                        payer_name=unit.get_label(),
-                        payment_description='شارژ اولیه مالک',
-                        payment_gateway='پرداخت الکترونیک',
-                        content_object=unit,
-                        transaction_no=form.cleaned_data.get('owner_transaction_no'),
-                    )
-
-            messages.success(self.request, 'واحد با موفقیت ثبت شد')
-            return super().form_valid(form)
-
-        except IntegrityError:
-            form.add_error(None, 'خطا در ذخیره اطلاعات')
+        except Exception as e:
+            form.add_error(None, f'خطا در ثبت اطلاعات: {e}')
             return self.form_invalid(form)
 
 
+# class MiddleUnitRegisterView(CreateView):
+#     model = Unit
+#     form_class = UnitForm
+#     success_url = reverse_lazy('middle_manage_unit')
+#     template_name = 'middle_unit_templates/unit_register.html'
+#
+#     def get_form_kwargs(self):
+#         kwargs = super().get_form_kwargs()
+#         kwargs['user'] = self.request.user
+#         return kwargs
+#
+#     def form_valid(self, form):
+#         try:
+#             with transaction.atomic():
+#                 is_renter = form.cleaned_data.get('is_renter', False)
+#                 mobile = form.cleaned_data.get('renter_mobile') if is_renter else form.cleaned_data.get('owner_mobile')
+#                 full_name = form.cleaned_data.get('renter_name') if is_renter else form.cleaned_data.get('owner_name')
+#                 password = form.cleaned_data.get('password')
+#
+#                 if User.objects.filter(mobile=mobile).exists():
+#                     field = 'renter_mobile' if is_renter else 'owner_mobile'
+#                     form.add_error(field, 'این شماره موبایل قبلاً ثبت شده است.')
+#                     return self.form_invalid(form)
+#
+#                 user = User.objects.create(
+#                     mobile=mobile,
+#                     username=mobile,
+#                     full_name=full_name,
+#                     is_active=True,
+#                     manager=self.request.user,
+#                     otp_create_time=timezone.now(),
+#                 )
+#                 if password:
+#                     user.set_password(password)
+#                     user.save()
+#
+#                 unit = form.save(commit=False)
+#                 unit.user = user
+#                 unit.is_renter = is_renter
+#                 unit.save()
+#
+#                 if is_renter:
+#                     Renter.objects.create(
+#                         unit=unit,
+#                         user=user,
+#                         renter_name=form.cleaned_data.get('renter_name'),
+#                         renter_mobile=form.cleaned_data.get('renter_mobile'),
+#                         renter_people_count=form.cleaned_data.get('renter_people_count'),
+#                         renter_is_active=True,
+#                         start_date=form.cleaned_data.get('start_date'),
+#                         end_date=form.cleaned_data.get('end_date'),
+#                     )
+#
+#             messages.success(self.request, 'واحد با موفقیت ثبت شد')
+#             return redirect(self.success_url)
+#
+#         except IntegrityError as e:
+#             print(e)
+#             form.add_error(None, 'خطا در ذخیره اطلاعات')
+#             return self.form_invalid(form)
+#             print("FORM ERRORS:", form.errors)
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def add_renter_to_unit(request, unit_id):
     unit = get_object_or_404(Unit, id=unit_id)
 
@@ -558,21 +601,10 @@ def add_renter_to_unit(request, unit_id):
                 )
 
             with transaction.atomic():
-
-                # -------------------------
-                # غیرفعال کردن مالک قبلی
-                # -------------------------
-                if unit.user:
-                    unit.user.is_active = False
-                    unit.user.save()
-
                 # -------------------------
                 # غیرفعال کردن مستاجر قبلی
                 # -------------------------
-                Renter.objects.filter(
-                    unit=unit,
-                    renter_is_active=True
-                ).update(renter_is_active=False)
+                unit.renters.filter(renter_is_active=True).update(renter_is_active=False)
 
                 # -------------------------
                 # گرفتن یا ساخت یوزر مستاجر
@@ -582,23 +614,23 @@ def add_renter_to_unit(request, unit_id):
                     defaults={
                         'username': renter_mobile,
                         'full_name': form.cleaned_data['renter_name'],
+                        'is_active': True,
+                        'manager': request.user,
                     }
                 )
 
                 # بروزرسانی اطلاعات یوزر
                 renter_user.full_name = form.cleaned_data['renter_name']
                 renter_user.is_active = True
-
                 password = form.cleaned_data.get('password')
                 if password:
                     renter_user.set_password(password)
-
                 renter_user.save()
 
                 # -------------------------
                 # انتخاب بانک
                 # -------------------------
-                bank = form.cleaned_data.get('bank') or Bank.objects.first()
+                renter_bank = form.cleaned_data.get('renter_bank') or Bank.objects.first()
 
                 # -------------------------
                 # ایجاد مستاجر جدید
@@ -606,7 +638,7 @@ def add_renter_to_unit(request, unit_id):
                 Renter.objects.create(
                     unit=unit,
                     user=renter_user,
-                    bank=bank,
+                    renter_bank=renter_bank,
                     renter_name=form.cleaned_data['renter_name'],
                     renter_mobile=renter_mobile,
                     renter_national_code=form.cleaned_data['renter_national_code'],
@@ -626,20 +658,26 @@ def add_renter_to_unit(request, unit_id):
                 # بروزرسانی واحد
                 # -------------------------
                 unit.is_renter = True
-                unit.save()
+
+                # -------------------------
+                # بروزرسانی people_count
+                # -------------------------
+                active_renter = unit.get_active_renter()
+                if active_renter:
+                    unit.people_count = int(active_renter.renter_people_count or 0)
+                else:
+                    unit.people_count = int(unit.owner_people_count or 0)
+                unit.save(update_fields=['is_renter', 'people_count'])
 
                 # -------------------------
                 # ایجاد شارژ اولیه مستاجر
                 # -------------------------
-                first_charge_renter = int(
-                    form.cleaned_data.get('first_charge_renter') or 0
-                )
-
+                first_charge_renter = int(form.cleaned_data.get('first_charge_renter') or 0)
                 if first_charge_renter > 0:
                     Fund.objects.create(
                         user=renter_user,
                         unit=unit,
-                        bank=bank,
+                        bank=renter_bank,
                         debtor_amount=Decimal(first_charge_renter),
                         creditor_amount=0,
                         amount=Decimal(first_charge_renter),
@@ -677,228 +715,25 @@ class MiddleUnitUpdateView(UpdateView):
         kwargs['user'] = self.request.user
         return kwargs
 
-    def get_initial(self):
-        initial = super().get_initial()
-        unit = self.object
-
-        initial['mobile'] = unit.user.mobile
-        renter = unit.renters.filter(renter_is_active=True).select_related('bank').first()
-        if renter:
-            initial.update({
-                'is_renter': 'True',
-                'bank': renter.bank,
-                'renter_name': renter.renter_name,
-                'renter_mobile': renter.renter_mobile,
-                'renter_national_code': renter.renter_national_code,
-                'renter_people_count': renter.renter_people_count,
-                'start_date': renter.start_date,
-                'end_date': renter.end_date,
-                'contract_number': renter.contract_number,
-                'estate_name': renter.estate_name,
-                'first_charge_renter': renter.first_charge_renter,
-                'renter_details': renter.renter_details,
-                'renter_payment_date': renter.renter_payment_date,
-                'renter_transaction_no': renter.renter_transaction_no,
-            })
-        else:
-            initial['is_renter'] = 'False'
-        return initial
-
     def form_valid(self, form):
         try:
-            with transaction.atomic():
-                unit = form.save(commit=False)
+            UnitUpdateService(
+                unit=self.object,
+                form=form,
+                request=self.request
+            ).execute()
 
-                # --------- 1️⃣ بررسی تغییر مالک ---------
-                owner_changed = False
-                if unit.pk:
-                    owner_changed = (
-                            self.object.owner_name != form.cleaned_data.get('owner_name') or
-                            self.object.owner_mobile != form.cleaned_data.get('owner_mobile')
-                    )
-                    if owner_changed:
-                        unit.renters.filter(renter_is_active=True).update(renter_is_active=False)
-                        active_renter = None
+            messages.success(self.request, 'اطلاعات واحد با موفقیت ویرایش شد')
+            return super().form_valid(form)
 
-                # --------- 2️⃣ تعیین مستاجر فعال ---------
-                active_renter = unit.renters.filter(renter_is_active=True).first()
+        except ValueError as e:
+            # نمایش پیام واقعی
+            if str(e) == 'duplicate_mobile':
+                messages.error(self.request, 'شماره موبایل وارد شده قبلاً ثبت شده است.')
+            else:
+                messages.error(self.request, f'خطا در ثبت! ({e})')
 
-                # --------- 3️⃣ بروزرسانی User (مالک یا مستاجر) ---------
-                if active_renter:
-                    user = active_renter.user
-                    new_mobile = form.cleaned_data.get('renter_mobile')
-                    new_name = form.cleaned_data.get('renter_name')
-                else:
-                    user = unit.user
-                    new_mobile = form.cleaned_data.get('mobile')
-                    new_name = form.cleaned_data.get('owner_name')
-
-                # بروزرسانی موبایل و بررسی تکراری بودن
-                if new_mobile and new_mobile != user.mobile:
-                    if User.objects.filter(mobile=new_mobile).exclude(pk=user.pk).exists():
-                        field = 'renter_mobile' if active_renter else 'mobile'
-                        form.add_error(field, 'این شماره موبایل قبلاً ثبت شده است.')
-                        return self.form_invalid(form)
-                    user.mobile = new_mobile
-                    user.username = new_mobile
-
-                if new_name:
-                    user.full_name = new_name
-
-                password = form.cleaned_data.get('password')
-                if password:
-                    user.set_password(password)
-
-                user.save()
-
-                # بروزرسانی session پسورد در صورت تغییر
-                if password and self.request.user.pk == user.pk:
-                    from django.contrib.auth import update_session_auth_hash
-                    update_session_auth_hash(self.request, user)
-
-                # --------- 4️⃣ ذخیره واحد ---------
-                unit.is_renter = form.cleaned_data.get('is_renter', False)
-                unit.save()
-
-                # --------- 5️⃣ غیرفعال کردن مستاجر در صورت تغییر مالک ---------
-                if owner_changed:
-                    unit.renters.filter(renter_is_active=True).update(renter_is_active=False)
-                    active_renter = None
-
-                # --------- 6️⃣ ایجاد یا جایگزینی مستاجر (فقط اگر مالک تغییر نکرده باشد) ---------
-                if unit.is_renter and not owner_changed:
-                    renter_mobile = form.cleaned_data.get('renter_mobile')
-
-                    if not active_renter:
-                        # ایجاد مستاجر جدید
-                        renter_user, _ = User.objects.get_or_create(
-                            mobile=renter_mobile,
-                            defaults={
-                                'username': renter_mobile,
-                                'full_name': form.cleaned_data.get('renter_name'),
-                                'is_active': True
-                            }
-                        )
-                        if password:
-                            renter_user.set_password(password)
-                            renter_user.save()
-
-                        active_renter = Renter.objects.create(
-                            unit=unit,
-                            user=renter_user,
-                            bank=form.cleaned_data.get('bank'),
-                            renter_name=form.cleaned_data.get('renter_name'),
-                            renter_mobile=renter_mobile,
-                            renter_national_code=form.cleaned_data.get('renter_national_code'),
-                            renter_people_count=form.cleaned_data.get('renter_people_count'),
-                            start_date=form.cleaned_data.get('start_date'),
-                            end_date=form.cleaned_data.get('end_date'),
-                            contract_number=form.cleaned_data.get('contract_number'),
-                            estate_name=form.cleaned_data.get('estate_name'),
-                            first_charge_renter=form.cleaned_data.get('first_charge_renter') or 0,
-                            renter_details=form.cleaned_data.get('renter_details'),
-                            renter_payment_date=form.cleaned_data.get('renter_payment_date'),
-                            renter_transaction_no=form.cleaned_data.get('renter_transaction_no'),
-                            renter_is_active=True,
-                        )
-                    else:
-                        # جایگزینی مستاجر فعلی در صورت تغییر اطلاعات مهم
-                        renter_changed = (
-                                form.cleaned_data.get('renter_mobile') != active_renter.renter_mobile or
-                                form.cleaned_data.get('renter_name') != active_renter.renter_name or
-                                form.cleaned_data.get('start_date') != active_renter.start_date or
-                                form.cleaned_data.get('end_date') != active_renter.end_date
-                        )
-                        if renter_changed:
-                            active_renter.renter_is_active = False
-                            active_renter.save()
-
-                            renter_user, _ = User.objects.get_or_create(
-                                mobile=renter_mobile,
-                                defaults={
-                                    'username': renter_mobile,
-                                    'full_name': form.cleaned_data.get('renter_name'),
-                                    'is_active': True
-                                }
-                            )
-                            active_renter = Renter.objects.create(
-                                unit=unit,
-                                user=renter_user,
-                                bank=form.cleaned_data.get('bank'),
-                                renter_name=form.cleaned_data.get('renter_name'),
-                                renter_mobile=renter_mobile,
-                                renter_national_code=form.cleaned_data.get('renter_national_code'),
-                                renter_people_count=form.cleaned_data.get('renter_people_count'),
-                                start_date=form.cleaned_data.get('start_date'),
-                                end_date=form.cleaned_data.get('end_date'),
-                                contract_number=form.cleaned_data.get('contract_number'),
-                                estate_name=form.cleaned_data.get('estate_name'),
-                                first_charge_renter=form.cleaned_data.get('first_charge_renter') or 0,
-                                renter_details=form.cleaned_data.get('renter_details'),
-                                renter_is_active=True,
-                            )
-
-                # --------- 7️⃣ شارژ اولیه مستاجر ---------
-                first_charge_renter = Decimal(form.cleaned_data.get('first_charge_renter') or 0)
-                if unit.is_renter and active_renter and first_charge_renter > 0:
-                    Fund.objects.filter(unit=unit, is_initial=True).update(is_initial=False)
-                    Fund.objects.create(
-                        user=active_renter.user,
-                        unit=unit,
-                        bank=form.cleaned_data.get('bank'),
-                        debtor_amount=first_charge_renter,
-                        creditor_amount=0,
-                        amount=first_charge_renter,
-                        is_initial=True,
-                        payment_date=form.cleaned_data.get('renter_payment_date'),
-                        payer_name=unit.get_label(),
-                        payment_description='شارژ اولیه مستاجر',
-                        payment_gateway='پرداخت الکترونیک',
-                        content_object=unit,
-                        transaction_no=form.cleaned_data.get('renter_transaction_no'),
-                    )
-
-                # --------- 8️⃣ شارژ اولیه مالک ---------
-                first_charge_owner = Decimal(form.cleaned_data.get('first_charge_owner') or 0)
-                if first_charge_owner > 0:
-                    fund_user = unit.user
-                    fund_owner, created = Fund.objects.get_or_create(
-                        unit=unit,
-                        user=fund_user,
-                        is_initial=True,
-                        defaults={
-                            'bank': form.cleaned_data.get('bank'),
-                            'debtor_amount': first_charge_owner,
-                            'creditor_amount': 0,
-                            'amount': first_charge_owner,
-                            'payment_date': form.cleaned_data.get('owner_payment_date'),
-                            'payer_name': unit.get_label(),
-                            'payment_description': 'شارژ اولیه مالک',
-                            'payment_gateway': 'پرداخت الکترونیک',
-                            'content_object': unit,
-                            'transaction_no': form.cleaned_data.get('owner_transaction_no'),
-                        }
-                    )
-                    if not created:
-                        fund_owner.debtor_amount = first_charge_owner
-                        fund_owner.amount = first_charge_owner
-                        fund_owner.payment_date = form.cleaned_data.get('owner_payment_date')
-                        fund_owner.bank = form.cleaned_data.get('bank')
-                        fund_owner.transaction_no = form.cleaned_data.get('owner_transaction_no')
-                        fund_owner.save()
-
-                messages.success(self.request, 'اطلاعات واحد با موفقیت ویرایش شد')
-                return super().form_valid(form)
-
-        except Exception as e:
-            form.add_error(None, str(e))
             return self.form_invalid(form)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        context['is_renter'] = self.object.renters.filter(renter_is_active=True).exists()
-        return context
 
 
 @method_decorator(middle_admin_required, name='dispatch')
@@ -1343,7 +1178,6 @@ class MiddleExpenseView(CreateView):
             queryset = queryset.filter(is_paid=False)
         return queryset
 
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         expenses = self.get_queryset()  # از get_queryset برای دریافت داده‌های فیلتر شده استفاده می‌کنیم
@@ -1357,8 +1191,7 @@ class MiddleExpenseView(CreateView):
         return context
 
 
-
-@login_required
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def expense_pay_view(request, expense_id):
     expense = get_object_or_404(
         Expense,
@@ -1377,7 +1210,6 @@ def expense_pay_view(request, expense_id):
                     payment_date = form.cleaned_data.get('payment_date')
                     receiver_name = form.cleaned_data.get('receiver_name')
                     unit = form.cleaned_data['unit']
-
 
                     # 🔹 موجودی فعلی صندوق
                     last_fund = Fund.objects.order_by('-doc_number').first()
@@ -1450,7 +1282,8 @@ def expense_pay_view(request, expense_id):
         }
     )
 
-@login_required
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def expense_cancel_pay_view(request, expense_id):
     # Expense فقط اگر پرداخت شده باشد قابل لغو است
     expense = get_object_or_404(
@@ -1597,6 +1430,7 @@ def middle_expense_delete(request, pk):
     return redirect(reverse('middle_add_expense'))
 
 
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 @csrf_exempt
 def middle_delete_expense_document(request):
     if request.method == 'POST':
@@ -1754,13 +1588,14 @@ def middle_export_expense_excel(request):
     title_cell = ws.cell(row=1, column=1, value="لیست هزینه‌ها")
     title_cell.font = Font(bold=True, size=18)
     title_cell.alignment = Alignment(horizontal="center", vertical="center")
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=9)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=10)
 
     # ✅ Style setup
     header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")  # Gold
     header_font = Font(bold=True, color="000000")  # Black bold text
 
-    headers = ['#', 'موضوع هزینه', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'پرداخت به', 'تاریخ پرداخت', 'توضیحات']
+    headers = ['#', 'موضوع هزینه', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'پرداخت به', 'شماره حساب',
+               'تاریخ پرداخت', 'توضیحات']
 
     # ✅ Write header (row 2)
     for col_num, column_title in enumerate(headers, 1):
@@ -1777,8 +1612,9 @@ def middle_export_expense_excel(request):
         ws.cell(row=row_num, column=5, value=expense.amount)
         ws.cell(row=row_num, column=6, value=show_jalali(expense.date))
         ws.cell(row=row_num, column=7, value=expense.receiver_name)
-        ws.cell(row=row_num, column=8, value=show_jalali(expense.payment_date))
-        ws.cell(row=row_num, column=9, value=expense.details)
+        ws.cell(row=row_num, column=8, value=expense.bank.bank_name)
+        ws.cell(row=row_num, column=9, value=show_jalali(expense.payment_date))
+        ws.cell(row=row_num, column=10, value=expense.details)
 
     # ✅ Return file
     response = HttpResponse(
@@ -1858,7 +1694,6 @@ class MiddleIncomeView(CreateView):
 
     def form_valid(self, form):
         form.instance.user = self.request.user
-
 
         try:
             with transaction.atomic():
@@ -1973,7 +1808,7 @@ class MiddleIncomeView(CreateView):
         return context
 
 
-@login_required
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def income_pay_view(request, income_id):
     income = get_object_or_404(
         Income,
@@ -1992,7 +1827,6 @@ def income_pay_view(request, income_id):
                     payment_date = form.cleaned_data.get('payment_date')
                     payer_name = form.cleaned_data.get('payer_name')
                     unit = form.cleaned_data['unit']
-
 
                     fund = Fund.objects.create(
                         unit=unit if unit else None,
@@ -2048,9 +1882,9 @@ def income_pay_view(request, income_id):
         }
     )
 
-@login_required
-def income_cancel_pay_view(request, income_id):
 
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def income_cancel_pay_view(request, income_id):
     income = get_object_or_404(
         Income,
         id=income_id,
@@ -2348,7 +2182,8 @@ def export_income_excel(request):
     header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")  # Gold
     header_font = Font(bold=True, color="000000")  # Black bold text
 
-    headers = ['#', 'موضوع درآمد', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'توضیحات', 'پرداخت کننده', 'تاریخ پرداخت']
+    headers = ['#', 'موضوع درآمد', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'توضیحات', 'پرداخت کننده',
+               'تاریخ پرداخت']
 
     # ✅ Write header (row 2)
     for col_num, column_title in enumerate(headers, 1):
@@ -2390,10 +2225,13 @@ class MiddleReceiveMoneyCreateView(CreateView):
         try:
             self.object = form.save(commit=False)
             self.object.payer_name = self.object.get_payer_display()
+            self.object.is_received_money = True
             self.object.save()
             form.save_m2m()
+
             content_type = ContentType.objects.get_for_model(self.object)
             payer_name_for_fund = self.object.payer_name if not self.object.unit else f"{self.object.unit}"
+
             Fund.objects.create(
                 user=self.request.user,
                 content_type=content_type,
@@ -2406,10 +2244,11 @@ class MiddleReceiveMoneyCreateView(CreateView):
                 doc_number=self.object.doc_number,
                 payer_name=payer_name_for_fund,
                 payment_gateway='پرداخت الکترونیک',
-                transaction_no= self.object.transaction_reference,
+                transaction_no=self.object.transaction_reference,
                 payment_date=self.object.payment_date,
                 payment_description=f"حسابهای دریافتنی: {self.object.description[:50]}",
                 is_paid=True,
+                is_received_money=True
             )
             files = self.request.FILES.getlist('document')
 
@@ -2514,6 +2353,7 @@ def middle_receive_edit(request, pk):
 
                     receive = form.save(commit=False)
                     receive.payer_name = receive.get_payer_display()
+                    receive.is_received_money = True
                     receive.save()
                     form.save_m2m()
 
@@ -2545,6 +2385,7 @@ def middle_receive_edit(request, pk):
                         f"حسابهای دریافتنی: {(receive.description or '')[:50]}"
                     )
                     fund.is_paid = True
+                    fund.is_received_money = True
                     fund.save()
 
                     Fund.recalc_final_amounts_from(fund)
@@ -2596,6 +2437,7 @@ def middle_receive_delete(request, pk):
     return redirect(reverse('middle_add_receive'))
 
 
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 @csrf_exempt
 def middle_delete_receive_document(request):
     if request.method == 'POST':
@@ -2756,7 +2598,8 @@ def export_receive_excel(request):
     header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")  # Gold
     header_font = Font(bold=True, color="000000")  # Black bold text
 
-    headers = ['#', 'شماره جساب', 'دریافت کننده', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'توضیحات', 'تاریخ پرداخت', 'شماره پیگیری']
+    headers = ['#', 'شماره جساب', 'دریافت کننده', 'شرح سند', ' شماره سند', 'مبلغ', 'تاریخ سند', 'توضیحات',
+               'تاریخ پرداخت', 'شماره پیگیری']
 
     # ✅ Write header (row 2)
     for col_num, column_title in enumerate(headers, 1):
@@ -2806,7 +2649,8 @@ class MiddlePaymentMoneyCreateView(CreateView):
         form.instance.user = self.request.user
         try:
             self.object = form.save(commit=False)
-            self.object.receiver_name = self.object.get_receiver_display()
+            self.object.receiver_name = self.object.get_receiver_display
+            self.object.is_paid_money = True
             self.object.save()
             form.save_m2m()
 
@@ -2824,10 +2668,11 @@ class MiddlePaymentMoneyCreateView(CreateView):
                 receiver_name=receiver_name_for_fund,
                 creditor_amount=self.object.amount,
                 payment_gateway='پرداخت الکترونیک',
-                payment_date=self.object.document_date,
+                payment_date=self.object.payment_date,
                 doc_number=self.object.document_number,
                 payment_description=f"حسابهای پرداختنی: {self.object.description[:50]}",
-                is_paid=True
+                is_paid=True,
+                is_paid_money=True
             )
 
             files = self.request.FILES.getlist('document')
@@ -2922,7 +2767,8 @@ def middle_pay_edit(request, pk):
 
         if form.is_valid():
             payment = form.save(commit=False)
-            payment.receiver_name = payment.get_receiver_display()
+            payment.receiver_name = payment.get_receiver_display
+            payment.is_paid_money = True
             payment.save()
             form.save_m2m()
 
@@ -2946,6 +2792,8 @@ def middle_pay_edit(request, pk):
                 fund.receiver_name = receiver_name_for_fund
                 fund.payment_gateway = 'پرداخت الکترونیک'
                 fund.payment_description = f"حسابهای پرداختنی: {(payment.description or '')[:50]}"
+                fund.is_paid_money = True
+                fund.is_paid = True
                 fund.save()  # موجودی بانک بروزرسانی می‌شود
                 Fund.recalc_final_amounts_from(fund)
 
@@ -2966,7 +2814,8 @@ def middle_pay_edit(request, pk):
                     doc_number=payment.document_number,
                     payment_gateway='پرداخت الکترونیک',
                     payment_description=f"حسابهای پرداختنی: {(payment.description or '')[:50]}",
-                    is_paid=True
+                    is_paid=True,
+                    is_paid_money=True
                 )
 
             # ثبت فایل‌های پیوست جدید
@@ -3002,6 +2851,7 @@ def middle_pay_delete(request, pk):
     return redirect(reverse('middle_add_pay'))
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 @csrf_exempt
 def middle_delete_pay_document(request):
     if request.method == 'POST':
@@ -3037,6 +2887,7 @@ def middle_delete_pay_document(request):
     return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_pay_pdf(request):
     house = None
     if request.user.is_authenticated:
@@ -3111,6 +2962,7 @@ def export_pay_pdf(request):
     return response
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_pay_excel(request):
     payments = PayMoney.objects.filter(user=request.user)
 
@@ -3318,6 +3170,7 @@ def middle_property_delete(request, pk):
     return redirect(reverse('middle_add_property'))
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 @csrf_exempt
 def middle_delete_property_document(request):
     if request.method == 'POST':
@@ -3504,7 +3357,7 @@ def export_property_excel(request):
 
 
 # ============================ MaintenanceView ==========================
-
+@method_decorator(middle_admin_required, name='dispatch')
 class MiddleMaintenanceCreateView(CreateView):
     model = Maintenance
     template_name = 'middleMaintenance/add_maintenance.html'
@@ -3582,6 +3435,7 @@ class MiddleMaintenanceCreateView(CreateView):
         return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def middle_maintenance_edit(request, pk):
     maintenance = get_object_or_404(Maintenance, pk=pk)
 
@@ -3608,6 +3462,7 @@ def middle_maintenance_edit(request, pk):
         return redirect('middle_add_maintenance')
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def middle_maintenance_delete(request, pk):
     maintenance = get_object_or_404(Maintenance, id=pk)
     try:
@@ -3618,6 +3473,7 @@ def middle_maintenance_delete(request, pk):
     return redirect(reverse('middle_add_maintenance'))
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 @csrf_exempt
 def middle_delete_maintenance_document(request):
     if request.method == 'POST':
@@ -3655,6 +3511,7 @@ def middle_delete_maintenance_document(request):
     return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def parse_jalali_to_gregorian(date_str):
     try:
         return jdatetime.date.fromisoformat(date_str.strip()).togregorian()
@@ -3662,6 +3519,7 @@ def parse_jalali_to_gregorian(date_str):
         return None
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_maintenance_pdf(request):
     maintenances = Maintenance.objects.all()
 
@@ -3723,6 +3581,7 @@ def export_maintenance_pdf(request):
     return response
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_maintenance_excel(request):
     maintenances = Maintenance.objects.all()
 
@@ -6419,7 +6278,7 @@ class MiddleVariableFixChargeCreateView(CreateView):
                     unit=unit,
                     bank=None,
                     charge_type=fix_variable.charge_type,
-                    extra_parking_price= parking_total,
+                    extra_parking_price=parking_total,
                     main_charge=fix_variable,
                     amount=base_amount,
                     base_charge=total_monthly_charge,
@@ -6716,33 +6575,138 @@ def middle_remove_send_notification_fix_variable(request, pk):
         return JsonResponse({'error': f'خطایی هنگام غیرفعال کردن اطلاعیه‌ها رخ داد: {str(e)}'}, status=500)
 
 
+# ================================================================================================
+
+# class MiddleExpenseCharge(CreateView):
+#     model = ChargeByExpense
+#     form_class = ExpenseChargeForm
+#     template_name = "middleCharge/variable_fix_charge_template.html"
+#     success_url = reverse_lazy('middle_add_expense_charge')
+#
+#     def get_initial(self):
+#         # گرفتن دسته‌بندی‌ها
+#         try:
+#             power_category = ExpenseCategory.objects.get(title='برق', user=self.request.user)
+#         except ExpenseCategory.DoesNotExist:
+#             power_category = None
+#
+#         try:
+#             water_category = ExpenseCategory.objects.get(title='آب', user=self.request.user)
+#         except ExpenseCategory.DoesNotExist:
+#             water_category = None
+#
+#         try:
+#             gas_category = ExpenseCategory.objects.get(title='گاز', user=self.request.user)
+#         except ExpenseCategory.DoesNotExist:
+#             gas_category = None
+#
+#         # جمع هزینه‌ها
+#         total_power = Expense.objects.filter(category=power_category).aggregate(total=Sum('amount'))[
+#                           'total'] or 0 if power_category else 0
+#         total_water = Expense.objects.filter(category=water_category).aggregate(total=Sum('amount'))[
+#                           'total'] or 0 if water_category else 0
+#         total_gas = Expense.objects.filter(category=gas_category).aggregate(total=Sum('amount'))[
+#                         'total'] or 0 if gas_category else 0
+#
+#         return {
+#             'unit_power_amount': total_power,
+#             'unit_water_amount': total_water,
+#             'unit_gas_amount': total_gas,
+#         }
+#
+#     def form_valid(self, form):
+#         charge = form.save(commit=False)
+#         charge.user = self.request.user
+#         charge.save()
+#
+#         units = Unit.objects.filter(is_active=True, user__manager=self.request.user)
+#         if not units.exists():
+#             messages.error(self.request, "هیچ واحد فعالی پیدا نشد.")
+#             return redirect('middle_manage_unit')
+#
+#         unified_charges = []
+#
+#         for unit in units:
+#             total_amount = (
+#                 (form.cleaned_data.get('unit_power_amount') or 0) +
+#                 (form.cleaned_data.get('unit_water_amount') or 0) +
+#                 (form.cleaned_data.get('unit_gas_amount') or 0) +
+#                 (form.cleaned_data.get('civil') or 0) +
+#                 (form.cleaned_data.get('other_cost_amount') or 0)
+#             )
+#
+#             unified_charges.append(
+#                 UnifiedCharge(
+#                     user=self.request.user,
+#                     unit=unit,
+#                     main_charge=charge,
+#                     charge_type=ChargeByExpense.charge_type,
+#                     amount=total_amount,
+#                     base_charge=total_amount,
+#                     civil=form.cleaned_data.get('civil') or 0,
+#                     other_cost_amount=form.cleaned_data.get('other_cost_amount') or 0,
+#                     penalty_percent=form.cleaned_data.get('payment_penalty_amount') or 0,
+#                     penalty_amount=0,
+#                     total_charge_month=total_amount,
+#                     extra_parking_price=0,
+#                     details=form.cleaned_data.get('details') or '',
+#                     title=form.cleaned_data.get('name'),
+#                     send_notification=False,
+#                     send_notification_date=None,
+#                     payment_deadline_date=form.cleaned_data.get('payment_deadline'),
+#                     content_type=ContentType.objects.get_for_model(ChargeByExpense),
+#                     object_id=charge.id
+#                 )
+#             )
+#
+#         UnifiedCharge.objects.bulk_create(unified_charges)
+#         messages.success(self.request, "شارژ هزینه‌ها با موفقیت ثبت شد.")
+#         return super().form_valid(form)
+#
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#
+#         # جمع کل هر شارژ
+#         charges = ChargeByExpense.objects.annotate(
+#             notified_count=Count('unified_charges', filter=Q(unified_charges__send_notification=True)),
+#             total_units=Count('unified_charges')
+#         ).order_by('-created_at')
+#
+#         for charge in charges:
+#             charge.total_power = charge.unit_power_amount or 0
+#             charge.total_water = charge.unit_water_amount or 0
+#             charge.total_gas = charge.unit_gas_amount or 0
+#             charge.total_civil = charge.civil or 0
+#             charge.total_other = charge.other_cost_amount or 0
+#
+#         context['charges'] = charges
+#         context['unit_count'] = Unit.objects.filter(is_active=True, user__manager=self.request.user).count()
+#         return context
+
+
 # ==============================================================================================
 
-def get_all_base_charges():
+def get_all_base_charges(user):
     all_charges = chain(
-        FixCharge.objects.all(),
-        AreaCharge.objects.all(),
-        PersonCharge.objects.all(),
-        FixPersonCharge.objects.all(),
-        FixAreaCharge.objects.all(),
-        ChargeByPersonArea.objects.all(),
-        ChargeByFixPersonArea.objects.all(),
-        ChargeFixVariable.objects.all(),
+        FixCharge.objects.filter(user=user),
+        AreaCharge.objects.filter(user=user),
+        PersonCharge.objects.filter(user=user),
+        FixPersonCharge.objects.filter(user=user),
+        FixAreaCharge.objects.filter(user=user),
+        ChargeByPersonArea.objects.filter(user=user),
+        ChargeByFixPersonArea.objects.filter(user=user),
+        ChargeFixVariable.objects.filter(user=user),
     )
     return sorted(all_charges, key=lambda x: x.created_at, reverse=True)
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def base_charge_list(request):
-    # 🔍 جستجو
     query = request.GET.get('q', '').strip()
-
-    # 📄 تعداد نمایش
     paginate = int(request.GET.get('paginate', 20))
 
-    # 🔹 دریافت همه شارژهای پایه
-    charges = get_all_base_charges()
+    charges = get_all_base_charges(request.user)
 
-    # 🔍 فیلتر جستجو (سازگار با BaseCharge)
     if query:
         charges = [
             c for c in charges
@@ -6799,6 +6763,7 @@ def base_charge_list(request):
     )
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def middle_base_charges_pdf(request):
     house = None
     if request.user.is_authenticated:
@@ -6813,7 +6778,7 @@ def middle_base_charges_pdf(request):
     ).count()
 
     # 🔹 همان منبع ویوی لیست
-    charges = get_all_base_charges()
+    charges = get_all_base_charges(request.user)
 
     # 🔍 جستجو
     query = request.GET.get('q', '').strip()
@@ -6965,6 +6930,7 @@ def middle_base_charges_excel(request):
     return response
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def charge_units_list(request, app_label, model_name, charge_id):
     model = apps.get_model(app_label, model_name)
     charge = get_object_or_404(model, id=charge_id)
@@ -6998,16 +6964,16 @@ def charge_units_list(request, app_label, model_name, charge_id):
 
     if query:
         search_q = (
-            Q(unit__unit__icontains=query) |
-            Q(unit__user__full_name__icontains=query)
+                Q(unit__unit__icontains=query) |
+                Q(unit__user__full_name__icontains=query)
         )
 
         # اگر عدد بود → جستجو روی مقادیر عددی شارژ
         if query.isdigit():
             search_q |= (
-                Q(penalty_amount=query) |
-                Q(total_charge_month=query) |
-                Q(base_charge=query)
+                    Q(penalty_amount=query) |
+                    Q(total_charge_month=query) |
+                    Q(base_charge=query)
             )
 
         unified_charges = unified_charges.filter(search_q)
@@ -7039,6 +7005,7 @@ def charge_units_list(request, app_label, model_name, charge_id):
     )
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def charge_units_list_pdf(request, app_label, model_name, charge_id):
     model = apps.get_model(app_label, model_name)
     charge = get_object_or_404(model, id=charge_id)
@@ -7107,6 +7074,7 @@ def charge_units_list_pdf(request, app_label, model_name, charge_id):
     return response
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def charge_units_list_excel(request, app_label, model_name, charge_id):
     model = apps.get_model(app_label, model_name)
     charge = get_object_or_404(model, id=charge_id)
@@ -7189,6 +7157,7 @@ def charge_units_list_excel(request, app_label, model_name, charge_id):
     return response
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def charge_units_pdf(request, charge_id):
     charge = get_object_or_404(UnifiedCharge, id=charge_id)
     units = Unit.objects.filter(unified_charges=charge, is_active=True).order_by('unit')
@@ -7203,13 +7172,26 @@ def charge_units_pdf(request, charge_id):
         'bank': bank,
         'font_url': request.build_absolute_uri('/static/fonts/Vazir.ttf')
     })
+    css = CSS(string=f"""
+        @page {{ size: A5 portrait; margin: 0.8cm; }}
+        body {{
+            font-family: 'Vazir', sans-serif;
+        }}
+        @font-face {{
+            font-family: 'Vazira', sans-serif;
 
-    pdf = HTML(string=html_string).write_pdf()
-    response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="charge_{charge.id}_units.pdf"'
+        }}
+    """)
+
+    pdf_file = io.BytesIO()
+    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
+    pdf_file.seek(0)
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
     return response
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def all_invoices_pdf(request, app_label, model_name, charge_id):
     house = None
     if request.user.is_authenticated:
@@ -7277,7 +7259,6 @@ def all_invoices_pdf(request, app_label, model_name, charge_id):
     response = HttpResponse(pdf, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="all_invoices.pdf"'
     return response
-
 
 
 # =================================================================================================
@@ -7408,7 +7389,7 @@ def middle_send_sms(request, pk):
         else:
             messages.info(request, 'پیامکی ارسال نشد؛ ممکن است شماره موبایل واحدها موجود نباشد.')
 
-        return redirect('middle_register_sms')
+        return redirect('middle_sms_management')
 
     # اگر GET بود، فرم را رندر کن
     units_with_details = Unit.objects.filter(is_active=True)
@@ -7418,6 +7399,7 @@ def middle_send_sms(request, pk):
     })
 
 
+@method_decorator(middle_admin_required, name='dispatch')
 class MiddleSmsListView(ListView):
     model = SmsManagement
     template_name = 'middle_admin/middle_sms_management.html'
@@ -7447,11 +7429,15 @@ class MiddleSmsListView(ListView):
         context = super().get_context_data(**kwargs)
         context['query'] = self.request.GET.get('q', '')
         context['paginate'] = self.request.GET.get('paginate', '20')
+        context['sms_list'] = SmsManagement.objects.filter(user=self.request.user).annotate(
+            unit_number=F('notified_units__unit'),
+            user_full_name=F('notified_units__user__full_name')
+        )
         return context
 
 
-
-@login_required
+# =============================================================================================
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def waive_penalty_bulk(request):
     try:
         ids = request.POST.getlist('charge_ids[]')
@@ -7497,8 +7483,7 @@ def waive_penalty_bulk(request):
         }, status=500)
 
 
-
-@login_required
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def restore_penalty_bulk(request):
     try:
         ids = request.POST.getlist('charge_ids[]')
