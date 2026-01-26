@@ -1499,7 +1499,7 @@ class FixChargeForm(forms.ModelForm):
                                     label='مبلغ شارژ به ازای هر واحد')
     civil = forms.IntegerField(error_messages=error_message,
                                widget=forms.TextInput(attrs=attr),
-                               required=False, min_value=0,
+                               required=False, initial=0,
                                label='شارژ عمرانی')
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
@@ -1507,7 +1507,7 @@ class FixChargeForm(forms.ModelForm):
 
     payment_penalty_amount = forms.IntegerField(error_messages=error_message,
                                                 widget=forms.TextInput(attrs=attr),
-                                                required=False, min_value=0,
+                                                required=False, initial=0,
                                                 label='جریمه دیرکرد به درصد')
 
     payment_deadline = JalaliDateField(
@@ -1517,7 +1517,7 @@ class FixChargeForm(forms.ModelForm):
     )
     other_cost_amount = forms.IntegerField(error_messages=error_message,
                                            widget=forms.TextInput(attrs=attr),
-                                           required=False, min_value=0,
+                                           required=False, initial=0,
                                            label='سایر هزینه ها')
 
     class Meta:
@@ -1547,14 +1547,14 @@ class AreaChargeForm(forms.ModelForm):
                                      label='مبلغ شارژ به اساس متراژ')
     civil = forms.IntegerField(error_messages=error_message,
                                widget=forms.TextInput(attrs=attr),
-                               required=False, min_value=0,
+                               required=False, initial=0,
                                label='شارژ عمرانی')
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
     payment_penalty_amount = forms.IntegerField(error_messages=error_message,
                                                 widget=forms.TextInput(attrs=attr),
-                                                required=False, min_value=0,
+                                                required=False, initial=0,
                                                 label='جریمه دیرکرد به درصد')
 
     payment_deadline = JalaliDateField(
@@ -1564,7 +1564,7 @@ class AreaChargeForm(forms.ModelForm):
     )
     other_cost_amount = forms.IntegerField(error_messages=error_message,
                                            widget=forms.TextInput(attrs=attr),
-                                           required=False, min_value=0,
+                                           required=False, initial=0,
                                            label='سایر هزینه ها')
 
     def clean_civil_charge(self):
@@ -1600,14 +1600,14 @@ class PersonChargeForm(forms.ModelForm):
                                        label='مبلغ شارژ به ازای هر نفر')
     civil = forms.IntegerField(error_messages=error_message,
                                widget=forms.TextInput(attrs=attr),
-                               required=False, min_value=0,
+                               required=False, initial=0,
                                label='شارژ عمرانی')
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
     payment_penalty_amount = forms.IntegerField(error_messages=error_message,
                                                 widget=forms.TextInput(attrs=attr),
-                                                required=False, min_value=0,
+                                                required=False, initial=0,
                                                 label='جریمه دیرکرد به درصد')
 
     payment_deadline = JalaliDateField(
@@ -1617,7 +1617,7 @@ class PersonChargeForm(forms.ModelForm):
     )
     other_cost_amount = forms.IntegerField(error_messages=error_message,
                                            widget=forms.TextInput(attrs=attr),
-                                           required=False, min_value=0,
+                                           required=False, initial=0,
                                            label='سایر هزینه ها')
 
     class Meta:
@@ -1651,14 +1651,14 @@ class FixAreaChargeForm(forms.ModelForm):
                                      label='مبلغ شارژ به اساس متراژ')
     civil = forms.IntegerField(error_messages=error_message,
                                widget=forms.TextInput(attrs=attr),
-                               required=False, min_value=0,
+                               required=False, initial=0,
                                label='شارژ عمرانی')
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
     payment_penalty_amount = forms.IntegerField(error_messages=error_message,
                                                 widget=forms.TextInput(attrs=attr),
-                                                required=False, min_value=0,
+                                                required=False, initial=0,
                                                 label='جریمه دیرکرد به درصد')
 
     payment_deadline = JalaliDateField(
@@ -1668,7 +1668,7 @@ class FixAreaChargeForm(forms.ModelForm):
     )
     other_cost_amount = forms.IntegerField(error_messages=error_message,
                                            widget=forms.TextInput(attrs=attr),
-                                           required=False, min_value=0,
+                                           required=False, initial=0,
                                            label='سایر هزینه ها')
 
     class Meta:
@@ -1703,7 +1703,7 @@ class FixPersonChargeForm(forms.ModelForm):
                                        label='مبلغ شارژ به ازای هر نفر')
     civil = forms.IntegerField(error_messages=error_message,
                                widget=forms.TextInput(attrs=attr),
-                               required=False, min_value=0,
+                               required=False, initial=0,
                                label='شارژ عمرانی')
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
@@ -1711,7 +1711,7 @@ class FixPersonChargeForm(forms.ModelForm):
 
     payment_penalty_amount = forms.IntegerField(error_messages=error_message,
                                                 widget=forms.TextInput(attrs=attr),
-                                                required=False, min_value=0,
+                                                required=False, initial=0,
                                                 label='جریمه دیرکرد به درصد')
 
     payment_deadline = JalaliDateField(
@@ -1721,7 +1721,7 @@ class FixPersonChargeForm(forms.ModelForm):
     )
     other_cost_amount = forms.IntegerField(error_messages=error_message,
                                            widget=forms.TextInput(attrs=attr),
-                                           required=False, min_value=0,
+                                           required=False, initial=0,
                                            label='سایر هزینه ها')
 
     class Meta:
@@ -1758,11 +1758,11 @@ class PersonAreaChargeForm(forms.ModelForm):
                               label='توضیحات ')
     civil = forms.IntegerField(error_messages=error_message,
                                widget=forms.TextInput(attrs=attr),
-                               required=False,
+                               required=False, initial=0,
                                label='شارژ عمرانی(تومان)')
     payment_penalty_amount = forms.IntegerField(error_messages=error_message,
                                                 widget=forms.TextInput(attrs=attr),
-                                                required=False, min_value=0,
+                                                required=False, initial=0,
                                                 label='جریمه دیرکرد به درصد')
 
     payment_deadline = JalaliDateField(
@@ -1772,7 +1772,7 @@ class PersonAreaChargeForm(forms.ModelForm):
     )
     other_cost_amount = forms.IntegerField(error_messages=error_message,
                                            widget=forms.TextInput(attrs=attr),
-                                           required=False, min_value=0,
+                                           required=False, initial=0,
                                            label='سایر هزینه ها')
 
     class Meta:
@@ -1813,11 +1813,11 @@ class PersonAreaFixChargeForm(forms.ModelForm):
                               label='توضیحات ')
     civil = forms.IntegerField(error_messages=error_message,
                                widget=forms.TextInput(attrs=attr),
-                               required=False, min_value=0,
+                               required=False, initial=0,
                                label='شارژ عمرانی')
     payment_penalty_amount = forms.IntegerField(error_messages=error_message,
                                                 widget=forms.TextInput(attrs=attr),
-                                                required=False, min_value=0,
+                                                required=False, initial=0,
                                                 label='جریمه دیرکرد به درصد')
 
     payment_deadline = JalaliDateField(
@@ -1827,7 +1827,7 @@ class PersonAreaFixChargeForm(forms.ModelForm):
     )
     other_cost_amount = forms.IntegerField(error_messages=error_message,
                                            widget=forms.TextInput(attrs=attr),
-                                           required=False, min_value=0,
+                                           required=False, initial=0,
                                            label='سایر هزینه ها')
 
     class Meta:
@@ -1874,16 +1874,16 @@ class VariableFixChargeForm(forms.ModelForm):
                               label='توضیحات ')
     civil = forms.IntegerField(error_messages=error_message,
                                widget=forms.TextInput(attrs=attr),
-                               required=False, min_value=0,
+                               required=False, initial=0,
                                label='سایر هزینه ها')
 
     other_cost_amount = forms.IntegerField(error_messages=error_message,
                                            widget=forms.TextInput(attrs=attr),
-                                           required=False, min_value=0,
+                                           required=False, initial=0,
                                            label='شارژ عمرانی')
     payment_penalty_amount = forms.IntegerField(error_messages=error_message,
                                                 widget=forms.TextInput(attrs=attr),
-                                                required=False, min_value=0,
+                                                required=False, initial=0,
                                                 label='جریمه دیرکرد به درصد')
 
     payment_deadline = JalaliDateField(
@@ -1979,11 +1979,11 @@ class UnifiedChargePaymentForm(forms.ModelForm):
 
     bank = forms.ModelChoiceField(
         queryset=Bank.objects.none(),
-        widget=forms.Select(attrs=attr),
-        empty_label="شماره حساب را انتخاب کنید",
+        widget=forms.Select(attrs={'class': 'form-control form-control-sm'}),
+        empty_label="شماره کارت را انتخاب کنید",
         error_messages=error_message,
         required=True,
-        label=' حساب بانکی'
+        label=' شماره کارت'
     )
 
     class Meta:
@@ -1991,21 +1991,25 @@ class UnifiedChargePaymentForm(forms.ModelForm):
         fields = ['payment_date', 'transaction_reference', 'bank']
 
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
+        charge = kwargs.pop('charge', None)
         super().__init__(*args, **kwargs)
 
-        if user:
+        self.fields['bank'].queryset = Bank.objects.none()
 
-            banks = Bank.objects.filter(is_active=True, user=user)
+        if charge and charge.unit and charge.unit.myhouse:
+            house = charge.unit.myhouse
+
+            # همه بانک‌های فعال خانه
+            banks = Bank.objects.filter(is_active=True, house=house).order_by('-is_default', 'bank_name')
             self.fields['bank'].queryset = banks
 
-            # پیدا کردن بانک پیش‌فرض
-            default_bank = banks.filter(is_default=True).first()
+            # بانک پیش‌فرض خانه
+            default_bank = Bank.get_default(user=None, house=house)
             if default_bank:
                 self.fields['bank'].initial = default_bank
 
-            # تغییر label برای نمایش "(پیش‌فرض)" کنار نام بانک
-            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
+            # نمایش label با "(پیش‌فرض)"
+            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.cart_number}" + (
                 " (پیش‌فرض)" if obj.is_default else "")
 
 

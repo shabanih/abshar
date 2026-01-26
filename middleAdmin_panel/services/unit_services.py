@@ -3,7 +3,7 @@ from django.db import transaction
 from django.contrib.auth import update_session_auth_hash
 
 from admin_panel.models import Fund
-from user_app.models import User, Renter
+from user_app.models import User, Renter, MyHouse
 
 
 class UnitUpdateService:
@@ -12,25 +12,53 @@ class UnitUpdateService:
         self.form = form
         self.request = request
 
+    # def execute(self):
+    #     with transaction.atomic():
+    #         owner_changed = self._check_owner_changed()
+    #         if owner_changed:
+    #             self._deactivate_renters()
+    #             # آپدیت مالک در واحد
+    #             self.unit.owner_name = self.form.cleaned_data.get('owner_name')
+    #             self.unit.owner_mobile = self.form.cleaned_data.get('owner_mobile')
+    #             self.unit.save(update_fields=['owner_name', 'owner_mobile'])
+    #
+    #         self._update_user(owner_changed)
+    #         self._update_unit()
+    #
+    #         if self.unit.is_renter:
+    #             self._update_or_create_renter()
+    #
+    #         self._handle_renter_charge()
+    #         self._handle_owner_charge()
+    #         self._update_people_count()
     def execute(self):
         with transaction.atomic():
+            # ست کردن خانه (myhouse) اگر خالی باشد
+            if not self.unit.myhouse:
+                self.unit.myhouse = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
+
             owner_changed = self._check_owner_changed()
             if owner_changed:
                 self._deactivate_renters()
-                # آپدیت مالک در واحد
                 self.unit.owner_name = self.form.cleaned_data.get('owner_name')
                 self.unit.owner_mobile = self.form.cleaned_data.get('owner_mobile')
                 self.unit.save(update_fields=['owner_name', 'owner_mobile'])
 
             self._update_user(owner_changed)
             self._update_unit()
-
             if self.unit.is_renter:
                 self._update_or_create_renter()
-
             self._handle_renter_charge()
             self._handle_owner_charge()
             self._update_people_count()
+
+            # # اضافه کردن مالک و مستاجر فعال به residents
+            # if self.unit.user and self.unit.myhouse and self.unit.user not in self.unit.myhouse.residents.all():
+            #     self.unit.myhouse.residents.add(self.unit.user)
+            #
+            # renter = self.unit.get_active_renter()
+            # if renter and renter.user not in self.unit.myhouse.residents.all():
+            #     self.unit.myhouse.residents.add(renter.user)
 
     # ------------------------------
 

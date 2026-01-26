@@ -398,7 +398,7 @@ class BaseCharge(models.Model):
             'charge_type': self.charge_type,
             'created_at': self.created_at,
             'details': self.details,
-            'civil': self.civil,
+            'civil': self.civil or 0,
             'other_cost_amount': self.other_cost_amount,
             'payment_penalty_amount': self.payment_penalty_amount,
             'payment_deadline': self.payment_deadline,

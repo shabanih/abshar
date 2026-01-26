@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest, HttpResponse, JsonResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -164,50 +165,8 @@ def verify_pay(request: HttpRequest):
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-def paymentUserView(request, pk):
-    charge = get_object_or_404(UnifiedCharge, pk=pk)
-
-    if request.method == "POST":
-        form = UnifiedChargePaymentForm(request.POST, instance=charge)
-        if form.is_valid():
-            charge = form.save(commit=False)
-            charge.is_paid = True
-            charge.payment_gateway = 'کارت به کارت'
-            charge.update_penalty(save=False)
-            charge.save()
-
-            # ساخت رکورد Fund
-            content_type = ContentType.objects.get_for_model(charge)
-            Fund.objects.create(
-                content_type=content_type,
-                object_id=charge.id,
-                bank=charge.bank,
-                debtor_amount=charge.total_charge_month,
-                amount=charge.total_charge_month,
-                creditor_amount=0,
-                user=request.user,
-                payment_date=charge.payment_date,
-                payment_description=f"{charge.title}",
-                transaction_no=charge.transaction_reference,
-                payment_gateway='کارت به کارت'
-            )
-            messages.success(request, 'success')
-            return redirect(reverse('user_charges'))
-        else:
-            messages.error(request, 'error')
-            return redirect(reverse('user_charges'))
-    else:
-        form = UnifiedChargePaymentForm(instance=charge)
-
-    return render(request, 'payment_gateway.html', {
-        'form': form,
-        'charge': charge
-    })
-
-
 # def paymentUserView(request, pk):
 #     charge = get_object_or_404(UnifiedCharge, pk=pk)
-#     print(charge.id)
 #
 #     if request.method == "POST":
 #         form = UnifiedChargePaymentForm(request.POST, instance=charge)
@@ -218,6 +177,7 @@ def paymentUserView(request, pk):
 #             charge.update_penalty(save=False)
 #             charge.save()
 #
+#             # ساخت رکورد Fund
 #             content_type = ContentType.objects.get_for_model(charge)
 #             Fund.objects.create(
 #                 content_type=content_type,
@@ -232,28 +192,73 @@ def paymentUserView(request, pk):
 #                 transaction_no=charge.transaction_reference,
 #                 payment_gateway='کارت به کارت'
 #             )
-#             return render(request, 'payment_done.html', {
-#                 'success': f'اطلاعات پرداخت با موفقیت انجام و پرداخت شارژ شما ثبت گردید. '
-#             })
+#             messages.success(request, 'success')
+#             return redirect(reverse('user_charges'))
 #         else:
-#             return render(request, 'payment_done.html', {
-#                 'error': f"خزا",
-#                 'charge': charge,  # ← این خط حیاتی است
-#             })
-#
+#             messages.error(request, 'error')
+#             return redirect(reverse('user_charges'))
 #     else:
 #         form = UnifiedChargePaymentForm(instance=charge)
-#         context = {
-#             'charge': charge,
-#             'form': form
-#         }
-#         return render(request, 'payment_gateway.html', context)
+#
+#     return render(request, 'payment_gateway.html', {
+#         'form': form,
+#         'charge': charge
+#     })
 
-
-@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-def payment_done_view(request, pk):
+def payment_user_view(request, pk):
     charge = get_object_or_404(UnifiedCharge, pk=pk)
-    return render(request, 'payment_done.html', {'charge': charge})
+
+    # اجازه پرداخت برای مستاجر یا مالک
+    unit = charge.unit
+    renter = unit.get_active_renter()
+
+    if request.user != unit.user and (not renter or renter.user != request.user):
+        # نه مالک است نه مستاجر فعال → دسترسی ندارد
+        raise PermissionDenied("شما اجازه دسترسی به این شارژ را ندارید.")
+
+    if request.method == 'POST':
+        form = UnifiedChargePaymentForm(request.POST, instance=charge, charge=charge)
+        if form.is_valid():
+            charge = form.save(commit=False)
+            charge.is_paid = True
+            charge.payment_gateway = 'کارت به کارت'
+            charge.update_penalty(save=False)
+            charge.save()
+
+            # ثبت Fund
+
+            content_type = ContentType.objects.get_for_model(charge)
+            Fund.objects.create(
+                content_type=content_type,
+                object_id=charge.id,
+                unit=charge.unit,
+                bank=charge.bank,
+                debtor_amount=charge.total_charge_month,
+                amount=charge.total_charge_month,
+                creditor_amount=0,
+                user=request.user,
+                payment_date=charge.payment_date,
+                payment_description=f"{charge.title}",
+                transaction_no=charge.transaction_reference,
+                payment_gateway='کارت به کارت'
+            )
+            messages.success(request, 'پرداخت شارژ با موفقیت ثبت گردید')
+            return redirect('user_charges')
+        else:
+            messages.success(request, 'خطا در ثبت پرداخت ')
+            return redirect('user_charges')
+    else:
+        form = UnifiedChargePaymentForm(instance=charge, charge=charge)
+        return render(request, 'payment_gateway.html', {
+            'charge': charge,
+            'form': form
+        })
+
+
+# @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+# def payment_done_view(request, pk):
+#     charge = get_object_or_404(UnifiedCharge, pk=pk)
+#     return render(request, 'payment_done.html', {'charge': charge})
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)

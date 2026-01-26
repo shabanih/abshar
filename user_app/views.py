@@ -30,6 +30,41 @@ from admin_panel.models import Announcement, UnifiedCharge, MessageToUser
 from user_app.forms import LoginForm, MobileLoginForm
 from user_app.models import User, Unit, Bank, MyHouse, CalendarNote
 
+# def index(request):
+#     form = LoginForm(request.POST or None)
+#
+#     if request.method == 'POST' and form.is_valid():
+#         mobile = form.cleaned_data['mobile']
+#         password = form.cleaned_data['password']
+#         print("Mobile:", mobile)
+#         print("Password entered:", password)
+#
+#         user = authenticate(request, username=mobile, password=password)
+#         # print("Authenticated user:", user)
+#
+#         if user:
+#             if user.is_superuser:
+#                 messages.error(request, 'شما مجوز ورود از این صفحه را ندارید.')
+#             elif not user.is_active:
+#                 messages.error(request, 'حساب کاربری شما غیرفعال است.')
+#             else:
+#                 login(request, user)
+#
+#                 if user.is_middle_admin:
+#                     # بررسی ثبت ساختمان
+#                     has_house = MyHouse.objects.filter(user=user).exists()
+#                     if has_house:
+#                         return redirect('middle_admin_dashboard')
+#                     else:
+#                         return redirect('middle_manage_house')
+#
+#                 return redirect('user_panel')
+#         else:
+#             messages.error(request, 'ورود ناموفق: شماره موبایل یا کلمه عبور نادرست است.')
+#
+#     return render(request, 'index.html', {'form': form})
+from django.db.models import Exists, OuterRef
+
 
 def index(request):
     form = LoginForm(request.POST or None)
@@ -37,22 +72,30 @@ def index(request):
     if request.method == 'POST' and form.is_valid():
         mobile = form.cleaned_data['mobile']
         password = form.cleaned_data['password']
-        print("Mobile:", mobile)
-        print("Password entered:", password)
 
         user = authenticate(request, username=mobile, password=password)
-        # print("Authenticated user:", user)
 
         if user:
             if user.is_superuser:
                 messages.error(request, 'شما مجوز ورود از این صفحه را ندارید.')
+
             elif not user.is_active:
                 messages.error(request, 'حساب کاربری شما غیرفعال است.')
+
+            # ⛔ مالک با مستاجر فعال
+            elif Unit.objects.filter(
+                    user=user,
+                    renters__renter_is_active=True
+            ).exists():
+                messages.error(
+                    request,
+                    'برای واحد شما مستاجر فعال ثبت شده است و امکان ورود مالک وجود ندارد.'
+                )
+
             else:
                 login(request, user)
 
                 if user.is_middle_admin:
-                    # بررسی ثبت ساختمان
                     has_house = MyHouse.objects.filter(user=user).exists()
                     if has_house:
                         return redirect('middle_admin_dashboard')
@@ -60,6 +103,8 @@ def index(request):
                         return redirect('middle_manage_house')
 
                 return redirect('user_panel')
+
+
         else:
             messages.error(request, 'ورود ناموفق: شماره موبایل یا کلمه عبور نادرست است.')
 
@@ -177,10 +222,12 @@ def user_panel(request):
     ).distinct()
 
     unified_qs = UnifiedCharge.objects.filter(
-        unit__in=units
+        unit__in=units,
+        send_notification=True,
     ).select_related('unit')
 
     paid_unified_qs = unified_qs.filter(is_paid=True)
+    print(paid_unified_qs.count())
     unpaid_unified_qs = unified_qs.filter(is_paid=False)
 
     # Update penalty ONLY for unpaid charges
@@ -287,7 +334,8 @@ def fetch_user_charges(request):
     ).distinct()
 
     charges = UnifiedCharge.objects.filter(
-        unit__in=units
+        unit__in=units,
+        send_notification=True,
     ).select_related('unit')
 
     for charge in charges:

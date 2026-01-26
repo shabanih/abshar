@@ -175,7 +175,6 @@ class Unit(models.Model):
         renter = self.get_active_renter()
         return f"واحد {self.unit} - {renter.renter_name}" if renter else f"واحد {self.unit} - {self.owner_name}"
 
-
     def get_label_invoice(self):
         renter = self.get_active_renter()
         return f" {renter.renter_name}" if renter else f"{self.owner_name}"
@@ -202,7 +201,13 @@ class Unit(models.Model):
             count += 1
         self.parking_counts = count
 
-        super().save(*args, **kwargs)  # ذخیره اولیه برای گرفتن PK
+        super().save(*args, **kwargs)
+
+        if self.myhouse and self.user:
+            # چک می‌کنیم مالک قبلاً در residents نیست
+            if self.user not in self.myhouse.residents.all():
+                self.myhouse.residents.add(self.user)
+
         self.update_people_count()
         super().save(update_fields=['people_count'])
 

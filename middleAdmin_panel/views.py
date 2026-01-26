@@ -494,6 +494,7 @@ class MiddleUnitRegisterView(CreateView):
 
                 # 2️⃣ ست کردن user قبل از save
                 unit = form.save(commit=False)
+                unit.myhouse = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
                 unit.user = user
 
                 # 3️⃣ ست کردن people_count
@@ -3819,13 +3820,8 @@ def middle_fix_charge_edit(request, pk):
                         defaults={
                             'bank': None,
                             'charge_type': fix_charge.charge_type,
-                            'fix_amount': fix_charge.fix_amount,
                             'amount': base_amount,
                             'main_charge': fix_charge,
-                            'charge_by_person_amount': 0,
-                            'charge_by_area_amount': 0,
-                            'fix_person_variable_amount': 0,
-                            'fix_area_variable_amount': 0,
                             'base_charge': total_monthly,
                             'penalty_percent': fix_charge.payment_penalty_amount or 0,
                             'civil': civil_amount,
@@ -6743,6 +6739,7 @@ def base_charge_list(request):
             .distinct()
             .count()
         )
+
 
         charges_data.append(data)
 
