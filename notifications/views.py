@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import transaction
-from django.db.models import Q, ProtectedError, F, Count
+from django.db.models import Q, ProtectedError, F, Count, Prefetch
 from django.http import JsonResponse
 from django.shortcuts import redirect, get_object_or_404, render
 from django.urls import reverse_lazy, reverse
@@ -14,7 +14,7 @@ from django.views.generic import CreateView, ListView, UpdateView
 from django.views.generic.edit import FormMixin
 
 from admin_panel.forms import MessageToUserForm
-from admin_panel.models import MessageToUser
+from admin_panel.models import MessageToUser, MessageReadStatus
 from middleAdmin_panel.views import middle_admin_required
 from notifications.models import SupportUser, SupportFile, SupportMessage, Notification, AdminTicket, AdminTicketFile, \
     AdminTicketMessage, MiddleAdminNotification
@@ -681,6 +681,16 @@ def message_user_delete(request, pk):
     return redirect(reverse('message_to_user'))
 
 
+def message_user_delete_list(request, pk):
+    message = get_object_or_404(MessageToUser, id=pk)
+    try:
+        message.delete()
+        messages.success(request, 'پیام با موفقیت حذف گردید!')
+    except ProtectedError:
+        messages.error(request, " امکان حذف وجود ندارد! ")
+    return redirect(reverse('middle_message_management'))
+
+
 def middle_show_message_form(request, pk):
     message = get_object_or_404(MessageToUser, id=pk, user=request.user)
     units = Unit.objects.filter(is_active=True, user__manager=request.user).prefetch_related('renters').order_by('unit')
@@ -696,7 +706,6 @@ def middle_show_message_form(request, pk):
     return render(request, 'middle_send_message.html', {
         'message': message,
         'units_with_details': units_with_details,
-        # 'units_to_notify': units_to_notify
     })
 
 
@@ -711,34 +720,37 @@ def middle_send_message(request, pk):
             return redirect('message_to_user')
 
         units_qs = Unit.objects.filter(is_active=True, user__manager=request.user)
+
         if 'all' in selected_units:
             units_to_notify = units_qs
         else:
             units_to_notify = units_qs.filter(id__in=selected_units)
 
+        # فقط واحدهایی که کاربر و موبایل دارند
+        units_to_notify = units_to_notify.filter(user__isnull=False, user__mobile__isnull=False)
+
         if not units_to_notify.exists():
             messages.warning(request, 'هیچ واحد معتبری برای ارسال پیامک پیدا نشد.')
             return redirect('message_to_user')
 
-        notified_units = []
         with transaction.atomic():
-            for unit in units_to_notify:
-                if unit.user and unit.user.mobile:
-                    notified_units.append(unit)
+            notified_units = list(units_to_notify)  # بدون شرط موبایل/کاربر
 
-        if notified_units:
             message.notified_units.set(notified_units)
             message.send_notification = True
-            message.send_notification_date = timezone.now().date()
+            message.send_notification_date = timezone.now()
             message.save()
-            messages.success(request,
-                             f'پیامک برای واحدهای زیر ارسال شد: {", ".join(str(u.unit) for u in notified_units)}')
-        else:
-            messages.info(request, 'پیامکی ارسال نشد؛ ممکن است شماره موبایل واحدها موجود نباشد.')
+
+            for unit in notified_units:
+                read_status, created = MessageReadStatus.objects.get_or_create(
+                    message=message,
+                    unit=unit,
+                    defaults={'is_read': False}
+                )
+                print(f"واحد {unit.unit} - رکورد ساخته شد؟ {created}")
 
         return redirect('middle_message_management')
 
-    # اگر GET بود، فرم را رندر کن
     units_with_details = Unit.objects.filter(is_active=True)
     return render(request, 'middle_send_message.html', {
         'message': message,
@@ -761,13 +773,23 @@ class MiddleMessageToUserListView(ListView):
     def get_queryset(self):
         query = self.request.GET.get('q', '')
 
+        # Prefetch read_statuses و unit مرتبط
+        read_statuses_prefetch = Prefetch(
+            'read_statuses',
+            queryset=MessageReadStatus.objects.select_related('unit__user')
+                                             .prefetch_related('unit__renters')
+        )
+
         qs = MessageToUser.objects.filter(
             user=self.request.user,
             is_active=True,
             send_notification=True
         ).annotate(
             sent_users_count=Count('notified_units', distinct=True)
-        ).prefetch_related('notified_units')
+        ).prefetch_related(
+            'notified_units',  # در صورت نیاز به جدول قدیمی
+            read_statuses_prefetch  # اینجا وضعیت واحدها را آماده می‌کنیم
+        )
 
         if query:
             qs = qs.filter(

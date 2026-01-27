@@ -1,26 +1,26 @@
 
 
 
-
-                  {{ form.non_field_errors }}
-                      <form action="" method="POST" enctype="multipart/form-data" novalidate>
-
-                  {% for field in form %}
-                  <div class="form-group">
-                      {{ field.label_tag }}
-                      {{ field }}
-                      {{ field.errors }}
-                  </div>
-                  {% endfor %}
-
-                 {% csrf_token %}
-                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                    <button type="submit" class="btn btn-gradient-primary mr-2">
-                        {% if button_text %}
-                        {{button_text}}
-                        {% else %}
-                        Submit
-                        {% endif %}
-                    </button>
-                </div>
-            </form>
+{##}
+{#                  {{ form.non_field_errors }}#}
+{#                      <form action="" method="POST" enctype="multipart/form-data" novalidate>#}
+{##}
+{#                  {% for field in form %}#}
+{#                  <div class="form-group">#}
+{#                      {{ field.label_tag }}#}
+{#                      {{ field }}#}
+{#                      {{ field.errors }}#}
+{#                  </div>#}
+{#                  {% endfor %}#}
+{##}
+{#                 {% csrf_token %}#}
+{#                <div class="d-grid gap-2 d-md-flex justify-content-md-end">#}
+{#                    <button type="submit" class="btn btn-gradient-primary mr-2">#}
+{#                        {% if button_text %}#}
+{#                        {{button_text}}#}
+{#                        {% else %}#}
+{#                        Submit#}
+{#                        {% endif %}#}
+{#                    </button>#}
+{#                </div>#}
+{#            </form>#}

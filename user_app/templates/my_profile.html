@@ -7,18 +7,7 @@
 
 {% block main_content %}
  
-<div class="container py-5">
-{% if messages %}
-   <div class="row mb-2">
-
-    {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">
-            {{ message }}
-        </div>
-    {% endfor %}
-
-</div>
-{% endif %}
+<div class="container mt-3">
 <div class="row mt-2 g-3">
     <div class="col-12 col-lg-6">
           <!-- مشخصات کاربر -->
@@ -40,7 +29,7 @@
     <div class="card mb-4">
         <div class="card-header">اطلاعات واحد</div>
         <div class="card-body">
-            {% if unit %}
+{#            {% if unit %}#}
                 <p><strong>شماره واحد:</strong> {{ unit.unit }}</p>
                 <p><strong>طبقه:</strong> {{ unit.floor_number }}</p>
                 <p><strong>متراژ:</strong> {{ unit.area }}متر </p>
@@ -50,9 +39,9 @@
                 </p>
                         <img src="/static/img/home.png" class="profile-image" alt="">
 
-            {% else %}
-                <p class="text-muted">واحدی برای این کاربر ثبت نشده است.</p>
-            {% endif %}
+{#            {% else %}#}
+{#                <p class="text-muted">واحدی برای این کاربر ثبت نشده است.</p>#}
+{#            {% endif %}#}
         </div>
     </div>
     </div>

@@ -13,7 +13,7 @@
         {% csrf_token %}
         <div class="row">
             <div class="col-12">
-{#                {{ form.title.label_tag }}#}
+                {{ form.title.label_tag }}
                 {{ form.title }}
                 {{ form.title.errors }}
             </div>
@@ -26,6 +26,11 @@
                 {{ form.is_active.label_tag }}
                 {{ form.is_active }}
                 {{ form.is_active.errors }}
+            </div>
+            <div class="col-4 py-2">
+                {{ form.show_in_marquee.label_tag }}
+                {{ form.show_in_marquee }}
+                {{ form.show_in_marquee.errors }}
             </div>
 
                   {% if form.instance.id %}

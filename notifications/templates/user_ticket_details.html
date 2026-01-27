@@ -8,8 +8,8 @@
 {% block main_content %}
 
     
-  <div class="container-fluid py-5">
-        <div class="card mb-3 mt-3 shadow-sm">
+  <div class="container-fluid mt-3">
+        <div class="card mb-3 shadow-sm">
         <div class="card-header bg-light text-white">
             <h3 class="mb-0">مشاهده تیکت {{ ticket.ticket_no }}#</h3>
         </div>
@@ -32,10 +32,10 @@
 
     <!-- پیام‌ها -->
     {% for msg in messages %}
-    <div class="card mb-2 {% if msg.sender.is_staff %}border-info{% else %}border-secondary{% endif %} shadow-sm">
+    <div class="card mb-2 {% if msg.sender.is_middle_admin %}border-info{% else %}border-secondary{% endif %} shadow-sm">
         <div class="card-header">
                <strong>
-            <span class="{% if msg.sender.is_staff %}badge bg-info px-4 py-2 fw-bold{% else %}badge bg-success fw-bold{% endif %}">
+            <span class="{% if msg.sender.is_middle_admin %}badge bg-info px-4 py-2 fw-bold{% else %}badge bg-success fw-bold{% endif %}">
                 {{ msg.sender_role }}
             </span>
         </strong>
@@ -82,47 +82,7 @@
                 </form>
               </div>
     
-{% endif %} 
-{#  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>#}
-{#<script>#}
-{#document.addEventListener("DOMContentLoaded", function() {#}
-{#    const form = document.getElementById("replyForm");#}
-{##}
-{#    if (form) {#}
-{#        form.addEventListener("submit", function(e) {#}
-{#            e.preventDefault();#}
-{##}
-{#            // فیلد پیام را بگیر#}
-{#            const messageField = form.querySelector('textarea[name="message"]');#}
-{#            const messageValue = messageField ? messageField.value.trim() : '';#}
-{##}
-{#            // اگر پیام خالی بود → خطا#}
-{#            if (!messageValue) {#}
-{#                Swal.fire({#}
-{#                    icon: 'error',#}
-{#                    text: 'لطفاً متن پیام را وارد کنید.',#}
-{#                    timer: 1800,#}
-{#                    showConfirmButton: false#}
-{#                });#}
-{#                return;#}
-{#            }#}
-{##}
-{#            // اگر پیام معتبر بود → موفقیت و ارسال فرم#}
-{#            Swal.fire({#}
-{#                icon: 'success',#}
-{#                text: 'پاسخ تیکت با موفقیت ارسال شد.',#}
-{#                timer: 1500,#}
-{#                showConfirmButton: false#}
-{#            }).then(() => {#}
-{#                form.submit();#}
-{#            });#}
-{#        });#}
-{#    }#}
-{##}
-{#});#}
-</script>
-
-
+{% endif %}
 {% endblock main_content %}
 
 

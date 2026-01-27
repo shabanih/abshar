@@ -17,7 +17,8 @@ from user_app.models import Unit, User, Bank
 
 class Announcement(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    title = RichTextUploadingField(null=True, blank=True)  # ⬅ـ تغییر
+    title = RichTextUploadingField(null=True, blank=True)
+    show_in_marquee = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 

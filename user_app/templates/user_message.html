@@ -52,6 +52,7 @@
           <th>موضوع</th>
           <th>متن پیام</th>
           <th>تاریخ ارسال</th>
+{#          <th>تاریخ مشاهده</th>#}
       </tr>
       </thead>
          {% if user_messages %}
@@ -62,6 +63,7 @@
           <td>{{ user_message.title|safe }}</td>
           <td class="col-12 col-lg-6 ">{{ user_message.message|safe }}</td>
           <td>{{ user_message.created_at|show_jalali_date_only }}</td>
+{#          <td>{{ user_message.read_at|show_jalali_date_only }}</td>#}
       </tr>
       </tbody>
            {% endfor %}

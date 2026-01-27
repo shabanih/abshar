@@ -554,48 +554,62 @@ def export_units_report_pdf(request):
 def fund_turnover_user(request):
     user = request.user
     query = request.GET.get('q', '').strip()
-    paginate = request.GET.get('paginate', '20')  # پیش‌فرض 20
+    paginate = request.GET.get('paginate', '20')
 
-    total_amount = Fund.objects.filter(user=user).aggregate(sum=Sum('amount'))['sum']
+    # واحدهایی که کاربر به آن دسترسی دارد
+    user_units = Unit.objects.filter(
+        Q(user=user) |  # مالک
+        Q(renters__user=user, renters__renter_is_active=True)  # مستاجر فعال
+    ).distinct()
 
-    if not getattr(user, 'manager', False):
-        funds = Fund.objects.none()
-    else:
-        funds = Fund.objects.filter(user=user)
+    # مدیر ساختمان → همه واحدهای ساختمان
+    if user.is_middle_admin:
+        user_units = Unit.objects.filter(
+            myhouse__residents=user,
+            is_active=True
+        ).distinct()
 
-        # جستجو روی payment_description، transaction_no و doc_number
-        if query:
-            funds = funds.filter(
-                Q(payment_description__icontains=query) |
-                Q(payment_gateway__icontains=query) |
-                Q(transaction_no__icontains=query) |
-                Q(payment_date__icontains=query) |
-                Q(amount__icontains=query)
-            )
+    funds = Fund.objects.filter(
+        unit__in=user_units,
+        user=request.user,  # پرداخت‌کننده خود کاربر
+        is_initial=False  # حذف افتتاحیه‌ها
+    )
 
-        funds = funds.order_by('-created_at')
+    # جستجو
+    if query:
+        funds = funds.filter(
+            Q(payment_description__icontains=query) |
+            Q(payment_gateway__icontains=query) |
+            Q(transaction_no__icontains=query) |
+            Q(payment_date__icontains=query) |
+            Q(amount__icontains=query)
+        )
+
+    funds = funds.order_by('-created_at')
+
+    # مجموع
+    total_amount = funds.aggregate(total=Sum('amount'))['total'] or 0
 
     # پیجینیشن
     try:
         paginate = int(paginate)
+        if paginate <= 0:
+            paginate = 20
     except ValueError:
-        paginate = 20
-
-    if paginate <= 0:
         paginate = 20
 
     paginator = Paginator(funds, paginate)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    context = {
+    return render(request, 'fund_turnover_user.html', {
         'funds': page_obj,
         'query': query,
         'paginate': paginate,
         'page_obj': page_obj,
-        'total_amount': total_amount
-    }
-    return render(request, 'fund_turnover_user.html', context)
+        'total_amount': total_amount,
+    })
+
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)

@@ -237,6 +237,7 @@ def payment_user_view(request, pk):
                 amount=charge.total_charge_month,
                 creditor_amount=0,
                 user=request.user,
+                payer_name=charge.unit.get_label(),
                 payment_date=charge.payment_date,
                 payment_description=f"{charge.title}",
                 transaction_no=charge.transaction_reference,

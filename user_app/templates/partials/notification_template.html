@@ -13,7 +13,7 @@
                   <span id="total-count-products" class="position-absolute bg-warning rounded-circle d-flex align-items-center justify-content-center text-dark px-1"
                         style="top: 20px; left: 15px; height: 20px; min-width: 2px;" >{{ new_charges_count }}</span>
               </a>
-{#                {% if new_charges_count   %}#}
+                {% if new_charges_count   %}
                 	  <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="messageDropdown">
             
                 <div class="dropdown-divider"></div>
@@ -37,7 +37,7 @@
                       </a>
               </div>
 
-{#                {% endif %} #}
+                {% endif %} 
             </li>
               <li class="nav-item dropdown ">
               <a class="nav-link count-indicator dropdown-toggle" id="notificationDropdown" href="#" data-bs-toggle="dropdown">
@@ -47,7 +47,7 @@
                       {{ new_messages_count }}
                   </span>
               </a>
-{#                       {% if new_messages_count %}#}
+                       {% if new_messages_count %}
               <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="notificationDropdown">
              
                   	<p class="p-3 mb-0 rtl">{{ new_messages_count }} پیام از طرف مدیر</p>
@@ -61,7 +61,7 @@
                     <h6 class="p-3 mb-0 text-center">نمایش همه پیام ها</h6>
                   </a>
               </div>
-{#                 {% endif %} #}
+                 {% endif %} 
               </li>
           
               <li class="nav-item nav-profile dropdown">

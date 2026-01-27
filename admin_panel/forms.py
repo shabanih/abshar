@@ -30,19 +30,30 @@ CHOICES = {
     'True': 'فعال',
     'False': 'غیرفعال'
 }
+MARQUEE_CHOICES = {
+    'True': 'بله',
+    'False': 'خیر'
+}
 
 
 class announcementForm(forms.ModelForm):
-    title = forms.CharField(widget=CKEditorUploadingWidget())
-
+    # title = forms.CharField(widget=CKEditorUploadingWidget())
+    title = forms.CharField(
+        error_messages=error_message,
+        required=True,
+        widget=forms.Textarea(attrs=attr),
+        label='متن اطلاعیه '
+    )
     # slug = forms.SlugField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
     #                        label='عنوان در Url')
     is_active = forms.ChoiceField(label='فعال /غیرفعال نمودن اطلاعیه', required=True,
                                   error_messages=error_message, choices=CHOICES, widget=forms.Select(attrs=attr))
+    show_in_marquee = forms.ChoiceField(label='نمایش در اخبار مهم ساختمان', required=True, initial=False,
+                                  error_messages=error_message, choices=MARQUEE_CHOICES, widget=forms.Select(attrs=attr))
 
     class Meta:
         model = Announcement
-        fields = ['title', 'is_active']
+        fields = ['title', 'is_active', 'show_in_marquee']
 
 
 class MessageToUserForm(forms.ModelForm):

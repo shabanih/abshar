@@ -261,6 +261,20 @@
     </div>
 </div>
 </div>
-    
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+  const headlines = document.querySelectorAll('.headlines li');
+  let current = 0;
+
+  function showNext() {
+    headlines[current].classList.remove('active');
+    current = (current + 1) % headlines.length;
+    headlines[current].classList.add('active');
+  }
+
+  // هر 5 ثانیه عنوان بعدی نمایش داده شود
+  setInterval(showNext, 5000);
+});
+</script>
     
 {% endblock main_content %}

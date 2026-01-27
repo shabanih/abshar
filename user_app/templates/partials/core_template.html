@@ -86,13 +86,34 @@
            
         </div>
       </nav>
+ 
+      
       <!-- partial -->
       <div class="container-fluid page-body-wrapper">
+      
         <!-- partial:partials/_sidebar.html -->
         {% include 'partials/sidebar_template.html' %}
         <!-- partial -->
         <div class="main-panel">
           <div class="content-wrapper">
+        <div class="container" dir="rtl">
+      <div class="row align-items-center p-0">
+    <!-- News Ticker (col-9) -->
+    <div class="col-12 shadow-lg p-0">
+      <div class="news-ticker">
+        <div class="label">اطلاعیه ها</div>
+      <ul class="headlines">
+  {% for title in marquee_announcements %}
+    <li class="{% if forloop.first %}active{% endif %}">
+      {{ title.title|safe }}
+    </li>
+  {% empty %}
+    <li class="active">اطلاعیه‌ای وجود ندارد</li>
+  {% endfor %}
+</ul>
+      </div>
+    </div>
+      
              <div class="page-header">
               <h3 class="page-title pb-1 pt-5">
                 <span class="page-title-icon bg-gradient-primary text-white">
@@ -107,32 +128,9 @@
 {#<!--                  <li class="breadcrumb-item active" aria-current="page">{{ page_title }}</li>-->#}
 {#                </ul>#}
 {#              </nav>#}
+             
             </div>
-{#            <section class="content py-3">#}
-{#              <div class="container-fluid">#}
-{#                <div class="row">#}
-{#                  <div class="col-12">#}
-{#                    <div class="form-group">#}
-{#                      {% if messages %}#}
-{#                      {% for message in messages  %}#}
-{##}
-{#                      {% if message.tags == 'success' %}#}
-{#                      <div class="alert alert-success">#}
-{#                        {{message}}#}
-{#                      </div>#}
-{#                      {% else %}#}
-{#                      <div class="alert alert-warning">#}
-{#                        {{message}}#}
-{#                      </div>#}
-{#                      {% endif %}#}
-{##}
-{#                      {% endfor %}#}
-{#                      {% endif %}#}
-{#            </div>#}
-{#                   </div>#}
-{#                </div>#}
-{#              </div>#}
-{#            </section>#}
+
             {{ form.non_field_errors }}
                     <div class="container py-4">
                     {% if messages %}
@@ -198,8 +196,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/persian-date/dist/persian-date.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
-
-
+      </div>
+    </div>
   </body>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
@@ -226,6 +224,22 @@
     });
   }, 3000); // 3000 میلی‌ثانیه = 3 ثانیه
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const headlines = document.querySelectorAll('.headlines li');
+  if (headlines.length <= 1) return; // 👈 خیلی مهم
+
+  let current = 0;
+  setInterval(() => {
+    headlines[current].classList.remove('active');
+    current = (current + 1) % headlines.length;
+    headlines[current].classList.add('active');
+  }, 5000);
+});
+
+</script>
+
 </html>
   {% load sweetify %}
     {% sweetify %}

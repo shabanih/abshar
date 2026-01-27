@@ -62,7 +62,9 @@
                         <tbody class="text-center">
                             <tr>
                                 <td>{{ forloop.counter }}</td>
-                                <td>{{ announcement.title|safe }}</td>
+                                <td class="p-0">
+                                   {{ announcement.title|safe }}
+                                </td>
                                 <td>{{ announcement.created_at|show_jalali }}</td>
                                 <td>
                                          {% if announcement.is_active == True %}

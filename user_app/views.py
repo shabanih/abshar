@@ -26,7 +26,7 @@ from admin_panel.forms import UnifiedChargePaymentForm
 from middleAdmin_panel.views import middle_admin_required
 from notifications.models import Notification, SupportUser
 from user_app import helper
-from admin_panel.models import Announcement, UnifiedCharge, MessageToUser
+from admin_panel.models import Announcement, UnifiedCharge, MessageToUser, MessageReadStatus
 from user_app.forms import LoginForm, MobileLoginForm
 from user_app.models import User, Unit, Bank, MyHouse, CalendarNote
 
@@ -318,6 +318,15 @@ def user_panel(request):
     return render(request, 'partials/home_template.html', context)
 
 
+# def core_announce(request):
+#     user = request.user
+#     announcements = Announcement.objects.filter(
+#             user=user,
+#             is_active=True
+#         )
+#     return render(request, 'partials/core_template.html', {'announcements': announcements})
+
+
 # ==================================
 
 def fetch_user_charges(request):
@@ -463,12 +472,32 @@ class MessageListView(ListView):
     def get_queryset(self):
         user = self.request.user
         query = self.request.GET.get('q', '')
-        queryset = MessageToUser.objects.filter(
-            user=user,
+        units = Unit.objects.filter(
             is_active=True
-        )
-        queryset.update(is_seen=True)
+        ).filter(
+            Q(user=user) |  # مالک
+            Q(renters__user=user, renters__renter_is_active=True)  # مستاجر فعال
+        ).distinct()
 
+        # پیام‌های فعال کاربر
+        queryset = MessageToUser.objects.filter(
+            notified_units__in=units,
+            is_active=True
+        ).distinct()
+
+        # آپدیت read_status برای هر پیام و هر واحد کاربر
+        for msg in queryset:
+            for unit in units:  # هر واحد کاربر
+                read_status, created = MessageReadStatus.objects.get_or_create(
+                    message=msg,
+                    unit=unit
+                )
+                if not read_status.is_read:
+                    read_status.is_read = True
+                    read_status.read_at = timezone.now()
+                    read_status.save()
+
+        # فیلتر جستجو
         if query:
             queryset = queryset.filter(
                 Q(user__full_name__icontains=query) |
@@ -501,9 +530,13 @@ def user_profile(request):
             messages.warning(request, 'رمز عبور باید حداقل 8 رقم و شامل حروف و اعداد باشد. مجددا بررسی فرمایید.')
     else:
         password_form = PasswordChangeForm(user)
-
     # اطلاعات واحد
-    unit = Unit.objects.filter(user=user).first()
+    unit = Unit.objects.filter(
+        is_active=True
+    ).filter(
+        Q(user=user) |  # مالک
+        Q(renters__user=user, renters__renter_is_active=True)  # مستاجر فعال
+    ).distinct().first()
 
     context = {
         'user_obj': user,

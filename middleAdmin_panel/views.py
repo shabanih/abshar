@@ -269,7 +269,7 @@ class MiddleAnnouncementListView(ListView):
 @method_decorator(middle_admin_required, name='dispatch')
 class MiddleAnnouncementUpdateView(UpdateView):
     model = Announcement
-    template_name = 'admin_panel/announcement.html'
+    template_name = 'middle_admin/middle_send_announcement.html'
     form_class = announcementForm
     success_url = reverse_lazy('middle_announcement')
 

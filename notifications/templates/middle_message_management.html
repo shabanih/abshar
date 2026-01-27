@@ -90,6 +90,10 @@
                     </td>
                            <td>{{ message.sent_users_count  }}</td>
                                        <td>
+                                              <a href="{% url 'delete_message_to_user_list' message.id %}" class="btn btn-gradient-danger p-1"
+                                        onclick="return confirmDeleteWithSweetAlert(event)">
+                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                            </a>
               <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ message.id }}" title="نمایش جزئیات"
         class="btn btn-gradient-info text-dark px-2 py-1">
     <i class="mdi mdi-eye"></i>
@@ -104,11 +108,17 @@
             <hr/>
             <div class="modal-body text-end">
                 <p><strong>لیست واحدهای ارسالی:</strong></p>
-       {% for unit in message.notified_units.all %}
-                    {{ unit.get_label }}<br/>
-                {% empty %}
-                    هیچ واحدی ارسال نشده است.
-                {% endfor %}
+              {% for status in message.read_statuses.all %}
+    {{ status.unit.get_label }} -
+    {% if status.is_read %}
+        خوانده شده
+    {% else %}
+        خوانده نشده
+    {% endif %}
+    <br/>
+{% empty %}
+    هیچ واحدی ارسال نشده است.
+{% endfor %}
             </div>
         </div>
     </div>

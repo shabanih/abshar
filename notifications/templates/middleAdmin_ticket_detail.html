@@ -32,10 +32,10 @@
 
     <!-- پیام‌ها -->
     {% for msg in messages_list %}
-    <div class="card mb-2 {% if msg.sender.is_staff %}border-info{% else %}border-secondary{% endif %} shadow-sm">
+    <div class="card mb-2 {% if msg.sender.is_middle_admin %}border-info{% else %}border-secondary{% endif %} shadow-sm">
         <div class="card-header">
                <strong>
-            <span class="{% if msg.sender.is_staff %}badge bg-info px-4 py-2 fw-bold{% else %}badge bg-success fw-bold{% endif %}">
+            <span class="{% if msg.sender.is_middle_admin %}badge bg-info px-4 py-2 fw-bold{% else %}badge bg-success fw-bold{% endif %}">
                 {{ msg.sender_role }}
             </span>
         </strong>

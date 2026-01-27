@@ -175,6 +175,15 @@ class Unit(models.Model):
         renter = self.get_active_renter()
         return f"واحد {self.unit} - {renter.renter_name}" if renter else f"واحد {self.unit} - {self.owner_name}"
 
+    # def get_label(self):
+    #     renter = self.get_active_renter()
+    #     # اگر مستاجر وجود دارد ولی نام ندارد، مالک را نمایش بده
+    #     if renter and renter.renter_name:
+    #         return f"واحد {self.unit} - {renter.renter_name}"
+    #
+    #     owner = self.owner_name or "نام مالک ندارد"
+    #     return f"واحد {self.unit} - {owner}"
+
     def get_label_invoice(self):
         renter = self.get_active_renter()
         return f" {renter.renter_name}" if renter else f"{self.owner_name}"
