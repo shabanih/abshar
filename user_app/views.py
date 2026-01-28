@@ -1,6 +1,8 @@
 import io
 import json
+import os
 
+import jdatetime
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
@@ -8,8 +10,10 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.contenttypes.models import ContentType
 from django.core.paginator import Paginator
-from django.db.models import Q, Sum
+from django.db import transaction
+from django.db.models import Q, Sum, ProtectedError
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import get_template
@@ -26,9 +30,9 @@ from admin_panel.forms import UnifiedChargePaymentForm
 from middleAdmin_panel.views import middle_admin_required
 from notifications.models import Notification, SupportUser
 from user_app import helper
-from admin_panel.models import Announcement, UnifiedCharge, MessageToUser, MessageReadStatus
-from user_app.forms import LoginForm, MobileLoginForm
-from user_app.models import User, Unit, Bank, MyHouse, CalendarNote
+from admin_panel.models import Announcement, UnifiedCharge, MessageToUser, MessageReadStatus, Expense, Fund
+from user_app.forms import LoginForm, MobileLoginForm, UserPayForm, UserPayMoneyForm
+from user_app.models import User, Unit, Bank, MyHouse, CalendarNote, UserPayMoney, UserPayMoneyDocument
 
 # def index(request):
 #     form = LoginForm(request.POST or None)
@@ -544,3 +548,206 @@ def user_profile(request):
         'password_form': password_form,
     }
     return render(request, 'my_profile.html', context)
+
+
+@method_decorator(login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN), name='dispatch')
+class UserPayMoneyViewCreateView(CreateView):
+    model = UserPayMoney
+    template_name = 'user_pay.html'
+    form_class = UserPayMoneyForm
+    success_url = reverse_lazy('user_pay_money')
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+
+        form.instance.unit = Unit.objects.get(user=self.request.user, is_active=True)
+
+        try:
+            with transaction.atomic():
+                self.object = form.save(commit=False)
+                self.object.is_paid = False
+                self.object.save()
+
+                # ذخیره فایل‌ها
+                files = self.request.FILES.getlist('document')
+                for f in files:
+                    UserPayMoneyDocument.objects.create(
+                        user_pay=self.object,
+                        document=f
+                    )
+
+            messages.success(self.request, 'پرداخت با موفقیت ثبت شد (در انتظار دریافت)')
+            return redirect(self.success_url)
+
+        except Exception as e:
+            messages.error(self.request, f'خطا در ثبت پرداخت: {e}')
+            return self.form_invalid(form)
+
+    def get_queryset(self):
+        queryset = UserPayMoney.objects.filter(user=self.request.user).order_by('-created_at')
+
+        # فیلتر بر اساس بانک
+        bank_id = self.request.GET.get('bank')
+        if bank_id:
+            queryset = queryset.filter(bank__id=bank_id)
+
+        # فیلتر بر اساس واحد
+        unit_id = self.request.GET.get('unit')
+        if unit_id:
+            queryset = queryset.filter(unit__id=unit_id)
+
+        # فیلتر بر اساس amount
+        amount = self.request.GET.get('amount')
+        if amount:
+            queryset = queryset.filter(amount__icontains=amount)
+
+        # فیلتر بر اساس description
+        description = self.request.GET.get('description')
+        if description:
+            queryset = queryset.filter(description__icontains=description)
+
+        # فیلتر بر اساس details
+        details = self.request.GET.get('details')
+        if details:
+            queryset = queryset.filter(details__icontains=details)
+
+        payer_name = self.request.GET.get('payer_name')
+        if payer_name:
+            queryset = queryset.filter(payer_name__icontains=payer_name)
+
+        # فیلتر بر اساس تاریخ
+        from_date_str = self.request.GET.get('from_date')
+        to_date_str = self.request.GET.get('to_date')
+        try:
+            if from_date_str:
+                jalali_from = jdatetime.datetime.strptime(from_date_str, '%Y-%m-%d')
+                gregorian_from = jalali_from.togregorian().date()
+                queryset = queryset.filter(doc_date__gte=gregorian_from)
+
+            if to_date_str:
+                jalali_to = jdatetime.datetime.strptime(to_date_str, '%Y-%m-%d')
+                gregorian_to = jalali_to.togregorian().date()
+                queryset = queryset.filter(doc_date__lte=gregorian_to)
+        except ValueError:
+            messages.warning(self.request, 'فرمت تاریخ وارد شده صحیح نیست.')
+
+        is_paid = self.request.GET.get('is_paid')
+        if is_paid == '1':
+            queryset = queryset.filter(is_paid=True)
+        elif is_paid == '0':
+            queryset = queryset.filter(is_paid=False)
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        incomes = self.get_queryset()  # از get_queryset برای دریافت داده‌های فیلتر شده استفاده می‌کنیم
+        paginator = Paginator(incomes, 50)
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        context['page_obj'] = page_obj
+        context['total_user_pays'] = UserPayMoney.objects.filter(user=self.request.user).count()
+        context['banks'] = Bank.objects.filter(user=self.request.user)
+        managed_users = User.objects.filter(Q(manager=self.request.user) | Q(pk=self.request.user.pk))
+        context['units'] = Unit.objects.filter(is_active=True, user__in=managed_users)
+
+        return context
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def pay_user_edit(request, pk):
+    pay = get_object_or_404(
+        UserPayMoney,
+        pk=pk,
+        user=request.user
+    )
+
+    if request.method != 'POST':
+        return redirect('user_pay_money')
+
+    form = UserPayMoneyForm(
+        request.POST,
+        request.FILES,
+        instance=pay
+    )
+
+    if not form.is_valid():
+        messages.error(request, 'خطا در ویرایش پرداخت.')
+        return redirect('user_pay_money')
+
+    try:
+        with transaction.atomic():
+            pay = form.save()
+            pay.user = request.user
+            pay.save()
+
+            files = request.FILES.getlist('document')
+            for f in files:
+                UserPayMoneyDocument.objects.create(
+                    user_pay=pay,
+                    document=f
+                )
+
+        messages.success(request, 'پرداخت با موفقیت ویرایش شد.')
+        return redirect('user_pay_money')
+
+    except Exception:
+        messages.error(request, 'خطا در ویرایش پرداخت.')
+        return redirect('user_pay_money')
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def user_pay_delete(request, pk):
+    pay = get_object_or_404(UserPayMoney, id=pk)
+    try:
+        with transaction.atomic():
+            # حذف Fund مربوطه
+            pay_ct = ContentType.objects.get_for_model(UserPayMoney)
+            Fund.objects.filter(content_type=pay_ct, object_id=pay.id).delete()
+
+            pay.delete()
+
+        messages.success(request, 'پرداخت با موفقیت حذف گردید!')
+    except ProtectedError:
+        messages.error(request, "امکان حذف وجود ندارد!")
+    except Exception as e:
+        messages.error(request, f"خطا در حذف: {str(e)}")
+
+    return redirect(reverse('user_pay_money'))
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def user_delete_pay_document(request):
+    if request.method == 'POST':
+        image_url = request.POST.get('url')
+        pay_id = request.POST.get('pay_id')
+
+        if not image_url or not pay_id:
+            return JsonResponse({'status': 'error', 'message': 'پرداخت یافت نشد'})
+
+        try:
+            pay = get_object_or_404(UserPayMoney, id=pay_id)
+
+            relative_path = image_url.replace(settings.MEDIA_URL, '')  # دقیق کردن مسیر
+            doc = UserPayMoneyDocument.objects.filter(user_pay=pay, document=relative_path).first()
+
+            if doc:
+                # Delete the file from filesystem
+                if doc.document:
+                    file_path = os.path.join(settings.MEDIA_ROOT, doc.document.name)
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+
+                doc.delete()
+                return JsonResponse({'status': 'success'})
+            else:
+                return JsonResponse({'status': 'error', 'message': 'تصویر مرتبط پیدا نشد'})
+
+        except UserPayMoney.DoesNotExist:
+
+            return JsonResponse({'status': 'error', 'message': 'پرداخت یافت نشد'})
+
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': f'خطا در حذف تصویر: {str(e)}'})
+
+    return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})

@@ -12,7 +12,8 @@ from django.utils import timezone
 
 from admin_panel.forms import UnifiedChargePaymentForm
 from admin_panel.models import Fund, UnifiedCharge
-
+from user_app.forms import UserPayMoneyForm, UserPayGateForm
+from user_app.models import Bank, UserPayMoney
 
 MERCHANT = "3d6d6a26-c139-49ac-9d8d-b03a8cdf0fdd"
 
@@ -87,7 +88,6 @@ def verify_pay(request: HttpRequest):
     if not payment_charge:
         return JsonResponse({"error": "Charge not found"}, status=404)
 
-
     total_fix_charge = payment_charge.total_charge_month
 
     t_authority = request.GET.get('Authority')
@@ -104,42 +104,54 @@ def verify_pay(request: HttpRequest):
             req = requests.post(url=ZP_API_VERIFY, data=json.dumps(req_data), headers=req_header)
             req_data = req.json()
 
+            default_bank = Bank.objects.filter(
+                user=payment_charge.user,
+                house=payment_charge.unit.myhouse,
+                is_gateway=True,
+                is_active=True
+            ).first()
+
+            if not default_bank:
+                messages.error(request, 'حساب درگاه اینترنتی تعریف نشده است.')
+                return redirect('user_charges')
+
             if not req_data.get('errors'):
                 t_status = req_data['data']['code']
                 if t_status == 100:
                     ref_str = req_data['data']['ref_id']
-                    # payment_charge.bank = default_bank  # ⭐⭐⭐
-                    payment_charge.transaction_reference = req_data['data']['ref_id']
+
+                    payment_charge.bank = default_bank
+                    payment_charge.transaction_reference = ref_str
                     payment_charge.is_paid = True
                     payment_charge.payment_date = timezone.now()
                     payment_charge.payment_gateway = 'پرداخت اینترنتی'
-
                     payment_charge.save()
 
                     content_type = ContentType.objects.get_for_model(payment_charge)
                     Fund.objects.create(
                         content_type=content_type,
                         object_id=payment_charge.id,
-                        bank=payment_charge.bank,
+                        unit=payment_charge.unit,
+                        bank=default_bank,
                         debtor_amount=payment_charge.total_charge_month,
                         amount=payment_charge.total_charge_month,
                         creditor_amount=0,
                         user=request.user,
+                        payer_name=payment_charge.unit.get_label(),
                         payment_date=payment_charge.payment_date,
-                        payment_description=payment_charge.title,
+                        payment_description=f"{payment_charge.title}",
                         transaction_no=payment_charge.transaction_reference,
                         payment_gateway='پرداخت اینترنتی'
                     )
 
-                    return render(request, 'payment_done.html', {
-                        'success': f'تراکنش شما با کد پیگیری {ref_str} با موفقیت انجام و پرداخت شارژ شما ثبت گردید. ',
-                        'charge': payment_charge,  # ← این خط حیاتی است
-                    })
+                    messages.success(
+                        request,
+                        f'پرداخت با موفقیت انجام شد. کد پیگیری: {ref_str}'
+                    )
+                    return redirect('user_charges')
                 elif t_status == 101:
-                    return render(request, 'payment_done.html', {
-                        'info': 'این تراکنش قبلا ثبت شده است',
-                        'charge': payment_charge,  # ← این خط حیاتی است
-                    })
+                    messages.info(request, 'این تراکنش قبلاً ثبت شده است.')
+                    return redirect('user_charges')
                 else:
                     return render(request, 'payment_done.html', {
                         'error': str(req_data['data']['message']),
@@ -165,47 +177,7 @@ def verify_pay(request: HttpRequest):
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-# def paymentUserView(request, pk):
-#     charge = get_object_or_404(UnifiedCharge, pk=pk)
-#
-#     if request.method == "POST":
-#         form = UnifiedChargePaymentForm(request.POST, instance=charge)
-#         if form.is_valid():
-#             charge = form.save(commit=False)
-#             charge.is_paid = True
-#             charge.payment_gateway = 'کارت به کارت'
-#             charge.update_penalty(save=False)
-#             charge.save()
-#
-#             # ساخت رکورد Fund
-#             content_type = ContentType.objects.get_for_model(charge)
-#             Fund.objects.create(
-#                 content_type=content_type,
-#                 object_id=charge.id,
-#                 bank=charge.bank,
-#                 debtor_amount=charge.total_charge_month,
-#                 amount=charge.total_charge_month,
-#                 creditor_amount=0,
-#                 user=request.user,
-#                 payment_date=charge.payment_date,
-#                 payment_description=f"{charge.title}",
-#                 transaction_no=charge.transaction_reference,
-#                 payment_gateway='کارت به کارت'
-#             )
-#             messages.success(request, 'success')
-#             return redirect(reverse('user_charges'))
-#         else:
-#             messages.error(request, 'error')
-#             return redirect(reverse('user_charges'))
-#     else:
-#         form = UnifiedChargePaymentForm(instance=charge)
-#
-#     return render(request, 'payment_gateway.html', {
-#         'form': form,
-#         'charge': charge
-#     })
-
-def payment_user_view(request, pk):
+def payment_charge_user_view(request, pk):
     charge = get_object_or_404(UnifiedCharge, pk=pk)
 
     # اجازه پرداخت برای مستاجر یا مالک
@@ -256,10 +228,48 @@ def payment_user_view(request, pk):
         })
 
 
-# @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-# def payment_done_view(request, pk):
-#     charge = get_object_or_404(UnifiedCharge, pk=pk)
-#     return render(request, 'payment_done.html', {'charge': charge})
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def user_pay_money_view(request, pk):
+    pay = get_object_or_404(UserPayMoney, pk=pk)
+    house = pay.unit.myhouse  # خانه مربوط به واحد را می‌گیریم
+
+    if request.method == 'POST':
+        form = UserPayGateForm(request.POST, instance=pay, house=house)
+        if form.is_valid():
+            pay = form.save(commit=False)
+            pay.is_paid = True
+            pay.payment_gateway = 'کارت به کارت'
+            pay.save()
+
+            # بانک انتخاب‌شده از فرم
+            selected_bank = form.cleaned_data['bank']
+
+            # ثبت Fund
+            content_type = ContentType.objects.get_for_model(UserPayMoney)
+            Fund.objects.create(
+                content_type=content_type,
+                object_id=pay.id,
+                unit=pay.unit,
+                bank=selected_bank,
+                debtor_amount=pay.total_charge_month,
+                amount=pay.total_charge_month,
+                creditor_amount=0,
+                user=request.user,
+                payer_name=pay.unit.get_label(),
+                payment_date=pay.payment_date,
+                payment_description=f"{pay.title}",
+                transaction_no=pay.transaction_reference,
+                payment_gateway='کارت به کارت'
+            )
+
+            messages.success(request, 'پرداخت شارژ با موفقیت ثبت گردید')
+            return redirect('user_charges')
+        else:
+            messages.error(request, 'خطا در ثبت پرداخت')
+            return render(request, 'user_pay_gateway.html', {'pay': pay, 'form': form})
+    else:
+        form = UserPayGateForm(instance=pay, house=house)
+        return render(request, 'user_pay_gateway.html', {'pay': pay, 'form': form})
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)

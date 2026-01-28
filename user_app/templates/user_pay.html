@@ -1,0 +1,324 @@
+{% extends 'partials/core_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% block page_title %}
+مدیریت پرداخت ها ( تعداد کل ثبت شده:{{ total_user_pays }} )
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container p-0">
+ 
+      <div class="row align-self-center mb-2">
+                <div class="col-12 col-md-3 col-xl-3 align-self-center">
+                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong2">
+                          <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
+                    ثبت پرداخت جدید
+                </button>
+                 </div>
+          <div class="col-12 col-md-5 col-xl-5">
+              <input type="text" id="searchInput" placeholder="جستجوی سریع در جدول..." onkeyup="searchTableIncome()" class="form-control mb-2 mt-2 p-1">
+          </div>
+        <div class=" col-12 col-md-5 col-xl-4 text-center align-self-center">
+            <button onclick="openQuery()" class="btn btn-gradient-info px-2 py-2">جستجوی پیشرفته</button>
+             {% if page_obj %}
+                    <a href="{% url 'export_income_pdf' %}?{{ request.GET.urlencode }}"
+               class="btn btn-gradient-danger px-md-4 px-2 py-2">
+               خروجی PDF
+            </a>
+            <a href="{% url 'export_income_excel' %}?{{ request.GET.urlencode }}"
+   class="btn btn-facebook text-white px-2 px-md-4 py-2">خروجی Excel</a>
+         
+                   {% else %}
+                        <button class="btn btn-gradient-danger px-2 px-md-4 py-2" disabled>خروجی PDF</button>
+                    <button class="btn btn-facebook text-white px-2 px-md-4 py-2" disabled>خروجی Excel</button>
+             
+                {% endif %}
+            </div>
+          </div>
+         <div id="query-form" style="display: none;" class="row mt-2">
+            <form method="get">
+               <div class="row mt-2 g-2">
+                     <div class="col-md-3">
+             <select name="bank" class="form-control form-control-sm">
+                <option value="">بانک را انتخاب کنید</option>
+                {% for bank in banks %}
+                    <option value="{{ bank.id }}" {% if request.GET.bank == bank.id|stringformat:"s" %}selected{% endif %}>
+                        {{ bank.bank_name }} - {{ bank.account_no }}
+                    </option>
+                {% endfor %}
+            </select>
+
+                    </div>
+                     <div class="col-md-2">
+                            <input type="text"  name="from_date2" data-jdp data-jdp-only-date  class="form-control" 
+                                   placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
+                          </div>
+                     <div class="col-md-2">
+                        <input type="text"  name="to_date2" data-jdp data-jdp-only-date class="form-control" 
+                               placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
+                        </div>
+                       </div>
+            
+                <div class="row mt-2 mb-2 g-2">
+                       <div class="col-md-2">
+                        <input type="text" name="amount" class="form-control" placeholder="مبلغ"
+                               value="{{ request.GET.amount }}">
+                    </div>
+                      <div class="col-md-4">
+                <input type="text" name="description" class="form-control" placeholder="شرح سند"
+                       value="{{ request.GET.description }}">
+            </div>
+                           <div class="col-md-2">
+                   <select name="is_paid" class="form-control form-control-sm">
+                    <option value="">وضعیت پرداخت</option>
+                    <option value="1" {% if request.GET.is_paid == "1" %}selected{% endif %}>
+                        پرداخت شده
+                    </option>
+                    <option value="0" {% if request.GET.is_paid == "0" %}selected{% endif %}>
+                        پرداخت نشده
+                    </option>
+                </select>
+               </div>
+                   
+                    </div>
+             <div class="row">
+                 <div class="col-md-9 align-self-center text-start mb-2">
+                       <input type="text" name="details" class="form-control" placeholder="توضیحات سند"
+                       value="{{ request.GET.details }}">
+                 </div>
+                     <div class="col-md-3 align-self-center mb-2">
+                            <button type="submit" class="btn btn-facebook px-4 py-2">جستجوی پیشرفته</button>
+                            <button type="button" class="btn btn-gradient-danger px-4 py-2" onclick="window.location.href=window.location.pathname;">حذف فیلتر</button>
+                        </div>
+                        </div>
+               </form>
+         </div>
+
+
+            <div class="table-responsive">
+                <table class="table table-bordered " id="incomeTable">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th>شرح سند</th>
+                            <th>مبلغ</th>
+                            <th>تاریخ ثبت</th>
+                             <th>توضیحات </th>
+                            <th>تصویر سند</th>
+                             <th>وضعیت پرداخت</th>
+                            <th>دستورات</th>
+                        </tr>
+                    </thead>
+                {% if page_obj %}
+               {% for pay in page_obj %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{pay.description }}</td>
+                                <td>{{pay.amount|three_digit_currency }}</td>
+                                 <td>{{pay.register_date|show_jalali }}</td>
+                               <td>
+                                   {% if pay.details %}
+                                       دارد
+                                   	{% else %}
+                                       ندارد
+                                   {% endif %} 
+                             
+                               </td>
+                                <td class="d-flex justify-content-center align-self-center">
+                                  {% for doc in pay.documents.all %}
+                                        <a href="{{ doc.document.url }}" target="_blank" 
+                                           > 
+                                            <i class="fas fa-image fa-2x me-2"></i></a>
+                                    {% empty %}
+                                     !No File
+                                    {% endfor %}
+                                </td>
+                                       <td>
+                                {% if pay.is_paid %}
+                                	<span class="text-success fw-bold">پرداخت شده</span>
+                                    {% else %}
+                                	<span class="text-danger fw-bold">پرداخت نشده</span>
+                                {% endif %} 
+                              
+                            </td>
+                            
+                                   <td class="col-lg-2 col-xl-2 p-0">
+                                      <a
+                                           class="btn btn-gradient-warning p-1 edit-user-pay"
+                                           data-pay-id="{{ pay.id }}"
+                                           data-amount="{{ pay.amount }}"
+                                           data-register_date="{{ pay.register_date|show_jalali}}"
+                                           data-description="{{ pay.description }}"
+                                           data-details="{{ pay.details }}"
+                                           data-images='{{ pay.get_document_urls_json|default:"[]" }}'
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#exampleModalLong2">
+                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
+                                        </a>
+
+                                              <a href="{% url 'user_pay_delete' pay.id %}" class="btn btn-danger p-1"
+                                           onclick="return confirmDeleteWithSweetAlert(event)">
+                                                  <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                                </a>
+                                    <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ pay.id }}" title="نمایش جزئیات"
+                                                        class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
+                                                </button>
+                                    <a href="{% url 'user_pay_money' pay.id %}"
+                                        class="btn btn-gradient-success px-2 py-2"
+                                        >
+                                        پرداخت
+                                    </a>
+                               
+
+                            </td>
+                       <div class="modal fade"  id="exampleModalLong2{{ pay.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ pay.id }}" aria-hidden="true">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalLabel{{ pay.id }}">مشاهده جزئیات </h5>
+                            </div>
+                          <hr/>
+                            <div class="modal-body text-end">
+                                 <p><strong>شرح درآمد:</strong> {{ pay.description }}</p>
+                                <p><strong>مبلغ:</strong> {{ pay.amount|three_digit_currency }} تومان</p>
+                                <p><strong>تاریخ ثبت :</strong> {{ pay.register_date|show_jalali_date_only}} </p>
+                                <p><strong>توضیحات:</strong>
+                                    {% if pay.details %}
+                                        <span class="badge bg-warning">{{ pay.details }} </span>
+                                        {% else %}
+                                        توضیحات ثبت نشده است
+                                    {% endif %}
+
+                                </p>
+                                <hr>
+                             {% if pay.transaction_reference %} 
+                                <p><strong>تاریخ پرداخت:</strong> {{ pay.payment_date|show_jalali_date_only }}</p>
+                                <p><strong> کد پیگیری:</strong> {{ pay.transaction_reference }}</p>
+                                <p><strong> بانک:</strong> {{ pay.bank }}</p>
+                            {% endif %}
+                                    <p><strong>وضعیت:</strong> 
+                                    {% if pay.is_paid %}
+                                    	<span class="badge bg-success">پرداخت شده</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span></p>
+                                    {% endif %} 
+
+                            </div>
+                            <hr/>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                            
+                            </tr>
+                        {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ درآمدی برای نمایش وجود ندارد.</td>
+                            </tr>
+                     <tbody>
+                    {% endif %}
+                </table>
+                   <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+       
+
+
+</div>
+{#      ============================= Moda Form ==================#}
+    
+    <div class="modal fade" id="exampleModalLong2" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle2" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header" id="exampleModalLongTitle2">
+        <h5 class="modal-title">ثبت پرداخت جدید</h5>
+      </div>
+         <hr>
+      <div class="modal-body" >
+         {{ form.non_field_errors }}
+          <form id="userPayForm" action="" method="POST"
+                enctype="multipart/form-data" novalidate>
+              {% csrf_token %}
+               <div class="row m-0 g-2">
+                   <div class="col-12 col-lg-6 col-xl-6 p-1">
+                       {{ form.amount.label_tag }}
+                      {{ form.amount }}
+                      {{ form.amount.errors }}
+                  </div>
+                      <div class="col-12 col-lg-6 col-xl-6 p-1">
+                       {{ form.register_date.label_tag }}
+                      {{ form.register_date }}
+                      {{ form.register_date.errors }}
+                  </div>
+                     </div>
+                     <div class="row">
+                  <div class="col-4 col-lg-12 col-xl-12">
+                      {{ form.description.label_tag }}
+                      {{ form.description }}
+                      {{ form.description.errors }}
+                  </div>
+                     </div>
+                 
+                <div class="row">
+                  <div class="form-group col-12">
+                    {{ form.details.label_tag }}
+                    {{ form.details }}
+                    {{ form.details.errors }}
+                  </div>
+                </div>
+             <div class="row">
+                  <div class="image-item form-group col-12">
+                    <label>تصاویر سند:</label>
+                      <input type="file" name="document" multiple class="form-control" accept="image/*">
+                      <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}" id="{{ pay.id }}">
+                       <div id="preview" class="mt-3"></div>
+                  </div>
+                </div>
+              
+                   <hr class="mt-2" style="color: #0f1531">
+                <div class="d-flex justify-content-between">
+                        <button type="submit" id="btn-submit-expense" class="btn btn-gradient-success px-4 py-2">ثبت پرداخت</button>
+                           <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
+                     </div>
+        
+
+          </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+
+{% endblock %}
+
+
+
+
+
+
+
+

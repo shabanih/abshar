@@ -37,6 +37,37 @@
                 <i class="mdi mdi-cash-multiple menu-icon"></i>
             </a>
         </li>
+    
+     <li class="nav-item mt-0">
+
+            <a class="nav-link
+               {% if request.resolver_match.url_name == 'user_pay_money' or request.resolver_match.url_name == 'fund_turn_over_user' %}active{% endif %}"
+               data-bs-toggle="collapse"
+               href="#general01">
+
+                <i class="menu-title">امور مالی</i>
+                <i class="menu-arrow"></i>
+                <i class="mdi mdi-clipboard-text menu-icon"></i>
+            </a>
+
+            <div class="collapse
+                {% if request.resolver_match.url_name == 'user_pay_money' or request.resolver_match.url_name == 'fund_turn_over_user' %}show{% endif %}"
+                id="general01">
+
+                <ul class="nav flex-column sub-menu">
+
+                    <li class="nav-item mt-0">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'user_pay_money' %}active{% endif %}"
+                           href="{% url 'user_pay_money' %}">پرداخت به ساختمان</a>
+                    </li>
+                    <li class="nav-item mt-0">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'fund_turn_over_user' %}active{% endif %}"
+                           href="{% url 'fund_turn_over_user' %}">تراکنش های من</a>
+                    </li>
+
+                </ul>
+            </div>
+        </li>
 
         <!-- گزارشات -->
         <li class="nav-item mt-0">
@@ -52,7 +83,7 @@
             </a>
 
             <div class="collapse
-                {% if request.resolver_match.url_name == 'user_announce_manage' or request.resolver_match.url_name == 'fund_turn_over_user' or request.resolver_match.url_name == 'user_message'  %}show{% endif %}"
+                {% if request.resolver_match.url_name == 'user_announce_manage' or request.resolver_match.url_name == 'user_message'  %}show{% endif %}"
                 id="general2">
 
                 <ul class="nav flex-column sub-menu">
@@ -65,11 +96,7 @@
                         <a class="nav-link {% if request.resolver_match.url_name == 'user_message' %}active{% endif %}"
                            href="{% url 'user_message' %}">پیام های من</a>
                     </li>
-
-                    <li class="nav-item mt-0">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'fund_turn_over_user' %}active{% endif %}"
-                           href="{% url 'fund_turn_over_user' %}">تراکنش مالی</a>
-                    </li>
+                
 
                 </ul>
             </div>

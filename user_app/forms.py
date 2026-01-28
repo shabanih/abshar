@@ -1,10 +1,14 @@
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django import forms
+from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db.models import Q
+from django.utils import timezone
+from jalali_date.fields import JalaliDateField
+from jalali_date.widgets import AdminJalaliDateWidget
 
 from notifications.models import SupportUser, SupportMessage, AdminTicket, AdminTicketMessage
-from user_app.models import User, Unit
+from user_app.models import User, Unit, UserPayMoney, Bank
 
 attr = {'class': 'form-control border-1 py-2 mb-2 placeholder-gray', }
 attr1 = {'class': 'form-control border-1 py-1 mb-2 '}
@@ -176,6 +180,7 @@ class UnitReportForm(forms.Form):
             }
         )
     )
+
     class Meta:
         model = Unit
         fields = ['unit']
@@ -198,3 +203,152 @@ class UnitReportForm(forms.Form):
             if obj.get_active_renter() else
             f"واحد {obj.unit} - {obj.owner_name}"
         )
+
+
+class UserPayMoneyForm(forms.ModelForm):
+    amount = forms.CharField(error_messages=error_message, max_length=20, required=True,
+                             widget=forms.TextInput(attrs=attr),
+                             label='مبلغ')
+    description = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=True,
+                                  label='شرح سند')
+    document = forms.FileField(
+        required=False,
+        error_messages=error_message,
+        widget=forms.ClearableFileInput(attrs=attr),
+        label='تصویر سند'
+    )
+    register_date = JalaliDateField(
+        label='تاریخ ثبت سند',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    details = forms.CharField(error_messages=error_message, required=False,
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+                              label='توضیحات ')
+
+    class Meta:
+        model = UserPayMoney
+        fields = ['amount', 'description', 'details', 'document', 'register_date']
+
+    def clean_amount(self):
+        """
+        تبدیل مبلغ به عدد + حذف کاما
+        """
+        amount = self.cleaned_data.get('amount')
+        try:
+            amount = int(str(amount).replace(',', ''))
+            if amount <= 0:
+                raise ValidationError('مبلغ باید بزرگتر از صفر باشد')
+            return amount
+        except ValueError:
+            raise ValidationError('مبلغ وارد شده معتبر نیست')
+
+    def clean_date(self):
+        """
+        اگر تاریخ وارد نشده بود → امروز
+        """
+        doc_date = self.cleaned_data.get('doc_date')
+        if not doc_date:
+            return timezone.now().date()
+        return doc_date
+
+
+class UserPayForm(forms.ModelForm):
+    bank = forms.ModelChoiceField(
+        queryset=Bank.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control form-control-sm'}),
+        empty_label="شماره حساب را انتخاب کنید",
+        error_messages=error_message,
+        required=True,
+        label='شماره حساب بانکی'
+    )
+    payment_date = JalaliDateField(
+        label='تاریخ پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        error_messages=error_message, required=False
+    )
+    transaction_reference = forms.IntegerField(error_messages=error_message,
+                                               widget=forms.TextInput(attrs=attr),
+                                               required=False, min_value=0,
+                                               label='کد پیگیری')
+    unit = forms.ModelChoiceField(
+        queryset=Unit.objects.none(),
+        required=False,
+        label='پرداخت کننده توسط ساکنین',
+        widget=forms.Select(
+            attrs={
+                'class': 'form-control-sm ',
+                'style': 'width:100%',
+            }
+        )
+    )
+    payer_name = forms.CharField(
+        max_length=200, required=False, label='پرداخت کننده غیر از ساکنین ',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+
+    class Meta:
+        model = UserPayMoney
+        fields = ['bank', 'transaction_reference', 'payment_date']
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            banks = Bank.objects.filter(is_active=True, user=user)
+            self.fields['bank'].queryset = banks
+
+            # پیدا کردن بانک پیش‌فرض
+            default_bank = banks.filter(is_default=True).first()
+            if default_bank:
+                self.fields['bank'].initial = default_bank
+
+            # تغییر label برای نمایش "(پیش‌فرض)" کنار نام بانک
+            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.account_no}" + (
+                " (پیش‌فرض)" if obj.is_default else "")
+
+
+class UserPayGateForm(forms.ModelForm):
+    payment_date = JalaliDateField(
+        label='تاریخ پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        required=False
+    )
+    transaction_reference = forms.IntegerField(
+        label='کد پیگیری',
+        min_value=0,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    bank = forms.ModelChoiceField(
+        queryset=Bank.objects.none(),
+        label='شماره کارت',
+        required=True,
+        empty_label="شماره کارت را انتخاب کنید",
+        widget=forms.Select(attrs={'class': 'form-control form-control-sm'})
+    )
+
+    class Meta:
+        model = UserPayMoney
+        fields = ['payment_date', 'transaction_reference', 'bank']
+
+    def __init__(self, *args, **kwargs):
+        house = kwargs.pop('house', None)  # خانه را از view می‌گیریم
+        super().__init__(*args, **kwargs)
+
+        # بانک‌ها پیش‌فرض خالی
+        self.fields['bank'].queryset = Bank.objects.none()
+
+        if house:
+            # همه بانک‌های فعال خانه
+            banks = Bank.objects.filter(is_active=True, house=house).order_by('-is_default', 'bank_name')
+            self.fields['bank'].queryset = banks
+
+            # بانک پیش‌فرض خانه
+            default_bank = banks.filter(is_default=True).first()
+            if default_bank:
+                self.fields['bank'].initial = default_bank
+
+            # نمایش label با "(پیش‌فرض)"
+            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.cart_number}" + (
+                " (پیش‌فرض)" if obj.is_default else "")

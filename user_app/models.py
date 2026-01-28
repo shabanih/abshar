@@ -1,6 +1,9 @@
+import json
+
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 
 
 class ChargeMethod(models.Model):
@@ -82,6 +85,7 @@ class Bank(models.Model):
     cart_number = models.CharField(max_length=100, verbose_name='شماره کارت')
     initial_fund = models.PositiveIntegerField(verbose_name='موجودی اولیه صندوق')
     is_default = models.BooleanField(default=False, verbose_name='حساب پیش فرض')
+    is_gateway = models.BooleanField(default=False, verbose_name='حساب پیش فرض درگاه اینترنتی')
     create_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 
@@ -417,3 +421,41 @@ class CalendarNote(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.year}/{self.month}/{self.day}"
+
+
+class UserPayMoney(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
+    payer_name = models.CharField(max_length=400, null=True, blank=True)
+    description = models.CharField(max_length=4000, verbose_name='شرح')
+    amount = models.PositiveIntegerField(verbose_name='قیمت', null=True, blank=True, default=0)
+    register_date = models.DateField(verbose_name='تاریخ سند')
+    details = models.TextField(verbose_name='توضیحات', null=True, blank=True)
+    is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده/ نشده')
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True)
+    payment_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="تاریخ پرداخت"
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
+    is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
+
+    def __str__(self):
+        return str(self.unit) if self.unit else f"Payment by {self.user}"
+
+    def get_document_urls_json(self):
+        # Use the correct attribute to access the file URL in the related `ExpenseDocument` model
+        image_urls = [doc.document.url for doc in self.documents.all() if doc.document]
+
+        return mark_safe(json.dumps(image_urls))
+
+
+class UserPayMoneyDocument(models.Model):
+    user_pay = models.ForeignKey(UserPayMoney, on_delete=models.CASCADE, related_name='documents')
+    document = models.FileField(upload_to='images/user_pay/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return str(self.user_pay.unit)

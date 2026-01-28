@@ -283,13 +283,14 @@ class BankForm(forms.ModelForm):
     initial_fund = forms.CharField(error_messages=error_message, required=True, widget=forms.NumberInput(attrs=attr),
                                    label='موجودی اولیه')
     is_default = forms.ChoiceField(choices=IS_CHOICES, label='حساب پیش فرض باشد', widget=forms.Select(attrs=attr))
+    is_gateway = forms.ChoiceField(choices=IS_CHOICES, label='حساب پیش فرض درگاه اینترنتی باشد', widget=forms.Select(attrs=attr))
     is_active = forms.ChoiceField(choices=IS_CHOICES_Active, label='حساب فعال باشد', widget=forms.Select(attrs=attr))
 
     class Meta:
         model = Bank
         fields = (
             'house', 'bank_name', 'account_holder_name', 'account_no', 'sheba_number', 'cart_number',
-            'initial_fund', 'is_active', 'is_default')
+            'initial_fund', 'is_active', 'is_default', 'is_gateway')
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)

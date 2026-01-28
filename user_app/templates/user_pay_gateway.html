@@ -14,7 +14,7 @@
          <div class="d-flex gap-2 mt-4 justify-content-center">
 
     <!-- کارت کارت به کارت -->
-    <div class="card p-2 text-center" style="width: 300px; cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#manualPayment{{ charge.id }}">
+    <div class="card p-2 text-center" style="width: 300px; cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#manualPayment{{ pay.id }}">
       <img src="/static/img/payment1.png" class="card-img-top" style="height: 100px; object-fit: contain;" alt="کارت به کارت">
       <div class="card-body p-1">
         <small>کارت به کارت</small>
@@ -23,7 +23,7 @@
 
     <!-- کارت پرداخت آنلاین -->
             
-         <a href="{% url 'request_pay' charge.id %}" class="card p-2 text-center" style="width: 300px; text-decoration:none;">
+         <a href="" class="card p-2 text-center" style="width: 300px; text-decoration:none;">
       <img src="/static/img/payment2.png" class="card-img-top" style="height: 100px; object-fit: contain;" alt="پرداخت آنلاین">
       <div class="card-body p-1">
         <small>درگاه بانکی</small>
@@ -35,15 +35,15 @@
   </div>
 
   <!-- فرم کارت به کارت -->
-  <div class="collapse mt-2" id="manualPayment{{ charge.id }}">
+  <div class="collapse mt-2" id="manualPayment{{ pay.id }}">
      
       
-<form method="post" action="{% url 'payment_gateway' charge.id %}" class="mx-auto" style="max-width: 400px;">
+<form method="post" action="{% url 'user_pay_money' pay.id %}" class="mx-auto" style="max-width: 400px;">
     {% csrf_token %}
     <div class="row mt-4">
         <div class="col-12">
-            <p class="badge-gradient-info p-2">نام شارژ: {{ charge.title }}</p>
-              <p class="badge-gradient-danger p-2">   مبلغ قابل پرداخت : {{ charge.total_charge_month|three_digit_currency }} تومان  </p>
+            <p class="badge-gradient-info p-2">شرح پرداخت{{ pay.description }}</p>
+              <p class="badge-gradient-danger p-2">   مبلغ قابل پرداخت : {{ pay.amount|three_digit_currency }} تومان  </p>
                 
         </div>
     </div>

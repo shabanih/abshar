@@ -15,6 +15,11 @@ urlpatterns = [
     path('user-announce/', views.AnnouncementListView.as_view(), name='user_announce_manage'),
     path('user/messages/', views.MessageListView.as_view(), name='user_message'),
 
+    path('user-pay/', views.UserPayMoneyViewCreateView.as_view(), name='user_pay_money'),
+    path('pay/user/edit/<int:pk>/', views.pay_user_edit, name='user_pay_money_edit'),
+    path('pay/user/delete/<int:pk>/', views.user_pay_delete, name='user_pay_delete'),
+    path('user/pay/delete-document/', views.user_delete_pay_document, name='user_delete_pay_document'),
+
     path('profile/', views.user_profile, name='user_profile'),
 
 ]
