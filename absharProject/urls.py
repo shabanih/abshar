@@ -11,6 +11,7 @@ urlpatterns = [
     path('payment/', include('payment_app.urls')),
     path('reports/', include('reports.urls')),
     path('notifications/', include('notifications.urls')),
+    path('admin-payment/', include('admin_payment_app.urls')),
     path('', include('user_app.urls')),
     path('ckeditor/', include('ckeditor_uploader.urls')),  # this is required
     path('select2/', include('django_select2.urls')),

@@ -35,13 +35,14 @@ from admin_panel import helper
 from admin_panel.forms import announcementForm, BankForm, UnitForm, ExpenseCategoryForm, ExpenseForm, \
     IncomeCategoryForm, IncomeForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, MaintenanceForm, FixChargeForm, \
     FixAreaChargeForm, AreaChargeForm, PersonChargeForm, FixPersonChargeForm, PersonAreaChargeForm, \
-    PersonAreaFixChargeForm, VariableFixChargeForm, MyHouseForm, SmsForm, RenterAddForm, ExpensePayForm, IncomePayForm
+    PersonAreaFixChargeForm, VariableFixChargeForm, MyHouseForm, SmsForm, RenterAddForm, ExpensePayForm, IncomePayForm, \
+    SmsCreditForm
 from admin_panel.models import Announcement, ExpenseCategory, Expense, Fund, ExpenseDocument, IncomeCategory, Income, \
     IncomeDocument, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, FixCharge, AreaCharge, PersonCharge, \
     FixAreaCharge, FixPersonCharge, ChargeByPersonArea, \
     ChargeByFixPersonArea, ChargeFixVariable, SmsManagement, \
-    UnifiedCharge
+    UnifiedCharge, SmsCredit
 from admin_panel.services.calculators import CALCULATORS
 from middleAdmin_panel.services.unit_services import UnitUpdateService
 from notifications.models import Notification, SupportUser
@@ -7259,6 +7260,18 @@ def all_invoices_pdf(request, app_label, model_name, charge_id):
 
 
 # =================================================================================================
+def add_sms_credit(request):
+    current_credit = (
+            SmsCredit.objects
+            .filter(user=request.user, is_paid=True)
+            .aggregate(total=Sum('amount'))['total']
+            or Decimal('0')
+    )
+    context = {
+        'current_credit': current_credit
+    }
+    return render(request, 'middle_admin/middle_credit_sms.html', context )
+
 
 @method_decorator(middle_admin_required, name='dispatch')
 class MiddleSmsManagementView(CreateView):
@@ -7348,13 +7361,23 @@ def middle_show_send_sms_form(request, pk):
 def middle_send_sms(request, pk):
     sms = get_object_or_404(SmsManagement, id=pk, user=request.user)
 
+    # ❌ اگر قبلاً ارسال شده
+    if sms.send_notification:
+        messages.warning(request, 'این پیامک قبلاً ارسال شده است.')
+        return redirect('middle_sms_management')
+
     if request.method == "POST":
+
         selected_units = request.POST.getlist('units')
         if not selected_units:
             messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
             return redirect('middle_register_sms')
 
-        units_qs = Unit.objects.filter(is_active=True, user__manager=request.user)
+        units_qs = Unit.objects.filter(
+            is_active=True,
+            user__manager=request.user
+        )
+
         if 'all' in selected_units:
             units_to_notify = units_qs
         else:
@@ -7364,8 +7387,57 @@ def middle_send_sms(request, pk):
             messages.warning(request, 'هیچ واحد معتبری برای ارسال پیامک پیدا نشد.')
             return redirect('middle_register_sms')
 
+        # 1️⃣ محاسبه تعداد پیامک
+        unit_count = units_to_notify.count()
+        sms_per_message = sms.sms_count
+        total_sms_needed = unit_count * sms_per_message
+
+        # 2️⃣ محاسبه مبلغ
+        sms_price = Decimal(str(settings.SMS_PRICE))
+        total_price = total_sms_needed * sms_price
+
+        # 3️⃣ محاسبه شارژ موجود
+        total_credit = SmsCredit.objects.filter(
+            user=request.user,
+            is_paid=True
+        ).aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0')
+
+        if total_credit < total_price:
+            messages.error(
+                request,
+                f'شارژ پیامکی کافی نیست. مبلغ مورد نیاز: {total_price:,} تومان'
+            )
+            return redirect('middle_register_sms')
+
+        # 4️⃣ عملیات اتمیک
         notified_units = []
+
         with transaction.atomic():
+
+            # 🔻 کسر شارژ (FIFO)
+            remaining_price = total_price
+            credits = SmsCredit.objects.filter(
+                user=request.user,
+                is_paid=True,
+                amount__gt=0
+            ).order_by('created_at')
+
+            for credit in credits:
+                if remaining_price <= 0:
+                    break
+
+                if credit.amount >= remaining_price:
+                    credit.amount -= remaining_price
+                    remaining_price = 0
+                else:
+                    remaining_price -= credit.amount
+                    credit.amount = 0
+
+                credit.save()
+
+            # 5️⃣ ارسال پیامک
             for unit in units_to_notify:
                 if unit.user and unit.user.mobile:
                     helper.send_sms_to_user(
@@ -7374,26 +7446,83 @@ def middle_send_sms(request, pk):
                         full_name=unit.user.full_name,
                         otp=None
                     )
-                    notified_units.append(unit)  # append instance, NOT string
+                    notified_units.append(unit)
 
-        if notified_units:
-            sms.notified_units.set(notified_units)  # ✅ correct
-            sms.send_notification = True
-            sms.send_notification_date = timezone.now().date()  # use .date()
-            sms.save()
-            messages.success(request,
-                             f'پیامک برای واحدهای زیر ارسال شد: {", ".join(str(u.unit) for u in notified_units)}')
-        else:
-            messages.info(request, 'پیامکی ارسال نشد؛ ممکن است شماره موبایل واحدها موجود نباشد.')
+            # 6️⃣ ثبت نهایی
+            if notified_units:
+                # 6️⃣ ثبت نهایی اطلاعات پیامک
+                sms.total_units_sent = unit_count
+                sms.sms_per_message = sms_per_message
+                sms.total_sms_sent = total_sms_needed
+                sms.total_price = total_price
 
+                sms.notified_units.set(notified_units)
+                sms.send_notification = True
+                sms.send_notification_date = timezone.now().date()
+                sms.save()
+
+        messages.success(
+            request,
+            f'پیامک با موفقیت برای {len(notified_units)} واحد ارسال شد.'
+        )
         return redirect('middle_sms_management')
 
-    # اگر GET بود، فرم را رندر کن
+    # GET
     units_with_details = Unit.objects.filter(is_active=True)
     return render(request, 'middle_admin/middle_send_sms.html', {
         'sms': sms,
         'units_with_details': units_with_details,
     })
+
+# def middle_send_sms(request, pk):
+#     sms = get_object_or_404(SmsManagement, id=pk, user=request.user)
+#
+#     if request.method == "POST":
+#         selected_units = request.POST.getlist('units')
+#         if not selected_units:
+#             messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
+#             return redirect('middle_register_sms')
+#
+#         units_qs = Unit.objects.filter(is_active=True, user__manager=request.user)
+#         if 'all' in selected_units:
+#             units_to_notify = units_qs
+#         else:
+#             units_to_notify = units_qs.filter(id__in=selected_units)
+#
+#         if not units_to_notify.exists():
+#             messages.warning(request, 'هیچ واحد معتبری برای ارسال پیامک پیدا نشد.')
+#             return redirect('middle_register_sms')
+#
+#         notified_units = []
+#         with transaction.atomic():
+#             for unit in units_to_notify:
+#                 if unit.user and unit.user.mobile:
+#                     helper.send_sms_to_user(
+#                         mobile=unit.user.mobile,
+#                         message=sms.message,
+#                         full_name=unit.user.full_name,
+#                         otp=None
+#                     )
+#                     notified_units.append(unit)  # append instance, NOT string
+#
+#         if notified_units:
+#             sms.notified_units.set(notified_units)  # ✅ correct
+#             sms.send_notification = True
+#             sms.send_notification_date = timezone.now().date()  # use .date()
+#             sms.save()
+#             messages.success(request,
+#                              f'پیامک برای واحدهای زیر ارسال شد: {", ".join(str(u.unit) for u in notified_units)}')
+#         else:
+#             messages.info(request, 'پیامکی ارسال نشد؛ ممکن است شماره موبایل واحدها موجود نباشد.')
+#
+#         return redirect('middle_sms_management')
+#
+#     # اگر GET بود، فرم را رندر کن
+#     units_with_details = Unit.objects.filter(is_active=True)
+#     return render(request, 'middle_admin/middle_send_sms.html', {
+#         'sms': sms,
+#         'units_with_details': units_with_details,
+#     })
 
 
 @method_decorator(middle_admin_required, name='dispatch')

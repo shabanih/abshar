@@ -1,0 +1,42 @@
+{% extends 'middleShared/base_template.html' %}
+{% load poll_extras %}
+
+{% block page_title %}
+{#مدیریت شارژ واحد {{ unit.unit }}#}
+{% endblock page_title %}
+
+{% block main_content %}
+     <div class="container py-2 mt-2"   dir="rtl">
+     <div class="row text-center">
+         <div class="col-12">
+             <img src="/static/img/pay-charge.png" width="350" alt="">
+         </div>
+     </div>
+         <div class="col-8 text-center">
+    {% if info %}
+    	<div class="alert alert-info">
+            {{ info }}
+        </div>
+    {% endif %}
+
+  {% if success %}
+    	<div class="alert alert-success">
+            {{ success }}
+        </div>
+    {% endif %}
+
+  {% if error %}
+    	<div class="alert alert-danger">
+            {{ error }}
+        </div>
+    {% endif %}
+         </div>
+     <div class="row d-flex justify-content-center">
+     <div class="col-12 text-center mt-4">
+           <a class="btn btn-gradient-danger w-25" href="{% url 'user_charges' %}"> مدیریت شارژ </a>
+     </div>
+     </div>
+    </div>
+
+
+{% endblock main_content %}

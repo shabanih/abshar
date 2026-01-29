@@ -103,3 +103,20 @@ document.addEventListener('DOMContentLoaded', function () {
         $('#preview').empty();
     });
 });
+
+function searchTableIncome() {
+  var input = document.getElementById("searchInput");
+  var filter = input.value.toLowerCase().replace(/,/g, '').replace(/\s/g, '');
+  var table = document.getElementById("incomeTable");
+  var rows = table.getElementsByTagName("tr");
+
+  for (var i = 1; i < rows.length; i++) {
+    var row = rows[i];
+    var text = row.innerText.toLowerCase().replace(/,/g, '').replace(/\s/g, '');
+    row.style.display = text.includes(filter) ? "" : "none";
+  }
+}
+function openQuery() {
+    var form = document.getElementById('query-form');
+    form.style.display = (form.style.display === 'none') ? 'block' : 'none';
+}

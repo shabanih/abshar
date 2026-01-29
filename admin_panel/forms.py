@@ -11,11 +11,12 @@ from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, 
                                 Property, Maintenance, ChargeByPersonArea, ChargeByFixPersonArea, FixCharge, AreaCharge,
                                 PersonCharge,
                                 FixPersonCharge, FixAreaCharge, ChargeFixVariable, SmsManagement, UnifiedCharge,
-                                MessageToUser)
+                                MessageToUser, SmsCredit)
 
 from user_app.models import Unit, Bank, User, MyHouse, ChargeMethod, Renter
 
 attr = {'class': 'form-control border-1 py-2 mb-4 '}
+attr0 = {'class': 'form-control form-control-sm border-1 py-1 mb-4 '}
 attr1 = {'class': 'form-control border-1 py-1 mb-4 '}
 attr3 = {'class': 'form-control form-control-sm border-1'}
 attr2 = {'class': 'form-control border-1 my-2 mb-4 ', 'placeholder': 'لطفا واحد را انتخاب کنید'}
@@ -375,7 +376,7 @@ class MyHouseForm(forms.ModelForm):
 
 
 class UnitForm(forms.ModelForm):
-    unit = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr1),
+    unit = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr0),
                            label='شماره واحد')
     owner_bank = forms.ModelChoiceField(
         queryset=Bank.objects.none(),
@@ -408,32 +409,32 @@ class UnitForm(forms.ModelForm):
     unit_phone = forms.CharField(error_messages=error_message,
                                  max_length=8,
                                  min_length=8,
-                                 required=False, widget=forms.TextInput(attrs=attr),
+                                 required=False, widget=forms.TextInput(attrs=attr0),
                                  label='شماره تلفن واحد')
     floor_number = forms.IntegerField(error_messages=error_message, required=True,
-                                      widget=forms.NumberInput(attrs=attr1),
+                                      widget=forms.NumberInput(attrs=attr0),
                                       label='شماره طبقه')
-    area = forms.ChoiceField(error_messages=error_message, required=True, choices=AREA_CHOICES,
-                             widget=forms.Select(attrs=attr),
+    area = forms.IntegerField(error_messages=error_message, required=True,
+                             widget=forms.NumberInput(attrs=attr0),
                              label='متراژ')
     bedrooms_count = forms.ChoiceField(error_messages=error_message, choices=BEDROOMS_COUNT_CHOICES, required=True,
-                                       widget=forms.Select(attrs=attr),
+                                       widget=forms.Select(attrs=attr0),
                                        label='تعداد خواب')
 
     parking_place = forms.ChoiceField(error_messages=error_message, choices=PARKING_PLACE_CHOICES, required=False,
-                                      widget=forms.Select(attrs=attr),
+                                      widget=forms.Select(attrs=attr0),
                                       label='موقعیت پارکینگ اصلی')
     extra_parking_first = forms.CharField(error_messages=error_message, required=False,
-                                          widget=forms.TextInput(attrs=attr),
+                                          widget=forms.TextInput(attrs=attr0),
                                           label=' پارکینگ اضافه اول')
     extra_parking_second = forms.CharField(error_messages=error_message, required=False,
-                                           widget=forms.TextInput(attrs=attr),
+                                           widget=forms.TextInput(attrs=attr0),
                                            label=' پارکینگ اضافه دوم')
 
     parking_number = forms.CharField(
         error_messages=error_message,
         required=False,
-        widget=forms.TextInput(attrs=attr),
+        widget=forms.TextInput(attrs=attr0),
         label='شماره پارکینگ'
     )
     owner_transaction_no = forms.IntegerField(error_messages=error_message,
@@ -455,7 +456,7 @@ class UnitForm(forms.ModelForm):
         error_messages=error_message, required=False
     )
     parking_count = forms.ChoiceField(error_messages=error_message, choices=PARKING_COUNT_CHOICES, required=True,
-                                      widget=forms.Select(attrs=attr),
+                                      widget=forms.Select(attrs=attr0),
                                       label='تعداد پارکینگ')
     unit_details = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'rows': 8}), required=False,
                                    label='توضیحات واحد')
@@ -479,7 +480,7 @@ class UnitForm(forms.ModelForm):
                                     label='تاریخ خرید')
 
     status_residence = forms.ChoiceField(error_messages=error_message, choices=RESIDENCE_STATUS_CHOICES, required=True,
-                                         widget=forms.Select(attrs=attr),
+                                         widget=forms.Select(attrs=attr0),
                                          label='وضعیت سکونت')
     is_renter = forms.ChoiceField(
         choices=[('', '--- انتخاب کنید ---'), ('True', 'بله'), ('False', 'خیر')],
@@ -2024,6 +2025,17 @@ class UnifiedChargePaymentForm(forms.ModelForm):
             self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.cart_number}" + (
                 " (پیش‌فرض)" if obj.is_default else "")
 
+    def clean_payment_date(self):
+        date = self.cleaned_data.get('payment_date')
+        if date:
+            # تبدیل Jalali به Gregorian
+            gregorian_date = date.togregorian().date() if isinstance(date, jdatetime.date) else date
+
+            today = timezone.now().date()
+            if gregorian_date > today:
+                raise ValidationError("تاریخ پرداخت نمی‌تواند از امروز بیشتر باشد.")
+        return date
+
 
 class SmsForm(forms.ModelForm):
     subject = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
@@ -2039,3 +2051,11 @@ class SmsForm(forms.ModelForm):
     class Meta:
         model = SmsManagement
         fields = ['subject', 'message', 'is_active']
+
+class SmsCreditForm(forms.ModelForm):
+    class Meta:
+        model = SmsCredit
+        fields = ['amount']
+        widgets = {
+            'amount': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'مبلغ را وارد کنید'})
+        }

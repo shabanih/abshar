@@ -1,3 +1,4 @@
+import jdatetime
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django import forms
 from django.core.exceptions import ValidationError
@@ -352,3 +353,14 @@ class UserPayGateForm(forms.ModelForm):
             # نمایش label با "(پیش‌فرض)"
             self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.cart_number}" + (
                 " (پیش‌فرض)" if obj.is_default else "")
+
+    def clean_payment_date(self):
+        date = self.cleaned_data.get('payment_date')
+        if date:
+            # تبدیل Jalali به Gregorian
+            gregorian_date = date.togregorian().date() if isinstance(date, jdatetime.date) else date
+
+            today = timezone.now().date()
+            if gregorian_date > today:
+                raise ValidationError("تاریخ پرداخت نمی‌تواند از امروز بیشتر باشد.")
+        return date

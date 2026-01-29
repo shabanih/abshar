@@ -1,4 +1,5 @@
 import json
+import math
 from decimal import Decimal
 
 from ckeditor_uploader.fields import RichTextUploadingField
@@ -782,6 +783,37 @@ class Fund(models.Model):
                 f.save(update_fields=['final_amount'])
 
 
+class AdminFund(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+
+    amount = models.DecimalField(max_digits=12, decimal_places=0, null=True, blank=True)
+    payment_gateway = models.CharField(max_length=100, null=True, blank=True)
+    payment_date = models.DateField(null=True, blank=True)
+    transaction_no = models.CharField(max_length=15, null=True, blank=True)
+    payment_description = models.CharField(max_length=500, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_paid = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Fund: {self.payment_description} for {self.content_object}"
+
+
+class SmsCredit(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='مدیر')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='مبلغ شارژ')
+    amount_with_tax = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='مبلغ با مالیات', default=0)
+    is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده؟')
+    created_at = models.DateTimeField(auto_now_add=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.amount} تومان - {'پرداخت شده' if self.is_paid else 'در انتظار پرداخت'}"
+
+
 class SmsManagement(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='sms_unit', blank=True, null=True)
@@ -789,13 +821,49 @@ class SmsManagement(models.Model):
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     send_notification = models.BooleanField(default=False)
-    send_notification_date = models.DateField(null=True, blank=True, verbose_name='اعلام شارژ به کاربر')
+    send_notification_date = models.DateField(null=True, blank=True)
     notified_units = models.ManyToManyField('user_app.Unit', blank=True)  # اضافه کردن رابطه با واحدها
     is_active = models.BooleanField(default=True)
+
+    total_units_sent = models.PositiveIntegerField(default=0)
+    sms_per_message = models.PositiveIntegerField(default=0)
+    total_sms_sent = models.PositiveIntegerField(default=0)
+
+    total_price = models.DecimalField(
+        max_digits=12,
+        decimal_places=0,
+        default=0
+    )
+
+    is_approved = models.BooleanField(default=False)
+    approved_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.subject
 
     @property
+    def message_length(self):
+        return len(self.message or "")
+
+    @property
+    def sms_count(self):
+        """
+        هر ۷۰ کاراکتر = ۱ پیامک
+        """
+        if not self.message:
+            return 0
+        return math.ceil(len(self.message) / 70)
+
+    @property
     def notified_units_count(self):
         return self.notified_units.count()
+
+    @property
+    def total_sms_needed(self):
+        """
+        تعداد کل پیامک = تعداد پیامک هر متن × تعداد واحدها
+        """
+        return self.sms_count * self.notified_units_count
+
+
+

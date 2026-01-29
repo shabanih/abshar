@@ -27,7 +27,7 @@ from django.views.generic.edit import FormMixin
 from admin_panel.forms import UnifiedChargePaymentForm
 from admin_panel.models import Fund, Expense, Income, Property, ExpenseCategory, IncomeCategory, Maintenance, \
     UnifiedCharge, PersonCharge, FixPersonCharge, FixAreaCharge, AreaCharge, \
-    FixCharge, ChargeByPersonArea, ChargeFixVariable, ChargeByFixPersonArea, PayMoney, ReceiveMoney
+    FixCharge, ChargeByPersonArea, ChargeFixVariable, ChargeByFixPersonArea, PayMoney, ReceiveMoney, AdminFund
 from middleAdmin_panel.views import middle_admin_required
 from polls.templatetags.poll_extras import show_jalali
 from user_app.forms import UnitReportForm
@@ -35,6 +35,41 @@ from user_app.models import Unit, MyHouse, UnitResidenceHistory, Bank, User
 from openpyxl.styles import PatternFill, Font, Alignment
 from pypdf import PdfWriter
 from weasyprint import HTML, CSS
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middleAdmin_turnover(request):
+    manager = request.user
+    query = request.GET.get('q', '').strip()
+    paginate = int(request.GET.get('paginate', 20) or 20)
+    paginate = paginate if paginate > 0 else 20
+
+    funds = AdminFund.objects.filter(user=manager).order_by('-payment_date')
+
+    if query:
+        funds = funds.filter(
+            Q(payment_description__icontains=query) |
+            Q(transaction_no__icontains=query)
+        )
+
+    total_fund = (
+            AdminFund.objects
+            .filter(user=request.user, is_paid=True)
+            .aggregate(total=Sum('amount'))['total']
+            or Decimal('0')
+    )
+
+    paginator = Paginator(funds, paginate)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'middleAdmin_turnover.html', {
+        'funds': page_obj,
+        'query': query,
+        'paginate': paginate,
+        'page_obj': page_obj,
+        'total_fund': total_fund
+
+    })
 
 
 def to_jalali(date_obj):
@@ -2596,3 +2631,121 @@ def house_balance_view(request):
         'total_amount_assets_debts': total_amount_assets_debts
     }
     return render(request, 'house_balance.html', context)
+
+
+# ===========================================================
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def middleFund_report_excel(request):
+    user = request.user
+
+    report = AdminFund.objects.filter(user=user).order_by('-payment_date')
+
+    # Create Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "units"
+    ws.sheet_view.rightToLeft = True
+
+    # Title
+    title_cell = ws.cell(row=1, column=1, value=f"لیست تراکنش های من ")
+    title_cell.font = Font(bold=True, size=18)
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=5)
+
+    # Headers
+    headers = ['تاریخ پرداخت', 'شرح', 'روش پرداخت', 'شماره تراکنش', 'مبلغ']
+    header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
+    header_font = Font(bold=True, color="000000")
+    for col_num, column_title in enumerate(headers, 1):
+        cell = ws.cell(row=2, column=col_num, value=column_title)
+        cell.fill = header_fill
+        cell.font = header_font
+
+    # Write data
+    for row_num, fund in enumerate(report, start=3):
+        ws.cell(row=row_num, column=1, value=show_jalali(fund.payment_date))
+        ws.cell(row=row_num, column=2, value=fund.payment_description)
+        ws.cell(row=row_num, column=3, value=fund.payment_gateway)
+        ws.cell(row=row_num, column=4, value=fund.transaction_no)
+        ws.cell(row=row_num, column=5, value=fund.amount)
+
+    # Return response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename=middle_fund_report.xlsx'
+    wb.save(response)
+    return response
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def middleFund_report_pdf(request):
+    user = request.user
+
+    funds = AdminFund.objects.filter(user=user).order_by('-payment_date')
+
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(user=user).order_by('-created_at').first()
+        print(house)
+
+    # # Queryset اصلی بر اساس واحد (کاربر مالک)
+    # funds = Fund.objects.filter(unit=unit).order_by('payment_date')
+
+    # فیلترها از GET
+    query = request.GET.get('q', '').strip()
+    if query:
+        funds = funds.filter(
+            Q(payment_description__icontains=query) |
+            Q(payment_gateway__icontains=query) |
+            Q(transaction_no__icontains=query) |
+            Q(payment_date__icontains=query) |
+            Q(amount__icontains=query)
+
+        )
+
+    # PDF settings
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+        @page {{ size: A4 landscape; margin: 1cm; }}
+        body {{
+            font-family: 'BYekan', sans-serif;
+        }}
+        @font-face {{
+            font-family: 'BYekan';
+            src: url('{font_url}');
+        }}
+        table {{
+            border-collapse: collapse;
+            width: 100%;
+        }}
+        th, td {{
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: center;
+        }}
+        th {{
+            background-color: #FFD700;
+        }}
+    """)
+
+    # Render template
+    template = get_template("user_report_pdf.html")
+    context = {
+        'funds': funds,
+        'query': query,
+        'font_path': font_url,
+        'today': datetime.now(),
+        'house': house,
+    }
+
+    html = template.render(context)
+    pdf_file = io.BytesIO()
+    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
+    pdf_file.seek(0)
+
+    # Response
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="fund_middle_report.pdf"'
+    return response

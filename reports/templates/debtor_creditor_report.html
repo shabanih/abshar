@@ -133,7 +133,7 @@
               {{ charge.title }}
           </div>
           <div class="col-2 border">
-              {{ charge.amount|three_digit_currency }}
+              {{ charge.total_charge_month|three_digit_currency }}
           </div>
           <div class="col-2 border text-danger">
               {{ charge.penalty_amount|default:0|three_digit_currency }}

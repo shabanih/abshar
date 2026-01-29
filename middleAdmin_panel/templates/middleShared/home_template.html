@@ -17,20 +17,20 @@
                     <h4 class="font-weight-normal mb-3"><i class="mdi mdi-city mdi-24px float-right"></i>
                        تعداد کل واحدها
                     </h4>
-                    <h2 class="mb-1">{{ unit_count }} </h2>
+                    <h3 class="mb-1 text-white">{{ unit_count }} </h3>
                   </div>
                 </div>
                   </a>
               </div>
               <div class="col-md-3">
-                  <a href="">
+                  <a href="{% url 'add_sms_credit' %}">
                 <div class="card bg-gradient-info card-img-holder text-white">
                <div class="card-body text-center justify-content-center p-2 m-0">
                     <h4 class="font-weight-normal mb-3">
                         <i class="mdi mdi-comment-text mdi-24px float-right"></i>
-                        تعداد پیامک
+                        موجودی حساب پیامک
                     </h4>
-                    <h2 class="mb-1">0</h2>
+                    <h3 class="mb-1 text-white">{{ middle_current_credit|three_digit_currency }} تومان</h3>
                   </div>
                 </div>
                       </a>
@@ -42,7 +42,7 @@
                     <h4 class="font-weight-normal mb-3"><i class="mdi mdi-square-inc-cash mdi-24px float-right"></i>
                         موجودی صندوق
                     </h4>
-                    <h2 class="mb-1">{{ fund_amount|three_digit_currency }}</h2>
+                    <h3 class="mb-1 text-white">{{ fund_amount|three_digit_currency }} تومان </h3>
                   </div>
                 </div>
                       </a>
@@ -55,7 +55,7 @@
                         <i class="mdi mdi-account-minus mdi-24px float-right"></i>
                          واحدهای بدهکار
                     </h4>
-                    <h2 class="mb-1">{{ unit_count_unpaid_charges }}</h2>
+                    <h3 class="mb-1 text-white">{{ unit_count_unpaid_charges }}</h3>
                   </div>
                 </div>
                   </a>

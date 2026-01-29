@@ -15,8 +15,12 @@
 
                           </a>
                         </li>
-            {% if middle_house.id %}
 
+
+            {% if middle_house.id %}
+<li class="nav-item text-center mb-1">
+    <a href="" class="btn btn-gradient-info px-3 py-2">شارژ حساب پیامک</a>
+</li>
 
             <li class="nav-item border-top">
                {% url 'middle_admin_dashboard' as address_url %}
@@ -117,20 +121,14 @@
                 <i class="mdi mdi-city menu-icon menu-icon"></i>
               </a>
             </li>
-{#                      <li class="nav-item  mt-0">#}
-{#                 {% url 'house_balance_view' as address_url %}#}
-{#                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">#}
-{#                <i class="menu-title"> بیلان</i>#}
-{#                <i class="mdi mdi-city menu-icon menu-icon"></i>#}
-{#              </a>#}
-{#            </li>#}
-{#                               <li class="nav-item  mt-0">#}
-{#                 {% url 'middle_add_expense' as address_url %}#}
-{#                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">#}
-{#                <i class="menu-title"> هزینه</i>#}
-{#                <i class="mdi mdi-city menu-icon menu-icon"></i>#}
-{#              </a>#}
-{#            </li>#}
+
+                 <li class="nav-item  mt-0">
+                 {% url 'middleAdmin_fund_turn_over' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title"> امور مالی</i>
+                <i class="mdi mdi-cash-multiple menu-icon menu-icon"></i>
+              </a>
+            </li>
 
                  <li class="nav-item border-top mt-0">
   <a class="nav-link" data-bs-toggle="collapse" href="#general40"
@@ -148,9 +146,7 @@
     </ul>
   </div>
 </li>
-
-
- <li class="nav-item border-top mt-0">
+             <li class="nav-item border-top mt-0">
   <a class="nav-link" data-bs-toggle="collapse" href="#general23"
      aria-expanded="{% if request.resolver_match.url_name in 'middle_add_income middle_add_expense middle_add_receive middle_add_pay middle_add_property middle_add_maintenance' %}true{% else %}false{% endif %}"
      aria-controls="general23">
@@ -169,8 +165,6 @@
     </ul>
   </div>
 </li>
-
-
 
               <li class="nav-item mt-0">
   <a class="nav-link" data-bs-toggle="collapse" href="#general2"
@@ -212,6 +206,7 @@
                           </a>
                         </li>
 
+            {% url 'add_sms_credit' as url_middle_credit_sms %}
             {% url 'middle_register_sms' as url_middle_register_sms %}
             {% url 'middle_sms_management' as url_middle_sms_list %}
 
@@ -225,8 +220,15 @@
                 <i class="fas fa-comment-dots menu-icon"></i>
               </a>
 
-              <div class="collapse {% if request.path == url_middle_register_sms or request.path == url_middle_sms_list %}show{% endif %}" id="general77">
+              <div class="collapse {% if request.path == url_middle_register_sms or request.path == url_middle_sms_list or request.path == url_middle_credit_sms  %}show{% endif %}" id="general77">
                 <ul class="nav flex-column sub-menu">
+
+                    <li class="nav-item mt-0">
+                    <a class="nav-link {% if request.path == url_middle_credit_sms %}active{% endif %}"
+                       href="{{ url_middle_credit_sms }}">
+                       شارژ حساب پیامک
+                    </a>
+                  </li>
 
                   <li class="nav-item mt-0">
                     <a class="nav-link {% if request.path == url_middle_register_sms %}active{% endif %}"

@@ -244,6 +244,8 @@ urlpatterns = [
     #      name='middle_add_expense_charge'),
 
     # Sms_Management
+    path('middle/sms/credit/', views.add_sms_credit, name='add_sms_credit'),
+
     path('middle/sms/register/', views.MiddleSmsManagementView.as_view(), name='middle_register_sms'),
     path('middle/sms/management/', views.MiddleSmsListView.as_view(), name='middle_sms_management'),
     path('middle/edit/sms/<int:pk>/', views.MiddleSmsUpdateView.as_view(), name='middle_edit_sms'),

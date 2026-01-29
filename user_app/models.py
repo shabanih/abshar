@@ -428,6 +428,7 @@ class UserPayMoney(models.Model):
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
     payer_name = models.CharField(max_length=400, null=True, blank=True)
+    payment_gateway = models.CharField(max_length=400, null=True, blank=True)
     description = models.CharField(max_length=4000, verbose_name='شرح')
     amount = models.PositiveIntegerField(verbose_name='قیمت', null=True, blank=True, default=0)
     register_date = models.DateField(verbose_name='تاریخ سند')

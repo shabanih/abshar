@@ -64,6 +64,11 @@ urlpatterns = [
 
     path('report/balance/', views.house_balance_view, name='house_balance_view'),
 
+
+    path('middleAdmin-fund', views.middleAdmin_turnover, name='middleAdmin_fund_turn_over'),
+    path('report/middleFund/export/excel/', views.middleFund_report_excel, name='middle_report_excel'),
+    path('report/middleFund/export/pdf/', views.middleFund_report_pdf, name='middle_report_pdf'),
+
     # admin Urls
     path('admin/fund/turnover', views.admin_fund_turnover, name='admin_fund_turn_over'),
 

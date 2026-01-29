@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fa">
+{% load poll_extras %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>لیست پرداخت های من</title>
+    <style>
+        @font-face {
+            font-family: 'BYekan';
+            src: url('{{ font_path }}') format('truetype');
+        }
+        @font-face {
+            font-family: VazirB2;
+            src: url('{{ font_path }}');
+            src: url('{{ font_path }}') format('embedded-opentype'),
+            url('{{ font_path }}') format('woff2'),
+            url('{{ font_path }}') format('woff'),
+            url('{{ font_path }}') format('truetype');
+            font-weight: normal;
+}
+
+
+        @font-face {
+            font-family: Vazir;
+            src: url('{{ font_path }}');
+            src: url('{{ font_path }}') format('embedded-opentype'),
+            url('{{ font_path }}') format('woff2'),
+            url('{{ font_path }}') format('woff'),
+            url('{{ font_path }}') format('truetype');
+            font-weight: 100;
+        }
+        body {
+            font-family: 'Vazir', sans-serif;
+            direction: rtl;
+            text-align: right;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead tr {
+            background-color: #9b9797;
+            color: #000000;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: center;
+        }
+        h1, h2{
+            text-align: center;
+            font-family: VazirB1, sans-serif;
+        }
+        .logo-style-pdf{
+            width: 200px;
+            height: 80px;
+            display: block;
+            margin: 0 auto;
+        }
+        p{
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <img src="/img/logo_core.png" class="logo-style-pdf" alt="">
+</div>
+
+<h1>
+
+</h1>
+
+<div class="text-center mb-4" style="border-bottom: 2px solid #333; padding-bottom: 10px;">
+    {% if house %}
+        <h1 class="fw-bold mb-1" style="color: #202548F9;">{{ house.name }}</h1>
+    {% endif %}
+    
+    <h2 class="fw-bold mb-2 text-center" style="color: #222;">
+          لیست پرداخت های من
+    </h2>
+    
+    <p class="text-muted mb-0" style="font-size: 0.9rem;">
+        تاریخ: {{ today|show_jalali_date_time }}
+    </p>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>بانک</th>
+             <th>شرح سند</th>
+             <th>مبلغ</th>
+            <th>تاریخ ثبت</th>
+            <th>تاریخ پرداخت</th>
+            <th>شماره پیگیری</th>
+            <th>روش پرداخت</th>
+           
+        
+        
+        </tr>
+    </thead>
+    <tbody>
+        {% for f in payments %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>
+                {% if f.bank %}
+                	{{ f.bank.bank_name }}
+                    {% else %}
+                    ----
+                {% endif %} 
+                
+            </td>
+        
+            <td>{{ f.description|safe}}</td>
+            <td>{{ f.amount }}</td>
+            <td>{{ f.register_date|show_jalali }}</td>
+            <td>
+                {% if f.payment_date %}
+                {{ f.payment_date|show_jalali }}
+                    {% else %}
+                   ---
+                {% endif %} 
+                
+            </td>
+           <td>
+                {% if f.transaction_reference %}
+                {{ f.transaction_reference }}
+                    {% else %}
+                    ---
+                {% endif %} 
+                
+            </td>
+           <td>
+                {% if f.payment_gateway %}
+                {{ f.payment_gateway }}
+                    {% else %}
+                   ---
+                {% endif %} 
+                
+            </td>
+        
+           
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7">تراکنشی برای این واحد وجود ندارد.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+</body>
+</html>

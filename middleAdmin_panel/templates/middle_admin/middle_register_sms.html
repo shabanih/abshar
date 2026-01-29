@@ -8,29 +8,19 @@
 
 {% block main_content %}
 <div class="container mt-3">
-{#  <div class="container-fluid">#}
-{#                <div class="row">#}
-{#                  <div class="col-12">#}
-{#                    <div class="form-group">#}
-{#                      {% if messages %}#}
-{#                      {% for message in messages  %}#}
-{##}
-{#                      {% if message.tags == 'success' %}#}
-{#                      <div class="alert alert-success">#}
-{#                        {{message}}#}
-{#                      </div>#}
-{#                      {% else %}#}
-{#                      <div class="alert alert-danger">#}
-{#                        {{message}}#}
-{#                      </div>#}
-{#                      {% endif %}#}
-{##}
-{#                      {% endfor %}#}
-{#                      {% endif %}#}
-{#            </div>#}
-{#                   </div>#}
-{#                </div>#}
-{#              </div>#}
+<div class="card">
+<div class="text-muted small p-2">
+    <strong class="mb-3 py-3">شرایط تأیید پیامک:</strong>
+    <ul class="pe-3 mt-2">
+        <li><p class="m-0">عدم تأیید پیامک‌های مغایر با قوانین کشور ایران</p></li>
+        <li><p class="m-0">عدم تأیید پیامک‌های حاوی شماره کارت بانکی</p></li>
+        <li><p class="m-0">عدم تأیید پیامک‌های غیرمرتبط با امور ساختمان</p></li>
+        <li> <p class="m-0"> عدم تأیید در صورت وجود لینک در متن پیامک</p> </li>
+    </ul>
+</div>
+
+
+</div>
     <form id="smsForm" action="" method="post" novalidate>
         {% csrf_token %}
         <div class="row">
@@ -45,9 +35,17 @@
                 {{ form.is_active.errors }}
             </div>
             <div class="col-12">
-                {{ form.message.label_tag }}
-                {{ form.message }}
-                {{ form.message.errors }}
+                <textarea
+                    id="sms_message"
+                    name="message"
+                    class="form-control"
+                    rows="4"
+                    placeholder="متن پیامک را وارد کنید..."
+                ></textarea>
+                
+            <div class="mt-2 text-muted small" id="smsInfo">
+                 1/ <span class="remaining">70</span>
+            </div>
             </div>
 
 
@@ -79,8 +77,6 @@
                             <th>تاریخ ایجاد</th>
                             <th>فعال/غیرفعال</th>
                             <th>وضعیت</th>
-{#                            <th>تاریخ ارسال</th>#}
-{#                            <th>تعداد پیامک ارسالی</th>#}
                             <th>دستورات</th>
                         </tr>
                     </thead>
@@ -89,48 +85,53 @@
                         <tbody class="text-center">
                             <tr>
                                 <td>{{ forloop.counter }}</td>
-{#                                <td>{{sms.user.full_name }}</td>#}
                                 <td>{{ sms.subject }}</td>
-                                <td>{{ sms.message }}</td>
+                                <td class="col-4">{{ sms.message }}</td>
 
                                 <td>{{ sms.created_at|show_jalali}}</td>
-                                  <td>
+                                  <td class="p-0">
                                    {% if sms.is_active == True %}
-                                    <button class="btn btn-primary bg-success p-2">فعال</button>
+                                    <button class="btn btn-primary bg-info p-2">فعال</button>
                                        {% else %}
                                        <button class="btn btn-danger p-2">غیر فعال</button>
                                    {% endif %}
                                 </td>
-                                       <td>
-                                   {% if sms.send_notification == True %}
-                                    <button class="btn btn-primary bg-success p-2">ارسال گردید</button>
+                                       <td class="p-0 m-0">
+                                   {% if sms.is_approved == True %}
+                                    <button class="btn btn-primary bg-success p-2">تایید شده توسط ادمین/در انتظار ارسال</button>
                                        {% else %}
-                                       <button class="btn btn-warning p-2">در انتظار ارسال</button>
+                                       <button class="btn btn-warning p-2">در انتظار تایید ادمین</button>
                                    {% endif %}
                                 </td>
-{#                     <td>#}
-{#                        {% if sms.send_notification_date %}#}
-{#                            {{ sms.send_notification_date|show_jalali }}#}
-{#                        {% else %}#}
-{#                            -#}
-{#                        {% endif %}#}
-{#                    </td>#}
-{#                           <td>{{ sms.notified_units_count }}</td>#}
-
+                            {% if sms.is_approved == True %}
                                <td class="col-1 p-0">
+{#                                   <a href="{% url 'middle_edit_sms' sms.id %}" class="btn btn-primary p-1">#}
+{#                              <i class="mdi mdi-lead-pencil" aria-hidden="true"></i></a>#}
+{#                                     <a href="{% url 'middle_delete_sms' sms.id %}" class="btn btn-gradient-danger p-1"#}
+{#                                        onclick="return confirmDeleteWithSweetAlert(event)">#}
+{#                                              <i class="mdi mdi-delete" aria-hidden="true"></i>#}
+{#                                            </a>#}
+                           <a href="{% url 'middle_show_send_sms_form' sms.id %}" class="btn btn-gradient-primary p-2">
+                                 ارسال پیامک
+{#                                   <i class="fas fa-sms"></i>#}
+                                </a>
+
+                            </td>
+                                {% else %}
+                                      <td class="col-1 p-0">
                                    <a href="{% url 'middle_edit_sms' sms.id %}" class="btn btn-primary p-1">
                               <i class="mdi mdi-lead-pencil" aria-hidden="true"></i></a>
                                      <a href="{% url 'middle_delete_sms' sms.id %}" class="btn btn-gradient-danger p-1"
                                         onclick="return confirmDeleteWithSweetAlert(event)">
                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
                                             </a>
-                             <a href="{% url 'middle_show_send_sms_form' sms.id %}" class="btn btn-gradient-success p-1"
-                                   data-bs-toggle="tooltip" title="ارسال پیامک">
-                                   <i class="fas fa-sms"></i>
-                                </a>
+{#                             <a href="{% url 'middle_show_send_sms_form' sms.id %}" class="btn btn-gradient-success p-1"#}
+{#                                   data-bs-toggle="tooltip" title="ارسال پیامک">#}
+{#                                   <i class="fas fa-sms"></i>#}
+{#                                </a>#}
 
                             </td>
-
+                          {% endif %}
                             </tr>
                         </tbody>
                         {% endfor %}
@@ -146,25 +147,13 @@
         </div>
     </div>
 </div>
+<script>
+
+</script>
+
 {% endblock %}
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<script>
-document.getElementById("smsForm").addEventListener("submit", function(e) {
-    e.preventDefault(); // جلوگیری از submit معمولی
 
-    Swal.fire({
-        icon: 'success',
-        title: 'موفقیت!',
-        text: 'پیامک با موفقیت ثبت شد.',
-        timer: 2000,
-        showConfirmButton: false
-    }).then(() => {
-        // بعد از نمایش پیام، فرم را submit کنید
-        e.target.submit();
-    });
-});
-</script>
 
 

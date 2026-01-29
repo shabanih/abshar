@@ -1141,3 +1141,46 @@ function confirmDeleteWithSweetAlert(event) {
 }
 
 // ================================================================
+document.addEventListener('DOMContentLoaded', function () {
+
+    const messageInput = document.getElementById('sms_message');
+    const smsInfo = document.getElementById('smsInfo');
+
+    if (!messageInput) return;
+
+    const FIRST_SMS_LIMIT = 70;
+    const NEXT_SMS_LIMIT = 67;
+
+    messageInput.addEventListener('input', function () {
+        const length = this.value.length;
+
+        let output = '';
+        let remainingChars = length;
+        let smsIndex = 1;
+
+        while (remainingChars > 0 || smsIndex === 1) {
+
+            let limit = smsIndex === 1 ? FIRST_SMS_LIMIT : NEXT_SMS_LIMIT;
+
+            let used = Math.min(remainingChars, limit);
+            let remaining = limit - used;
+
+            output += `
+                پیامک ${smsIndex}:
+                <span class="remaining ${remaining === 0 ? 'text-danger' : ''}">
+                    ${remaining}
+                </span>
+                کاراکتر باقی مانده
+                <br>
+            `;
+
+            remainingChars -= used;
+            smsIndex++;
+
+            if (remainingChars <= 0) break;
+        }
+
+        smsInfo.innerHTML = output;
+    });
+
+});

@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'admin_panel',
     'middleAdmin_panel',
     'notifications',
+    'admin_payment_app',
 
     # 'jalali_date',
 
@@ -110,6 +111,7 @@ TEMPLATES = [
                 'absharProject.context_processors.current_house',
                 'absharProject.context_processors.user_header_notifications',
                 'absharProject.context_processors.current_middle_house',
+                'absharProject.context_processors.middle_header_notifications',
             ],
         },
     },
@@ -240,3 +242,6 @@ CELERY_ENABLE_UTC = True
 CELERY_TIMEZONE = 'Asia/Tehran'
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+
+SMS_PRICE = 219

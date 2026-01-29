@@ -1,8 +1,10 @@
 import io
 import json
 import os
+from datetime import datetime
 
 import jdatetime
+import openpyxl
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.conf import settings
@@ -23,12 +25,14 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView, CreateView, ListView, DetailView
+from openpyxl.styles import Font, Alignment, PatternFill
 from pypdf import PdfWriter
 from weasyprint import CSS, HTML
 
 from admin_panel.forms import UnifiedChargePaymentForm
 from middleAdmin_panel.views import middle_admin_required
 from notifications.models import Notification, SupportUser
+from polls.templatetags.poll_extras import show_jalali
 from user_app import helper
 from admin_panel.models import Announcement, UnifiedCharge, MessageToUser, MessageReadStatus, Expense, Fund
 from user_app.forms import LoginForm, MobileLoginForm, UserPayForm, UserPayMoneyForm
@@ -332,7 +336,7 @@ def user_panel(request):
 
 
 # ==================================
-
+# ======================== Charges ===================
 def fetch_user_charges(request):
     user = request.user
     query = request.GET.get('q', '').strip()
@@ -379,8 +383,6 @@ def fetch_user_charges(request):
     return render(request, 'manage_charges.html', context)
 
 
-# ======================== Pdf Charges ===================
-
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def export_charge_pdf(request, pk):
     charge = get_object_or_404(UnifiedCharge, pk=pk)
@@ -424,6 +426,8 @@ def export_charge_pdf(request, pk):
     response['Content-Disposition'] = f'attachment;filename=charge_unit:{charge.unit.unit}.pdf'
     return response
 
+
+# ==============================================
 
 @method_decorator(login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN), name='dispatch')
 class AnnouncementListView(ListView):
@@ -550,6 +554,7 @@ def user_profile(request):
     return render(request, 'my_profile.html', context)
 
 
+# ===================== User Pay Money ====================================
 @method_decorator(login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN), name='dispatch')
 class UserPayMoneyViewCreateView(CreateView):
     model = UserPayMoney
@@ -560,7 +565,17 @@ class UserPayMoneyViewCreateView(CreateView):
     def form_valid(self, form):
         form.instance.user = self.request.user
 
-        form.instance.unit = Unit.objects.get(user=self.request.user, is_active=True)
+        unit = Unit.objects.filter(
+            Q(user=self.request.user) |  # مالک
+            Q(renters__user=self.request.user),  # مستأجر
+            is_active=True
+        ).select_related('myhouse').distinct().first()
+
+        if not unit:
+            messages.error(self.request, 'هیچ واحد فعالی برای شما ثبت نشده است')
+            return redirect(self.success_url)
+
+        form.instance.unit = unit
 
         try:
             with transaction.atomic():
@@ -569,8 +584,7 @@ class UserPayMoneyViewCreateView(CreateView):
                 self.object.save()
 
                 # ذخیره فایل‌ها
-                files = self.request.FILES.getlist('document')
-                for f in files:
+                for f in self.request.FILES.getlist('document'):
                     UserPayMoneyDocument.objects.create(
                         user_pay=self.object,
                         document=f
@@ -591,11 +605,6 @@ class UserPayMoneyViewCreateView(CreateView):
         if bank_id:
             queryset = queryset.filter(bank__id=bank_id)
 
-        # فیلتر بر اساس واحد
-        unit_id = self.request.GET.get('unit')
-        if unit_id:
-            queryset = queryset.filter(unit__id=unit_id)
-
         # فیلتر بر اساس amount
         amount = self.request.GET.get('amount')
         if amount:
@@ -611,10 +620,6 @@ class UserPayMoneyViewCreateView(CreateView):
         if details:
             queryset = queryset.filter(details__icontains=details)
 
-        payer_name = self.request.GET.get('payer_name')
-        if payer_name:
-            queryset = queryset.filter(payer_name__icontains=payer_name)
-
         # فیلتر بر اساس تاریخ
         from_date_str = self.request.GET.get('from_date')
         to_date_str = self.request.GET.get('to_date')
@@ -622,12 +627,12 @@ class UserPayMoneyViewCreateView(CreateView):
             if from_date_str:
                 jalali_from = jdatetime.datetime.strptime(from_date_str, '%Y-%m-%d')
                 gregorian_from = jalali_from.togregorian().date()
-                queryset = queryset.filter(doc_date__gte=gregorian_from)
+                queryset = queryset.filter(register_date__gte=gregorian_from)
 
             if to_date_str:
                 jalali_to = jdatetime.datetime.strptime(to_date_str, '%Y-%m-%d')
                 gregorian_to = jalali_to.togregorian().date()
-                queryset = queryset.filter(doc_date__lte=gregorian_to)
+                queryset = queryset.filter(register_date__lte=gregorian_to)
         except ValueError:
             messages.warning(self.request, 'فرمت تاریخ وارد شده صحیح نیست.')
 
@@ -647,7 +652,16 @@ class UserPayMoneyViewCreateView(CreateView):
         page_obj = paginator.get_page(page_number)
         context['page_obj'] = page_obj
         context['total_user_pays'] = UserPayMoney.objects.filter(user=self.request.user).count()
-        context['banks'] = Bank.objects.filter(user=self.request.user)
+        unit = Unit.objects.filter(
+            Q(user=self.request.user) |
+            Q(renters__user=self.request.user),
+            is_active=True
+        ).first()
+
+        context['banks'] = Bank.objects.filter(
+            house=unit.myhouse,
+            is_active=True
+        )
         managed_users = User.objects.filter(Q(manager=self.request.user) | Q(pk=self.request.user.pk))
         context['units'] = Unit.objects.filter(is_active=True, user__in=managed_users)
 
@@ -751,3 +765,125 @@ def user_delete_pay_document(request):
             return JsonResponse({'status': 'error', 'message': f'خطا در حذف تصویر: {str(e)}'})
 
     return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def export_user_pay_money_pdf(request):
+    # خانه مرتبط با کاربر (در صورت نیاز)
+    house = None
+    if request.user.is_authenticated:
+        # اگر کاربر مستأجر است، خانه‌ای که در آن واحد دارد
+        house = MyHouse.objects.filter(
+            Q(residents=request.user) | Q(user=request.user)
+        ).order_by('-created_at').first()
+
+    # Queryset اصلی بر اساس واحد
+    payments = UserPayMoney.objects.filter(user=request.user).order_by('-register_date')
+
+    # فیلترهای GET
+    filter_fields = {
+        'payment_date': 'payment_date__icontains',
+        'description': 'title__icontains',  # عنوان پرداخت
+        'payment_gateway': 'payment_gateway__icontains',
+        'amount': 'amount__icontains',
+        'transaction_reference': 'transaction_reference__icontains',
+        'bank': 'bank__id__icontains',
+        'is_paid': 'is_paid',
+    }
+
+    for field, lookup in filter_fields.items():
+        value = request.GET.get(field)
+        if value:
+            payments = payments.filter(**{lookup: value})
+
+    # تنظیمات PDF
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+        @page {{ size: A4 landscape; margin: 1cm; }}
+        body {{
+            font-family: 'BYekan', sans-serif;
+        }}
+        @font-face {{
+            font-family: 'BYekan';
+            src: url('{font_url}');
+        }}
+        table {{
+            border-collapse: collapse;
+            width: 100%;
+        }}
+        th, td {{
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: center;
+        }}
+        th {{
+            background-color: #FFD700;
+        }}
+    """)
+
+    # Render template
+    template = get_template("user_pay_pdf.html")
+    context = {
+        'payments': payments,
+        'font_path': font_url,
+        'today': datetime.now(),
+        'house': house,
+    }
+
+    html = template.render(context)
+    pdf_file = io.BytesIO()
+    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
+    pdf_file.seek(0)
+
+    # Response
+    response = HttpResponse(pdf_file, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="userpaymoney_report.pdf"'
+    return response
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def export_user_pay_money_excel(request):
+
+    # Queryset اصلی بر اساس واحد
+    payments = UserPayMoney.objects.filter(user=request.user).order_by('-register_date')
+
+
+    # Create Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "units"
+    ws.sheet_view.rightToLeft = True
+
+    # Title
+    title_cell = ws.cell(row=1, column=1, value=f"لیست پرداخت های من")
+    title_cell.font = Font(bold=True, size=18)
+    title_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=7)
+
+    # Headers
+    headers = [' بانک', 'شرح', 'مبلغ', 'تاریخ ثبت', 'تاریخ پرداخت', 'شماره رهگیری', 'روش پرداخت']
+    header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
+    header_font = Font(bold=True, color="000000")
+    for col_num, column_title in enumerate(headers, 1):
+        cell = ws.cell(row=2, column=col_num, value=column_title)
+        cell.fill = header_fill
+        cell.font = header_font
+
+    # Write data
+    for row_num, pay in enumerate(payments, start=3):
+        ws.cell(row=row_num, column=1, value=pay.bank.bank_name if pay.bank else '')
+        ws.cell(row=row_num, column=2, value=pay.description)
+        ws.cell(row=row_num, column=3, value=pay.amount)
+        ws.cell(row=row_num, column=4, value=show_jalali(pay.register_date))
+        ws.cell(row=row_num, column=5, value=show_jalali(pay.payment_date))
+        ws.cell(row=row_num, column=6, value=pay.transaction_reference)
+        ws.cell(row=row_num, column=7, value=pay.payment_gateway)
+
+
+    # Return response
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename=userpaymoney_report.xlsx'
+    wb.save(response)
+    return response

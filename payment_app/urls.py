@@ -8,6 +8,8 @@ urlpatterns = [
     path('verify-pay/', views.verify_pay, name='verify_pay'),
     path('payment/gateway/<int:pk>/', views.payment_charge_user_view, name='payment_gateway'),
     path('user/pay/money/<int:pk>/', views.user_pay_money_view, name='user_pay_money'),
+    path('user-pay/request/<int:pay_id>/', views.request_user_pay_money, name='request_user_pay'),
+    path('user-pay-verify/', views.verify_user_pay_money, name='verify_user_pay'),
 
     path(
         'unit-charge/payment<int:charge_id>/',

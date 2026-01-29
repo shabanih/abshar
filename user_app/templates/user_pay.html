@@ -22,12 +22,12 @@
         <div class=" col-12 col-md-5 col-xl-4 text-center align-self-center">
             <button onclick="openQuery()" class="btn btn-gradient-info px-2 py-2">جستجوی پیشرفته</button>
              {% if page_obj %}
-                    <a href="{% url 'export_income_pdf' %}?{{ request.GET.urlencode }}"
+                    <a href="{% url 'user_pay_money_pdf' %}?{{ request.GET.urlencode }}"
                class="btn btn-gradient-danger px-md-4 px-2 py-2">
                خروجی PDF
             </a>
-            <a href="{% url 'export_income_excel' %}?{{ request.GET.urlencode }}"
-   class="btn btn-facebook text-white px-2 px-md-4 py-2">خروجی Excel</a>
+            <a href="{% url 'user_pay_money_excel' %}?{{ request.GET.urlencode }}"
+                  class="btn btn-facebook text-white px-2 px-md-4 py-2">خروجی Excel</a>
          
                    {% else %}
                         <button class="btn btn-gradient-danger px-2 px-md-4 py-2" disabled>خروجی PDF</button>
@@ -39,37 +39,37 @@
          <div id="query-form" style="display: none;" class="row mt-2">
             <form method="get">
                <div class="row mt-2 g-2">
-                     <div class="col-md-3">
+                     <div class="col-md-2">
              <select name="bank" class="form-control form-control-sm">
                 <option value="">بانک را انتخاب کنید</option>
                 {% for bank in banks %}
                     <option value="{{ bank.id }}" {% if request.GET.bank == bank.id|stringformat:"s" %}selected{% endif %}>
-                        {{ bank.bank_name }} - {{ bank.account_no }}
+                        {{ bank.bank_name }}
                     </option>
                 {% endfor %}
             </select>
 
                     </div>
+                         <div class="col-md-2">
+                        <input type="text" name="amount" class="form-control" placeholder="مبلغ"
+                               value="{{ request.GET.amount }}">
+                    </div>
+                          <div class="col-md-4">
+                <input type="text" name="description" class="form-control" placeholder="شرح سند"
+                       value="{{ request.GET.description }}">
+            </div>
                      <div class="col-md-2">
-                            <input type="text"  name="from_date2" data-jdp data-jdp-only-date  class="form-control" 
+                            <input type="text"  name="from_date" data-jdp data-jdp-only-date  class="form-control" 
                                    placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
                           </div>
                      <div class="col-md-2">
-                        <input type="text"  name="to_date2" data-jdp data-jdp-only-date class="form-control" 
+                        <input type="text"  name="to_date" data-jdp data-jdp-only-date class="form-control" 
                                placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
                         </div>
                        </div>
             
-                <div class="row mt-2 mb-2 g-2">
-                       <div class="col-md-2">
-                        <input type="text" name="amount" class="form-control" placeholder="مبلغ"
-                               value="{{ request.GET.amount }}">
-                    </div>
-                      <div class="col-md-4">
-                <input type="text" name="description" class="form-control" placeholder="شرح سند"
-                       value="{{ request.GET.description }}">
-            </div>
-                           <div class="col-md-2">
+             <div class="row g-2 mt-1">
+                 <div class="col-md-2">
                    <select name="is_paid" class="form-control form-control-sm">
                     <option value="">وضعیت پرداخت</option>
                     <option value="1" {% if request.GET.is_paid == "1" %}selected{% endif %}>
@@ -80,16 +80,13 @@
                     </option>
                 </select>
                </div>
-                   
-                    </div>
-             <div class="row">
-                 <div class="col-md-9 align-self-center text-start mb-2">
+                 <div class="col-md-8 align-self-center text-start mb-2">
                        <input type="text" name="details" class="form-control" placeholder="توضیحات سند"
                        value="{{ request.GET.details }}">
                  </div>
-                     <div class="col-md-3 align-self-center mb-2">
-                            <button type="submit" class="btn btn-facebook px-4 py-2">جستجوی پیشرفته</button>
-                            <button type="button" class="btn btn-gradient-danger px-4 py-2" onclick="window.location.href=window.location.pathname;">حذف فیلتر</button>
+                     <div class="col-md-2 align-self-center mb-2">
+                            <button type="submit" class="btn btn-facebook px-2 py-2">جستجوی پیشرفته</button>
+                            <button type="button" class="btn btn-gradient-danger px-1 py-2" onclick="window.location.href=window.location.pathname;">حذف فیلتر</button>
                         </div>
                         </div>
                </form>
@@ -101,12 +98,14 @@
                     <thead class="text-center">
                         <tr>
                             <th>#</th>
+                            <th>حساب بانکی</th>
                             <th>شرح سند</th>
                             <th>مبلغ</th>
                             <th>تاریخ ثبت</th>
                              <th>توضیحات </th>
                             <th>تصویر سند</th>
                              <th>وضعیت پرداخت</th>
+                         
                             <th>دستورات</th>
                         </tr>
                     </thead>
@@ -115,6 +114,7 @@
                         <tbody class="text-center">
                             <tr>
                                 <td>{{ forloop.counter }}</td>
+                                <td>{{ pay.bank.bank_name }}</td>
                                 <td>{{pay.description }}</td>
                                 <td>{{pay.amount|three_digit_currency }}</td>
                                  <td>{{pay.register_date|show_jalali }}</td>
@@ -143,7 +143,10 @@
                                 {% endif %} 
                               
                             </td>
-                            
+                         
+                            {% if not pay.is_paid %}
+
+
                                    <td class="col-lg-2 col-xl-2 p-0">
                                       <a
                                            class="btn btn-gradient-warning p-1 edit-user-pay"
@@ -162,7 +165,7 @@
                                            onclick="return confirmDeleteWithSweetAlert(event)">
                                                   <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                 </a>
-                                    <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ pay.id }}" title="نمایش جزئیات"
+                                    <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ pay.id }}" title="مشاهده جزئیات"
                                                         class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
                                                 </button>
                                     <a href="{% url 'user_pay_money' pay.id %}"
@@ -173,6 +176,13 @@
                                
 
                             </td>
+                                {% else %}
+                                        <td class="col-lg-2 col-xl-2 p-0">
+                                    <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ pay.id }}" title="نمایش جزئیات"
+                                                        class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
+                                                </button>
+                            </td>
+                               {% endif %}
                        <div class="modal fade"  id="exampleModalLong2{{ pay.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ pay.id }}" aria-hidden="true">
                       <div class="modal-dialog" role="document">
                         <div class="modal-content">
@@ -188,7 +198,7 @@
                                     {% if pay.details %}
                                         <span class="badge bg-warning">{{ pay.details }} </span>
                                         {% else %}
-                                        توضیحات ثبت نشده است
+                                         ثبت نشده است
                                     {% endif %}
 
                                 </p>
@@ -196,14 +206,18 @@
                              {% if pay.transaction_reference %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ pay.payment_date|show_jalali_date_only }}</p>
                                 <p><strong> کد پیگیری:</strong> {{ pay.transaction_reference }}</p>
-                                <p><strong> بانک:</strong> {{ pay.bank }}</p>
+                                <p><strong> بانک واریز کننده:</strong> {{ pay.bank.bank_name }}</p>
+                                  <p><strong> روش پرداخت:</strong> {{ pay.payment_gateway }}</p>
                             {% endif %}
+                            
                                     <p><strong>وضعیت:</strong> 
                                     {% if pay.is_paid %}
                                     	<span class="badge bg-success">پرداخت شده</span>
                                         {% else %}
                                         <span class="badge bg-danger">پرداخت نشده</span></p>
                                     {% endif %} 
+                            
+                              
 
                             </div>
                             <hr/>

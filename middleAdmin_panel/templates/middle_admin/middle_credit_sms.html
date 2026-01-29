@@ -1,0 +1,130 @@
+﻿{% extends 'middleShared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+شارژ حساب پیامک 
+{% endblock page_title %}
+
+{% block main_content %}
+<div class="container mt-4">
+   <div class="card py-5">
+ <form id="smsForm" method="post" action="{% url 'request_sms_pay' %}">
+    {% csrf_token %}
+
+    <div class="row justify-content-center">
+      
+        <div class="col-md-7">
+
+{#            <label class="form-label fw-bold mb-2">مبلغ شارژ (تومان)</label>#}
+
+            <div class="input-group mb-3">
+                <span class="input-group-text">مبلغ شارژ (تومان)</span>
+
+                <input
+                    placeholder="مبلغ را وارد نمایید"
+                    min="1000"
+                    type="text"
+                    name="amount"
+                    id="amountInput"
+                    class="form-control"
+                    inputmode="numeric"
+                    required
+                >
+            <span class="input-group-text">بعلاوه 10% مالیات</span>
+
+                <button class="btn btn-gradient-info" type="submit">
+                    پرداخت آنلاین
+                </button>
+            </div>
+
+        </div>
+    </div>
+</form>
+<div class="row justify-content-center g-1 mt-3">
+ 
+    <div class="col-auto">
+        <button class="btn btn-outline-info btn-sm px-3" onclick="setAmount('')">
+            مبلغ دلخواه
+        </button>
+    </div>
+
+    <div class="col-auto">
+        <button class="btn btn-outline-info btn-sm px-3" onclick="setAmount(100000)">
+            100 هزار تومان
+        </button>
+    </div>
+
+    <div class="col-auto">
+        <button class="btn btn-outline-info btn-sm px-3" onclick="setAmount(200000)">
+            200 هزار تومان
+        </button>
+    </div>
+
+    <div class="col-auto">
+        <button class="btn btn-outline-info btn-sm px-3" onclick="setAmount(400000)">
+             400 هزار تومان
+        </button>
+    </div>
+
+    <div class="col-auto">
+        <button class="btn btn-outline-info btn-sm px-3" onclick="setAmount(600000)">
+            600 هزار تومان
+        </button>
+    </div>
+
+    <div class="col-auto">
+        <button class="btn btn-outline-info btn-sm px-3" onclick="setAmount(1000000)">
+            1 میلیون تومان
+        </button>
+    </div>
+
+    <div class="col-auto">
+        <button class="btn btn-outline-info btn-sm px-3" onclick="setAmount(2000000)">
+            2 میلیون تومان
+        </button>
+    </div>
+</div>
+       <div class="row justify-content-center mt-4">
+    <div class="col-md-10 text-center mt-4">
+        <div class="row d-flex justify-content-center">
+            <div class="col-3">
+                <span>💰 موجودی فعلی پیامک:</span>
+            </div>
+          <div class="col-3">
+                <strong>{{ current_credit|three_digit_currency }} تومان</strong>
+            </div>
+            </div>
+    </div>
+</div>
+</div>
+
+
+
+
+
+
+</div>
+<script>
+    function formatNumber(value) {
+        return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    function setAmount(value) {
+        const input = document.getElementById('amountInput');
+        input.value = formatNumber(value);
+        input.focus();
+    }
+
+    // قبل از ارسال فرم، کاماها حذف می‌شن
+    document.getElementById('smsForm').addEventListener('submit', function () {
+        const input = document.getElementById('amountInput');
+        input.value = input.value.replace(/,/g, '');
+    });
+</script>
+
+{% endblock %}
+
+
+
+

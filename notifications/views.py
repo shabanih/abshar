@@ -74,7 +74,7 @@ class SupportUserCreateView(CreateView):
 
         messages.success(
             self.request,
-            'تیکت با موفقیت ارسال گردید. کارشناسان ما طی ۳ تا ۵ ساعت آینده پاسخ خواهند داد.'
+            'تیکت با موفقیت ارسال گردید. پس از بررسی پاسخ داده خواهد شد.'
         )
         return redirect(self.success_url)
 

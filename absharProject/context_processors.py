@@ -1,6 +1,8 @@
-from django.db.models import Q
+from decimal import Decimal
 
-from admin_panel.models import UnifiedCharge, Announcement, MessageToUser, MessageReadStatus
+from django.db.models import Q, Sum
+
+from admin_panel.models import UnifiedCharge, Announcement, MessageToUser, MessageReadStatus, SmsCredit
 from user_app.models import MyHouse, Unit
 
 
@@ -91,6 +93,13 @@ def middle_header_notifications(request):
         is_read=False
     ).values('message').distinct().count()
 
+    middle_current_credit = (
+            SmsCredit.objects
+            .filter(user=request.user, is_paid=True)
+            .aggregate(total=Sum('amount'))['total']
+            or Decimal('0')
+    )
+
     # new_announce_count = Announcement.objects.filter(
     #     unit__in=user_units,
     # ).count()
@@ -98,5 +107,6 @@ def middle_header_notifications(request):
     return {
         'new_charges_count': new_charges_count,
         'new_messages_count': new_messages_count,
+        'middle_current_credit': middle_current_credit,
         # 'new_announce_count': new_announce_count,
     }

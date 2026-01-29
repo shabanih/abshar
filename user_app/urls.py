@@ -19,6 +19,8 @@ urlpatterns = [
     path('pay/user/edit/<int:pk>/', views.pay_user_edit, name='user_pay_money_edit'),
     path('pay/user/delete/<int:pk>/', views.user_pay_delete, name='user_pay_delete'),
     path('user/pay/delete-document/', views.user_delete_pay_document, name='user_delete_pay_document'),
+    path('user-pay-pdf/', views.export_user_pay_money_pdf, name='user_pay_money_pdf'),
+    path('user-pay-excel/', views.export_user_pay_money_excel, name='user_pay_money_excel'),
 
     path('profile/', views.user_profile, name='user_profile'),
 

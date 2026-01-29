@@ -28,7 +28,8 @@ ZP_API_STARTPAY = "https://sandbox.zarinpal.com/pg/StartPay/{authority}"
 
 description = "Raya"  # Required
 
-CallbackURLFix = 'http://127.0.0.1:8001/payment/verify-pay/'
+CallbackURLCharge = 'http://127.0.0.1:8001/payment/verify-pay/'
+CallbackURLUserPay = 'http://127.0.0.1:8001/payment/user-pay-verify/'
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -46,7 +47,7 @@ def request_pay(request: HttpRequest, charge_id):
         charge.update_penalty(save=True)
         total_fix_charge = charge.total_charge_month
         # charge.save()
-        callback_url = f"{CallbackURLFix}?charge_id={charge.id}"  # اضافه کردن charge_id
+        callback_url = f"{CallbackURLCharge}?charge_id={charge.id}"  # اضافه کردن charge_id
 
         req_data = {
             "merchant_id": MERCHANT,  # Ensure MERCHANT is defined
@@ -251,25 +252,172 @@ def user_pay_money_view(request, pk):
                 object_id=pay.id,
                 unit=pay.unit,
                 bank=selected_bank,
-                debtor_amount=pay.total_charge_month,
-                amount=pay.total_charge_month,
+                debtor_amount=pay.amount,
+                amount=pay.amount,
                 creditor_amount=0,
                 user=request.user,
                 payer_name=pay.unit.get_label(),
                 payment_date=pay.payment_date,
-                payment_description=f"{pay.title}",
+                payment_description=f"{pay.description}",
                 transaction_no=pay.transaction_reference,
                 payment_gateway='کارت به کارت'
             )
 
-            messages.success(request, 'پرداخت شارژ با موفقیت ثبت گردید')
-            return redirect('user_charges')
+            messages.success(request, 'پرداخت شما با موفقیت ثبت گردید')
+            return redirect('user_pay_money')
         else:
             messages.error(request, 'خطا در ثبت پرداخت')
             return render(request, 'user_pay_gateway.html', {'pay': pay, 'form': form})
     else:
         form = UserPayGateForm(instance=pay, house=house)
         return render(request, 'user_pay_gateway.html', {'pay': pay, 'form': form})
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def request_user_pay_money(request: HttpRequest, pay_id):
+    pay = get_object_or_404(
+        UserPayMoney,
+        id=pay_id,
+        is_paid=False
+    )
+
+    if not pay.amount or pay.amount <= 0:
+        return HttpResponse("مبلغ پرداخت نامعتبر است.", status=400)
+
+    callback_url = f"{CallbackURLUserPay}?pay_id={pay.id}"
+
+    req_data = {
+        "merchant_id": MERCHANT,
+        "amount": pay.amount * 10,  # تومان → ریال
+        "callback_url": callback_url,
+        "description": pay.description or "پرداخت اینترنتی",
+    }
+
+    req_header = {
+        "accept": "application/json",
+        "content-type": "application/json"
+    }
+
+    try:
+        req = requests.post(
+            url=ZP_API_REQUEST,
+            data=json.dumps(req_data),
+            headers=req_header
+        )
+        req_data = req.json()
+
+        if req.status_code == 200 and 'authority' in req_data.get('data', {}):
+            authority = req_data['data']['authority']
+            return redirect(ZP_API_STARTPAY.format(authority=authority))
+
+        e_code = req_data.get('errors', {}).get('code')
+        e_message = req_data.get('errors', {}).get('message')
+        return HttpResponse(f"{e_code} - {e_message}")
+
+    except requests.RequestException as e:
+        return HttpResponse(f"خطا در ارتباط با درگاه: {e}", status=500)
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def verify_user_pay_money(request: HttpRequest):
+    pay_id = request.GET.get('pay_id')
+    authority = request.GET.get('Authority')
+    status = request.GET.get('Status')
+
+    if not pay_id:
+        return render(request, 'payment_done.html', {
+            'error': 'شناسه پرداخت ارسال نشده است'
+        })
+
+    pay = get_object_or_404(UserPayMoney, id=pay_id, is_paid=False)
+
+    if status != 'OK':
+        messages.error(request, 'پرداخت لغو شد')
+        return redirect('user_pay_money')
+
+    req_data = {
+        "merchant_id": MERCHANT,
+        "amount": pay.amount * 10,
+        "authority": authority
+    }
+
+    req_header = {
+        "accept": "application/json",
+        "content-type": "application/json"
+    }
+
+    try:
+        req = requests.post(
+            url=ZP_API_VERIFY,
+            data=json.dumps(req_data),
+            headers=req_header
+        )
+        result = req.json()
+
+        if result.get('errors'):
+            return render(request, 'payment_done.html', {
+                'error': result['errors'].get('message'),
+                'pay': pay
+            })
+
+        code = result['data']['code']
+
+        if code == 100:
+            ref_id = result['data']['ref_id']
+
+            # بانک پیش‌فرض درگاه
+            bank = Bank.objects.filter(
+                house=pay.unit.myhouse,
+                is_gateway=True,
+                is_active=True
+            ).first()
+
+            if not bank:
+                messages.error(request, 'حساب درگاه اینترنتی تعریف نشده است')
+                return redirect('user_pay_money')
+
+            pay.bank = bank
+            pay.transaction_reference = ref_id
+            pay.is_paid = True
+            pay.payment_gateway = 'پرداخت اینترنتی'
+            pay.payment_date = timezone.now()
+            pay.save()
+
+            # ثبت Fund
+            content_type = ContentType.objects.get_for_model(pay)
+            Fund.objects.create(
+                content_type=content_type,
+                object_id=pay.id,
+                unit=pay.unit,
+                bank=bank,
+                debtor_amount=0,
+                amount=pay.amount,
+                creditor_amount=pay.amount,
+                user=request.user,
+                payer_name=pay.unit.get_label(),
+                payment_date=pay.payment_date,
+                payment_description=pay.description,
+                transaction_no=ref_id,
+                payment_gateway='پرداخت اینترنتی'
+            )
+
+            messages.success(request, f'پرداخت با موفقیت انجام شد. کد پیگیری: {ref_id}')
+            return redirect('user_pay_money')
+
+        elif code == 101:
+            messages.info(request, 'این پرداخت قبلاً ثبت شده است')
+            return redirect('user_pay_money')
+
+        return render(request, 'payment_done.html', {
+            'error': result['data'].get('message'),
+            'pay': pay
+        })
+
+    except Exception as e:
+        return render(request, 'payment_done.html', {
+            'error': f"خطا: {e}",
+            'pay': pay
+        })
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
