@@ -561,6 +561,17 @@ class UnifiedCharge(models.Model):
         blank=True,
         verbose_name="تاریخ ارسال اعلان"
     )
+    send_sms = models.BooleanField(default=False)
+
+    # تاریخ ارسال نوتیفیکیشن
+    send_sms_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="تاریخ ارسال پیامک"
+    )
+    sms_count = models.PositiveIntegerField(default=0)
+    sms_price = models.DecimalField(max_digits=10, decimal_places=0, default=0)
+    sms_total_price = models.DecimalField(max_digits=12, decimal_places=0, default=0)
 
     # تاریخ ددلاین پرداخت
     payment_deadline_date = models.DateField(
@@ -705,6 +716,27 @@ class UnifiedCharge(models.Model):
             self.total_charge_month = base + new_penalty
             if save:
                 self.save(update_fields=['penalty_amount', 'total_charge_month'])
+
+    def get_mobile(self):
+        """
+        شماره موبایل برای ارسال پیامک:
+        اولویت:
+        1️⃣ مستاجر فعال
+        2️⃣ مالک واحد
+        """
+        if not self.unit:
+            return None
+
+        # مستاجر فعال
+        renter = self.unit.renters.filter(renter_is_active=True).first()
+        if renter and renter.renter_mobile:
+            return renter.renter_mobile
+
+        # مالک
+        if self.unit.owner_mobile:
+            return self.unit.owner_mobile
+
+        return None
 
 
 class Fund(models.Model):

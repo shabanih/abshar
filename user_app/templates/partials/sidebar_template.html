@@ -17,6 +17,13 @@
     </h6>
 </div>
             </a>
+            {% if request.session.active_context == 'resident' %}
+                <div class="row text-center">
+<a href="{% url 'switch_to_manager' %}"   class="btn btn-gradient-primary px-3 py-2 mb-2">
+     ورود به پنل مدیر 
+  </a>
+                </div>
+{% endif %}
         </li>
 
         <!-- داشبورد -->

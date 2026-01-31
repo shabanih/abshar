@@ -212,7 +212,10 @@ class MiddleTicketsView(ListView):
 
     def get_queryset(self):
         query = self.request.GET.get('q', '')
-        qs = SupportUser.objects.filter(user__manager=self.request.user)
+        managed_users = self.request.user.managed_users.all()
+        qs = SupportUser.objects.filter(
+            Q(user=self.request.user) | Q(user__in=managed_users)
+        )
         if query:
             qs = qs.filter(
                 Q(subject__icontains=query) |
@@ -692,9 +695,10 @@ def message_user_delete_list(request, pk):
 
 
 def middle_show_message_form(request, pk):
+    managed_users = request.user.managed_users.all()
     message = get_object_or_404(MessageToUser, id=pk, user=request.user)
-    units = Unit.objects.filter(is_active=True, user__manager=request.user).prefetch_related('renters').order_by('unit')
-
+    units = Unit.objects.filter(Q(user=request.user) | Q(user__in=managed_users),
+                                is_active=True).prefetch_related('renters').order_by('unit')
     units_with_details = []
     for unit in units:
         active_renter = unit.renters.filter(renter_is_active=True).first()
@@ -711,6 +715,7 @@ def middle_show_message_form(request, pk):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_send_message(request, pk):
+    managed_users = request.user.managed_users.all()
     message = get_object_or_404(MessageToUser, id=pk, user=request.user)
 
     if request.method == "POST":
@@ -719,7 +724,8 @@ def middle_send_message(request, pk):
             messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
             return redirect('message_to_user')
 
-        units_qs = Unit.objects.filter(is_active=True, user__manager=request.user)
+        units_qs = Unit.objects.filter(Q(user=request.user) | Q(user__in=managed_users),
+                                is_active=True)
 
         if 'all' in selected_units:
             units_to_notify = units_qs
@@ -747,7 +753,7 @@ def middle_send_message(request, pk):
                     unit=unit,
                     defaults={'is_read': False}
                 )
-                print(f"واحد {unit.unit} - رکورد ساخته شد؟ {created}")
+                messages.success(request,f"پیام برای واحدهای{unit.unit} ارسال شد")
 
         return redirect('middle_message_management')
 
@@ -777,7 +783,7 @@ class MiddleMessageToUserListView(ListView):
         read_statuses_prefetch = Prefetch(
             'read_statuses',
             queryset=MessageReadStatus.objects.select_related('unit__user')
-                                             .prefetch_related('unit__renters')
+            .prefetch_related('unit__renters')
         )
 
         qs = MessageToUser.objects.filter(
@@ -804,7 +810,6 @@ class MiddleMessageToUserListView(ListView):
         context['query'] = self.request.GET.get('q', '')
         context['paginate'] = self.request.GET.get('paginate', '20')
         return context
-
 
 
 # ========================= Message to middleAdmin ===============

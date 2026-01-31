@@ -8,6 +8,7 @@ urlpatterns = [
     path('middle-dashboard', views.middle_admin_dashboard, name='middle_admin_dashboard'),
     path('login-middleAdmin/', views.middle_admin_login_view, name='login_middle_admin'),
     path('log-out/', views.logout__middle_admin, name='logout_middle_admin'),
+    path('switch-to-resident/', views.switch_to_resident, name='switch_to_resident'),
 
     path('middle/profile/', views.middle_profile, name='middle_profile'),
 

@@ -196,7 +196,7 @@ class UnitReportForm(forms.Form):
             self.fields['unit'].queryset = Unit.objects.filter(
                 is_active=True,
                 user__in=managed_users
-            ).select_related('user')
+            ).select_related('user').order_by('unit')
 
         # نمایش نام مستاجر فعال یا مالک
         self.fields['unit'].label_from_instance = lambda obj: (

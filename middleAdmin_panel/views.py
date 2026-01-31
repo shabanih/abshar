@@ -1,4 +1,5 @@
 import io
+import logging
 import os
 import time
 from datetime import timezone, datetime
@@ -37,6 +38,7 @@ from admin_panel.forms import announcementForm, BankForm, UnitForm, ExpenseCateg
     FixAreaChargeForm, AreaChargeForm, PersonChargeForm, FixPersonChargeForm, PersonAreaChargeForm, \
     PersonAreaFixChargeForm, VariableFixChargeForm, MyHouseForm, SmsForm, RenterAddForm, ExpensePayForm, IncomePayForm, \
     SmsCreditForm
+from admin_panel.helper import send_notify_user_by_sms
 from admin_panel.models import Announcement, ExpenseCategory, Expense, Fund, ExpenseDocument, IncomeCategory, Income, \
     IncomeDocument, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, FixCharge, AreaCharge, PersonCharge, \
@@ -46,6 +48,7 @@ from admin_panel.models import Announcement, ExpenseCategory, Expense, Fund, Exp
 from admin_panel.services.calculators import CALCULATORS
 from middleAdmin_panel.services.unit_services import UnitUpdateService
 from notifications.models import Notification, SupportUser
+from notifications.services.sms_service import SmsService
 from polls.templatetags.poll_extras import show_jalali
 
 from user_app.models import Bank, Unit, User, Renter, MyHouse, UnitResidenceHistory
@@ -58,17 +61,74 @@ def middle_admin_required(view_func):
     )(view_func)
 
 
+# ========================= Panel Switch ==================
+
+def get_single_resident_building(user):
+    units = Unit.objects.filter(
+        Q(user=user) |
+        Q(renters__user=user, renters__renter_is_active=True),
+        is_active=True
+    ).select_related('myhouse').distinct()
+
+    buildings = set(
+        unit.myhouse_id for unit in units if unit.myhouse_id
+    )
+
+    if len(buildings) == 1:
+        return units.first()  # یک واحد از همان ساختمان
+    return None
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def switch_to_resident(request):
+    """
+    سوییچ به محیط ساکن برای مدیر یا middleAdmin
+    """
+    user = request.user
+
+    # فقط admin یا middleAdmin می‌توانند سوییچ کنند
+    if not (user.is_staff or user.is_middle_admin):
+        messages.error(request, 'دسترسی به پنل ساکن ندارید.')
+        return redirect('middle_admin_dashboard')
+
+    # فقط مدیرانی که ساکن هستند می‌توانند
+    if not getattr(user, 'is_resident', False):
+        messages.error(request, 'شما ساکن ساختمان نیستید.')
+        return redirect('middle_admin_dashboard')
+
+    unit = get_single_resident_building(user)
+    if not unit:
+        messages.error(request, 'شما یا ساکن واحد نیستید یا بیش از یک ساختمان دارید.')
+        return redirect('middle_admin_dashboard')
+
+    # ✅ تنظیم session
+    request.session['active_context'] = 'resident'
+    request.session['active_unit_id'] = unit.id
+    request.session['active_building_id'] = unit.myhouse.id
+
+    return redirect('user_panel')
+
+
+# ================================================================
+
+
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_admin_dashboard(request):
+    managed_users = request.user.managed_users.all()
+    resident_unit = get_single_resident_building(request.user)
     announcements = Announcement.objects.filter(is_active=True, user=request.user).order_by('-created_at')[:3]
-    unit_count = Unit.objects.filter(user__manager=request.user).count()
+    unit_count = Unit.objects.filter(
+        Q(user=request.user) | Q(user__in=managed_users)
+    ).count()
     # fund_amount = Fund.objects.filter(user__manager=request.user)
-    tickets = SupportUser.objects.filter(user__manager=request.user).order_by('-created_at')[:5]
+    tickets = SupportUser.objects.filter(
+        Q(user=request.user) | Q(user__in=managed_users)
+    ).order_by('-created_at')[:5]
 
     funds = (
         Fund.objects
         .select_related('bank', 'content_type')
-        .filter(Q(user=request.user) | Q(user__manager=request.user))
+        .filter(Q(user=request.user) | Q(user__in=managed_users))
         .order_by('-payment_date')
     )
     totals = funds.aggregate(
@@ -79,7 +139,8 @@ def middle_admin_dashboard(request):
 
     unit_count_unpaid_charges = (
         UnifiedCharge.objects
-        .filter(is_paid=False, unit__isnull=False, user=request.user)
+        .filter(
+                Q(user=request.user) | Q(user__in=managed_users), is_paid=False, unit__isnull=False)
         .select_related('unit')
     ).count()
 
@@ -88,7 +149,8 @@ def middle_admin_dashboard(request):
         'unit_count': unit_count,
         'fund_amount': balance,
         'tickets': tickets,
-        'unit_count_unpaid_charges': unit_count_unpaid_charges
+        'unit_count_unpaid_charges': unit_count_unpaid_charges,
+        'resident_unit': resident_unit
 
     }
     return render(request, 'middleShared/home_template.html', context)
@@ -476,22 +538,30 @@ class MiddleUnitRegisterView(CreateView):
                     mobile = form.cleaned_data.get('owner_mobile')
                     full_name = form.cleaned_data.get('owner_name')
 
-                user, created = User.objects.get_or_create(
-                    mobile=mobile,
-                    defaults={
-                        'username': mobile,
-                        'full_name': full_name,
-                        'is_active': True,
-                        'manager': self.request.user,
-                        'otp_create_time': timezone.now(),
-                    }
-                )
+                created = False  # 👈 خیلی مهم
 
+                if mobile == self.request.user.mobile:
+                    user = self.request.user
+                else:
+                    user, created = User.objects.get_or_create(
+                        mobile=mobile,
+                        defaults={
+                            'username': mobile,
+                            'full_name': full_name,
+                            'is_active': True,
+                            'manager': self.request.user,
+                        }
+                    )
+                if created:
+                    password = form.cleaned_data.get('password')
+                    if password:
+                        user.set_password(password)
+                        user.save()
                 # اگر پسورد وارد شده بود
-                password = form.cleaned_data.get('password')
-                if password:
-                    user.set_password(password)
-                    user.save()
+                # password = form.cleaned_data.get('password')
+                # if password:
+                #     user.set_password(password)
+                #     user.save()
 
                 # 2️⃣ ست کردن user قبل از save
                 unit = form.save(commit=False)
@@ -813,12 +883,11 @@ class MiddleUnitListView(ListView):
 
         queryset = (
             Unit.objects
-            .filter(user__manager=user)
+            .filter(myhouse__user=user)
             .prefetch_related('renters')
         )
 
         filters = Q()
-
         params = self.request.GET
 
         if params.get('unit', '').isdigit():
@@ -850,7 +919,6 @@ class MiddleUnitListView(ListView):
 
         qs = queryset.filter(filters).distinct().order_by('unit')
 
-        # اضافه کردن renters فعال به هر واحد
         for unit in qs:
             unit.active_renters = unit.renters.filter(renter_is_active=True)
 
@@ -861,7 +929,7 @@ class MiddleUnitListView(ListView):
 
         context.update({
             'total_units': Unit.objects.filter(
-                user__manager=self.request.user
+                myhouse__user=self.request.user
             ).count(),
             'units': context['object_list'],
             'paginate': self.request.GET.get('paginate', '20'),
@@ -3687,10 +3755,15 @@ class MiddleFixChargeCreateView(CreateView):
         form.instance.unit_count = unit_count
 
         # واحدهای فعال
+        # units = Unit.objects.filter(
+        #     is_active=True,
+        #     user__in=managed_users
+        # )
         units = Unit.objects.filter(
-            is_active=True,
-            user__in=managed_users
-        )
+            is_active=True
+        ).filter(
+            Q(user=self.request.user) | Q(user__in=managed_users)
+        ).distinct()
 
         if not units.exists():
             messages.error(
@@ -3754,8 +3827,13 @@ class MiddleFixChargeCreateView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        unit_count = Unit.objects.filter(is_active=True, user__manager=self.request.user).count()
-        context['unit_count'] = unit_count
+        manager_units = Unit.objects.filter(is_active=True, user=self.request.user)
+        managed_units = Unit.objects.filter(is_active=True, user__manager=self.request.user)
+
+        # ترکیب و distinct
+        all_units = (manager_units | managed_units).distinct()
+        context['unit_count'] = all_units.count()
+        context['units'] = all_units
 
         charges = FixCharge.objects.filter(user=self.request.user).annotate(
             total_units=Count('unified_charges'),  # همه واحدهای مرتبط
@@ -3880,15 +3958,63 @@ def middle_fix_charge_delete(request, pk):
     return redirect(reverse('middle_add_fixed_charge'))
 
 
-@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_fix_charge_notification_view(request, pk):
     charge = get_object_or_404(FixCharge, id=pk, user=request.user)
-    managed_users = request.user.managed_users.all()
 
-    # واحدهای فعال تحت مدیریت
-    units = Unit.objects.filter(is_active=True, user__in=managed_users)
+    # واحدهای تحت مدیریت یا متعلق به خود کاربر
+    manager_units = Unit.objects.filter(is_active=True, user=request.user)
+    managed_units = Unit.objects.filter(is_active=True, user__manager=request.user)
+    units = (manager_units | managed_units).distinct()
 
-    # جستجو
+    # -----------------------------
+    # ساخت UnifiedCharge فقط برای واحدهای جدید
+    # -----------------------------
+    content_type = ContentType.objects.get_for_model(FixCharge)
+
+    # واحدهایی که قبلاً شارژ برایشان ایجاد شده
+    existing_uc_unit_ids = UnifiedCharge.objects.filter(
+        content_type=content_type,
+        object_id=charge.id,
+        unit__in=units
+    ).values_list('unit_id', flat=True)
+
+    new_units = units.exclude(id__in=existing_uc_unit_ids)
+
+    # ایجاد UnifiedCharge برای واحدهای جدید
+    calculator = CALCULATORS.get(charge.charge_type)
+
+    with transaction.atomic():
+        for unit in new_units:
+            base_amount = calculator.calculate(unit, charge)
+            civil_amount = charge.civil or 0
+            other_amount = charge.other_cost_amount or 0
+            total_monthly_charge = base_amount + civil_amount + other_amount
+
+            UnifiedCharge.objects.create(
+                user=request.user,
+                unit=unit,
+                bank=None,
+                amount=base_amount,
+                charge_type=charge.charge_type,
+                base_charge=total_monthly_charge,
+                main_charge=charge,
+                penalty_percent=charge.payment_penalty_amount,
+                civil=civil_amount,
+                other_cost_amount=other_amount,
+                penalty_amount=0,
+                total_charge_month=total_monthly_charge,
+                details=charge.details or '',
+                title=charge.name,
+                send_notification=False,
+                send_notification_date=None,
+                payment_deadline_date=charge.payment_deadline,
+                content_type=content_type,
+                object_id=charge.id,
+            )
+
+    # -----------------------------
+    # فیلتر جستجو
+    # -----------------------------
     search_query = request.GET.get('search', '').strip()
     if search_query:
         units = units.filter(
@@ -3897,65 +4023,97 @@ def middle_fix_charge_notification_view(request, pk):
             Q(renters__renter_name__icontains=search_query)
         ).distinct()
 
+    # -----------------------------
     # Pagination
-    per_page = request.GET.get('per_page', 30)
-    try:
-        per_page = int(per_page)
-    except ValueError:
-        per_page = 30
+    # -----------------------------
+    per_page = int(request.GET.get('per_page', 30))
     paginator = Paginator(units, per_page)
-    page_number = request.GET.get('page')
-    page_units = paginator.get_page(page_number)
+    page_units = paginator.get_page(request.GET.get('page'))
 
+    # -----------------------------
+    # POST: ارسال اعلان یا پیامک
+    # -----------------------------
     if request.method == 'POST':
+        send_type = request.POST.get('send_type', 'notify')
         selected_units = request.POST.getlist('units')
-        if selected_units:
-            # فقط واحدهایی که هنوز send_notification=False هستند
-            qs = UnifiedCharge.objects.filter(
-                content_type=ContentType.objects.get_for_model(FixCharge),
-                object_id=charge.id,
-                unit_id__in=selected_units,
-                send_notification=False
-            )
-            updated_count = qs.update(
-                send_notification=True,
-                send_notification_date=timezone.now()
-            )
 
-            if updated_count:
-                messages.success(request, f'اطلاعیه شارژ برای {updated_count} واحد ارسال شد')
-            else:
-                messages.info(request, 'اطلاعیه جدیدی برای ارسال وجود ندارد')
-
-        else:
+        if not selected_units:
             messages.warning(request, 'هیچ واحدی انتخاب نشده است')
+            return redirect(request.path)
+
+        qs = UnifiedCharge.objects.filter(
+            content_type=content_type,
+            object_id=charge.id,
+            unit_id__in=selected_units
+        ).select_related('unit', 'unit__user')
+
+        if not qs.exists():
+            messages.info(request, 'اطلاعیه جدیدی برای ارسال وجود ندارد')
+            return redirect(request.path)
+
+        with transaction.atomic():
+            # ثبت اعلان سیستمی
+            qs.update(
+                send_notification=True,
+                send_notification_date=timezone.now().date()
+            )
+
+            if send_type == 'sms':
+                result = SmsService.send_for_unified_charges(
+                    user=request.user,
+                    unified_charges=qs,
+                    charge_title=charge.name,
+                    meta_callback=lambda total_sms, total_price: qs.update(
+                        send_sms=True,
+                        send_sms_date=timezone.now().date(),
+                        sms_count=total_sms,
+                        sms_price=Decimal(settings.SMS_PRICE),
+                        sms_total_price=total_price
+                    )
+                )
+
+                if result.success:
+                    messages.success(
+                        request,
+                        f'اطلاعیه پیامکی برای {qs.count()} واحد ارسال شد'
+                    )
+                else:
+                    messages.error(request, result.message)
+
+            else:
+                messages.success(request, f'اطلاعیه سیستمی برای {qs.count()} واحد ثبت شد')
+
         return redirect(request.path)
 
-    # آماده‌سازی داده‌ها برای قالب
+    # -----------------------------
+    # GET: آماده‌سازی داده‌ها برای قالب
+    # -----------------------------
     uc_map = UnifiedCharge.objects.filter(
-        content_type=ContentType.objects.get_for_model(FixCharge),
+        content_type=content_type,
         object_id=charge.id,
         unit__in=page_units
     ).select_related('unit', 'unit__user', 'bank')
 
+    uc_dict = {uc.unit_id: uc for uc in uc_map}
+
     items = []
-    for uc in uc_map:
-        renter = uc.unit.renters.filter(renter_is_active=True).first()
+    for unit in page_units:
+        uc = uc_dict.get(unit.id)
+        renter = unit.renters.filter(renter_is_active=True).first()
+
         items.append({
-            'unit': uc.unit,
+            'unit': unit,
             'renter': renter,
-            'is_paid': uc.is_paid,
-            'is_notified': uc.send_notification,
-            'total_charge': uc.total_charge_month,
+            'is_paid': uc.is_paid if uc else False,
+            'is_notified': uc.send_notification if uc else False,
+            'total_charge': uc.total_charge_month if uc else 0,
         })
 
-    context = {
+    return render(request, 'middleCharge/notify_fix_charge_template.html', {
         'charge': charge,
-        'page_obj': items,  # حالا فقط واحدهای دارای UnifiedCharge هستند
+        'page_obj': items,
         'paginator': paginator,
-    }
-
-    return render(request, 'middleCharge/notify_fix_charge_template.html', context)
+    })
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -3979,7 +4137,8 @@ def middle_remove_send_notification_fix(request, pk):
                     content_type=content_type,
                     object_id=charge.id,
                     is_paid=False,
-                    send_notification=True  # فقط رکوردهای فعال
+                    send_notification=True,
+                    send_sms=True
                 )
             else:
                 try:
@@ -3992,12 +4151,15 @@ def middle_remove_send_notification_fix(request, pk):
                     object_id=charge.id,
                     unit_id__in=selected_unit_ids,
                     is_paid=False,
-                    send_notification=True  # فقط رکوردهای فعال
+                    send_notification=True,  # فقط رکوردهای فعال
+
                 )
 
             updated_count = qs.update(
                 send_notification=False,
-                send_notification_date=None
+                send_notification_date=None,
+                send_sms=False,
+                send_sms_date=None
             )
 
             # اگر هیچ رکوردی با send_notification=True باقی نماند → شارژ را غیرفعال کن
@@ -4047,9 +4209,10 @@ class MiddleAreaChargeCreateView(CreateView):
 
         # واحدهای فعال
         units = Unit.objects.filter(
-            is_active=True,
-            user__in=managed_users
-        )
+            is_active=True
+        ).filter(
+            Q(user=self.request.user) | Q(user__in=managed_users)
+        ).distinct()
 
         if not units.exists():
             messages.error(
@@ -6741,7 +6904,6 @@ def base_charge_list(request):
             .count()
         )
 
-
         charges_data.append(data)
 
     # 📄 pagination
@@ -7270,7 +7432,7 @@ def add_sms_credit(request):
     context = {
         'current_credit': current_credit
     }
-    return render(request, 'middle_admin/middle_credit_sms.html', context )
+    return render(request, 'middle_admin/middle_credit_sms.html', context)
 
 
 @method_decorator(middle_admin_required, name='dispatch')
@@ -7473,6 +7635,7 @@ def middle_send_sms(request, pk):
         'sms': sms,
         'units_with_details': units_with_details,
     })
+
 
 # def middle_send_sms(request, pk):
 #     sms = get_object_or_404(SmsManagement, id=pk, user=request.user)

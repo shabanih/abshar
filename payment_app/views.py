@@ -219,7 +219,7 @@ def payment_charge_user_view(request, pk):
             messages.success(request, 'پرداخت شارژ با موفقیت ثبت گردید')
             return redirect('user_charges')
         else:
-            messages.success(request, 'خطا در ثبت پرداخت ')
+            messages.error(request, 'خطا در ثبت پرداخت ')
             return redirect('user_charges')
     else:
         form = UnifiedChargePaymentForm(instance=charge, charge=charge)
@@ -258,7 +258,7 @@ def user_pay_money_view(request, pk):
                 user=request.user,
                 payer_name=pay.unit.get_label(),
                 payment_date=pay.payment_date,
-                payment_description=f"{pay.description}",
+                payment_description=f" پرداخت به ساختمان: {(pay.description or '')[:50]}",
                 transaction_no=pay.transaction_reference,
                 payment_gateway='کارت به کارت'
             )
@@ -396,7 +396,7 @@ def verify_user_pay_money(request: HttpRequest):
                 user=request.user,
                 payer_name=pay.unit.get_label(),
                 payment_date=pay.payment_date,
-                payment_description=pay.description,
+                payment_description=f" پرداخت به ساختمان: {(pay.description or '')[:50]}",
                 transaction_no=ref_id,
                 payment_gateway='پرداخت اینترنتی'
             )

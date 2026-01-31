@@ -55,13 +55,29 @@ def user_header_notifications(request):
         unit__in=user_units,
         is_read=False
     ).values('message').distinct().count()
-
-    user=request.user
-    marquee_announcements = Announcement.objects.filter(
-        user=user.manager,
-        is_active=True,
-        show_in_marquee=True
-    ).order_by('-created_at')
+    user = request.user
+    if user.is_middle_admin:
+        units = (
+            Unit.objects
+            .filter(user__manager=user, is_active=True)
+            .prefetch_related('renters')
+        )
+        marquee_announcements = (
+            Announcement.objects
+            .filter(user=user, is_active=True)
+            .order_by('-created_at')[:5]
+        )
+    else:
+        units = (
+            Unit.objects
+            .filter(user=user, is_active=True)
+            .prefetch_related('renters')
+        )
+        marquee_announcements = (
+            Announcement.objects
+            .filter(user=user.manager, is_active=True)
+            .order_by('-created_at')[:5]
+        )
 
     return {
         'new_charges_count': new_charges_count,

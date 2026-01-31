@@ -41,6 +41,7 @@ class User(AbstractUser):
     )
 
     is_middle_admin = models.BooleanField(default=False, verbose_name='مدیر سطح میانی')
+    is_resident = models.BooleanField(default=False, verbose_name='ساکن ساختمان')
 
     objects = UserManager()
 
@@ -202,11 +203,10 @@ class Unit(models.Model):
     def save(self, *args, **kwargs):
         is_new = self.pk is None
         old = None
-
         if not is_new:
             old = Unit.objects.get(pk=self.pk)
 
-        # --- Calculate extra parking count ---
+        # --- محاسبه parking_counts قبل از save اولیه ---
         count = 0
         if self.extra_parking_first:
             count += 1
@@ -216,23 +216,11 @@ class Unit(models.Model):
 
         super().save(*args, **kwargs)
 
-        if self.myhouse and self.user:
-            # چک می‌کنیم مالک قبلاً در residents نیست
-            if self.user not in self.myhouse.residents.all():
-                self.myhouse.residents.add(self.user)
-
+        # --- بروزرسانی people_count ---
         self.update_people_count()
-        super().save(update_fields=['people_count'])
+        super().save(update_fields=['people_count', 'parking_counts'])
 
-        # --- Calculate people_count AFTER PK exists ---
-        active_renter = self.get_active_renter()
-        if active_renter:
-            self.people_count = int(active_renter.renter_people_count or 0)
-        else:
-            self.people_count = int(self.owner_people_count or 0)
-
-        # ثبت تاریخچه تغییر مالک
-        from .models import UnitResidenceHistory
+        today = timezone.now().date()
 
         if is_new:
             # واحد جدید → ثبت مالک اولیه
@@ -242,24 +230,52 @@ class Unit(models.Model):
                 name=self.owner_name,
                 mobile=self.owner_mobile,
                 people_count=int(self.owner_people_count or 0),
-                from_date=timezone.now().date(),
+                from_date=today,
                 changed_by=self.user
             )
         elif old.owner_name != self.owner_name:
-            # تغییر مالک موجود
+            # تغییر مالک
+
+            # 🔹 بستن مالک قبلی
             UnitResidenceHistory.objects.filter(
                 unit=self,
                 resident_type='owner',
                 to_date__isnull=True
-            ).update(to_date=timezone.now().date())
+            ).update(to_date=today)
 
+            # 🔹 بستن مستاجر فعال (اگر وجود دارد)
+            active_renter = self.get_active_renter()
+            if active_renter:
+                hist = UnitResidenceHistory.objects.filter(
+                    unit=self,
+                    resident_type='renter',
+                    renter=active_renter,
+                    to_date__isnull=True
+                )
+                if hist.exists():
+                    hist.update(to_date=today)
+                else:
+                    # اگر رکورد مستاجر وجود ندارد، بساز و تاریخ پایان ثبت شود
+                    UnitResidenceHistory.objects.create(
+                        unit=self,
+                        resident_type='renter',
+                        renter=active_renter,
+                        name=active_renter.renter_name,
+                        mobile=active_renter.renter_mobile,
+                        people_count=int(active_renter.renter_people_count or 0),
+                        from_date=today,
+                        to_date=today,
+                        changed_by=self.user
+                    )
+
+            # 🔹 ثبت مالک جدید
             UnitResidenceHistory.objects.create(
                 unit=self,
                 resident_type='owner',
                 name=self.owner_name,
                 mobile=self.owner_mobile,
                 people_count=int(self.owner_people_count or 0),
-                from_date=timezone.now().date(),
+                from_date=today,
                 changed_by=self.user
             )
 
@@ -290,16 +306,25 @@ class Renter(models.Model):
     def save(self, *args, **kwargs):
         is_new = self.pk is None
         old = None
-
         if not is_new:
             old = Renter.objects.get(pk=self.pk)
 
         super().save(*args, **kwargs)
+        today = timezone.now().date()
 
-        # ==============================
+        # =============================
         # مستاجر فعال شد
-        # ==============================
-        if is_new and self.renter_is_active:
+        # =============================
+        if self.renter_is_active and (is_new or not old.renter_is_active):
+            change_date = self.start_date or today
+
+            # بستن هر رکورد فعال قبلی مستاجر یا مالک در تاریخچه
+            UnitResidenceHistory.objects.filter(
+                unit=self.unit,
+                to_date__isnull=True
+            ).update(to_date=change_date)
+
+            # ثبت مستاجر جدید
             UnitResidenceHistory.objects.create(
                 unit=self.unit,
                 resident_type='renter',
@@ -307,55 +332,30 @@ class Renter(models.Model):
                 name=self.renter_name,
                 mobile=self.renter_mobile,
                 people_count=int(self.renter_people_count or 0),
-                from_date=self.start_date or timezone.now().date(),
+                from_date=change_date,
                 changed_by=self.user
             )
 
-        if not self.renter_is_active and (is_new or not old.renter_is_active):
-            # ⛔ بستن مالک فعال
-            UnitResidenceHistory.objects.filter(
-                unit=self.unit,
-                resident_type='owner',
-                to_date__isnull=True
-            ).update(to_date=self.start_date or timezone.now().date())
-
-            # ⛔ بستن مستاجر فعال قبلی
-            UnitResidenceHistory.objects.filter(
-                unit=self.unit,
-                resident_type='renter',
-                to_date__isnull=True
-            ).update(to_date=self.start_date or timezone.now().date())
-
-            # ✅ ثبت مستاجر جدید
-            UnitResidenceHistory.objects.create(
-                unit=self.unit,
-                resident_type='renter',
-                renter=self,
-                name=self.renter_name,
-                mobile=self.renter_mobile,
-                people_count=int(self.renter_people_count or 0),
-                from_date=self.start_date or timezone.now().date(),
-                changed_by=self.user
-            )
-
-        # ==============================
+        # =============================
         # مستاجر غیرفعال شد
-        # ==============================
+        # =============================
         if old and old.renter_is_active and not self.renter_is_active:
-            # بستن سابقه مستاجر
+            end_date = self.end_date or today
+
+            # بستن رکورد مستاجر فعال
             UnitResidenceHistory.objects.filter(
                 renter=self,
                 to_date__isnull=True
-            ).update(to_date=self.end_date or timezone.now().date())
+            ).update(to_date=end_date)
 
-            # 🔁 فعال شدن مجدد مالک
+            # فعال شدن مالک
             UnitResidenceHistory.objects.create(
                 unit=self.unit,
                 resident_type='owner',
                 name=self.unit.owner_name,
                 mobile=self.unit.owner_mobile,
                 people_count=int(self.unit.owner_people_count or 0),
-                from_date=self.end_date or timezone.now().date(),
+                from_date=end_date,
                 changed_by=self.user
             )
 

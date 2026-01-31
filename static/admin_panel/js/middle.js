@@ -304,8 +304,15 @@ $(document).on('click', '.edit-house-btn', function () {
     $('#id_initial_fund').val($(this).data('initial_fund').toString().replace(/,/g, ''));
 
      // ✅ set select values
-    $('#id_is_active').val($(this).data('is_active'));
-    $('#id_is_default').val($(this).data('is_default'));
+    let isActive = $(this).data('is_active');
+    $('#bankForm select[name="is_active"]').val(isActive.toString());
+
+
+    let isDefault = $(this).data('is_default');
+    $('#bankForm select[name="is_default"]').val(isDefault.toString());
+
+    let isGatway = $(this).data('is_gateway');
+    $('#bankForm select[name="is_gateway"]').val(isGatway.toString());
 
     // Update the modal title and submit button text for editing
     $('#exampleModalLongTitle3').text('ویرایش اطلاعات ساختمان');
@@ -337,8 +344,12 @@ $(document).on('click', '.edit-middle-btn', function () {
     $('#middleForm input[name="confirm_password"]').val('');
 
      // تعیین مقدار is_active
-    let isActive = $(this).data('is_active');
-    $('#editForm select[name="is_active"]').val(isActive.toString());
+    let isActive = $(this).data('is_active') ? '1' : '0';
+    let isResident = $(this).data('is_resident') ? '1' : '0';
+
+    $('#middleForm select[name="is_active"]').val(isActive);
+    $('#middleForm select[name="is_resident"]').val(isResident);
+
 
 
     // Update the modal title and submit button text for editing
@@ -346,8 +357,8 @@ $(document).on('click', '.edit-middle-btn', function () {
     $('#btn-submit-bank').text('ویرایش اطلاعات ');
 });
  document.addEventListener('DOMContentLoaded', function () {
-    const modal = document.getElementById('exampleModalLong');
-    const form = document.getElementById('personForm');
+    const modal = document.getElementById('exampleModalLong3');
+    const form = document.getElementById('middleForm');
 
     modal.addEventListener('hidden.bs.modal', function () {
       form.reset();

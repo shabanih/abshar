@@ -36,6 +36,11 @@ MARQUEE_CHOICES = {
     'False': 'خیر'
 }
 
+MIDDLE_CHOICES = (
+    (1, 'بله'),
+    (0, 'خیر'),
+)
+
 
 class announcementForm(forms.ModelForm):
     # title = forms.CharField(widget=CKEditorUploadingWidget())
@@ -188,11 +193,14 @@ class UserRegistrationForm(forms.ModelForm):
         label='روش‌های شارژ قابل دسترسی'
     )
 
-    is_active = forms.BooleanField(required=False, initial=True, label='فعال/غیرفعال')
+    is_active = forms.ChoiceField(choices=MIDDLE_CHOICES, label='فعال باشد؟', widget=forms.Select(attrs=attr))
+
+    is_resident = forms.ChoiceField(choices=MIDDLE_CHOICES, label='ساکن ساختمان میباشد؟',
+                                    widget=forms.Select(attrs=attr))
 
     class Meta:
         model = User
-        fields = ['full_name', 'mobile', 'username', 'password', 'is_active', 'charge_methods']
+        fields = ['full_name', 'mobile', 'username', 'password', 'is_active', 'charge_methods', 'is_resident']
 
     def clean_mobile(self):
         mobile = self.cleaned_data.get('mobile')
@@ -215,8 +223,8 @@ class UserRegistrationForm(forms.ModelForm):
 
         return confirm_password
 
-    def clean_is_active(self):
-        return self.cleaned_data.get('is_active', False)
+    # def clean_is_active(self):
+    #     return self.cleaned_data.get('is_active', False)
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -917,7 +925,7 @@ class ExpensePayForm(forms.ModelForm):
             self.fields['unit'].queryset = Unit.objects.filter(
                 is_active=True,
                 user__in=managed_users
-            ).select_related('user')
+            ).select_related('user').order_by('unit')
 
             banks = Bank.objects.filter(is_active=True, user=user)
             self.fields['bank'].queryset = banks
@@ -1121,7 +1129,7 @@ class IncomePayForm(forms.ModelForm):
             self.fields['unit'].queryset = Unit.objects.filter(
                 is_active=True,
                 user__in=managed_users
-            ).select_related('user')
+            ).select_related('user').order_by('unit')
 
             banks = Bank.objects.filter(is_active=True, user=user)
             self.fields['bank'].queryset = banks
@@ -1285,7 +1293,7 @@ class ReceiveMoneyForm(forms.ModelForm):
             self.fields['unit'].queryset = Unit.objects.filter(
                 is_active=True,
                 user__in=managed_users
-            ).select_related('user')
+            ).select_related('user').order_by('unit')
 
             # label امن برای unit (مستاجر یا مالک)
             def get_unit_label(obj):
@@ -1382,7 +1390,7 @@ class PayerMoneyForm(forms.ModelForm):
             self.fields['unit'].queryset = Unit.objects.filter(
                 is_active=True,
                 user__in=managed_users
-            ).select_related('user')
+            ).select_related('user').order_by('unit')
 
             # label امن برای unit (مستاجر یا مالک)
             def get_unit_label(obj):

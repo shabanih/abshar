@@ -33,11 +33,11 @@ class UnitUpdateService:
     #         self._update_people_count()
     def execute(self):
         with transaction.atomic():
-            # ست کردن خانه (myhouse) اگر خالی باشد
             if not self.unit.myhouse:
                 self.unit.myhouse = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
 
             owner_changed = self._check_owner_changed()
+            print("OWNER CHANGED:", owner_changed)
             if owner_changed:
                 self._deactivate_renters()
                 self.unit.owner_name = self.form.cleaned_data.get('owner_name')
@@ -46,8 +46,8 @@ class UnitUpdateService:
 
             self._update_user(owner_changed)
             self._update_unit()
-            if self.unit.is_renter:
-                self._update_or_create_renter()
+            # if self.unit.is_renter:
+            #     self._update_or_create_renter()
             self._handle_renter_charge()
             self._handle_owner_charge()
             self._update_people_count()
@@ -63,32 +63,54 @@ class UnitUpdateService:
     # ------------------------------
 
     def _check_owner_changed(self):
-        return (
-            self.unit.owner_name != self.form.cleaned_data.get('owner_name') or
-            self.unit.owner_mobile != self.form.cleaned_data.get('owner_mobile')
-        )
+        old_unit = type(self.unit).objects.get(pk=self.unit.pk)
+        print("OLD NAME:", old_unit.owner_name)
+        print("NEW NAME:", self.form.cleaned_data.get('owner_name'))
+        print("OLD MOBILE:", old_unit.owner_mobile)
+        print("NEW MOBILE:", self.form.cleaned_data.get('owner_mobile'))
+
+        old_name = (old_unit.owner_name or "").strip()
+        new_name = (self.form.cleaned_data.get('owner_name') or "").strip()
+
+        old_mobile = (old_unit.owner_mobile or "").strip()
+        new_mobile = (self.form.cleaned_data.get('owner_mobile') or "").strip()
+
+        return old_name != new_name or old_mobile != new_mobile
 
     def _deactivate_renters(self):
         self.unit.renters.filter(renter_is_active=True).update(renter_is_active=False)
 
     def _update_user(self, owner_changed):
-        # آپدیت مالک یا مستاجر فعال بسته به owner_changed
-        if owner_changed or not self.unit.get_active_renter():
+        # اگر مالک تغییر کرده، اصلاً مستاجر را بررسی نکن
+        if owner_changed:
             user = self.unit.user
             mobile = self.form.cleaned_data.get('owner_mobile')
             name = self.form.cleaned_data.get('owner_name')
-            field = 'mobile'
+            field = 'owner_mobile'
+
         else:
             renter = self.unit.get_active_renter()
+            if not renter:
+                return
+
             user = renter.user
             mobile = self.form.cleaned_data.get('renter_mobile')
             name = self.form.cleaned_data.get('renter_name')
             field = 'renter_mobile'
 
-        if mobile and mobile != user.mobile:
-            if User.objects.filter(mobile=mobile).exclude(pk=user.pk).exists():
+            # فقط وقتی مستاجر فعال داریم، تکراری بودنش چک شود
+            existing_user = User.objects.filter(mobile=mobile).exclude(pk=user.pk).first()
+            if existing_user:
                 self.form.add_error(field, 'این شماره موبایل قبلاً ثبت شده است.')
                 raise ValueError('duplicate_mobile')
+
+        # چک تکراری بودن موبایل مالک
+        if mobile and mobile != user.mobile:
+            existing_user = User.objects.filter(mobile=mobile).exclude(pk=user.pk).first()
+            if existing_user:
+                self.form.add_error(field, 'این شماره موبایل قبلاً ثبت شده است.')
+                raise ValueError('duplicate_mobile')
+
             user.mobile = mobile
             user.username = mobile
 
@@ -100,6 +122,7 @@ class UnitUpdateService:
             user.set_password(password)
 
         user.save()
+
         if password and user.pk == self.request.user.pk:
             update_session_auth_hash(self.request, user)
 
@@ -109,6 +132,10 @@ class UnitUpdateService:
         self.unit.save(update_fields=['is_renter', 'owner_bank'])
 
     def _update_or_create_renter(self):
+        renter_mobile = self.form.cleaned_data.get('renter_mobile')
+        if not renter_mobile:
+            # اگر موبایل مستاجر خالی بود، مستاجر جدید ایجاد نکن
+            return
         active_renter = self.unit.get_active_renter()
         renter_mobile = self.form.cleaned_data.get('renter_mobile')
 

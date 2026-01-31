@@ -217,7 +217,7 @@
       {% for ticket in tickets %}
       <tbody>
 
-      <tr onclick="window.location.href='{% url 'middleAdmin_ticket_detail' ticket.id %}'" style="cursor: pointer;">
+      <tr onclick="window.location.href='{% url 'ticket_detail' ticket.id %}'" style="cursor: pointer;">
           <td>{{ forloop.counter }}</td>
  
            <td>{{ ticket.created_at|show_jalali_date_only }}</td>

@@ -73,6 +73,20 @@ from user_app.models import User, Unit, Bank, MyHouse, CalendarNote, UserPayMone
 #     return render(request, 'index.html', {'form': form})
 from django.db.models import Exists, OuterRef
 
+@login_required
+def switch_to_manager(request):
+    """
+    برگشت به محیط مدیر ساختمان
+    """
+    # فقط وقتی قبلا سوییچ شده به ساکن
+    if request.session.get('active_context') == 'resident':
+        # پاک کردن session ساکن
+        request.session.pop('active_context', None)
+        request.session.pop('active_unit_id', None)
+        request.session.pop('active_building_id', None)
+
+    # redirect به داشبورد مدیر
+    return redirect('middle_admin_dashboard')
 
 def index(request):
     form = LoginForm(request.POST or None)
@@ -443,19 +457,23 @@ class AnnouncementListView(ListView):
 
     def get_queryset(self):
         user = self.request.user
-        if not hasattr(user, 'manager') or not user.manager:
+
+        if user.is_middle_admin:
+            queryset = Announcement.objects.filter(
+                user=user,
+                is_active=True
+            )
+        elif hasattr(user, 'manager') and user.manager:
+            queryset = Announcement.objects.filter(
+                user=user.manager,
+                is_active=True
+            )
+        else:
             return Announcement.objects.none()
 
         query = self.request.GET.get('q', '')
-        queryset = Announcement.objects.filter(
-            user=user.manager,
-            is_active=True
-        )
-
         if query:
-            queryset = queryset.filter(
-                Q(title__icontains=query)
-            )
+            queryset = queryset.filter(title__icontains=query)
 
         return queryset.order_by('-created_at')
 
@@ -590,7 +608,7 @@ class UserPayMoneyViewCreateView(CreateView):
                         document=f
                     )
 
-            messages.success(self.request, 'پرداخت با موفقیت ثبت شد (در انتظار دریافت)')
+            messages.success(self.request, 'پرداخت با موفقیت ثبت شد (در انتظار پرداخت)')
             return redirect(self.success_url)
 
         except Exception as e:

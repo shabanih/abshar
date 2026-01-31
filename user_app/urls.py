@@ -5,6 +5,7 @@ from user_app import views
 urlpatterns = [
     path('', views.index, name='index'),
     path('user_dashboard/', views.user_panel, name='user_panel'),
+    path('switch-to-manager/', views.switch_to_manager, name='switch_to_manager'),
     path('mobile-login/', views.mobile_login, name='mobile_login'),
     path('logout_user/', views.logout_user, name='logout_user'),
     path('verify-otp/', views.verify_otp, name='verify_otp'),
