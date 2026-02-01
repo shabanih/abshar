@@ -55,7 +55,8 @@ class announcementForm(forms.ModelForm):
     is_active = forms.ChoiceField(label='فعال /غیرفعال نمودن اطلاعیه', required=True,
                                   error_messages=error_message, choices=CHOICES, widget=forms.Select(attrs=attr))
     show_in_marquee = forms.ChoiceField(label='نمایش در اخبار مهم ساختمان', required=True, initial=False,
-                                  error_messages=error_message, choices=MARQUEE_CHOICES, widget=forms.Select(attrs=attr))
+                                        error_messages=error_message, choices=MARQUEE_CHOICES,
+                                        widget=forms.Select(attrs=attr))
 
     class Meta:
         model = Announcement
@@ -292,7 +293,8 @@ class BankForm(forms.ModelForm):
     initial_fund = forms.CharField(error_messages=error_message, required=True, widget=forms.NumberInput(attrs=attr),
                                    label='موجودی اولیه')
     is_default = forms.ChoiceField(choices=IS_CHOICES, label='حساب پیش فرض باشد', widget=forms.Select(attrs=attr))
-    is_gateway = forms.ChoiceField(choices=IS_CHOICES, label='حساب پیش فرض درگاه اینترنتی باشد', widget=forms.Select(attrs=attr))
+    is_gateway = forms.ChoiceField(choices=IS_CHOICES, label='حساب پیش فرض درگاه اینترنتی باشد',
+                                   widget=forms.Select(attrs=attr))
     is_active = forms.ChoiceField(choices=IS_CHOICES_Active, label='حساب فعال باشد', widget=forms.Select(attrs=attr))
 
     class Meta:
@@ -423,8 +425,8 @@ class UnitForm(forms.ModelForm):
                                       widget=forms.NumberInput(attrs=attr0),
                                       label='شماره طبقه')
     area = forms.IntegerField(error_messages=error_message, required=True,
-                             widget=forms.NumberInput(attrs=attr0),
-                             label='متراژ')
+                              widget=forms.NumberInput(attrs=attr0),
+                              label='متراژ')
     bedrooms_count = forms.ChoiceField(error_messages=error_message, choices=BEDROOMS_COUNT_CHOICES, required=True,
                                        widget=forms.Select(attrs=attr0),
                                        label='تعداد خواب')
@@ -1308,7 +1310,6 @@ class ReceiveMoneyForm(forms.ModelForm):
             self.fields['unit'].label_from_instance = get_unit_label
 
 
-
 # =========================================================
 class PayerMoneyForm(forms.ModelForm):
     bank = forms.ModelChoiceField(
@@ -1534,7 +1535,7 @@ class FixChargeForm(forms.ModelForm):
     payment_deadline = JalaliDateField(
         label='مهلت پرداخت',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
-        error_messages=error_message, required=False
+        error_messages=error_message, required=True
     )
     other_cost_amount = forms.IntegerField(error_messages=error_message,
                                            widget=forms.TextInput(attrs=attr),
@@ -1581,7 +1582,7 @@ class AreaChargeForm(forms.ModelForm):
     payment_deadline = JalaliDateField(
         label='مهلت پرداخت',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
-        error_messages=error_message, required=False
+        error_messages=error_message, required=True
     )
     other_cost_amount = forms.IntegerField(error_messages=error_message,
                                            widget=forms.TextInput(attrs=attr),
@@ -1634,7 +1635,7 @@ class PersonChargeForm(forms.ModelForm):
     payment_deadline = JalaliDateField(
         label='مهلت پرداخت',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
-        error_messages=error_message, required=False
+        error_messages=error_message, required=True
     )
     other_cost_amount = forms.IntegerField(error_messages=error_message,
                                            widget=forms.TextInput(attrs=attr),
@@ -1685,7 +1686,7 @@ class FixAreaChargeForm(forms.ModelForm):
     payment_deadline = JalaliDateField(
         label='مهلت پرداخت',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
-        error_messages=error_message, required=False
+        error_messages=error_message, required=True
     )
     other_cost_amount = forms.IntegerField(error_messages=error_message,
                                            widget=forms.TextInput(attrs=attr),
@@ -1738,7 +1739,7 @@ class FixPersonChargeForm(forms.ModelForm):
     payment_deadline = JalaliDateField(
         label='مهلت پرداخت',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
-        error_messages=error_message, required=False
+        error_messages=error_message, required=True
     )
     other_cost_amount = forms.IntegerField(error_messages=error_message,
                                            widget=forms.TextInput(attrs=attr),
@@ -1789,7 +1790,7 @@ class PersonAreaChargeForm(forms.ModelForm):
     payment_deadline = JalaliDateField(
         label='مهلت پرداخت',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
-        error_messages=error_message, required=False
+        error_messages=error_message, required=True
     )
     other_cost_amount = forms.IntegerField(error_messages=error_message,
                                            widget=forms.TextInput(attrs=attr),
@@ -1844,7 +1845,7 @@ class PersonAreaFixChargeForm(forms.ModelForm):
     payment_deadline = JalaliDateField(
         label='مهلت پرداخت',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
-        error_messages=error_message, required=False
+        error_messages=error_message, required=True
     )
     other_cost_amount = forms.IntegerField(error_messages=error_message,
                                            widget=forms.TextInput(attrs=attr),
@@ -1910,7 +1911,7 @@ class VariableFixChargeForm(forms.ModelForm):
     payment_deadline = JalaliDateField(
         label='مهلت پرداخت',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
-        error_messages=error_message, required=False
+        error_messages=error_message, required=True
     )
 
     class Meta:
@@ -2059,6 +2060,7 @@ class SmsForm(forms.ModelForm):
     class Meta:
         model = SmsManagement
         fields = ['subject', 'message', 'is_active']
+
 
 class SmsCreditForm(forms.ModelForm):
     class Meta:

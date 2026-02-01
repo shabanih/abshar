@@ -1,21 +1,20 @@
 from kavenegar import KavenegarAPI, APIException, HTTPException
-
 from absharProject.settings import Kavenegar_API
 from user_app.models import User
 
 
-def send_notify_user_by_sms(mobile, name, charge_title):
+def send_notify_user_by_sms(mobile, name, amount):
     mobile = [mobile]
     name = name or "کاربر گرامی"
-    charge_title = charge_title or "شارژ"
+    amount = amount or "شارژ"
 
     try:
         api = KavenegarAPI(Kavenegar_API)
 
         params = {
-            'mobile': mobile,
+            'receptor': mobile,
             'token10': name,   # نام شخص
-            'token': charge_title,       # نام شارژ
+            'token': amount,       # نام شارژ
             'template': 'raya',
             'type': 'sms'
         }

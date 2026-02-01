@@ -34,6 +34,8 @@
 
 <form method="post" id="remove-notification-form" action="">
         {% csrf_token %}
+<input type="hidden" name="send_type" id="sendTypeInput" value="notify">
+
       <div class="row g-3">
             <div class="col-12 col-md-2 col-xl-2 form-check align-self-center">
             <button type="button" id="toggle-select-btn" class="btn btn-gradient-info shadow_style px-3">
@@ -53,7 +55,7 @@
                 <button type="button" id="remove-all-btn" class="btn btn-dark px-2 shadow_style">
                     حذف اطلاعیه واحدها
                 </button>
-                <button type="submit" onclick="return confirmWithSweetAlert(event)" 
+                <button type="submit" onclick="return confirmWithSweetAlert(event)"
                         class="btn btn-gradient-success px-2 shadow_style">ارسال اطلاعیه شارژ </button>
                 <a href="{% url 'middle_add_area_charge' %}" class="btn btn-danger shadow_style px-3"> بازگشت</a>
              </div>
@@ -145,27 +147,70 @@
     window.location.search = urlParams.toString();
   });
   
-  
 function confirmWithSweetAlert(event) {
-    event.preventDefault(); // جلوگیری از ارسال فرم
+    event.preventDefault();
+
+    const checkedUnits = document.querySelectorAll('.unit-checkbox:checked:not(:disabled)');
+    if (checkedUnits.length === 0) {
+        Swal.fire('هشدار', 'هیچ واحدی انتخاب نشده است.', 'warning');
+        return;
+    }
 
     Swal.fire({
-        title: 'آیا مطمئن هستید؟',
-        text: "اطلاعیه برای واحدهای انتخابی ارسال خواهد شد.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'بله، ارسال کن!',
-        cancelButtonText: 'لغو'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            event.target.closest('form').submit(); // ارسال فرم
-        }
-    });
+        title: 'ارسال اطلاعیه شارژ',
+        html: `
+            <div style="text-align:right;font-size:14px">
+                <p>اطلاعیه برای واحدهای انتخاب‌شده ارسال شود؟</p>
+                <hr>
+                <div class="form-check mb-2 px-4">
+                    <input class="form-check-input" type="radio" name="sendType" id="notifyOnly" value="notify" checked>
+                    <label class="form-check-label m-0 p-0" for="notifyOnly">
+                        فقط اعلان سیستمی
+                    </label>
+                </div>
 
-    return false; // جلوگیری از رفتار پیش‌فرض
+                <div class="form-check px-4">
+                    <input class="form-check-input" type="radio" name="sendType" id="notifySms" value="sms">
+                    <label class="form-check-label m-0" for="notifySms">
+                        اعلان سیستمی + پیامک
+                    </label>
+                </div>
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'تأیید ارسال',
+        cancelButtonText: 'لغو',
+        confirmButtonColor: '#28a745',
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+
+        const sendType = document.querySelector('input[name="sendType"]:checked').value;
+        document.getElementById('sendTypeInput').value = sendType;
+
+        event.target.closest('form').submit();
+    });
 }
+{#function confirmWithSweetAlert(event) {#}
+{#    event.preventDefault(); // جلوگیری از ارسال فرم#}
+{##}
+{#    Swal.fire({#}
+{#        title: 'آیا مطمئن هستید؟',#}
+{#        text: "اطلاعیه برای واحدهای انتخابی ارسال خواهد شد.",#}
+{#        icon: 'warning',#}
+{#        showCancelButton: true,#}
+{#        confirmButtonColor: '#28a745',#}
+{#        cancelButtonColor: '#d33',#}
+{#        confirmButtonText: 'بله، ارسال کن!',#}
+{#        cancelButtonText: 'لغو'#}
+{#    }).then((result) => {#}
+{#        if (result.isConfirmed) {#}
+{#            event.target.closest('form').submit(); // ارسال فرم#}
+{#        }#}
+{#    });#}
+{##}
+{#    return false; // جلوگیری از رفتار پیش‌فرض#}
+
 
 document.addEventListener('DOMContentLoaded', function () {
     const removeSelectedBtn = document.getElementById('remove-all-btn');

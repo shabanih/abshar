@@ -39,7 +39,7 @@
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
                                             <td>{{charge.name }}</td>
-                                            <td>{{charge.unit_count }}</td>
+                                            <td>{{unit_count }}</td>
                                             <td class="bg-gradient-light">{{charge.area_amount|three_digit_currency }}</td>
                                           <td>
                                                  {% if charge.details %}
