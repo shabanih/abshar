@@ -3726,3 +3726,592 @@ Watching for file changes with StatReloader
 Watching for file changes with StatReloader
 Not Found: /ws/tickets/
 Not Found: /ws/tickets/admin/
+Watching for file changes with StatReloader
+Not Found: /favicon.ico
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Internal Server Error: /middle-admin-panel/charge/middle/fix/person/notify/2/
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\middleAdmin_panel\views.py", line 5888, in middle_show_fix_person_charge_notification_form
+    'page_obj': items,  # حالا فقط واحدهای دارای UnifiedCharge هستند
+                ^^^^^
+UnboundLocalError: cannot access local variable 'items' where it is not associated with a value
+Not Found: /favicon.ico
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Ignored `font-family: "Vazira", sans-serif` at 7:13, invalid value.
+Missing src descriptor in '@font-face' rule at 6:9
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /middle-admin-panel/fix-charge/4/notify/
+Not Found: /favicon.ico
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Internal Server Error: /middle-admin-panel/middle-add-fixed-Charge
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\utils\decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 178, in get
+    return super().get(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 142, in get
+    return self.render_to_response(self.get_context_data())
+                                   ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\middleAdmin_panel\views.py", line 3830, in get_context_data
+    context['page_obj'] = page_obj
+                          ^^^^^^^^
+NameError: name 'page_obj' is not defined
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /favicon.ico
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+D:\Django_project\absharProject\absharProject\context_processors.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+D:\Django_project\absharProject\absharProject\context_processors.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+D:\Django_project\absharProject\absharProject\context_processors.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\user_app\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/

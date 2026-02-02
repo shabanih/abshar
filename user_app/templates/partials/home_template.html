@@ -11,6 +11,7 @@
 
     <div class="row g-2 mt-2">
               <div class="col-md-3">
+                   <a href="{% url 'user_charges' %}">
                 <div class="card  bg-gradient-success card-img-holder text-white shadow_style">
                   <div class="card-body text-center justify-content-center p-2 m-0">
                     <h4 class="font-weight-normal mb-3">
@@ -20,9 +21,10 @@
                     <h2 class="mb-1">{{ total_charge }}</h2>
                   </div>
                 </div>
+                   </a>
               </div>
               <div class="col-md-3">
-                  <a href="">
+                  <a href="{% url 'tickets' %}">
                 <div class="card bg-gradient-info card-img-holder text-white shadow_style">
                <div class="card-body text-center justify-content-center p-2 m-0">
                     <h4 class="font-weight-normal mb-3">
@@ -35,7 +37,7 @@
                       </a>
               </div>
               <div class="col-md-3">
-                  <a href="">
+                  <a href="{% url 'fund_turn_over_user' %}">
                 <div class="card bg-gradient-danger card-img-holder text-white shadow_style">
                  <div class="card-body text-center p-2 m-0">
                     <h4 class="font-weight-normal mb-3">
@@ -55,7 +57,7 @@
                       </a>
               </div>
               <div class="col-md-3">
-                  <a href="">
+                  <a href="{% url 'user_charges' %}">
                 <div class="card bg-gradient-warning card-img-holder text-white shadow_style">
                   <div class="card-body text-center justify-content-center p-2 m-0">
                     <h4 class="font-weight-normal mb-3">

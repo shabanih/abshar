@@ -22,12 +22,17 @@
 
 
 {% if user.is_resident %}
+    <div class="row d-flex justify-content-between">
   <a href="{% url 'switch_to_resident' %}"
      class="btn btn-gradient-primary px-3 py-2">
-     ورود به پنل ساکنین
+      ورود به پنل ساکنین
   </a>
 {% endif %}
-  <a href="" class="btn btn-gradient-info px-3 py-2 mt-2">افزودن اعتبار</a>
+  <a href="" class="btn btn-gradient-info px-3 py-1 mt-2">
+       <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
+      افزودن اعتبار
+  </a>
+</div>
 
 </li>
 

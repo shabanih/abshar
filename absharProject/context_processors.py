@@ -41,20 +41,23 @@ def user_header_notifications(request):
         }
     # واحدهایی که کاربر مالک یا مستاجر فعال آن است
     user_units = Unit.objects.filter(
-        Q(user=request.user) |
-        Q(renters__user=request.user, renters__renter_is_active=True)
+        is_active=True
+    ).filter(
+        Q(user=request.user) |  # مالک
+        Q(renters__user=request.user, renters__renter_is_active=True)  # مستاجر فعال
     ).distinct()
     # شارژهای پرداخت‌نشده
     new_charges_count = UnifiedCharge.objects.filter(
         unit__in=user_units,
         is_paid=False
-    ).count()
+    ).select_related('unit').count()
 
     # پیام‌های خوانده‌نشده
     new_messages_count = MessageReadStatus.objects.filter(
         unit__in=user_units,
         is_read=False
     ).values('message').distinct().count()
+
     user = request.user
     if user.is_middle_admin:
         units = (

@@ -271,7 +271,7 @@ def user_panel(request):
     # -------------------------
     # LAST CHARGES
     # -------------------------
-    last_charges = unified_qs.order_by('-created_at')[:6]
+    last_charges = unified_qs.order_by('-created_at')[:7]
 
     # -------------------------
     # TICKETS
