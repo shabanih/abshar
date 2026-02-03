@@ -3,6 +3,7 @@ from channels.layers import get_channel_layer
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q, ProtectedError, F, Count, Prefetch
 from django.http import JsonResponse
@@ -643,10 +644,25 @@ class MessageToUserListCreateView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['all_messages'] = MessageToUser.objects.filter(user=self.request.user,
+        all_messages = MessageToUser.objects.filter(user=self.request.user,
                                                                send_notification=False).order_by(
             '-created_at')
+        context['all_messages'] = all_messages
         context['units'] = Unit.objects.all()
+        paginate_by = self.request.GET.get('paginate', '20')
+
+        if paginate_by == '1000':  # نمایش همه
+            paginator = Paginator(all_messages, all_messages.count() or 20)
+        else:
+            paginate_by = int(paginate_by)
+            paginator = Paginator(all_messages, paginate_by)
+
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context['charges'] = page_obj
+        context['page_obj'] = page_obj
+        context['paginate'] = paginate_by
 
         return context
 

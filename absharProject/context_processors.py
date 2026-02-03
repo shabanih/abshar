@@ -40,21 +40,35 @@ def user_header_notifications(request):
             'new_messages_count': 0,
         }
     # واحدهایی که کاربر مالک یا مستاجر فعال آن است
-    user_units = Unit.objects.filter(
+    # user_units = Unit.objects.filter(
+    #     is_active=True
+    # ).filter(
+    #     Q(user=request.user) |  # مالک
+    #     Q(renters__user=request.user, renters__renter_is_active=True)  # مستاجر فعال
+    # ).distinct()
+    # # شارژهای پرداخت‌نشده
+    # # new_user_charges_count = UnifiedCharge.objects.filter(
+    # #     unit__in=user_units,
+    # #     is_paid=False
+    # # ).select_related('unit').count()
+    #
+    user_unit_ids = Unit.objects.filter(
         is_active=True
     ).filter(
-        Q(user=request.user) |  # مالک
-        Q(renters__user=request.user, renters__renter_is_active=True)  # مستاجر فعال
-    ).distinct()
-    # شارژهای پرداخت‌نشده
-    new_charges_count = UnifiedCharge.objects.filter(
-        unit__in=user_units,
-        is_paid=False
-    ).select_related('unit').count()
+        Q(user=request.user) |
+        Q(renters__user=request.user,
+          renters__renter_is_active=True)
+    ).values_list('id', flat=True)
+
+    new_user_charges_count = UnifiedCharge.objects.filter(
+        unit__in=user_unit_ids,
+        is_paid=False,
+        send_notification=True
+    ).count()
 
     # پیام‌های خوانده‌نشده
-    new_messages_count = MessageReadStatus.objects.filter(
-        unit__in=user_units,
+    new_user_messages_count = MessageReadStatus.objects.filter(
+        unit__in=user_unit_ids,
         is_read=False
     ).values('message').distinct().count()
 
@@ -83,8 +97,8 @@ def user_header_notifications(request):
         )
 
     return {
-        'new_charges_count': new_charges_count,
-        'new_messages_count': new_messages_count,
+        'new_user_charges_count': new_user_charges_count,
+        'new_user_messages_count': new_user_messages_count,
         'marquee_announcements': marquee_announcements,
     }
 

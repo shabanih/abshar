@@ -3751,7 +3751,10 @@ class MiddleFixChargeCreateView(CreateView):
         # گرفتن کاربران تحت مدیریت
         managed_users = self.request.user.managed_users.all()
 
-        unit_count = Unit.objects.filter(is_active=True, user__manager=self.request.user).count()
+        unit_count = UnifiedCharge.objects.filter(
+            user=self.request.user,
+            unit__is_active=True
+        ).values('unit').distinct().count()
         form.instance.unit_count = unit_count
 
         units = Unit.objects.filter(
@@ -3820,20 +3823,8 @@ class MiddleFixChargeCreateView(CreateView):
         messages.success(self.request, 'شارژ با موفقیت ثبت گردید.')
         return super().form_valid(form)
 
-    def get_paginate_by(self, queryset):
-        paginate = self.request.GET.get('paginate')
-        if paginate == '1000':
-            return None
-        return int(paginate) if paginate and paginate.isdigit() else 20
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # charges = self.get_queryset()
-        # paginator = Paginator(charges, 1)
-        # page_number = self.request.GET.get('page')
-        # page_obj = paginator.get_page(page_number)
-
-        # context['page_obj'] = page_obj
         manager_units = Unit.objects.filter(is_active=True, user=self.request.user)
         managed_units = Unit.objects.filter(is_active=True, user__manager=self.request.user)
 
@@ -3850,7 +3841,20 @@ class MiddleFixChargeCreateView(CreateView):
             )
         ).order_by('-created_at')
         context['charges'] = charges
-        context['paginate'] = self.request.GET.get('paginate', '1')
+        paginate_by = self.request.GET.get('paginate', '20')
+
+        if paginate_by == '1000':  # نمایش همه
+            paginator = Paginator(charges, charges.count() or 20)
+        else:
+            paginate_by = int(paginate_by)
+            paginator = Paginator(charges, paginate_by)
+
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context['charges'] = page_obj
+        context['page_obj'] = page_obj
+        context['paginate'] = paginate_by
         return context
 
 
@@ -4201,7 +4205,10 @@ class MiddleAreaChargeCreateView(CreateView):
         # گرفتن کاربران تحت مدیریت
         managed_users = self.request.user.managed_users.all()
 
-        unit_count = Unit.objects.filter(is_active=True, user__manager=self.request.user).count()
+        unit_count = UnifiedCharge.objects.filter(
+            user=self.request.user,
+            unit__is_active=True
+        ).values('unit').distinct().count()
         form.instance.unit_count = unit_count
 
         units = Unit.objects.filter(
@@ -4276,12 +4283,6 @@ class MiddleAreaChargeCreateView(CreateView):
         messages.success(self.request, 'شارژ با موفقیت ثبت گردید.')
         return super().form_valid(form)
 
-    def get_paginate_by(self, queryset):
-        paginate = self.request.GET.get('paginate')
-        if paginate == '1000':
-            return None  # نمایش همه آیتم‌ها
-        return int(paginate or 1)
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         managed_users = self.request.user.managed_users.all()
@@ -4289,7 +4290,9 @@ class MiddleAreaChargeCreateView(CreateView):
             Q(user=self.request.user) | Q(user__in=managed_users),
             is_active=True,
                                          ).count()
+
         context['unit_count'] = unit_count
+        print(unit_count)
 
         total_area = Unit.objects.filter(
             Q(user=self.request.user) | Q(user__in=managed_users),
@@ -4304,7 +4307,20 @@ class MiddleAreaChargeCreateView(CreateView):
             ),
             total_units=Count('unified_charges')
         ).order_by('-created_at')
-        context['paginate'] = self.request.GET.get('paginate', '1')
+        paginate_by = self.request.GET.get('paginate', '20')
+
+        if paginate_by == '1000':  # نمایش همه
+            paginator = Paginator(charges, charges.count() or 20)
+        else:
+            paginate_by = int(paginate_by)
+            paginator = Paginator(charges, paginate_by)
+
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context['charges'] = page_obj
+        context['page_obj'] = page_obj
+        context['paginate'] = paginate_by
 
         context.update({
             'unit_count': unit_count,
@@ -4659,7 +4675,10 @@ class MiddlePersonChargeCreateView(CreateView):
         # گرفتن کاربران تحت مدیریت
         managed_users = self.request.user.managed_users.all()
 
-        unit_count = Unit.objects.filter(is_active=True, user__manager=self.request.user).count()
+        unit_count = UnifiedCharge.objects.filter(
+            user=self.request.user,
+            unit__is_active=True
+        ).values('unit').distinct().count()
         form.instance.unit_count = unit_count
 
         units = Unit.objects.filter(
@@ -4757,6 +4776,21 @@ class MiddlePersonChargeCreateView(CreateView):
             total_units=Count('unified_charges')
         ).order_by('-created_at')
         context['charges'] = charges
+        paginate_by = self.request.GET.get('paginate', '20')
+
+        if paginate_by == '1000':  # نمایش همه
+            paginator = Paginator(charges, charges.count() or 20)
+        else:
+            paginate_by = int(paginate_by)
+            paginator = Paginator(charges, paginate_by)
+
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context['charges'] = page_obj
+        context['page_obj'] = page_obj
+        context['paginate'] = paginate_by
+
         return context
 
 
@@ -5095,7 +5129,10 @@ class MiddleFixAreaChargeCreateView(CreateView):
         # گرفتن کاربران تحت مدیریت
         managed_users = self.request.user.managed_users.all()
 
-        unit_count = Unit.objects.filter(is_active=True, user__manager=self.request.user).count()
+        unit_count = UnifiedCharge.objects.filter(
+            user=self.request.user,
+            unit__is_active=True
+        ).values('unit').distinct().count()
         form.instance.unit_count = unit_count
 
         units = Unit.objects.filter(
@@ -5201,6 +5238,20 @@ class MiddleFixAreaChargeCreateView(CreateView):
             total_units=Count('unified_charges')
         ).order_by('-created_at')
         context['charges'] = charges
+        paginate_by = self.request.GET.get('paginate', '20')
+
+        if paginate_by == '1000':  # نمایش همه
+            paginator = Paginator(charges, charges.count() or 20)
+        else:
+            paginate_by = int(paginate_by)
+            paginator = Paginator(charges, paginate_by)
+
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context['charges'] = page_obj
+        context['page_obj'] = page_obj
+        context['paginate'] = paginate_by
         return context
 
 
@@ -5541,7 +5592,10 @@ class MiddleFixPersonChargeCreateView(CreateView):
         # گرفتن کاربران تحت مدیریت
         managed_users = self.request.user.managed_users.all()
 
-        unit_count = Unit.objects.filter(is_active=True, user__manager=self.request.user).count()
+        unit_count = UnifiedCharge.objects.filter(
+            user=self.request.user,
+            unit__is_active=True
+        ).values('unit').distinct().count()
         form.instance.unit_count = unit_count
 
         units = Unit.objects.filter(
@@ -5647,6 +5701,20 @@ class MiddleFixPersonChargeCreateView(CreateView):
             total_units=Count('unified_charges')
         ).order_by('-created_at')
         context['charges'] = charges
+        paginate_by = self.request.GET.get('paginate', '20')
+
+        if paginate_by == '1000':  # نمایش همه
+            paginator = Paginator(charges, charges.count() or 20)
+        else:
+            paginate_by = int(paginate_by)
+            paginator = Paginator(charges, paginate_by)
+
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context['charges'] = page_obj
+        context['page_obj'] = page_obj
+        context['paginate'] = paginate_by
         return context
 
 
@@ -5985,7 +6053,10 @@ class MiddlePersonAreaChargeCreateView(CreateView):
         # گرفتن کاربران تحت مدیریت
         managed_users = self.request.user.managed_users.all()
 
-        unit_count = Unit.objects.filter(is_active=True, user__manager=self.request.user).count()
+        unit_count = UnifiedCharge.objects.filter(
+            user=self.request.user,
+            unit__is_active=True
+        ).values('unit').distinct().count()
         form.instance.unit_count = unit_count
 
         units = Unit.objects.filter(
@@ -6091,6 +6162,20 @@ class MiddlePersonAreaChargeCreateView(CreateView):
             total_units=Count('unified_charges')
         ).order_by('-created_at')
         context['charges'] = charges
+        paginate_by = self.request.GET.get('paginate', '20')
+
+        if paginate_by == '1000':  # نمایش همه
+            paginator = Paginator(charges, charges.count() or 20)
+        else:
+            paginate_by = int(paginate_by)
+            paginator = Paginator(charges, paginate_by)
+
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context['charges'] = page_obj
+        context['page_obj'] = page_obj
+        context['paginate'] = paginate_by
         return context
 
 
@@ -6429,7 +6514,10 @@ class MiddlePersonAreaFixChargeCreateView(CreateView):
         # گرفتن کاربران تحت مدیریت
         managed_users = self.request.user.managed_users.all()
 
-        unit_count = Unit.objects.filter(is_active=True, user__manager=self.request.user).count()
+        unit_count = UnifiedCharge.objects.filter(
+            user=self.request.user,
+            unit__is_active=True
+        ).values('unit').distinct().count()
         form.instance.unit_count = unit_count
 
         units = Unit.objects.filter(
@@ -6535,6 +6623,20 @@ class MiddlePersonAreaFixChargeCreateView(CreateView):
             total_units=Count('unified_charges')
         ).order_by('-created_at')
         context['charges'] = charges
+        paginate_by = self.request.GET.get('paginate', '20')
+
+        if paginate_by == '1000':  # نمایش همه
+            paginator = Paginator(charges, charges.count() or 20)
+        else:
+            paginate_by = int(paginate_by)
+            paginator = Paginator(charges, paginate_by)
+
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context['charges'] = page_obj
+        context['page_obj'] = page_obj
+        context['paginate'] = paginate_by
         return context
 
 
@@ -6873,7 +6975,10 @@ class MiddleVariableFixChargeCreateView(CreateView):
         # گرفتن کاربران تحت مدیریت
         managed_users = self.request.user.managed_users.all()
 
-        unit_count = Unit.objects.filter(is_active=True, user__manager=self.request.user).count()
+        unit_count = UnifiedCharge.objects.filter(
+            user=self.request.user,
+            unit__is_active=True
+        ).values('unit').distinct().count()
         form.instance.unit_count = unit_count
 
         units = Unit.objects.filter(
@@ -6985,6 +7090,20 @@ class MiddleVariableFixChargeCreateView(CreateView):
             total_units=Count('unified_charges')
         ).order_by('-created_at')
         context['charges'] = charges
+        paginate_by = self.request.GET.get('paginate', '20')
+
+        if paginate_by == '1000':  # نمایش همه
+            paginator = Paginator(charges, charges.count() or 20)
+        else:
+            paginate_by = int(paginate_by)
+            paginator = Paginator(charges, paginate_by)
+
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context['charges'] = page_obj
+        context['page_obj'] = page_obj
+        context['paginate'] = paginate_by
         return context
 
 
@@ -7484,6 +7603,8 @@ def base_charge_list(request):
         )
 
         charges_data.append(data)
+
+
 
     # 📄 pagination
     paginator = Paginator(charges_data, paginate)

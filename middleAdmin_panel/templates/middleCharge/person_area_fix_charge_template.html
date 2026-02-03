@@ -10,15 +10,37 @@
 {% block main_content %}
     <hr/>
 <div class="container mt-3">
- <div class="col-12 mb-2">
-                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">
-                     <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
+<div class="row mb-2 g-2 ">
+       <div class="col-9 col-md-2 col-xl-2 align-self-center ">
+              <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">
+                      <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
                     افزودن شارژ جدید 
                 </button>
-                 </div>
+       </div>
+       <div class="col-12 col-md-8 col-xl-8">
+              <input type="text" id="searchInput" placeholder="جستجوی سریع در جدول..." onkeyup="searchTableIncome()" class="form-control p-2">
+          </div>
+               <!-- بخش تعداد نمایش → فقط دسکتاپ -->
+        <div class="col-12 col-md-2 col-xl-2 p-0 d-none d-md-block">
+            <div class="d-flex align-items-center justify-content-end">
+                <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label>
+           <select id="cardsPerPage" 
+        class="form-select select-fix"
+        style="width: auto;"
+        onchange="window.location.href='?q={{ query }}&paginate=' + this.value;">
+    <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option>
+    <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option>
+    <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option>
+    <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+</select>
+
+            </div>
+        </div>
+        
+        </div>
 
                <div class="table-responsive">
-                            <table class="table table-bordered">
+                            <table class="table table-bordered" id="incomeTable">
                                 <thead class="text-center">
                                       <tr>
                                         <th>#</th>
@@ -165,7 +187,25 @@
                                 {% endif %}
                
                             </table>
-       
+         <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
                </div>
 
     <hr>

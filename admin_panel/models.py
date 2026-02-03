@@ -673,6 +673,16 @@ class UnifiedCharge(models.Model):
             'penalty_amount': self.penalty_amount
         }
 
+    @property
+    def real_unit_count(self):
+        return (
+            self.unified_charges
+            .filter(unit__is_active=True)
+            .values_list('unit_id', flat=True)
+            .distinct()
+            .count()
+        )
+
     def update_penalty(self, save=True):
         """
         محاسبه جریمه دیرکرد فقط در صورت مجاز بودن
