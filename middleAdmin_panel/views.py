@@ -1,4 +1,5 @@
 import io
+import json
 import logging
 import os
 import time
@@ -11,6 +12,7 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
+from django.db.models.functions import ExtractMonth
 from django.utils import timezone
 import jdatetime
 import openpyxl
@@ -117,32 +119,102 @@ def middle_admin_dashboard(request):
     managed_users = request.user.managed_users.all()
     resident_unit = get_single_resident_building(request.user)
     announcements = Announcement.objects.filter(is_active=True, user=request.user).order_by('-created_at')[:3]
-    unit_count = Unit.objects.filter(
-        Q(user=request.user) | Q(user__in=managed_users)
-    ).count()
-    # fund_amount = Fund.objects.filter(user__manager=request.user)
-    tickets = SupportUser.objects.filter(
-        Q(user=request.user) | Q(user__in=managed_users)
-    ).order_by('-created_at')[:5]
+    units = Unit.objects.filter(Q(user=request.user) | Q(user__in=managed_users), is_active=True)
 
-    funds = (
-        Fund.objects
-        .select_related('bank', 'content_type')
-        .filter(Q(user=request.user) | Q(user__in=managed_users))
-        .order_by('-payment_date')
-    )
-    totals = funds.aggregate(
-        total_income=Sum('debtor_amount'),
-        total_expense=Sum('creditor_amount'),
-    )
+    unit_count = units.count()
+    tickets = SupportUser.objects.filter(Q(user=request.user) | Q(user__in=managed_users)).order_by('-created_at')[:5]
+
+    funds = Fund.objects.select_related('bank', 'content_type').filter(
+        Q(user=request.user) | Q(user__in=managed_users)
+    ).order_by('-payment_date')
+
+    totals = funds.aggregate(total_income=Sum('debtor_amount'), total_expense=Sum('creditor_amount'))
     balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
 
-    unit_count_unpaid_charges = (
-        UnifiedCharge.objects
-        .filter(
-                Q(user=request.user) | Q(user__in=managed_users), is_paid=False, unit__isnull=False)
-        .select_related('unit')
+    unit_count_unpaid_charges = UnifiedCharge.objects.filter(
+        Q(user=request.user) | Q(user__in=managed_users),
+        send_notification=True,
+        is_paid=False,
+        unit__isnull=False
     ).count()
+
+    # ---- نمودار مالک/مستاجر ----
+    owner_renter_stats = {
+        'owner': units.exclude(renters__renter_is_active=True).count(),
+        'renter': units.filter(renters__renter_is_active=True).count(),
+    }
+
+    # ---- نمودار خانه خالی/پر ----
+    residence_stats = {
+        'occupied': units.filter(status_residence='occupied').count(),
+        'empty': units.filter(status_residence='empty').count(),
+    }
+
+    # ------------------ تعریف ماه‌های شمسی ------------------
+    persian_months = [
+        "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+        "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
+    ]
+
+    # تابع کمکی برای گرفتن ماه شمسی از تاریخ میلادی
+    def get_persian_month(g_date):
+        if g_date:
+            return jdatetime.date.fromgregorian(date=g_date).month
+        return None
+
+    # ------------------ شارژهای پرداخت‌شده ------------------
+    paid_charges_qs = UnifiedCharge.objects.filter(
+        send_notification=True,
+        unit__in=units,
+        is_paid=True
+    )
+
+    # ایجاد دیکشن ماه شمسی -> تعداد
+    paid_counts = {i: 0 for i in range(1, 13)}  # 1 تا 12
+    for charge in paid_charges_qs:
+        month = get_persian_month(charge.payment_date)
+        if month:
+            paid_counts[month] += 1
+
+    # ------------------ شارژهای پرداخت‌نشده ------------------
+    unpaid_charges_qs = UnifiedCharge.objects.filter(
+        send_notification=True,
+        unit__in=units,
+        is_paid=False
+    )
+
+    unpaid_counts = {i: 0 for i in range(1, 13)}
+    for charge in unpaid_charges_qs:
+        month = get_persian_month(charge.send_notification_date)
+        if month:
+            unpaid_counts[month] += 1
+
+    # ------------------ آماده‌سازی آرایه برای JS ------------------
+    months = list(range(1, 13))
+    paid_data = [paid_counts[m] for m in months]
+    unpaid_data = [unpaid_counts[m] for m in months]
+
+    chart_data = {
+        'labels': persian_months,  # برچسب‌ها به فارسی
+        'datasets': [
+            {
+                'label': 'پرداخت شده',
+                'data': paid_data,
+                'backgroundColor': 'rgba(54, 162, 235, 0.6)',
+                'borderColor': 'rgba(54, 162, 235, 1)',
+                'borderWidth': 1
+            },
+            {
+                'label': 'پرداخت نشده',
+                'data': unpaid_data,
+                'backgroundColor': 'rgba(255, 99, 132, 0.6)',
+                'borderColor': 'rgba(255, 99, 132, 1)',
+                'borderWidth': 1
+            }
+        ]
+    }
+
+    chart_data_json = json.dumps(chart_data)
 
     context = {
         'announcements': announcements,
@@ -150,10 +222,15 @@ def middle_admin_dashboard(request):
         'fund_amount': balance,
         'tickets': tickets,
         'unit_count_unpaid_charges': unit_count_unpaid_charges,
-        'resident_unit': resident_unit
-
+        'resident_unit': resident_unit,
+        'owner_renter_stats': owner_renter_stats,
+        'residence_stats': residence_stats,
+        'months': months,
+        'paid_data': paid_data,
+        'unpaid_data': unpaid_data,
     }
     return render(request, 'middleShared/home_template.html', context)
+
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
@@ -3969,7 +4046,7 @@ def middle_fix_charge_delete(request, pk):
 
     return redirect(reverse('middle_add_fixed_charge'))
 
-
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_fix_charge_notification_view(request, pk):
     charge = get_object_or_404(FixCharge, id=pk, user=request.user)
 
@@ -4107,23 +4184,23 @@ def middle_fix_charge_notification_view(request, pk):
 
     uc_dict = {uc.unit_id: uc for uc in uc_map}
 
-    items = []
-    for unit in page_units:
+    # page_units → Page object اصلی از Paginator
+    for i, unit in enumerate(page_units):
         uc = uc_dict.get(unit.id)
         renter = unit.renters.filter(renter_is_active=True).first()
-
-        items.append({
+        page_units.object_list[i] = {
             'unit': unit,
             'renter': renter,
             'is_paid': uc.is_paid if uc else False,
             'is_notified': uc.send_notification if uc else False,
+            'send_sms': uc.send_sms if uc else False,
+            'sms_date': uc.send_sms_date if uc else None,
             'total_charge': uc.total_charge_month if uc else 0,
-        })
+        }
 
     return render(request, 'middleCharge/notify_fix_charge_template.html', {
         'charge': charge,
-        'page_obj': items,
-        'paginator': paginator,
+        'page_obj': page_units,  # ← حالا Page object واقعی است
     })
 
 
@@ -4580,24 +4657,24 @@ def middle_area_charge_notification_view(request, pk):
         )
     }
 
-    items = []
-
-    for unit in page_units:
-        uc = uc_map.get(unit.id)
+    # دیگه نیازی به uc_dict نیست
+    for i, unit in enumerate(page_units):
+        uc = uc_map.get(unit.id)  # ← همینجا درست شد
         renter = unit.renters.filter(renter_is_active=True).first()
-
-        items.append({
-            "unit": unit,
-            "renter": renter,
-            "is_paid": uc.is_paid if uc else False,
-            "is_notified": uc.send_notification if uc else False,
-            "total_charge": uc.total_charge_month if uc else 0,
-        })
+        page_units.object_list[i] = {
+            'unit': unit,
+            'renter': renter,
+            'is_paid': uc.is_paid if uc else False,
+            'is_notified': uc.send_notification if uc else False,
+            'send_sms': uc.send_sms if uc else False,
+            'sms_date': uc.send_sms_date if uc else None,
+            'total_charge': uc.total_charge_month if uc else 0,
+        }
 
     return render(request, 'middleCharge/notify_area_charge_template.html', {
         "charge": charge,
-        "page_obj": items,
-        "paginator": paginator,
+        "page_obj": page_units,
+        # "paginator": paginator,
     })
 
 
@@ -5032,27 +5109,28 @@ def middle_person_charge_notification_view(request, pk):
             content_type=content_type,
             object_id=charge.id,
             unit__in=page_units
-        ).select_related("unit", "unit__user", "bank")
+        )
     }
 
-    items = []
-
-    for unit in page_units:
-        uc = uc_map.get(unit.id)
+    # دیگه نیازی به uc_dict نیست
+    for i, unit in enumerate(page_units):
+        uc = uc_map.get(unit.id)  # ← همینجا درست شد
         renter = unit.renters.filter(renter_is_active=True).first()
-        items.append({
-            "unit": unit,
-            "renter": renter,
-            "is_paid": uc.is_paid if uc else False,
-            "is_notified": uc.send_notification if uc else False,
-            "total_charge": uc.total_charge_month if uc else 0,
-        })
+        page_units.object_list[i] = {
+            'unit': unit,
+            'renter': renter,
+            'is_paid': uc.is_paid if uc else False,
+            'is_notified': uc.send_notification if uc else False,
+            'send_sms': uc.send_sms if uc else False,
+            'sms_date': uc.send_sms_date if uc else None,
+            'total_charge': uc.total_charge_month if uc else 0,
+        }
 
     return render(request, "middleCharge/notify_person_charge_template.html", {
-        "charge": charge,
-        "page_obj": items,
-        "paginator": paginator,
-    })
+            "charge": charge,
+            "page_obj": page_units,
+            # "paginator": paginator,
+        })
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -5493,26 +5571,27 @@ def middle_show_fix_area_charge_notification_form(request, pk):
             content_type=content_type,
             object_id=charge.id,
             unit__in=page_units
-        ).select_related("unit", "unit__user", "bank")
+        )
     }
 
-    items = []
-
-    for unit in page_units:
-        uc = uc_map.get(unit.id)
+    # دیگه نیازی به uc_dict نیست
+    for i, unit in enumerate(page_units):
+        uc = uc_map.get(unit.id)  # ← همینجا درست شد
         renter = unit.renters.filter(renter_is_active=True).first()
-        items.append({
-            "unit": unit,
-            "renter": renter,
-            "is_paid": uc.is_paid if uc else False,
-            "is_notified": uc.send_notification if uc else False,
-            "total_charge": uc.total_charge_month if uc else 0,
-        })
+        page_units.object_list[i] = {
+            'unit': unit,
+            'renter': renter,
+            'is_paid': uc.is_paid if uc else False,
+            'is_notified': uc.send_notification if uc else False,
+            'send_sms': uc.send_sms if uc else False,
+            'sms_date': uc.send_sms_date if uc else None,
+            'total_charge': uc.total_charge_month if uc else 0,
+        }
 
     context = {
             'charge': charge,
-            'page_obj': items,  # حالا فقط واحدهای دارای UnifiedCharge هستند
-            'paginator': paginator,
+            'page_obj': page_units,
+            # 'paginator': paginator,
         }
 
     return render(request, 'middleCharge/notify_area_fix_charge_template.html', context)
@@ -5955,26 +6034,27 @@ def middle_show_fix_person_charge_notification_form(request, pk):
             content_type=content_type,
             object_id=charge.id,
             unit__in=page_units
-        ).select_related("unit", "unit__user", "bank")
+        )
     }
 
-    items = []
-
-    for unit in page_units:
-        uc = uc_map.get(unit.id)
+    # دیگه نیازی به uc_dict نیست
+    for i, unit in enumerate(page_units):
+        uc = uc_map.get(unit.id)  # ← همینجا درست شد
         renter = unit.renters.filter(renter_is_active=True).first()
-        items.append({
-            "unit": unit,
-            "renter": renter,
-            "is_paid": uc.is_paid if uc else False,
-            "is_notified": uc.send_notification if uc else False,
-            "total_charge": uc.total_charge_month if uc else 0,
-        })
+        page_units.object_list[i] = {
+            'unit': unit,
+            'renter': renter,
+            'is_paid': uc.is_paid if uc else False,
+            'is_notified': uc.send_notification if uc else False,
+            'send_sms': uc.send_sms if uc else False,
+            'sms_date': uc.send_sms_date if uc else None,
+            'total_charge': uc.total_charge_month if uc else 0,
+        }
 
     context = {
         'charge': charge,
-        'page_obj': items,  # حالا فقط واحدهای دارای UnifiedCharge هستند
-        'paginator': paginator,
+        'page_obj': page_units,  # حالا فقط واحدهای دارای UnifiedCharge هستند
+        # 'paginator': paginator,
     }
     return render(request, 'middleCharge/notify_person_fix_charge_template.html', context)
 
@@ -6416,26 +6496,26 @@ def middle_show_person_area_charge_notification_form(request, pk):
             content_type=content_type,
             object_id=charge.id,
             unit__in=page_units
-        ).select_related("unit", "unit__user", "bank")
+        )
     }
 
-    items = []
-
-    for unit in page_units:
-        uc = uc_map.get(unit.id)
+    # دیگه نیازی به uc_dict نیست
+    for i, unit in enumerate(page_units):
+        uc = uc_map.get(unit.id)  # ← همینجا درست شد
         renter = unit.renters.filter(renter_is_active=True).first()
-        items.append({
-            "unit": unit,
-            "renter": renter,
-            "is_paid": uc.is_paid if uc else False,
-            "is_notified": uc.send_notification if uc else False,
-            "total_charge": uc.total_charge_month if uc else 0,
-        })
-
+        page_units.object_list[i] = {
+            'unit': unit,
+            'renter': renter,
+            'is_paid': uc.is_paid if uc else False,
+            'is_notified': uc.send_notification if uc else False,
+            'send_sms': uc.send_sms if uc else False,
+            'sms_date': uc.send_sms_date if uc else None,
+            'total_charge': uc.total_charge_month if uc else 0,
+        }
     context = {
         'charge': charge,
-        'page_obj': items,  # حالا فقط واحدهای دارای UnifiedCharge هستند
-        'paginator': paginator,
+        'page_obj': page_units,  # حالا فقط واحدهای دارای UnifiedCharge هستند
+        # 'paginator': paginator,
     }
     return render(request, 'middleCharge/notify_person_area_charge_template.html', context)
 
@@ -6877,26 +6957,27 @@ def middle_show_fix_person_area_charge_notification_form(request, pk):
             content_type=content_type,
             object_id=charge.id,
             unit__in=page_units
-        ).select_related("unit", "unit__user", "bank")
+        )
     }
 
-    items = []
-
-    for unit in page_units:
-        uc = uc_map.get(unit.id)
+    # دیگه نیازی به uc_dict نیست
+    for i, unit in enumerate(page_units):
+        uc = uc_map.get(unit.id)  # ← همینجا درست شد
         renter = unit.renters.filter(renter_is_active=True).first()
-        items.append({
-            "unit": unit,
-            "renter": renter,
-            "is_paid": uc.is_paid if uc else False,
-            "is_notified": uc.send_notification if uc else False,
-            "total_charge": uc.total_charge_month if uc else 0,
-        })
+        page_units.object_list[i] = {
+            'unit': unit,
+            'renter': renter,
+            'is_paid': uc.is_paid if uc else False,
+            'is_notified': uc.send_notification if uc else False,
+            'send_sms': uc.send_sms if uc else False,
+            'sms_date': uc.send_sms_date if uc else None,
+            'total_charge': uc.total_charge_month if uc else 0,
+        }
 
     context = {
         'charge': charge,
-        'page_obj': items,  # حالا فقط واحدهای دارای UnifiedCharge هستند
-        'paginator': paginator,
+        'page_obj': page_units,  # حالا فقط واحدهای دارای UnifiedCharge هستند
+        # 'paginator': paginator,
     }
     return render(request, 'middleCharge/notify_fix_person_area_charge_template.html', context)
 
@@ -7349,26 +7430,27 @@ def middle_show_fix_variable_notification_form(request, pk):
             content_type=content_type,
             object_id=charge.id,
             unit__in=page_units
-        ).select_related("unit", "unit__user", "bank")
+        )
     }
 
-    items = []
-
-    for unit in page_units:
-        uc = uc_map.get(unit.id)
+    # دیگه نیازی به uc_dict نیست
+    for i, unit in enumerate(page_units):
+        uc = uc_map.get(unit.id)  # ← همینجا درست شد
         renter = unit.renters.filter(renter_is_active=True).first()
-        items.append({
-            "unit": unit,
-            "renter": renter,
-            "is_paid": uc.is_paid if uc else False,
-            "is_notified": uc.send_notification if uc else False,
-            "total_charge": uc.total_charge_month if uc else 0,
-        })
+        page_units.object_list[i] = {
+            'unit': unit,
+            'renter': renter,
+            'is_paid': uc.is_paid if uc else False,
+            'is_notified': uc.send_notification if uc else False,
+            'send_sms': uc.send_sms if uc else False,
+            'sms_date': uc.send_sms_date if uc else None,
+            'total_charge': uc.total_charge_month if uc else 0,
+        }
 
     context = {
         'charge': charge,
-        'page_obj': items,  # حالا فقط واحدهای دارای UnifiedCharge هستند
-        'paginator': paginator,
+        'page_obj': page_units,  # حالا فقط واحدهای دارای UnifiedCharge هستند
+        # 'paginator': paginator,
     }
     return render(request, 'middleCharge/notify_fix_variable_charge_template.html', context)
 
@@ -7837,6 +7919,10 @@ def charge_units_list(request, app_label, model_name, charge_id):
             )
 
         unified_charges = unified_charges.filter(search_q)
+
+    unified_charges = unified_qs.filter(
+        send_notification_date__isnull=False
+    ).select_related('unit', 'unit__user').order_by('unit__unit')
 
     # -------------------------
     # 📄 pagination

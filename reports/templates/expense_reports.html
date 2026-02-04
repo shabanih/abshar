@@ -134,7 +134,7 @@
                {% for expense in page_obj %}
                         <tbody class="text-center">
                             <tr>
-                                <td>{{ forloop.counter }}</td>
+                              <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
                                 <td>{{expense.category }}</td>
                                 <td>{{expense.description }}</td>
                                 

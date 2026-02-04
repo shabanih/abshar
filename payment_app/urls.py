@@ -13,10 +13,10 @@ urlpatterns = [
 
     path(
         'unit-charge/payment<int:charge_id>/',
-        views.unit_charge_payment_view,
+        views.unit_charge_middle_payment_view,
         name='unit_charge_payment'
     ),
-    path('payment/unit-charge/done/<int:pk>/', views.charge_payment_done_view, name='charge_payment_done'),
+    # path('payment/unit-charge/done/<int:pk>/', views.charge_payment_done_view, name='charge_payment_done'),
 
 ]
 if settings.DEBUG:

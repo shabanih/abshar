@@ -5,7 +5,8 @@ $(function () {
    */
   'use strict';
   var data = {
-    labels: ["2013", "2014", "2014", "2015", "2016", "2017"],
+    labels: ["فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور",
+        "مهر","آبان","آذر","دی","بهمن","اسفند"],
     datasets: [{
       label: '# of Votes',
       data: [10, 19, 3, 5, 2, 3],
@@ -26,7 +27,8 @@ $(function () {
         'rgba(255, 159, 64, 1)'
       ],
       borderWidth: 1,
-      fill: false
+      fill: false,
+
     }]
   };
   var multiLineData = {
@@ -82,32 +84,37 @@ $(function () {
 
   };
   var doughnutPieData = {
+    labels: ['مستاجر', 'مالک'],
     datasets: [{
-      data: [20, 90, 10],
-      backgroundColor: [
-        'rgba(255, 99, 132, 0.5)',
-        'rgba(54, 162, 235, 0.5)',
-        'rgba(255, 206, 86, 0.5)',
+      data: [ownerRenterStats.renter, ownerRenterStats.owner ],
+       backgroundColor: [
+        // 'rgba(255, 99, 132, 0.5)',
+        // 'rgba(54, 162, 235, 0.5)',
+        // 'rgba(255, 206, 86, 0.5)',
         'rgba(75, 192, 192, 0.5)',
         'rgba(153, 102, 255, 0.5)',
-        'rgba(255, 159, 64, 0.5)'
+        // 'rgba(255, 159, 64, 0.5)'
       ],
-      borderColor: [
-        'rgba(255,99,132,1)',
-        'rgba(54, 162, 235, 1)',
-        'rgba(255, 206, 86, 1)',
-        'rgba(75, 192, 192, 1)',
-        'rgba(153, 102, 255, 1)',
-        'rgba(255, 159, 64, 1)'
+      // borderColor: ['#28a745', '#dc3545'],
+      borderWidth: 1
+    }]
+  };
+  console.log(residenceStats.occupied, residenceStats.empty);
+  var pieData = {
+    labels: ['ساکن', 'خالی'],
+    datasets: [{
+       data: [residenceStats.occupied, residenceStats.empty],
+       backgroundColor: [
+        'rgba(54, 162, 235, 0.5)',
+        'rgba(255, 99, 132, 0.5)',
+        // 'rgba(255, 206, 86, 0.5)',
+        // 'rgba(75, 192, 192, 0.5)',
+        // 'rgba(153, 102, 255, 0.5)',
+        // 'rgba(255, 159, 64, 0.5)'
       ],
-    }],
-
-    // These labels appear in the legend and in the tooltips when hovering different arcs
-    labels: [
-      'Pink',
-      'Blue',
-      'Yellow',
-    ]
+      // borderColor: ['#28a745', '#dc3545'],
+      borderWidth: 1
+    }]
   };
   var doughnutPieOptions = {
     responsive: true,
@@ -141,7 +148,6 @@ $(function () {
       fill: true, // 3: no fill
     }]
   };
-
   var areaOptions = {
     elements: {
       line: {
@@ -154,7 +160,6 @@ $(function () {
       }
     }
   }
-
   var multiAreaData = {
     labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
     datasets: [{
@@ -183,7 +188,6 @@ $(function () {
     }
     ]
   };
-
   var multiAreaOptions = {
     plugins: {
       filler: {
@@ -279,60 +283,36 @@ $(function () {
     }
   }
   // Get context with jQuery - using jQuery's .get() method.
-  if ($("#barChart").length) {
-    var barChartCanvas = $("#barChart").get(0).getContext("2d");
-    // This will get the first returned node in the jQuery collection.
-    var barChart = new Chart(barChartCanvas, {
-      type: 'bar',
-      data: data,
-      options: options
-    });
-  }
 
-  if ($("#lineChart").length) {
-    var lineChartCanvas = $("#lineChart").get(0).getContext("2d");
-    var lineChart = new Chart(lineChartCanvas, {
-      type: 'line',
-      data: data,
-      options: options
-    });
-  }
+  // if ($("#barChart").length) {
+  //   var barChartCanvas = $("#barChart").get(0).getContext("2d");
+  //   // This will get the first returned node in the jQuery collection.
+  //   var barChart = new Chart(barChartCanvas, {
+  //     type: 'bar',
+  //     data: data,
+  //     options: options
+  //   });
+  // }
 
-  if ($("#linechart-multi").length) {
-    var multiLineCanvas = $("#linechart-multi").get(0).getContext("2d");
-    var lineChart = new Chart(multiLineCanvas, {
-      type: 'line',
-      data: multiLineData,
-      options: options
-    });
-  }
-
-  if ($("#areachart-multi").length) {
-    var multiAreaCanvas = $("#areachart-multi").get(0).getContext("2d");
-    var multiAreaChart = new Chart(multiAreaCanvas, {
-      type: 'line',
-      data: multiAreaData,
-      options: multiAreaOptions
-    });
-  }
-
-  if ($("#doughnutChart").length) {
-    var doughnutChartCanvas = $("#doughnutChart").get(0).getContext("2d");
-    var doughnutChart = new Chart(doughnutChartCanvas, {
+  if (document.getElementById('doughnutChart')) {
+    var ctx = document.getElementById('doughnutChart').getContext('2d');
+    new Chart(ctx, {
       type: 'doughnut',
       data: doughnutPieData,
       options: doughnutPieOptions
     });
   }
 
-  if ($("#pieChart").length) {
-    var pieChartCanvas = $("#pieChart").get(0).getContext("2d");
-    var pieChart = new Chart(pieChartCanvas, {
+
+  if (document.getElementById('pieChart')) {
+    var cty = document.getElementById('pieChart').getContext('2d');
+    new Chart(cty, {
       type: 'pie',
-      data: doughnutPieData,
+      data: pieData,
       options: doughnutPieOptions
     });
   }
+
 
   if ($("#areaChart").length) {
     var areaChartCanvas = $("#areaChart").get(0).getContext("2d");
@@ -343,28 +323,9 @@ $(function () {
     });
   }
 
-  if ($("#scatterChart").length) {
-    var scatterChartCanvas = $("#scatterChart").get(0).getContext("2d");
-    var scatterChart = new Chart(scatterChartCanvas, {
-      type: 'scatter',
-      data: scatterChartData,
-      options: scatterChartOptions
-    });
-  }
-
-  if ($("#browserTrafficChart").length) {
-    var doughnutChartCanvas = $("#browserTrafficChart").get(0).getContext("2d");
-    var doughnutChart = new Chart(doughnutChartCanvas, {
-      type: 'doughnut',
-      data: browserTrafficData,
-      options: doughnutPieOptions
-    });
-  }
 });
 
 // ============================================================
-
-
 window.addEventListener("DOMContentLoaded", function () {
 
     const persianMonthNames = [
@@ -430,7 +391,8 @@ window.addEventListener("DOMContentLoaded", function () {
 
         const daysInMonth = new Date(currentYear, currentMonth<=6?currentMonth:currentMonth+1,0).getDate();
         const firstDayGregorian = new Date(currentYear, currentMonth-1,1);
-        const weekDay = (firstDayGregorian.getDay()+1)%7;
+        const weekDay = firstDayGregorian.getDay();
+
 
         let row = document.createElement("tr");
         for(let i=0;i<weekDay;i++){ row.appendChild(document.createElement("td")); }
@@ -519,3 +481,72 @@ window.addEventListener("DOMContentLoaded", function () {
 });
 
 
+// =========================================
+
+    var months = ["فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور",
+                  "مهر","آبان","آذر","دی","بهمن","اسفند"];
+
+    var chartColors = {
+        red: 'rgb(255, 99, 132)',
+        blue: 'rgb(54, 162, 235)'
+    };
+
+    var barData = {
+        labels: months,
+        datasets: [
+            {
+                label: 'پرداخت شده',
+                backgroundColor: Chart.helpers.color(chartColors.red).alpha(0.5).rgbString(),
+                borderColor: chartColors.red,
+                borderWidth: 1,
+                data: paidCharges
+            },
+            {
+                label: 'پرداخت نشده',
+                backgroundColor: Chart.helpers.color(chartColors.blue).alpha(0.5).rgbString(),
+                borderColor: chartColors.blue,
+                borderWidth: 1,
+                data: unpaidCharges
+            }
+        ]
+    };
+
+   var ctx = document.getElementById("barChart").getContext("2d");
+ var myNewChartB = new Chart(ctx, {
+    type: 'bar',
+    data: barData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: true, // حفظ نسبت تصویر
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: {
+                    font: { family: 'Vazir', size: 14 }
+                }
+            },
+            title: {
+                display: true,
+                text: 'وضعیت شارژ ماهانه2',
+                font: { family: 'Vazir', size: 25, weight: 'bold' }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    font: { family: 'Vazir', size: 12 },
+                    stepSize: 50,
+                    // برای نمایش اعداد فارسی
+                    callback: function(value) {
+                        const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
+                        return value.toString().replace(/\d/g, d => persianDigits[d]);
+                    }
+                }
+            },
+            x: {
+                ticks: { font: { family: 'Vazir', size: 12 } }
+            }
+        }
+    }
+});

@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
@@ -421,54 +422,68 @@ def verify_user_pay_money(request: HttpRequest):
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-def unit_charge_payment_view(request, charge_id):
-    charge = get_object_or_404(UnifiedCharge, id=charge_id, user=request.user, is_paid=False)
-    # 4️⃣ پردازش فرم
+def unit_charge_middle_payment_view(request, charge_id):
+
+    charge = get_object_or_404(
+        UnifiedCharge,
+        id=charge_id,
+        user=request.user,
+        is_paid=False
+    )
+
+    # جلوگیری از پرداخت تکراری
+    if charge.is_paid:
+        messages.warning(request, "این شارژ قبلاً پرداخت شده است.")
+        return redirect('charge_units_list')
+
     if request.method == "POST":
-        form = UnifiedChargePaymentForm(request.POST, instance=charge, user=request.user)
+        form = UnifiedChargePaymentForm(
+            request.POST,
+            instance=charge
+        )
+
         if form.is_valid():
-            unified_charge = form.save(commit=False)
-            unified_charge.is_paid = True
-            unified_charge.payment_gateway = 'پرداخت الکترونیک'
-            # بدون پارامتر save
-            unified_charge.update_penalty()
-            # ذخیره با همه فیلدهای تغییر یافته
-            unified_charge.save(update_fields=['is_paid', 'payment_gateway', 'payment_date', 'transaction_reference'])
+            with transaction.atomic():
 
-            # بروزرسانی مدل محاسبه اصلی
-            charge.payment_date = unified_charge.payment_date
-            charge.bank = form.cleaned_data['bank']
-            charge.transaction_reference = unified_charge.transaction_reference
-            fields_to_update = ['payment_date', 'transaction_reference', 'bank']
-            if hasattr(charge, 'is_paid'):
-                charge.is_paid = True
-                fields_to_update.append('is_paid')
-            charge.save(update_fields=fields_to_update)
+                unified_charge = form.save(commit=False)
 
-            content_type = ContentType.objects.get_for_model(charge)
-            Fund.objects.create(
-                content_type=content_type,
-                object_id=unified_charge.id,
-                bank=unified_charge.bank,
-                unit=unified_charge.unit,
-                payer_name=unified_charge.unit,
-                debtor_amount=unified_charge.total_charge_month,
-                amount=unified_charge.total_charge_month,
-                creditor_amount=0,
-                user=request.user,
-                payment_date=unified_charge.payment_date,
-                payment_description=unified_charge.title,
-                transaction_no=unified_charge.transaction_reference,
-                payment_gateway='پرداخت الکترونیک'
+                unified_charge.is_paid = True
+                unified_charge.payment_gateway = 'پرداخت الکترونیک'
+                unified_charge.update_penalty(save=False)
+
+                unified_charge.save(update_fields=[
+                    'payment_date',
+                    'transaction_reference',
+                    'bank',
+                    'is_paid',
+                    'payment_gateway'
+                ])
+
+                content_type = ContentType.objects.get_for_model(UnifiedCharge)
+
+                Fund.objects.create(
+                    content_type=content_type,
+                    object_id=unified_charge.id,
+                    bank=unified_charge.bank,
+                    unit=unified_charge.unit,
+                    payer_name=unified_charge.unit.get_label(),
+                    debtor_amount=unified_charge.total_charge_month,
+                    amount=unified_charge.total_charge_month,
+                    creditor_amount=0,
+                    user=request.user,
+                    payment_date=unified_charge.payment_date,
+                    payment_description=unified_charge.title,
+                    transaction_no=unified_charge.transaction_reference,
+                    payment_gateway='پرداخت الکترونیک'
+                )
+
+            main_charge = unified_charge.main_charge
+            charge_name = getattr(main_charge, 'name', 'شارژ')
+
+            messages.success(
+                request,
+                f"پرداخت '{charge_name}' با موفقیت ثبت شد."
             )
-
-            main_charge = charge.main_charge
-
-            # نام شارژ برای نمایش در پیام
-            charge_name = getattr(main_charge, 'name', 'شارژ')  # اگر title موجود نباشه، 'شارژ' نمایش داده میشه
-
-            # پیام موفقیت
-            messages.success(request, f"پرداخت  '{charge_name}' با موفقیت ثبت شد.")
 
             return redirect(
                 reverse(
@@ -481,28 +496,21 @@ def unit_charge_payment_view(request, charge_id):
                 )
             )
 
-
-        else:
-            messages.error(request, "خطا در ثبت اطلاعات پرداخت. لطفاً فرم را بررسی کنید.")
-            return render(request, 'charge_payment_gateway.html', {
-                'charge': charge,
-                'form': form,
-                'app_label': charge._meta.app_label,
-                'model_name': charge._meta.model_name,
-            })
+        messages.error(request, "خطا در ثبت اطلاعات پرداخت.")
 
     else:
-        # نمایش فرم برای پرداخت
-        form = UnifiedChargePaymentForm(instance=charge, user=request.user)
-        return render(request, 'charge_payment_gateway.html', {
-            'charge': charge,
-            'form': form,
-            'app_label': charge._meta.app_label,
-            'model_name': charge._meta.model_name,
-        })
+        form = UnifiedChargePaymentForm(instance=charge)
+
+    return render(request, 'charge_payment_gateway.html', {
+        'charge': charge,
+        'form': form,
+        'app_label': charge._meta.app_label,
+        'model_name': charge._meta.model_name,
+    })
 
 
-@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-def charge_payment_done_view(request, pk):
-    charge = get_object_or_404(UnifiedCharge, pk=pk)
-    return render(request, 'charge_payment_gateway.html', {'charge': charge})
+
+# @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+# def charge_payment_done_view(request, pk):
+#     charge = get_object_or_404(UnifiedCharge, pk=pk)
+#     return render(request, 'charge_payment_gateway.html', {'charge': charge})

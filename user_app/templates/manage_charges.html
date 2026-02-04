@@ -198,6 +198,10 @@
                                    <p><strong>هزینه پارکینگ اضافه:</strong> -- </p>
                                 {% endif %}
                                 <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
+                               {% if charge.is_penalty_waived %}
+                            	  <p class="text-danger mt-2 text-small">توجه: جریمه دیرکرد به مبلغ {{ charge.previous_penalty_amount|three_digit_currency }} تومان در تاریخ {{ charge.penalty_waived_at|show_jalali_date_only }}بخشیده شد.</p>
+
+                            {% endif %} 
                               <hr>
                                 <p class="bg-warning"><strong>توضیحات:</strong> 
                                     {% if charge.details %}

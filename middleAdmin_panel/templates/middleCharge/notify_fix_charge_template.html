@@ -48,11 +48,15 @@
                   ارسال موفق اطلاعیه شارژ 
                 </div>
             <div class="col-6 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
+                <i class="fa fa-envelope fa-1x text-info"></i>
+                 ارسال موفق پیامک شارژ 
+                </div>
+             <div class="col-6 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
                     <span class="circlePayment"></span>
                   پرداخت موفق شارژ
                 </div>
          
-            <div class="col-12 col-md-6 col-xl-6 text-md-start align-self-center p-1">
+            <div class="col-12 col-md-4 col-xl-4 text-md-start align-self-center p-1">
                   <button type="button" id="remove-all-btn" class="btn btn-dark px-2 shadow_style">
                     حذف اطلاعیه واحدها
                 </button>
@@ -75,7 +79,7 @@
                 style="background-color: #fff3cd;"
             {% endif %}
         {% endif %}>
-        <div class="card-body text-center d-flex px-2 py-1 mt-3">
+        <div class="card-body text-center d-flex px-1 py-1 mt-3">
              <p class="card-charge-title shadow_style"
                 data-bs-toggle="popover"
                 data-bs-html="true"
@@ -96,10 +100,13 @@
                        value="{{ unit.id }}">
                 واحد شماره {{ unit.unit }}
             </p>
-{#            <a href="#">#}
-{#                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="me-4" alt="" #}
-{#                               style="width: 30px; height: 28px;">#}
-{#                      </a>#}
+        {% if item.send_sms %}
+        	       <p class="me-2"><i class="fa fa-envelope text-info"></i></p>
+        {% endif %} 
+     
+
+                   
+               
         </div>
      
     </div>

@@ -28,9 +28,10 @@
     <orderEntry type="library" name="bootstrap" level="application" />
     <orderEntry type="library" name="jquery" level="application" />
     <orderEntry type="library" name="select2" level="application" />
-    <orderEntry type="library" name="@majidh1/jalalidatepicker" level="application" />
     <orderEntry type="library" name="jquery-3.6.0" level="application" />
     <orderEntry type="library" name="persian-datepicker" level="application" />
+    <orderEntry type="library" name="@majidh1/jalalidatepicker" level="application" />
+    <orderEntry type="library" name="font-face" level="application" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_CONFIGURATION" value="Django" />

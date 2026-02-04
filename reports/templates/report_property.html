@@ -106,7 +106,7 @@
                {% for property in page_obj %}
                         <tbody class="text-center">
                             <tr>
-                                <td>{{ forloop.counter }}</td>
+                           <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
                               <td>{{property.property_name }}</td>
                                  <td>{{property.property_unit }}</td>
                                 <td>{{property.property_code }}</td>

@@ -106,7 +106,7 @@
                {% for maintenance in maintenances %}
                         <tbody class="text-center">
                             <tr>
-                                <td>{{ forloop.counter }}</td>
+                             <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
                                <td>{{maintenance.maintenance_description }}</td>
                              <td class="col-12 col-lg-1 col-xl-1">{{maintenance.maintenance_start_date|show_jalali }}</td>
                                  <td class="col-12 col-lg-1 col-xl-1">{{maintenance.maintenance_end_date|show_jalali }}</td>

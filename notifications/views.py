@@ -756,7 +756,7 @@ def middle_send_message(request, pk):
             return redirect('message_to_user')
 
         with transaction.atomic():
-            notified_units = list(units_to_notify)  # بدون شرط موبایل/کاربر
+            notified_units = list(units_to_notify)
 
             message.notified_units.set(notified_units)
             message.send_notification = True
@@ -764,12 +764,17 @@ def middle_send_message(request, pk):
             message.save()
 
             for unit in notified_units:
-                read_status, created = MessageReadStatus.objects.get_or_create(
+                MessageReadStatus.objects.get_or_create(
                     message=message,
                     unit=unit,
                     defaults={'is_read': False}
                 )
-                messages.success(request,f"پیام برای واحدهای{unit.unit} ارسال شد")
+
+            # 👇 فقط یک پیام کلی
+            messages.success(
+                request,
+                f"پیام برای {len(notified_units)} واحد ارسال شد."
+            )
 
         return redirect('middle_message_management')
 

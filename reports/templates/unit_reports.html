@@ -87,7 +87,7 @@
 	    <tbody>
         {% for t in transactions %}
         <tr>
-            <td>{{ forloop.counter }}</td>
+             <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
             <td>{{ t.bank }}</td>
             <td>{{ t.payment_date|show_jalali }}</td>
             <td>{{ t.payment_description }}</td>

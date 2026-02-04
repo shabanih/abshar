@@ -111,8 +111,8 @@ class MessageToUserForm(forms.ModelForm):
 
 RESIDENCE_STATUS_CHOICES = {
     '': '--- انتخاب کنید ---',
-    'پر': 'پر',
-    'خالی': 'خالی'
+    'occupied': 'ساکن',
+    'empty': 'خالی'
 }
 
 BEDROOMS_COUNT_CHOICES = {
@@ -2016,23 +2016,31 @@ class UnifiedChargePaymentForm(forms.ModelForm):
         charge = kwargs.pop('charge', None)
         super().__init__(*args, **kwargs)
 
+        charge = self.instance
+
+        # پیش‌فرض خالی
         self.fields['bank'].queryset = Bank.objects.none()
 
         if charge and charge.unit and charge.unit.myhouse:
             house = charge.unit.myhouse
 
-            # همه بانک‌های فعال خانه
-            banks = Bank.objects.filter(is_active=True, house=house).order_by('-is_default', 'bank_name')
+            banks = Bank.objects.filter(
+                is_active=True,
+                house=house
+            ).order_by('-is_default', 'bank_name')
+
             self.fields['bank'].queryset = banks
 
-            # بانک پیش‌فرض خانه
-            default_bank = Bank.get_default(user=None, house=house)
+            # بانک پیش‌فرض
+            default_bank = banks.filter(is_default=True).first()
             if default_bank:
                 self.fields['bank'].initial = default_bank
 
-            # نمایش label با "(پیش‌فرض)"
-            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.cart_number}" + (
-                " (پیش‌فرض)" if obj.is_default else "")
+            # label زیبا
+            self.fields['bank'].label_from_instance = (
+                lambda obj: f"{obj.bank_name} - {obj.cart_number}"
+                + (" (پیش‌فرض)" if obj.is_default else "")
+            )
 
     def clean_payment_date(self):
         date = self.cleaned_data.get('payment_date')

@@ -156,10 +156,15 @@
         ---
     {% endif %}
 </td>
-
-                            
-                            
-                            <td>{{ unit.status_residence }}</td>
+<td>
+    {% if unit.status_residence == 'occupied' %}
+        <span>ساکن</span>
+    {% elif unit.status_residence == 'empty' %}
+        <span>خالی</span>
+    {% else %}
+        ---
+    {% endif %}
+</td>
                             <td>
                                 {% if unit.is_active %}
                                     <button class="btn btn-primary bg-success p-1">فعال</button>

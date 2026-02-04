@@ -78,7 +78,7 @@
     {% if unit_histories %}
         {% for h in unit_histories %}
             <tr>
-                <td>{{ forloop.counter }}</td>
+                 <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
                 <td>
                     {% if h.resident_type == 'owner' %}
                         <span class="badge bg-primary">مالک</span>

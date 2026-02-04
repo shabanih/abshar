@@ -89,7 +89,7 @@
                            {% for fund in funds %}
                                     <tbody class="text-center">
                                         <tr>
-                                            <td>{{ forloop.counter }}</td>
+                                               <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
 {#                                            <td>{{ fund.doc_number }}</td>#}
                                                <td>{{fund.payment_date|show_jalali }}</td>
                                             <td>بابت {{fund.payment_description }}</td>

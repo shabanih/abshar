@@ -2,7 +2,7 @@
 {% load poll_extras %}
 
 {% block page_title %}
-    لیست شارژ {{ charge_type_fa }} 
+    لیست شارژ 
 {% endblock page_title %}
 
 {% block main_content %}
@@ -76,7 +76,7 @@
                            {% for charge in charges %}
                                     <tbody class="text-center">
                                         <tr>
-                                            <td>{{ forloop.counter }}</td>
+                                         <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
                                             <td>{{charge.name }}</td>
                                             <td>{{charge.created_at|show_jalali }}</td>
                                               	  <td>
