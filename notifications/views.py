@@ -14,8 +14,8 @@ from django.utils.decorators import method_decorator
 from django.views.generic import CreateView, ListView, UpdateView
 from django.views.generic.edit import FormMixin
 
-from admin_panel.forms import MessageToUserForm
-from admin_panel.models import MessageToUser, MessageReadStatus
+from admin_panel.forms import MessageToUserForm, AdminMessageToMiddleForm
+from admin_panel.models import MessageToUser, MessageReadStatus, AdminMessageToMiddle, MiddleMessageReadStatus
 from middleAdmin_panel.views import middle_admin_required
 from notifications.models import SupportUser, SupportFile, SupportMessage, Notification, AdminTicket, AdminTicketFile, \
     AdminTicketMessage, MiddleAdminNotification
@@ -645,7 +645,7 @@ class MessageToUserListCreateView(CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         all_messages = MessageToUser.objects.filter(user=self.request.user,
-                                                               send_notification=False).order_by(
+                                                    send_notification=False).order_by(
             '-created_at')
         context['all_messages'] = all_messages
         context['units'] = Unit.objects.all()
@@ -690,6 +690,7 @@ class MiddleMessageUpdateView(UpdateView):
         return context
 
 
+@login_required
 def message_user_delete(request, pk):
     message = get_object_or_404(MessageToUser, id=pk)
     try:
@@ -700,6 +701,7 @@ def message_user_delete(request, pk):
     return redirect(reverse('message_to_user'))
 
 
+@login_required
 def message_user_delete_list(request, pk):
     message = get_object_or_404(MessageToUser, id=pk)
     try:
@@ -710,6 +712,7 @@ def message_user_delete_list(request, pk):
     return redirect(reverse('middle_message_management'))
 
 
+@login_required
 def middle_show_message_form(request, pk):
     managed_users = request.user.managed_users.all()
     message = get_object_or_404(MessageToUser, id=pk, user=request.user)
@@ -741,7 +744,7 @@ def middle_send_message(request, pk):
             return redirect('message_to_user')
 
         units_qs = Unit.objects.filter(Q(user=request.user) | Q(user__in=managed_users),
-                                is_active=True)
+                                       is_active=True)
 
         if 'all' in selected_units:
             units_to_notify = units_qs
@@ -833,19 +836,173 @@ class MiddleMessageToUserListView(ListView):
         return context
 
 
-# ========================= Message to middleAdmin ===============
+# ========================= Message admin to middleAdmin ===============
 @method_decorator(middle_admin_required, name='dispatch')
-class MessageToMiddleListCreateView(FormMixin, ListView):
-    model = MessageToUser
-    form_class = MessageToUserForm
-    template_name = 'message_to_middle.html'
-    context_object_name = 'middle_messages'
-    success_url = reverse_lazy('message_to_middle')  # نام url همین صفحه
+class AdminMessageToMiddleListCreateView(CreateView):
+    model = AdminMessageToMiddle
+    form_class = AdminMessageToMiddleForm
+    template_name = 'message_send_admin_to_middle.html'
+    success_url = reverse_lazy('message_admin_to_middle')
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        return kwargs
+    def form_valid(self, form):
+        msg = form.save(commit=False)
+        msg.sender = self.request.user  # فرستنده
+        msg.save()
+        form.save_m2m()
+
+        messages.success(self.request, 'پیام با موفقیت ثبت شد.')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        all_messages = AdminMessageToMiddle.objects.filter(
+            sender=self.request.user,
+            is_active=True,
+            send_notification=False
+        ).order_by('-created_at')
+
+        paginator = Paginator(all_messages, 20)
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context['all_messages'] = page_obj
+        context['middle_admins'] = User.objects.filter(is_staff=True)
+
+        return context
+
+
+@method_decorator(middle_admin_required, name='dispatch')
+class AdminMessageToMiddleUpdateView(UpdateView):
+    model = AdminMessageToMiddle
+    form_class = AdminMessageToMiddleForm
+    template_name = 'message_send_admin_to_middle.html'
+    success_url = reverse_lazy('message_admin_to_middle')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'پیام ویرایش شد.')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        all_messages = AdminMessageToMiddle.objects.filter(
+            sender=self.request.user,
+            is_active=True
+        ).order_by('-created_at')
+
+        paginator = Paginator(all_messages, 20)
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context['all_messages'] = page_obj
+        context['middle_admins'] = User.objects.filter(is_staff=True)
+
+        return context
+
+
+@login_required
+def admin_message_delete(request, pk):
+    msg = get_object_or_404(AdminMessageToMiddle, pk=pk)
+
+    try:
+        msg.delete()
+        messages.success(request, 'پیام حذف شد.')
+    except ProtectedError:
+        messages.error(request, 'امکان حذف وجود ندارد.')
+
+    return redirect('admin_message_management')
+
+
+@login_required
+def admin_show_send_form(request, pk):
+    message = get_object_or_404(AdminMessageToMiddle, pk=pk)
+
+    middle_admins = User.objects.filter(is_middle_admin=True)
+
+    return render(request, 'admin_send_message.html', {
+        'message': message,
+        'middle_admins': middle_admins
+    })
+
+
+@login_required
+def admin_send_message(request, pk):
+    message = get_object_or_404(AdminMessageToMiddle, pk=pk)
+
+    if request.method == "POST":
+        selected = request.POST.getlist('users')  # لیست id مدیران
+
+        if not selected:
+            messages.warning(request, 'هیچ مدیری انتخاب نشد.')
+            return redirect('message_admin_to_middle')
+
+        users = User.objects.filter(
+            id__in=selected,
+            is_middle_admin=True
+        )
+
+        with transaction.atomic():
+            # ثبت مدیران انتخاب‌شده
+            message.middleAdmins.set(users)
+
+            # ثبت وضعیت خوانده شدن
+            for user in users:
+                MiddleMessageReadStatus.objects.get_or_create(
+                    message=message,
+                    user=user,
+                    defaults={'is_read': False}
+                )
+
+            # ثبت اینکه پیام ارسال شده
+            message.send_notification = True
+            message.send_notification_date = timezone.now()
+            message.save()
+
+        messages.success(
+            request,
+            f"پیام برای {users.count()} مدیر ارسال شد."
+        )
+
+        return redirect('admin_message_management')
+
+    return redirect('message_admin_to_middle')
+
+
+@method_decorator(middle_admin_required, name='dispatch')
+class AdminMessageToMiddleListView(ListView):
+    model = AdminMessageToMiddle
+    template_name = 'admin_message_management.html'
+    context_object_name = 'all_messages'
+    paginate_by = 20
+
+    def get_queryset(self):
+        qs = AdminMessageToMiddle.objects.filter(
+            sender=self.request.user,
+            is_active=True
+        ).annotate(
+            sent_count=Count('middleAdmins', distinct=True)
+        ).prefetch_related(
+            Prefetch(
+                'read_statuses',
+                queryset=MiddleMessageReadStatus.objects.select_related('user')
+            )
+        )
+
+        query = self.request.GET.get('q')
+        if query:
+            qs = qs.filter(
+                Q(title__icontains=query) |
+                Q(message__icontains=query)
+            )
+
+        return qs.order_by('-created_at')
+
+
+@method_decorator(middle_admin_required, name='dispatch')
+class MiddleMessageListView(ListView):
+    template_name = 'middle_message_from_admin.html'
+    context_object_name = 'middle_messages'
 
     def get_paginate_by(self, queryset):
         paginate = self.request.GET.get('paginate')
@@ -854,12 +1011,35 @@ class MessageToMiddleListCreateView(FormMixin, ListView):
         return int(paginate or 20)
 
     def get_queryset(self):
+        user = self.request.user
         query = self.request.GET.get('q', '')
-        queryset = MessageToUser.objects.filter(is_active=True)
 
+        # Prefetch read_status برای کاربر جاری
+        read_status_prefetch = Prefetch(
+            'read_statuses',
+            queryset=MiddleMessageReadStatus.objects.filter(user=user)
+        )
+
+        queryset = AdminMessageToMiddle.objects.filter(
+            middleAdmins=user,
+            is_active=True
+        ).prefetch_related(read_status_prefetch)
+
+        # آپدیت وضعیت خوانده شده
+        for msg in queryset:
+            status, created = MiddleMessageReadStatus.objects.get_or_create(
+                message=msg,
+                user=user
+            )
+            if not status.is_read:
+                status.is_read = True
+                status.read_at = timezone.now()
+                status.save()
+
+        # فیلتر جستجو
         if query:
             queryset = queryset.filter(
-                Q(user__full_name__icontains=query) |
+                Q(sender__full_name__icontains=query) |
                 Q(title__icontains=query) |
                 Q(message__icontains=query)
             ).distinct()
@@ -868,86 +1048,6 @@ class MessageToMiddleListCreateView(FormMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form'] = self.get_form()
         context['query'] = self.request.GET.get('q', '')
         context['paginate'] = self.request.GET.get('paginate', '20')
         return context
-
-    # ✅ این بخش مهم‌ترین قسمت است
-    def post(self, request, *args, **kwargs):
-        self.object_list = self.get_queryset()
-        form = self.get_form()
-
-        if form.is_valid():
-            messages.success(request, 'پیام با موفقیت ثبت گردید')
-            return self.form_valid(form)
-        else:
-            return self.form_invalid(form)
-
-    def form_valid(self, form):
-        message = form.save(commit=False)
-
-        # اگر چند unit انتخاب شده
-        units = form.cleaned_data['unit']
-
-        for unit in units:
-            MessageToUser.objects.create(
-                user=unit.user,
-                title=message.title,
-                message=message.message,
-                is_active=message.is_active
-            )
-
-        return super().form_valid(form)
-
-
-@login_required
-def ajax_admin_to_middle(request):
-    if not request.user.is_authenticated:
-        return JsonResponse({'results': []})
-
-    user = request.user
-    q = request.GET.get('q', '').strip()
-    is_initial = request.GET.get('initial')
-
-    managed_users = User.objects.filter(
-        Q(manager=user) | Q(pk=user.pk)
-    )
-
-    units = Unit.objects.filter(
-        is_active=True,
-        user__in=managed_users
-    )
-
-    # 🔹 اگر سرچ انجام شده
-    if q:
-        units = units.filter(
-            Q(unit__icontains=q) |
-            Q(owner_name__icontains=q) |
-            Q(renters__renter_name__icontains=q)
-        ).distinct()
-
-    # 🔹 اگر فقط کلیک شده (initial load)
-    elif is_initial:
-        units = units[:10]
-
-    results = [
-        {
-            'id': u.id,
-            'text': u.get_label()
-        }
-        for u in units[:20]  # محدودیت نهایی برای performance
-    ]
-
-    return JsonResponse({'results': results})
-
-
-@login_required
-def message_middle_delete(request, pk):
-    message = get_object_or_404(MessageToUser, id=pk)
-    try:
-        message.delete()
-        messages.success(request, 'پیام با موفقیت حذف گردید!')
-    except ProtectedError:
-        messages.error(request, " امکان حذف وجود ندارد! ")
-    return redirect(reverse('message_to_user'))

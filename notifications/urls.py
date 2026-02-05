@@ -45,8 +45,15 @@ urlpatterns = [
     path('middle-send-message/<int:pk>/', views.middle_send_message, name='middle_send_message'),
     path('middle/message/management/', views.MiddleMessageToUserListView.as_view(), name='middle_message_management'),
 
-    path('message/to/middle/', views.MessageToMiddleListCreateView.as_view(), name='message_to_middle'),
-    # path('edit/message/to/user/<int:pk>/', views.MessageToUserUpdateView.as_view(), name='edit_message_to_user'),
-    path('message-to-middle-delete/<int:pk>/', views.message_middle_delete, name='delete_message_to_middle'),
-    path('ajax/units/middle/', views.ajax_admin_to_middle, name='ajax_admin_to_middle'),
+    path('message//admin/to/middle/', views.AdminMessageToMiddleListCreateView.as_view(), name='message_admin_to_middle'),
+    path('edit/message/admin/to/middle/<int:pk>/', views.AdminMessageToMiddleUpdateView.as_view(),
+         name='edit_message_admin_to_middle'),
+    path('message-admin-to-middle-delete/<int:pk>/', views.admin_message_delete, name='delete_message_admin_to_middle'),
+    path('admin/message/send/form/<int:pk>/', views.admin_show_send_form, name='admin_show_message_form'),
+    path('admin-send-message/<int:pk>/', views.admin_send_message, name='admin_send_message'),
+    path('admin/message/management/', views.AdminMessageToMiddleListView.as_view(), name='admin_message_management'),
+    path('middle/message//from/adminmanagement/', views.MiddleMessageListView.as_view(),
+         name='middle_message_management_from_admin'),
+
+
 ]

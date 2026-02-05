@@ -1,0 +1,109 @@
+﻿{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}ارسال پیام{% endblock %}
+
+{% block main_content %}
+<div class="container mt-3">
+    <div class="card shadow-lg border-0 rounded-4">
+{#        <div class="card-header bg-gradient-secondary text-white text-center py-3 rounded-top-4">#}
+{#            <h4 class="mb-0"><i class="fas fa-sms me-2"></i>مدیریت ارسال پیامک‌ها</h4>#}
+{#        </div>#}
+
+        <div class="card-body p-4">
+            <form method="POST" action="{% url 'admin_send_message' message.id %}">
+                {% csrf_token %}
+
+              <div class="row g-4">
+
+    <!-- مدیران موجود -->
+    <div class="col-md-5">
+        <div class="card border-0 shadow-sm rounded-3 h-100">
+            <div class="card-header bg-light text-center fw-bold">
+                <i class="fas fa-user-tie text-primary me-1"></i> مدیران موجود
+            </div>
+
+            <div class="card-body p-0">
+                <input type="text" id="searchAvailable" class="form-control mb-3"
+                       placeholder="جستجو..." />
+
+                <select id="availableManagers" multiple size="15"
+                        class="form-select rounded-3">
+
+                    {% for manager in middle_admins %}
+                        <option value="{{ manager.id }}">
+                            {{ manager.full_name }}
+                            {% if manager.mobile %}
+                                ({{ manager.mobile }})
+                            {% endif %}
+                        </option>
+                    {% endfor %}
+
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- دکمه‌های انتقال -->
+    <div class="col-md-2 d-flex flex-column justify-content-center align-items-center gap-3">
+
+        <button type="button" class="btn btn-outline-primary btn-lg rounded-circle shadow-sm"
+                id="addAllBtn" title="افزودن همه">
+            <i class="fas fa-angle-double-left"></i>
+        </button>
+
+        <button type="button" class="btn btn-outline-success btn-lg rounded-circle shadow-sm"
+                id="addBtn" title="افزودن انتخاب‌شده‌ها">
+            <i class="fas fa-angle-left"></i>
+        </button>
+
+        <button type="button" class="btn btn-outline-warning btn-lg rounded-circle shadow-sm"
+                id="removeBtn" title="حذف انتخاب‌شده‌ها">
+            <i class="fas fa-angle-right"></i>
+        </button>
+
+        <button type="button" class="btn btn-outline-danger btn-lg rounded-circle shadow-sm"
+                id="removeAllBtn" title="حذف همه">
+            <i class="fas fa-angle-double-right"></i>
+        </button>
+
+    </div>
+
+    <!-- مدیران انتخاب‌شده -->
+    <div class="col-md-5">
+        <div class="card border-0 shadow-sm rounded-3 h-100">
+
+            <div class="card-header bg-light text-center fw-bold">
+                <i class="fas fa-list text-primary me-1"></i> مدیران انتخاب‌شده
+            </div>
+
+            <div class="card-body p-0">
+                <input type="text" id="searchSelected" class="form-control mb-3"
+                       placeholder="جستجو..." />
+
+                <select id="selectedManagers" name="users"
+                        multiple size="15"
+                        class="form-select rounded-3">
+                </select>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+
+                <!-- دکمه ارسال -->
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-gradient-success btn-lg px-5 shadow">
+                        <i class="fas fa-paper-plane me-2"></i>ارسال پیام
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+    
+
+{% endblock %}

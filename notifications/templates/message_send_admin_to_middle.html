@@ -3,7 +3,7 @@
 {% load poll_extras %}
 
 {% block page_title %}
-مدیریت پیام ها
+ثبت پیام 
 {% endblock page_title %}
 
 {% block main_content %}
@@ -11,13 +11,13 @@
 
     <form action="" method="post" novalidate>
         {% csrf_token %}
-       <div class="row mb-3">
-    <div class="col-12">
-        {{ form.unit.label_tag }}
-        {{ form.unit }}
-        {{ form.unit.errors }}
-    </div>
-</div>
+{#       <div class="row mb-3">#}
+{#    <div class="col-12">#}
+{#        {{ form.unit.label_tag }}#}
+{#        {{ form.unit }}#}
+{#        {{ form.unit.errors }}#}
+{#    </div>#}
+{#</div>#}
 
 <div class="row">
     <div class="col-8">
@@ -92,43 +92,58 @@
         </div>
     </div>
 
+       <div class="container p-0 mt-4">
         <div class="row mt-2">
             <div class="table-responsive">
                 <table class="table table-bordered">
                     <thead class="text-center">
                         <tr>
                             <th>#</th>
-                            <th>نام واحد</th>
-                            <th>موضوع پیام</th>
-                            <th>متن پیام</th>
+                            <th>عنوان پیام</th>
+                            <th>متن پیام </th>
                             <th>تاریخ ایجاد</th>
+                            <th>فعال/غیرفعال</th>
+                            <th>وضعیت</th>
+{#                            <th>تاریخ ارسال</th>#}
+{#                            <th>تعداد پیامک ارسالی</th>#}
                             <th>دستورات</th>
                         </tr>
                     </thead>
-                    {% if user_messages %}
-                        {% for user_message in user_messages %}
-                        <tbody class="text-center p-0">
+                    {% if all_messages %}
+                        {% for message in all_messages %}
+                        <tbody class="text-center">
                             <tr>
                                 <td>{{ forloop.counter }}</td>
-                                <td>{{user_message.user.get_full_name}}</td>
-                                <td>{{ user_message.title|safe }}</td>
-                                <td>{{ user_message.message|safe }}</td>
+                                <td>{{message.title }}</td>
+                                <td>{{ message.message }}</td>
 
-                                <td>{{ user_message.created_at|show_jalali}}</td>
-{#                                  <td>#}
-{#                                   {% if user_message.is_active == True %}#}
-{#                                    <button class="btn btn-primary bg-success p-2">فعال</button>#}
-{#                                       {% else %}#}
-{#                                       <button class="btn btn-danger p-2">غیر فعال</button>#}
-{#                                   {% endif %}#}
-{#                                </td>#}
+                                <td>{{ message.created_at|show_jalali}}</td>
+                                  <td>
+                                   {% if message.is_active == True %}
+                                    <button class="btn btn-primary bg-success p-2">فعال</button>
+                                       {% else %}
+                                       <button class="btn btn-danger p-2">غیر فعال</button>
+                                   {% endif %}
+                                </td>
+                                       <td>
+                                   {% if message.send_notification == True %}
+                                    <button class="btn btn-primary bg-success p-2">ارسال گردید</button>
+                                       {% else %}
+                                       <button class="btn btn-warning p-2">در انتظار ارسال</button>
+                                   {% endif %}
+                                </td>
 
-                               <td class="col-lg-1 col-xl-1">
-{#                                   <a href="{% url 'edit_announcement' announcement.id %}" class="btn btn-primary p-1">#}
-{#                              <i class="mdi mdi-lead-pencil" aria-hidden="true"></i></a>#}
-                                  <a href="{% url 'delete_message_to_user' user_message.id %}"
-                                     class="btn btn-danger p-1" onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
-                                      <i class="mdi mdi-delete" aria-hidden="true"></i></a>
+                               <td class="col-1 p-0">
+                                   <a href="{% url 'edit_message_admin_to_middle' message.id %}" class="btn btn-primary p-1">
+                              <i class="mdi mdi-lead-pencil" aria-hidden="true"></i></a>
+                                     <a href="{% url 'delete_message_admin_to_middle' message.id %}" class="btn btn-gradient-danger p-1"
+                                        onclick="return confirmDeleteWithSweetAlert(event)">
+                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                            </a>
+                             <a href="{% url 'admin_show_message_form' message.id %}" class="btn btn-gradient-success p-1"
+                                   data-bs-toggle="tooltip" title="ارسال پیامک">
+                                   <i class="fas fa-sms"></i>
+                                </a>
 
                             </td>
 
@@ -138,13 +153,14 @@
                     {% else %}
                         <tbody>
                             <tr>
-                                <td colspan="7" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                <td colspan="11" class="text-center">هیچ پیامکی ثبت نشده است.</td>
                             </tr>
                         </tbody>
                     {% endif %}
                 </table>
             </div>
         </div>
+    </div>
     </div>
  <!-- Pagination -->
       <div class="col-12">
@@ -166,37 +182,7 @@
         </div>
     </div>
 </div>
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
-
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-<script>
-$(function () {
-    $('.select2-ajax').select2({
-        {#placeholder: 'واحد / مالک یا مستاجر را انتخاب کنید',#}
-        width: '100%',
-        minimumInputLength: 0,   // ⭐ خیلی مهم
-        language: {
-        inputTooShort: () => 'برای جستجو حداقل یک حرف وارد کنید'
-        },
-      ajax: {
-        url: "{% url 'ajax_units' %}",
-        dataType: 'json',
-        delay: 250,
-        data: params => ({
-            q: params.term,
-            initial: !params.term
-        }),
-           processResults: function (data) {
-            return { results: data.results };
-        }
-}
-    });
-});
-</script>
-    
 
 {% endblock main_content %}
 

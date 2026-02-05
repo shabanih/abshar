@@ -184,7 +184,7 @@ def site_header_component(request):
 class AnnouncementView(ListView):
     model = Announcement
     template_name = 'admin_panel/announcement.html'
-    context_object_name = 'announcements'
+    context_object_name = 'houses'
 
     def get_paginate_by(self, queryset):
         paginate = self.request.GET.get('paginate')
@@ -194,56 +194,87 @@ class AnnouncementView(ListView):
 
     def get_queryset(self):
         query = self.request.GET.get('q', '')
-        queryset = Announcement.objects.filter(
-            is_active=True,
+
+        qs = (
+            MyHouse.objects
+            .filter(announcement__is_active=True)
+            .annotate(
+                total_announcements=Count(
+                    'announcement',
+                    filter=Q(announcement__is_active=True)
+                )
+            )
+            .distinct()
         )
+
         if query:
-            queryset = queryset.filter(
-                Q(user__full_name__icontains=query) |
-                Q(title__icontains=query) |
-                Q(user__myhouse__name__icontains=query)
-            ).distinct()
-        return queryset.order_by('-created_at')
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['query'] = self.request.GET.get('q', '')
         context['paginate'] = self.request.GET.get('paginate', '1')
-        house = MyHouse.objects.filter(user=self.request.user).first()
-        context['house'] = house
         return context
 
-
 @method_decorator(admin_required, name='dispatch')
-class AnnouncementUpdateView(UpdateView):
+class ManagerAnnouncementsDetailView(ListView):
     model = Announcement
-    template_name = 'admin_panel/announcement.html'
-    form_class = announcementForm
-    success_url = reverse_lazy('announcement')
+    template_name = "admin_panel/detail_announcement.html"
+    context_object_name = "announcements"
 
-    def form_valid(self, form):
-        edit_instance = form.instance
-        self.object = form.save(commit=False)
-        messages.success(self.request, 'اطلاعیه با موفقیت ویرایش گردید!')
-        return super().form_valid(form)
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        house_id = self.kwargs['house_id']
+        query = self.request.GET.get('q', '')
+
+        qs = Announcement.objects.filter(
+            house_id=house_id,
+            is_active=True
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(title__icontains=query)
+            )
+
+        return qs.order_by('-created_at')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['announcements'] = Announcement.objects.filter(is_active=True)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '1')
+        # اضافه کردن اطلاعات خانه
+        context['house'] = MyHouse.objects.filter(id=self.kwargs['house_id']).first()
         return context
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def announcement_delete(request, pk):
+    # فقط ادمین اجازه دارد
+    if not request.user.is_superuser:
+        messages.error(request, "شما دسترسی ندارید!")
+        return redirect('house_announcements')
+
     announce = get_object_or_404(Announcement, id=pk)
-    print(announce.id)
 
     try:
         announce.delete()
-        messages.success(request, 'اظلاعیه با موفقیت حذف گردید!')
+        messages.success(request, 'اطلاعیه با موفقیت حذف شد!')
     except ProtectedError:
-        messages.error(request, " امکان حذف وجود ندارد! ")
-    return redirect(reverse('announcement'))
+        messages.error(request, 'امکان حذف این اطلاعیه وجود ندارد!')
+
+    # برگشت به لیست اطلاعیه‌های همان خانه
+    return redirect(reverse('house_announcements', kwargs={'house_id': announce.house.id}))
 
 
 # ========================== My House Views ========================
@@ -1956,6 +1987,7 @@ def pay_delete(request, pk):
         messages.error(request, " امکان حذف وجود ندارد! ")
     return redirect(reverse('add_pay'))
 
+
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 @csrf_exempt
 def delete_pay_document(request):
@@ -2259,6 +2291,7 @@ def property_delete(request, pk):
         messages.error(request, " امکان حذف وجود ندارد! ")
     return redirect(reverse('add_property'))
 
+
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 @csrf_exempt
 def delete_property_document(request):
@@ -2560,6 +2593,7 @@ def maintenance_delete(request, pk):
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
     return redirect(reverse('add_maintenance'))
+
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 @csrf_exempt

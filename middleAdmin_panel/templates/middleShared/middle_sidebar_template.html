@@ -21,8 +21,9 @@
 <li class="nav-item text-center mb-1">
 
 
-{% if user.is_resident %}
+
     <div class="row d-flex justify-content-between">
+                {% if user.is_resident %}
   <a href="{% url 'switch_to_resident' %}"
      class="btn btn-gradient-primary px-3 py-2">
       ورود به پنل ساکنین
@@ -88,6 +89,7 @@
 
                        {% url 'message_to_user' as url_message_to_user %}
             {% url 'middle_message_management' as url_middle_message_list %}
+            {% url 'middle_message_management_from_admin' as url_middle_message_from_admin_list %}
 
             <li class="nav-item border-top mt-0">
               <a class="nav-link" data-bs-toggle="collapse"
@@ -99,7 +101,7 @@
                 <i class="fas fa-bullhorn fa-flip-horizontal menu-icon"></i>
               </a>
 
-              <div class="collapse {% if request.path == url_message_to_user or request.path == url_middle_message_list %}show{% endif %}" id="general145">
+              <div class="collapse {% if request.path == url_message_to_user or request.path == url_middle_message_list or request.path == url_middle_message_from_admin_list %}show{% endif %}" id="general145">
                 <ul class="nav flex-column sub-menu">
 
                   <li class="nav-item mt-0">
@@ -112,7 +114,13 @@
                   <li class="nav-item mt-0">
                     <a class="nav-link {% if request.path == url_middle_message_list %}active{% endif %}"
                        href="{{ url_middle_message_list }}">
-                       پیامک های من
+                       پیام های ارسالی
+                    </a>
+                  </li>
+                    <li class="nav-item mt-0">
+                    <a class="nav-link {% if request.path == url_middle_message_from_admin_list %}active{% endif %}"
+                       href="{{ url_middle_message_from_admin_list }}">
+                       پیام های ادمین
                     </a>
                   </li>
 

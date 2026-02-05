@@ -13,11 +13,12 @@ from django.utils.functional import cached_property
 from django.utils.safestring import mark_safe
 from datetime import date
 
-from user_app.models import Unit, User, Bank
+from user_app.models import Unit, User, Bank, MyHouse
 
 
 class Announcement(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    house = models.ForeignKey(MyHouse, on_delete=models.CASCADE)
     title = RichTextUploadingField(null=True, blank=True)
     show_in_marquee = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
@@ -69,27 +70,39 @@ class MessageReadStatus(models.Model):
 # ------------------- Admin Message To MiddleAdmin --------------------------
 
 class AdminMessageToMiddle(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    sender = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name='sent_admin_messages',
+        limit_choices_to={'is_superuser': True},  # فقط ادمین اصلی
+        verbose_name='فرستنده'
+    )
     middleAdmins = models.ManyToManyField(
         User,
-        related_name='middleMessages',
-        verbose_name='مدیران'
+        related_name='received_admin_messages',
+        verbose_name='مدیران ساختمان'
     )
-    title = models.CharField(max_length=400, null=True, blank=True)
-    message = models.CharField(max_length=400, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
-    is_active = models.BooleanField(default=True, verbose_name='')
-    is_seen = models.BooleanField(default=False, verbose_name='')
+    title = models.CharField(max_length=400, null=True, blank=True, verbose_name='عنوان پیام')
+    message = models.TextField(null=True, blank=True, verbose_name='متن پیام')
+    send_notification = models.BooleanField(default=False)
+    send_notification_date = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
+    is_active = models.BooleanField(default=True, verbose_name='فعال')
 
     def __str__(self):
-        return self.user.full_name
+        return self.title or f"پیام {self.id} از {self.sender.full_name}"
 
 
 class MiddleMessageReadStatus(models.Model):
-    message = models.ForeignKey('AdminMessageToMiddle', on_delete=models.CASCADE, related_name='admin_read_statuses')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    is_read = models.BooleanField(default=False)
-    read_at = models.DateTimeField(null=True, blank=True)
+    message = models.ForeignKey(
+        AdminMessageToMiddle,
+        on_delete=models.CASCADE,
+        related_name='read_statuses'
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE
+    )
+    is_read = models.BooleanField(default=False, verbose_name='خوانده شده')
+    read_at = models.DateTimeField(null=True, blank=True, verbose_name='زمان خواندن')
 
     class Meta:
         unique_together = ('message', 'user')

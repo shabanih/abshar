@@ -1,0 +1,126 @@
+﻿{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+اطلاعیه های ساختمان {{ house.name }} (مدیر: {{ house.user.full_name }})
+
+{% endblock page_title %}
+
+{% block main_content %}
+<div class="container py-3">
+    <div class="row mt-4">
+        <!-- بخش جستجو -->
+        <div class="col-12 col-md-10 col-xl-10 align-self-center">
+            <form method="get" action="" class="d-flex gap-2 align-items-center">
+                <input type="text"
+                       class="p-2 w-75 w-md-75"
+                       name="q"
+                       id="searchInput"
+                       autocomplete="off"
+                       value="{{ query }}"
+                       placeholder="جستجوی ..."
+                       dir="rtl"
+                       oninput="if(this.value === '') this.form.submit();">
+                <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
+            </form>
+        </div>
+
+        <!-- بخش تعداد نمایش → فقط دسکتاپ -->
+        <div class="col-12 col-md-2 col-xl-2 p-0 d-none d-md-block">
+            <div class="d-flex align-items-center gap-1">
+                <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label>
+           <select id="cardsPerPage" 
+        class="form-select select-fix"
+        style="width: auto;"
+        onchange="window.location.href='?q={{ query }}&paginate=' + this.value;">
+    <option value="20" {% if request.GET.paginate|default:'1' == '20' %}selected{% endif %}>20</option>
+    <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option>
+    <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option>
+    <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+</select>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- جدول اطلاعیه‌ها -->
+    <div class="row mt-2">
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="text-center">
+                    <tr>
+                        <th>#</th>
+                        <th>موضوع اطلاعیه</th>
+                        <th>تاریخ ایجاد اطلاعیه</th>
+                        <th>فعال/غیرفعال</th>
+                        <th>دستورات</th>
+                    </tr>
+                </thead>
+
+                {% if announcements %}
+                    {% for announcement in announcements %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td class="p-0">
+                                   {{ announcement.title|safe }}
+                                </td>
+                                <td>{{ announcement.created_at|show_jalali }}</td>
+                                <td>
+                                         {% if announcement.is_active == True %}
+                                                <button class="btn btn-primary bg-gradient-success p-1">فعال</button>
+                                                   {% else %}
+                                                   <button class="btn btn-gradient-danger p-1">غیر فعال</button>
+
+                                               {% endif %}
+                                </td>
+                                <td class="col-lg-1 col-xl-1">
+{#                                    <a href="{% url 'edit_middle_announcement' announcement.id %}" class="btn btn-primary p-1">#}
+{#                                        <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>#}
+{#                                    </a>#}
+{#                                    <a href="{% url 'delete_middle_announcement' announcement.pk %}" #}
+{#                                       class="btn btn-danger p-1"#}
+{#                                       onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">#}
+{#                                        <i class="mdi mdi-delete" aria-hidden="true"></i>#}
+{#                                    </a>#}
+                                            <a href="{% url 'admin_delete_announcement' announcement.id %}" class="btn btn-gradient-danger p-1"
+                                       onclick="return confirmDeleteWithSweetAlert(event)">
+                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                            </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    {% endfor %}
+                {% else %}
+                    <tbody>
+                        <tr>
+                            <td colspan="5" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                        </tr>
+                    </tbody>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="col-12">
+        <div class="pagination d-flex justify-content-center mt-5">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+            {% endif %}
+
+            {% for page_number in page_obj.paginator.page_range %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_number }}"
+                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
+                    {{ page_number }}
+                </a>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

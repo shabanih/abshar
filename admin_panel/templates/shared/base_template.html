@@ -109,31 +109,23 @@
                 </ul>
               </nav>
             </div>
-            <section class="content pt-3">
-              <div class="container-fluid">
-                <div class="row">
-                  <div class="col-12">
-                    <div class="form-group">
-                      {% if messages %}
-                      {% for message in messages  %}
+           {{ form.non_field_errors }}
+                    <div class="container py-3">
+                    {% if messages %}
+                      <div class="mt-3 mb-4">
+                        {% for message in messages %}
+                          <div class="alert {% if 'error' in message.tags %}alert-danger{% else %}alert-{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
 
-                      {% if message.tags == 'success' %}
-                      <div class="alert alert-success">
-                        {{message}}
-                      </div>
-                      {% else %}
-                      <div class="alert alert-danger">
-                        {{message}}
-                      </div>
-                      {% endif %}
+                            <div class="me-5 text-white ">
+                              {{ message }}
+                            </div>
 
-                      {% endfor %}
-                      {% endif %}
-            </div>
-                   </div>
-                </div>
-              </div>
-            </section>
+                            <button type="button" class="btn-close bg-white bordered text-white" data-bs-dismiss="alert" aria-label="Close"></button>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                    </div>
 
             {% block main_content %}{% endblock main_content %}
 
@@ -181,7 +173,18 @@
 <script src="https://cdn.jsdelivr.net/npm/persian-date/dist/persian-date.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
 
-
+  <script>
+  // صبر می‌کنه 3 ثانیه بعد، پیام‌ها رو محو می‌کنه
+  setTimeout(function() {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+      // استفاده از کلاس Bootstrap fade و remove
+      alert.classList.remove('show');
+      alert.classList.add('hide'); // fade out
+      setTimeout(() => alert.remove(), 500); // بعد از fade حذف می‌کنه
+    });
+  }, 3000); // 3000 میلی‌ثانیه = 3 ثانیه
+</script>
   </body>
 </html>
   {% load sweetify %}

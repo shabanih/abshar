@@ -11,7 +11,7 @@ from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, 
                                 Property, Maintenance, ChargeByPersonArea, ChargeByFixPersonArea, FixCharge, AreaCharge,
                                 PersonCharge,
                                 FixPersonCharge, FixAreaCharge, ChargeFixVariable, SmsManagement, UnifiedCharge,
-                                MessageToUser, SmsCredit)
+                                MessageToUser, SmsCredit, AdminMessageToMiddle)
 
 from user_app.models import Unit, Bank, User, MyHouse, ChargeMethod, Renter
 
@@ -107,6 +107,40 @@ class MessageToUserForm(forms.ModelForm):
         #     if obj.get_active_renter() else
         #     f"واحد {obj.unit} - {obj.owner_name}"
         # )
+
+class AdminMessageToMiddleForm(forms.ModelForm):
+    title = forms.CharField(
+        error_messages=error_message,
+        required=True,
+        widget=forms.TextInput(attrs=attr),
+        label='عنوان پیام'
+    )
+    message = forms.CharField(
+        error_messages=error_message,
+        required=True,
+        widget=forms.Textarea(attrs=attr),
+        label='متن پیام'
+    )
+
+    is_active = forms.ChoiceField(
+        label='فعال / غیرفعال نمودن',
+        required=True,
+        error_messages=error_message,
+        choices=CHOICES,
+        widget=forms.Select(attrs=attr)
+    )
+
+    class Meta:
+        model = AdminMessageToMiddle
+        fields = ['title', 'message', 'is_active']
+
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+
+
+
 
 
 RESIDENCE_STATUS_CHOICES = {

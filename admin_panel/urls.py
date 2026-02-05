@@ -15,8 +15,12 @@ urlpatterns = [
 
     # Announce urls
     path('announcement/', views.AnnouncementView.as_view(), name='announcement'),
-    path('edit/announcement/<int:pk>/', views.AnnouncementUpdateView.as_view(), name='edit_announcement'),
-    path('announcement-delete/<int:pk>/', views.announcement_delete, name='delete_announcement'),
+    path(
+        "announcements/<int:house_id>/",
+        views.ManagerAnnouncementsDetailView.as_view(),
+        name="house_announcements"
+    ),
+    path('admin-announcement-delete/<int:pk>/', views.announcement_delete, name='admin_delete_announcement'),
 
     # House Urls
     path('manage-house', views.AddMyHouseView.as_view(), name='manage_house'),

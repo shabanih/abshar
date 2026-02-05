@@ -359,12 +359,15 @@ class MiddleAnnouncementView(CreateView):
     model = Announcement
     template_name = 'middle_admin/middle_send_announcement.html'
     form_class = announcementForm
-    success_url = reverse_lazy('middle_send_announcement')
+    success_url = reverse_lazy('middle_announcement')
 
     def form_valid(self, form):
         self.object = form.save(commit=False)
         self.object.user = self.request.user
-        # announce_instance = form.instance
+        self.object.house = MyHouse.objects.filter(user=self.request.user).first()  # یا .houses.first()
+
+        self.object.save()
+
         messages.success(self.request, 'اطلاعیه با موفقیت ثبت گردید!')
         return super(MiddleAnnouncementView, self).form_valid(form)
 
@@ -417,6 +420,9 @@ class MiddleAnnouncementUpdateView(UpdateView):
         edit_instance = form.instance
         self.object = form.save(commit=False)
         self.object.user = self.request.user
+        self.object.house = MyHouse.objects.filter(user=self.request.user).first()  # یا .houses.first()
+
+        self.object.save()
         messages.success(self.request, 'اطلاعیه با موفقیت ویرایش گردید!')
         return super().form_valid(form)
 
