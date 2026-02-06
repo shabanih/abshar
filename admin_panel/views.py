@@ -14,7 +14,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
-from django.db.models import ProtectedError, Q, Sum, Count
+from django.db.models import ProtectedError, Q, Sum, Count, Prefetch
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import get_template
@@ -180,6 +180,7 @@ def site_header_component(request):
     return render(request, 'shared/notification_template.html', context)
 
 
+# ====================== Announcement =================================
 @method_decorator(admin_required, name='dispatch')
 class AnnouncementView(ListView):
     model = Announcement
@@ -220,6 +221,7 @@ class AnnouncementView(ListView):
         context['query'] = self.request.GET.get('q', '')
         context['paginate'] = self.request.GET.get('paginate', '1')
         return context
+
 
 @method_decorator(admin_required, name='dispatch')
 class ManagerAnnouncementsDetailView(ListView):
@@ -279,314 +281,210 @@ def announcement_delete(request, pk):
 
 # ========================== My House Views ========================
 @method_decorator(admin_required, name='dispatch')
-class AddMyHouseView(CreateView):
+class AddMyHouseView(ListView):
     model = MyHouse
     template_name = 'admin_panel/add_my_house.html'
-    form_class = MyHouseForm
-    success_url = reverse_lazy('manage_house')
+    context_object_name = 'houses'
 
-    def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.user = self.request.user
-        messages.success(self.request, 'اطلاعات ساختمان با موفقیت ثبت گردید!')
-        return super().form_valid(form)
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        queryset = MyHouse.objects.all()
+
+        # فیلتر جستجو
+        if query:
+            queryset = queryset.filter(
+                Q(user__full_name__icontains=query) |
+                Q(name__icontains=query) |
+                Q(user_type__icontains=query) |
+                Q(address__icontains=query) |
+                Q(city__icontains=query)
+            ).distinct()
+
+        return queryset.order_by('-created_at')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['houses'] = MyHouse.objects.all()
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
         return context
 
 
+# =============================== banks =========================
 @method_decorator(admin_required, name='dispatch')
-class MyHouseUpdateView(UpdateView):
+class AddBankView(ListView):
     model = MyHouse
-    template_name = 'admin_panel/add_my_house.html'
-    form_class = MyHouseForm
-    success_url = reverse_lazy('manage_house')
-
-    def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.user = self.request.user
-        messages.success(self.request, 'اطلاعات ساختمان با موفقیت ویرایش گردید!')
-        return super().form_valid(form)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['Houses'] = MyHouse.objects.filter(is_active=True)
-        return context
-
-
-@login_required(login_url=settings.LOGIN_URL_ADMIN)
-def house_delete(request, pk):
-    house = get_object_or_404(MyHouse, id=pk)
-    try:
-        house.delete()
-        messages.success(request, 'ساختمان با موفقیت حذف گردید!')
-        return redirect(reverse('manage_house'))
-    except Bank.DoesNotExist:
-        messages.info(request, 'خطا در حذف')
-        return redirect(reverse('manage_house'))
-
-
-# ========================== Bank Views ========================
-@method_decorator(admin_required, name='dispatch')
-class AddBankView(CreateView):
-    model = Bank
     template_name = 'admin_panel/add_my_bank.html'
-    form_class = BankForm
-    success_url = reverse_lazy('manage_bank')
+    context_object_name = 'houses'
 
-    def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.user = self.request.user
-        messages.success(self.request, 'اطلاعات حساب بانکی با موفقیت ثبت گردید!')
-        return super().form_valid(form)
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        qs = (
+            MyHouse.objects
+            .annotate(
+                total_banks=Count(
+                    'banks',
+                    filter=Q(banks__is_active=True)
+                )
+            )
+            .filter(total_banks__gt=0)
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['banks'] = Bank.objects.all()
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
         return context
 
 
 @method_decorator(admin_required, name='dispatch')
-class BankUpdateView(UpdateView):
+class HouseBanksDetailView(ListView):
     model = Bank
-    template_name = 'admin_panel/add_my_bank.html'
-    form_class = BankForm
-    success_url = reverse_lazy('manage_bank')
+    template_name = "admin_panel/middle_bank_list.html"
+    context_object_name = "banks"
 
-    def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.user = self.request.user
-        messages.success(self.request, 'اطلاعات حساب بانکی با موفقیت ویرایش گردید!')
-        return super().form_valid(form)
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        house_id = self.kwargs['house_id']
+        query = self.request.GET.get('q', '')
+
+        qs = Bank.objects.filter(
+            house_id=house_id,
+            is_active=True
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(bank_name__icontains=query) |
+                Q(account_holder_name__icontains=query)
+            )
+
+        return qs.order_by('-create_at')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['banks'] = Bank.objects.filter(is_active=True)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        context['house'] = get_object_or_404(MyHouse, id=self.kwargs['house_id'])
         return context
-
-
-@login_required(login_url=settings.LOGIN_URL_ADMIN)
-def bank_delete(request, pk):
-    bank = get_object_or_404(Bank, id=pk)
-    try:
-        bank.delete()
-        messages.success(request, 'حساب بانکی با موفقیت حذف گردید!')
-        return redirect(reverse('manage_bank'))
-    except Bank.DoesNotExist:
-        messages.info(request, 'خطا در حذف')
-        return redirect(reverse('manage_bank'))
 
 
 # =========================== unit Views ================================
-@method_decorator(admin_required, name='dispatch')
-class UnitRegisterView(LoginRequiredMixin, CreateView):
-    model = Unit
-    form_class = UnitForm
-    template_name = 'unit_templates/unit_register.html'
-    success_url = reverse_lazy('manage_unit')
-
-    def form_valid(self, form):
-        try:
-            with transaction.atomic():
-                mobile = form.cleaned_data['mobile']
-                password = form.cleaned_data['password']
-                is_renter = str(form.cleaned_data.get('is_renter')).lower() == 'true'
-
-                # بررسی وجود کاربر
-                if User.objects.filter(mobile=mobile).exists():
-                    form.add_error('mobile', 'کاربری با این شماره موبایل قبلاً ثبت شده است.')
-                    return self.form_invalid(form)
-
-                # ایجاد کاربر
-                user = User.objects.create_user(
-                    mobile=mobile,
-                    username=mobile,
-                    password=password,
-                    is_staff=True,
-                    manager=self.request.user,
-                    otp_create_time=timezone.now(),
-                    full_name=form.cleaned_data.get('renter_name') if is_renter else form.cleaned_data.get('owner_name')
-                )
-
-                # ثبت واحد
-                unit = form.save(commit=False)
-                unit.user = user
-                unit.people_count = int(
-                    form.cleaned_data.get('renter_people_count') or
-                    form.cleaned_data.get('owner_people_count') or 0
-                )
-                unit.save()
-
-                # اگر مستأجر وجود دارد
-                if is_renter:
-                    Renter.objects.create(
-                        unit=unit,
-                        renter_name=form.cleaned_data.get('renter_name'),
-                        renter_mobile=form.cleaned_data.get('renter_mobile'),
-                        renter_national_code=form.cleaned_data.get('renter_national_code'),
-                        renter_people_count=form.cleaned_data.get('renter_people_count'),
-                        start_date=form.cleaned_data.get('start_date'),
-                        end_date=form.cleaned_data.get('end_date'),
-                        contract_number=form.cleaned_data.get('contract_number'),
-                        estate_name=form.cleaned_data.get('estate_name'),
-                        first_charge=form.cleaned_data.get('first_charge') or 0,
-                        renter_details=form.cleaned_data.get('renter_details')
-                    )
-
-            messages.success(self.request, 'واحد و کاربر با موفقیت ثبت گردید!')
-            return redirect(self.success_url)
-
-        except IntegrityError:
-            form.add_error(None, "خطا در ذخیره اطلاعات. لطفاً مجدد تلاش کنید.")
-            return self.form_invalid(form)
-
 
 @method_decorator(admin_required, name='dispatch')
-class UnitUpdateView(LoginRequiredMixin, UpdateView):
-    model = Unit
-    form_class = UnitForm
-    template_name = 'unit_templates/edit_unit.html'
-    success_url = reverse_lazy('manage_unit')
+class UnitRegisterView(ListView):
+    model = MyHouse
+    template_name = 'unit_templates/unit_management.html'
+    context_object_name = 'houses'
 
-    def form_valid(self, form):
-        try:
-            with transaction.atomic():
-                self.object = form.save(commit=False)
-                unit_owner = self.object.user  # Original linked user
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
 
-                new_mobile = form.cleaned_data.get('mobile')
-                new_password = form.cleaned_data.get('password')
-                is_renter = str(form.cleaned_data.get('is_renter')).lower() == 'true'
+        # حالا خانه‌ها را با تعداد واحد فعال
+        qs = MyHouse.objects.annotate(
+            total_units=Count('units', filter=Q(units__is_active=True))
+        ).filter(total_units__gt=0)
 
-                # ✅ Validate mobile
-                if new_mobile and new_mobile != unit_owner.mobile:
-                    if User.objects.filter(mobile=new_mobile).exclude(pk=unit_owner.pk).exists():
-                        form.add_error('mobile', 'این شماره موبایل قبلاً ثبت شده است.')
-                        return self.form_invalid(form)
-                    unit_owner.mobile = new_mobile
-                    unit_owner.username = new_mobile
-
-                # ✅ Always update full_name and people_count
-                unit_owner.full_name = (
-                    form.cleaned_data.get('renter_name') if is_renter else form.cleaned_data.get('owner_name')
-                )
-
-                # Determine people count based on renter/owner
-                people_count = int(
-                    form.cleaned_data.get('renter_people_count') or
-                    form.cleaned_data.get('owner_people_count') or 0
-                )
-
-                # ✅ Update both User and Unit every time
-                unit_owner.people_count = people_count
-                self.object.people_count = people_count
-
-                # ✅ Update password if given
-                if new_password:
-                    unit_owner.set_password(new_password)
-
-                # Save both user and unit
-                unit_owner.save()
-                self.object.save()
-
-                # ✅ Handle renter logic
-                if is_renter:
-                    current_renter = Renter.objects.filter(unit=self.object, renter_is_active=True).first()
-
-                    def normalize(val):
-                        if val is None:
-                            return ''
-                        if isinstance(val, str):
-                            return val.strip()
-                        return str(val)
-
-                    renter_fields_changed = (
-                            current_renter is None or
-                            normalize(current_renter.renter_name) != normalize(form.cleaned_data.get('renter_name')) or
-                            normalize(current_renter.renter_mobile) != normalize(
-                        form.cleaned_data.get('renter_mobile')) or
-                            normalize(current_renter.renter_national_code) != normalize(
-                        form.cleaned_data.get('renter_national_code')) or
-                            normalize(current_renter.renter_people_count) != normalize(
-                        form.cleaned_data.get('renter_people_count')) or
-                            current_renter.start_date != form.cleaned_data.get('start_date') or
-                            current_renter.end_date != form.cleaned_data.get('end_date') or
-                            normalize(current_renter.contract_number) != normalize(
-                        form.cleaned_data.get('contract_number')) or
-                            normalize(current_renter.estate_name) != normalize(form.cleaned_data.get('estate_name')) or
-                            int(current_renter.first_charge or 0) != int(form.cleaned_data.get('first_charge') or 0) or
-                            normalize(current_renter.renter_details) != normalize(
-                        form.cleaned_data.get('renter_details'))
-                    )
-
-                    if renter_fields_changed:
-                        # Deactivate previous renter(s)
-                        Renter.objects.filter(unit=self.object, renter_is_active=True).update(renter_is_active=False)
-                        # Create new renter record
-                        Renter.objects.create(
-                            unit=self.object,
-                            renter_name=form.cleaned_data.get('renter_name'),
-                            renter_mobile=form.cleaned_data.get('renter_mobile'),
-                            renter_national_code=form.cleaned_data.get('renter_national_code'),
-                            renter_people_count=form.cleaned_data.get('renter_people_count'),
-                            start_date=form.cleaned_data.get('start_date'),
-                            end_date=form.cleaned_data.get('end_date'),
-                            contract_number=form.cleaned_data.get('contract_number'),
-                            estate_name=form.cleaned_data.get('estate_name'),
-                            first_charge=form.cleaned_data.get('first_charge') or 0,
-                            renter_details=form.cleaned_data.get('renter_details'),
-                            renter_is_active=True
-                        )
-
-                # ✅ Clear renter if switched back to owner
-                else:
-                    Renter.objects.filter(unit=self.object, renter_is_active=True).update(renter_is_active=False)
-
-                # ✅ Messages
-                messages.success(self.request, f'واحد {self.object.unit} با موفقیت به‌روزرسانی شد.')
-                if is_renter:
-                    messages.info(self.request, 'اطلاعات مستأجر جدید ثبت شد.')
-
-                return super().form_valid(form)
-
-        except Exception as e:
-            form.add_error(None, f"خطا در ذخیره اطلاعات: {str(e)}")
-            return self.form_invalid(form)
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['units'] = Unit.objects.all()
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
         return context
 
-    def get_initial(self):
-        initial = super().get_initial()
 
-        if self.object.user:
-            initial['mobile'] = self.object.user.mobile
-        try:
-            renter = Renter.objects.get(unit=self.object, renter_is_active=True)
+@method_decorator(admin_required, name='dispatch')
+class UnitHouseDetailView(ListView):
+    model = Unit
+    template_name = 'unit_templates/unit_list.html'
+    context_object_name = 'object_list'
 
-            if renter.renter_name:
-                initial.update({
-                    'is_renter': 'True',
-                    'renter_name': renter.renter_name,
-                    'renter_mobile': renter.renter_mobile,
-                    'renter_national_code': renter.renter_national_code,
-                    'renter_people_count': renter.renter_people_count,
-                    'start_date': renter.start_date,
-                    'end_date': renter.end_date,
-                    'contract_number': renter.contract_number,
-                    'estate_name': renter.estate_name,
-                    'first_charge': renter.first_charge,
-                    'renter_details': renter.renter_details,
-                })
-            else:
-                initial['is_renter'] = 'False'
-        except Renter.DoesNotExist:
-            initial['is_renter'] = 'False'
-        return initial
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None
+        return int(paginate) if paginate and paginate.isdigit() else 20
+
+    def get_queryset(self):
+        house_id = self.kwargs['house_id']
+
+        # پایه: همه واحدهای خانه و فعال
+        qs = Unit.objects.filter(myhouse_id=house_id, is_active=True).prefetch_related('renters').order_by('unit')
+
+        params = self.request.GET
+        filters = Q()
+
+        # فیلترهای اختیاری فقط در صورتی اعمال شود که مقدار معتبر داشته باشند
+        if params.get('unit') and params['unit'].isdigit():
+            filters &= Q(unit=int(params['unit']))
+        if params.get('owner_name'):
+            filters &= Q(owner_name__icontains=params['owner_name'])
+        if params.get('owner_mobile'):
+            filters &= Q(owner_mobile__icontains=params['owner_mobile'])
+        if params.get('area') and params['area'].isdigit():
+            filters &= Q(area=int(params['area']))
+        if params.get('bedrooms_count') and params['bedrooms_count'].isdigit():
+            filters &= Q(bedrooms_count=int(params['bedrooms_count']))
+        if params.get('renter_name'):
+            filters &= Q(renters__renter_name__icontains=params['renter_name'])
+        if params.get('renter_mobile'):
+            filters &= Q(renters__renter_mobile__icontains=params['renter_mobile'])
+        if params.get('people_count') and params['people_count'].isdigit():
+            filters &= Q(owner_people_count=int(params['people_count']))
+        if params.get('status_residence'):
+            filters &= Q(status_residence__icontains=params['status_residence'])
+        if params.get('is_renter'):
+            filters &= Q(is_renter__icontains=params['is_renter'])
+
+        # اعمال فیلتر
+        qs = qs.filter(filters).distinct()
+
+        # آماده کردن مستاجر فعال برای هر واحد
+        for unit in qs:
+            unit.active_renters = unit.renters.filter(renter_is_active=True)
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        house_id = self.kwargs.get('house_id')
+        if house_id:
+            context['house'] = MyHouse.objects.get(id=house_id)
+            context['total_units'] = Unit.objects.filter(myhouse_id=house_id, is_active=True).count()
+        context['query_params'] = self.request.GET.urlencode()
+        return context
 
 
 @method_decorator(admin_required, name='dispatch')
@@ -599,75 +497,9 @@ class UnitInfoView(DetailView):
         context = super().get_context_data(**kwargs)
         unit = self.object
         context['renters'] = unit.renters.order_by('-renter_is_active', '-start_date')
-        return context
 
-
-@login_required(login_url=settings.LOGIN_URL_ADMIN)
-def unit_delete(request, pk):
-    unit = get_object_or_404(Unit, id=pk)
-    try:
-        unit.delete()
-        messages.success(request, 'واحد با موفقیت حذف گردید!')
-    except ProtectedError:
-        messages.error(request, " امکان حذف وجود ندارد! ")
-    return redirect(reverse('manage_unit'))
-
-
-@method_decorator(admin_required, name='dispatch')
-class UnitListView(ListView):
-    model = Unit
-    template_name = 'unit_templates/unit_management.html'
-    paginate_by = 50
-
-    def get_queryset(self):
-        # Start with all units
-        queryset = Unit.objects.all().order_by('unit')
-
-        # Retrieve filter parameters correctly
-        unit = self.request.GET.get('unit')
-        print(unit)
-        owner_name = self.request.GET.get('owner_name')
-        owner_mobile = self.request.GET.get('owner_mobile')
-        area = self.request.GET.get('area')
-        bedrooms_count = self.request.GET.get('bedrooms_count')
-        renter_name = self.request.GET.get('renter_name')
-        renter_mobile = self.request.GET.get('renter_mobile')
-        people_count = self.request.GET.get('people_count')
-        status_residence = self.request.GET.get('status_residence')
-
-        if unit and unit.isdigit():
-            queryset = queryset.filter(unit=int(unit))
-
-        if owner_name:
-            queryset = queryset.filter(owner_name__icontains=owner_name)
-
-        if owner_mobile:
-            queryset = queryset.filter(owner_mobile__icontains=owner_mobile)
-
-        if area:
-            queryset = queryset.filter(area__icontains=area)
-
-        if bedrooms_count and bedrooms_count.isdigit():
-            queryset = queryset.filter(bedrooms_count=int(bedrooms_count))
-
-        if renter_name:
-            queryset = queryset.filter(renters__renter_name__icontains=renter_name)
-
-        if renter_mobile:
-            queryset = queryset.filter(renters__renter_mobile__icontains=renter_mobile)
-
-        if people_count and people_count.isdigit():
-            queryset = queryset.filter(owner_people_count=people_count)
-
-        if status_residence:
-            queryset = queryset.filter(status_residence__icontains=status_residence)
-
-        return queryset.distinct()
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['total_units'] = Unit.objects.count()
-        context['units'] = Unit.objects.all().order_by('unit')
+        # اضافه کردن خانه مربوطه
+        context['house'] = unit.myhouse  # اینجا می‌توانید house.id هم استفاده کنید
         return context
 
 
@@ -679,117 +511,135 @@ def to_jalali(date_obj):
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
-def export_units_excel(request):
-    units = Unit.objects.all().order_by('unit')
+def export_units_excel(request, house_id):
+    # پایه: همان واحدهایی که در لیست دیده می‌شوند
+    qs = Unit.objects.filter(myhouse_id=house_id, is_active=True).prefetch_related('renters').order_by('unit')
 
-    filter_fields = {
-        'unit': 'unit__icontains',
-        'owner_name': 'owner_name__icontains',
-        'owner_mobile': 'owner_mobile__icontains',
-        'renter_name': 'renter_name__icontains',
-        'renter_mobile': 'renter_mobile__icontains',
-        'status_residence': 'status_residence__icontains',
-        'area': 'area__icontains',
-        'bedrooms_count': 'bedrooms_count__icontains',
-        'people_count': 'people_count__icontains',
-    }
+    params = request.GET
+    filters = Q()
 
-    # Apply filters based on GET parameters
-    for field, lookup in filter_fields.items():
-        value = request.GET.get(field)
-        if value:
-            filter_expression = {lookup: value}
-            units = units.filter(**filter_expression)
+    if params.get('unit') and params['unit'].isdigit():
+        filters &= Q(unit=int(params['unit']))
+    if params.get('owner_name'):
+        filters &= Q(owner_name__icontains=params['owner_name'])
+    if params.get('owner_mobile'):
+        filters &= Q(owner_mobile__icontains=params['owner_mobile'])
+    if params.get('area') and params['area'].isdigit():
+        filters &= Q(area=int(params['area']))
+    if params.get('bedrooms_count') and params['bedrooms_count'].isdigit():
+        filters &= Q(bedrooms_count=int(params['bedrooms_count']))
+    if params.get('renter_name'):
+        filters &= Q(renters__renter_name__icontains=params['renter_name'])
+    if params.get('renter_mobile'):
+        filters &= Q(renters__renter_mobile__icontains=params['renter_mobile'])
+    if params.get('people_count') and params['people_count'].isdigit():
+        filters &= Q(owner_people_count=int(params['people_count']))
+    if params.get('status_residence'):
+        filters &= Q(status_residence__icontains=params['status_residence'])
 
+    qs = qs.filter(filters).distinct()
+
+    # آماده کردن مستاجرهای فعال
+    for unit in qs:
+        unit.active_renters = unit.renters.filter(renter_is_active=True)
+
+    # ساخت فایل اکسل
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "units"
     ws.sheet_view.rightToLeft = True
 
-    # ✅ Add title
-    title_cell = ws.cell(row=1, column=1, value="لیست واحدها")
+    # عنوان
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=22)
+    title_cell = ws.cell(row=1, column=1, value="لیست واحدهای ساختمان")
     title_cell.font = Font(bold=True, size=18)
     title_cell.alignment = Alignment(horizontal="center", vertical="center")
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=22)
 
-    # ✅ Style setup
-    header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")  # Gold
-    header_font = Font(bold=True, color="000000")  # Black bold text
-
+    # سرستون‌ها
     headers = [
         'واحد', 'طبقه', 'متراژ', 'تعداد خواب', 'شماره تلفن',
-        'تعداد پارکینگ', 'شماره پارکینگ', 'موقعیت پارکینک', 'وضعیت سکونت',
-        'نام مالک', 'تلفن مالک', 'کد ملی مالک', 'تاریخ خرید', 'تعداد نفرات',
+        'وضعیت سکونت', 'نام مالک', 'تلفن مالک', 'تعداد نفرات مالک',
         'نام مستاجر', 'تلفن مستاجر', 'کد ملی مستاجر',
-        'تاریخ اجاره', 'تاریخ پایان', 'شماره قرارداد', 'اجاره دهنده', 'شارژ اولیه',
+        'تاریخ اجاره', 'تاریخ پایان', 'شماره قرارداد'
     ]
 
-    # ✅ Write header (row 2)
     for col_num, column_title in enumerate(headers, 1):
         cell = ws.cell(row=2, column=col_num, value=column_title)
-        cell.fill = header_fill
-        cell.font = header_font
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")
 
-    # ✅ Write data (start from row 3)
-    for row_num, unit in enumerate(units, start=3):
+    # داده‌ها
+    for row_num, unit in enumerate(qs, start=3):
         ws.cell(row=row_num, column=1, value=unit.unit)
         ws.cell(row=row_num, column=2, value=unit.floor_number)
         ws.cell(row=row_num, column=3, value=unit.area)
         ws.cell(row=row_num, column=4, value=unit.bedrooms_count)
         ws.cell(row=row_num, column=5, value=unit.unit_phone)
-        ws.cell(row=row_num, column=6, value=unit.parking_count)
-        ws.cell(row=row_num, column=7, value=unit.parking_number)
-        ws.cell(row=row_num, column=8, value=unit.parking_place)
-        ws.cell(row=row_num, column=9, value=unit.status_residence)
-        ws.cell(row=row_num, column=10, value=unit.owner_name)
-        ws.cell(row=row_num, column=11, value=unit.owner_mobile)
-        ws.cell(row=row_num, column=12, value=unit.owner_national_code)
-        ws.cell(row=row_num, column=13, value=to_jalali(unit.purchase_date))
-        ws.cell(row=row_num, column=14, value=unit.people_count)
-        renter = unit.renters.first()  # or .last(), or use filtering for current renter
-        if renter:
-            ws.cell(row=row_num, column=15, value=renter.renter_name)
-            ws.cell(row=row_num, column=16, value=renter.renter_mobile)
-            ws.cell(row=row_num, column=17, value=renter.renter_national_code)
-            ws.cell(row=row_num, column=18, value=to_jalali(renter.start_date))
-            ws.cell(row=row_num, column=19, value=to_jalali(renter.end_date))
-            ws.cell(row=row_num, column=20, value=renter.contract_number)
-            ws.cell(row=row_num, column=21, value=renter.estate_name)
-            ws.cell(row=row_num, column=22, value=renter.first_charge)
+        ws.cell(row=row_num, column=6, value=unit.status_residence)
+        ws.cell(row=row_num, column=7, value=unit.owner_name)
+        ws.cell(row=row_num, column=8, value=unit.owner_mobile)
+        ws.cell(row=row_num, column=9, value=unit.owner_people_count)
 
-    # ✅ Return file
+        # فقط اولین مستاجر فعال (می‌توان همه مستاجرها را هم اضافه کرد)
+        renter = unit.active_renters.first()
+        if renter:
+            ws.cell(row=row_num, column=10, value=renter.renter_name)
+            ws.cell(row=row_num, column=11, value=renter.renter_mobile)
+            ws.cell(row=row_num, column=12, value=renter.renter_national_code)
+            ws.cell(row=row_num, column=13, value=to_jalali(renter.start_date) if renter.start_date else '')
+            ws.cell(row=row_num, column=14, value=to_jalali(renter.end_date) if renter.end_date else '')
+            ws.cell(row=row_num, column=15, value=renter.contract_number)
+
+    # ارسال فایل
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = 'attachment; filename=units.xlsx'
+    response['Content-Disposition'] = f'attachment; filename=units_house_{house_id}.xlsx'
     wb.save(response)
     return response
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
-def export_units_pdf(request):
-    units = Unit.objects.all().order_by('unit')
+def export_units_pdf(request, house_id):
+    # پایه: همه واحدهای خانه با prefetch مستاجرهای فعال
+    qs = Unit.objects.filter(myhouse_id=house_id, is_active=True).prefetch_related(
+        Prefetch(
+            'renters',
+            queryset=Renter.objects.filter(renter_is_active=True),
+            to_attr='active_renters'
+        )
+    ).order_by('unit')
 
-    filter_fields = {
-        'unit': 'unit__icontains',
-        'owner_name': 'owner_name__icontains',
-        'owner_mobile': 'owner_mobile__icontains',
-        'renter_name': 'renter_name__icontains',
-        'renter_mobile': 'renter_mobile__icontains',
-        'status_residence': 'status_residence__icontains',
-        'area': 'area__icontains',
-        'bedrooms_count': 'bedrooms_count__icontains',
-        'people_count': 'people_count__icontains',
+    params = request.GET
+    filters = Q()
+
+    # فیلترهای اختیاری (مثل اکسل)
+    if params.get('unit') and params['unit'].isdigit():
+        filters &= Q(unit=int(params['unit']))
+    if params.get('owner_name'):
+        filters &= Q(owner_name__icontains=params['owner_name'])
+    if params.get('owner_mobile'):
+        filters &= Q(owner_mobile__icontains=params['owner_mobile'])
+    if params.get('area') and params['area'].isdigit():
+        filters &= Q(area=int(params['area']))
+    if params.get('bedrooms_count') and params['bedrooms_count'].isdigit():
+        filters &= Q(bedrooms_count=int(params['bedrooms_count']))
+    if params.get('people_count') and params['people_count'].isdigit():
+        filters &= Q(owner_people_count=int(params['people_count']))
+    if params.get('status_residence'):
+        filters &= Q(status_residence__icontains=params['status_residence'])
+
+    qs = qs.filter(filters).distinct()
+
+    # آماده کردن template
+    template = get_template("unit_templates/unit_pdf.html")
+    context = {
+        'units': qs,
+        'house_id': house_id,
     }
+    html_content = template.render(context)
 
-    # Apply filters based on GET parameters
-    for field, lookup in filter_fields.items():
-        value = request.GET.get(field)
-        if value:
-            filter_expression = {lookup: value}
-            units = units.filter(**filter_expression)
-
-    # PDF settings
+    # تنظیم فونت و راست‌چین
     font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
     css = CSS(string=f"""
         @page {{ size: A4 landscape; margin: 1cm; }}
@@ -800,27 +650,27 @@ def export_units_pdf(request):
             font-family: 'BYekan';
             src: url('{font_url}');
         }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+        }}
+        th, td {{
+            border: 1px solid #000;
+            padding: 4px;
+            text-align: center;
+        }}
+        th {{
+            background-color: #FFD700;
+        }}
     """)
 
-    # Render template
-    template = get_template("unit_templates/unit_pdf.html")
-    context = {
-        'units': units,
-        'font_path': font_url,
-    }
+    # ساخت PDF
+    pdf_file = io.BytesIO()
+    HTML(string=html_content, base_url=request.build_absolute_uri()).write_pdf(pdf_file, stylesheets=[css])
+    pdf_file.seek(0)
 
-    html = template.render(context)
-    page_pdf = io.BytesIO()
-    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(page_pdf, stylesheets=[css])
-    page_pdf.seek(0)
-
-    # Create response
-    pdf_merger = PdfWriter()
-    pdf_merger.append(page_pdf)
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="filtered_units.pdf"'
-    pdf_merger.write(response)
-
+    response = HttpResponse(pdf_file.read(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="units_house_{house_id}.pdf"'
     return response
 
 

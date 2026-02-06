@@ -66,7 +66,6 @@ class MessageReadStatus(models.Model):
         return f"{self.unit} - {self.message.title} - {'خوانده شده' if self.is_read else 'خوانده نشده'}"
 
 
-
 # ------------------- Admin Message To MiddleAdmin --------------------------
 
 class AdminMessageToMiddle(models.Model):
@@ -919,6 +918,3 @@ class SmsManagement(models.Model):
         تعداد کل پیامک = تعداد پیامک هر متن × تعداد واحدها
         """
         return self.sms_count * self.notified_units_count
-
-
-

@@ -24,23 +24,30 @@ urlpatterns = [
 
     # House Urls
     path('manage-house', views.AddMyHouseView.as_view(), name='manage_house'),
-    path('house/edit/<int:pk>/', views.MyHouseUpdateView.as_view(), name='edit_house'),
-    path('delete/house/<int:pk>/', views.house_delete, name='delete_house'),
+    path(
+        "banks/<int:house_id>/",
+        views.HouseBanksDetailView.as_view(),
+        name="house_banks"
+    ),
+    # path('house/edit/<int:pk>/', views.MyHouseUpdateView.as_view(), name='edit_house'),
+    # path('delete/house/<int:pk>/', views.house_delete, name='delete_house'),
 
 
     # Bank Urls
     path('manage-bank', views.AddBankView.as_view(), name='manage_bank'),
-    path('bank/edit/<int:pk>/', views.BankUpdateView.as_view(), name='edit_bank'),
-    path('delete/bank/<int:pk>/', views.bank_delete, name='delete_bank'),
+    # path('bank/edit/<int:pk>/', views.BankUpdateView.as_view(), name='edit_bank'),
+    # path('delete/bank/<int:pk>/', views.bank_delete, name='delete_bank'),
 
     # Unit Urls
-    path('add-unit', views.UnitRegisterView.as_view(), name='add_unit'),
+    path('add-unit', views.UnitRegisterView.as_view(), name='manage_unit'),
+    path('houses/<int:house_id>/units/', views.UnitHouseDetailView.as_view(), name='unit_house_detail'),
     path('info-unit/<int:pk>/', views.UnitInfoView.as_view(), name='unit_info'),
-    path('edit/unit/<int:pk>/', views.UnitUpdateView.as_view(), name='edit_unit'),
-    path('delete/unit/<int:pk>/', views.unit_delete, name='delete_unit'),
-    path('manage-unit', views.UnitListView.as_view(), name='manage_unit'),
-    path('units/export/excel/', views.export_units_excel, name='export_units_excel'),
-    path('units/export/pdf/', views.export_units_pdf, name='export_units_pdf'),
+    # path('edit/unit/<int:pk>/', views.UnitUpdateView.as_view(), name='edit_unit'),
+    # path('delete/unit/<int:pk>/', views.unit_delete, name='delete_unit'),
+    # path('unit-list', views.UnitListView.as_view(), name='unit_list'),
+    path('houses/<int:house_id>/units/export/', views.export_units_excel, name='export_units_excel'),
+
+    path('units/export/pdf/<int:house_id>', views.export_units_pdf, name='export_units_pdf'),
 
     # Expense_category Urls
     path('add-category-expense', views.ExpenseCategoryView.as_view(), name='add_category_expense'),

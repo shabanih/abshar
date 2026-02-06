@@ -65,7 +65,7 @@
                   <li class="nav-item mt-0">
                     <a class="nav-link {% if request.path == url_admin_message_list %}active{% endif %}"
                        href="{{ url_admin_message_list }}">
-                       پیام های من
+                       پیام های ارسالی
                     </a>
                   </li>
 
@@ -76,7 +76,7 @@
                <li class="nav-item border-top mt-0">
                  {% url 'manage_house' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                <i class="menu-title"> افزودن ساختمان</i>
+                <i class="menu-title"> مدیریت ساختمان</i>
                 <i class="mdi mdi-home menu-icon"></i>
               </a>
             </li>

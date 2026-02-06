@@ -127,7 +127,7 @@ class Unit(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='کاربر')
     unit = models.IntegerField(verbose_name='واحد')
     myhouse = models.ForeignKey(
-        MyHouse,
+        'MyHouse',
         on_delete=models.CASCADE,
         related_name='units',
         null=True,  # اگر دیتای قدیمی داری

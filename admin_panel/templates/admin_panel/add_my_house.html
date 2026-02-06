@@ -7,14 +7,42 @@
 {% endblock page_title %}
 
 {% block main_content %}
-    <hr/>
-<div class="container mt-3">
- <div class="col-12 mb-2">
-                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong3">
-                        <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
-                    افزودن ساختمان
-                </button>
-                 </div>
+
+<div class="container py-5">
+        <div class="row mb-2">
+        <!-- بخش جستجو -->
+        <div class="col-12 col-md-10 col-xl-10 align-self-center">
+            <form method="get" action="" class="d-flex gap-2 align-items-center">
+                <input type="text"
+                       class="p-2 w-25 w-md-75"
+                       name="q"
+                       id="searchInput"
+                       autocomplete="off"
+                       value="{{ query }}"
+                       placeholder="جستجوی ..."
+                       dir="rtl"
+                       oninput="if(this.value === '') this.form.submit();">
+                <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
+            </form>
+        </div>
+
+        <!-- بخش تعداد نمایش → فقط دسکتاپ -->
+        <div class="col-12 col-md-2 col-xl-2 p-0 d-none d-md-block">
+            <div class="d-flex align-items-center gap-1">
+                <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label>
+           <select id="cardsPerPage" 
+        class="form-select select-fix"
+        style="width: auto;"
+        onchange="window.location.href='?q={{ query }}&paginate=' + this.value;">
+    <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option>
+    <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option>
+    <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option>
+    <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+</select>
+
+            </div>
+        </div>
+    </div>
                <div class="table-responsive">
                             <table class="table table-bordered">
                                 <thead class="text-center">
@@ -26,7 +54,7 @@
                                         <th>شهر</th>
                                         <th>آدرس</th>
                                         <th>فعال/غیرفعال</th>
-                                        <th>دستورات</th>
+{#                                        <th>دستورات</th>#}
                                     </tr>
                                 </thead>
                             {% if houses %}
@@ -49,26 +77,26 @@
                                                {% endif %}
                                             </td>
 
-                                               <td>
-                                                      <a
-                                           class="btn btn-gradient-info p-1 edit-house-btn"
-                                           data-id="{{ house.id }}"
-                                           data-name="{{ house.name }}"
-                                           data-user_type="{{ house.user_type }}"
-                                           data-city="{{ house.city}}"
-                                           data-address="{{ house.address }}"
-                                           data-is_active="{{ house.is_active }}"
-                                      
-                                           data-bs-toggle="modal"
-                                           data-bs-target="#exampleModalLong3">
-                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
-                                        </a>
-                                                          <a href="{%  url 'delete_house' house.id %}" class="btn btn-gradient-danger p-1"
-                                                       onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
-                                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
-                                                            </a>
-
-                                        </td>
+{#                                               <td>#}
+{#                                                      <a#}
+{#                                           class="btn btn-gradient-info p-1 edit-house-btn"#}
+{#                                           data-id="{{ house.id }}"#}
+{#                                           data-name="{{ house.name }}"#}
+{#                                           data-user_type="{{ house.user_type }}"#}
+{#                                           data-city="{{ house.city}}"#}
+{#                                           data-address="{{ house.address }}"#}
+{#                                           data-is_active="{{ house.is_active }}"#}
+{#                                      #}
+{#                                           data-bs-toggle="modal"#}
+{#                                           data-bs-target="#exampleModalLong3">#}
+{#                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>#}
+{#                                        </a>#}
+{#                                                          <a href="{%  url 'delete_house' house.id %}" class="btn btn-gradient-danger p-1"#}
+{#                                                       onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">#}
+{#                                                              <i class="mdi mdi-delete" aria-hidden="true"></i>#}
+{#                                                            </a>#}
+{##}
+{#                                        </td>#}
                                         </tr>
                                     {% endfor %}
                                         {% else %}
@@ -80,71 +108,27 @@
                             </table>
                </div>
 
-    <hr>
+
 </div>
-    
-        <div class="modal fade" id="exampleModalLong3" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle3" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header" id="exampleModalLongTitle3">
-        <h5 class="modal-title">افزودن  ساختمان جدید</h5>
-      </div>
-         <hr>
-      <div class="modal-body" >
-         {{ form.non_field_errors }}
-          <form id="houseForm" action="" method="POST"
-                enctype="multipart/form-data" novalidate>
-              {% csrf_token %}
-              <div class="row g-2">
-                  <div class="col-12">
-                      {{ form.name.label_tag }}
-                      {{ form.name }}
-                      {{ form.name.errors }}
-                  </div>
-                  
-              </div>
-                 <div class="row g-2">
-                  <div class="col-6 ">
-                      {{ form.user_type.label_tag }}
-                      {{ form.user_type }}
-                      {{ form.user_type.errors }}
-                  </div>
-                      <div class="col-6 ">
-                       {{ form.city.label_tag }}
-                      {{ form.city }}
-                      {{ form.city.errors }}
-                  </div>
-                     </div>
-                  <div class="row g-2">
-                      <div class="col-12 ">
-                       {{ form.address.label_tag }}
-                      {{ form.address }}
-                      {{ form.address.errors }}
-                  </div>
-                     </div>
-                  <div class="row">
-                  <div class="col-4 col-lg-8 col-xl-8">
-                      {{ form.is_active.label_tag }}
-                      {{ form.is_active }}
-                      {{ form.is_active.errors }}
-                     </div>
-                 </div>
-                 
-              
-              
-                   <hr class="mt-2" style="color: #0f1531">
-                    <div class="d-flex justify-content-between">
-                        <button type="submit" name="submit_bank" id="account_holder_name" class="btn btn-gradient-success px-4 py-2">ثبت اطلاعات ساختمان</button>
-                           <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
-                     </div>
-        
+       <!-- Pagination -->
+    <div class="col-12">
+        <div class="pagination d-flex justify-content-center mt-5">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+            {% endif %}
 
-          </form>
-      </div>
+            {% for page_number in page_obj.paginator.page_range %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_number }}"
+                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
+                    {{ page_number }}
+                </a>
+            {% endfor %}
 
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+            {% endif %}
+        </div>
     </div>
-  </div>
-</div>
 
     
     

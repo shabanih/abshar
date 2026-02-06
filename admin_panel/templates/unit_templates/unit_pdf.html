@@ -88,24 +88,26 @@ h1{
                                 <td>{{unit.owner_mobile }}</td>
                                 <td>{{unit.area }}</td>
                                 <td>{{unit.bedrooms_count }}</td>
-                                 {% if unit.renter_name %}
-                            	<td>{{unit.renter_name }}</td>
-                                {% else %}
-                                <td>---</td>
-                            {% endif %} 
-                            
-                             {% if unit.renter_mobile %}
-                            	<td>{{unit.renter_mobile }}</td>
-                                {% else %}
-                                <td>---</td>
-                            {% endif %}
+                              {% if unit.active_renters %}
+        <td>{{ unit.active_renters.0.renter_name }}</td>
+        <td>{{ unit.active_renters.0.renter_mobile }}</td>
+    {% else %}
+        <td>---</td>
+        <td>---</td>
+    {% endif %}
                             
                               {% if unit.people_count %}
                             	<td>{{unit.people_count }}</td>
                                 {% else %}
                                 <td>---</td>
                             {% endif %}
-                                <td>{{unit.status_residence }}</td>
+                            <td>
+                                 {% if unit.status_residence %}
+                            	ساکن
+                                {% else %}
+                                خالی
+                            {% endif %}
+                            </td>
                                   <td>
                                       {% if unit.is_active == True %}
                                     <p >فعال</p>
