@@ -3882,6 +3882,7 @@ class MiddleFixChargeCreateView(CreateView):
                     unit=unit,
                     bank=None,
                     amount=base_amount,
+                    house=unit.myhouse,
                     charge_type=fix_charge.charge_type,
                     base_charge=total_monthly_charge,
                     main_charge=fix_charge,
@@ -4088,6 +4089,7 @@ def middle_fix_charge_notification_view(request, pk):
             UnifiedCharge.objects.create(
                 user=request.user,
                 unit=unit,
+                house=unit.myhouse,
                 bank=None,
                 amount=base_amount,
                 charge_type=charge.charge_type,
@@ -4341,6 +4343,7 @@ class MiddleAreaChargeCreateView(CreateView):
                     user=self.request.user,
                     unit=unit,
                     bank=None,
+                    house=unit.myhouse,
                     main_charge=area_charge,
                     charge_type=area_charge.charge_type,
                     amount=base_amount,
@@ -4383,13 +4386,14 @@ class MiddleAreaChargeCreateView(CreateView):
         ).aggregate(total=Sum('area'))['total'] or 0
         context['total_area'] = total_area
 
-        charges = AreaCharge.objects.annotate(
+        charges = AreaCharge.objects.filter(user=self.request.user).annotate(
+            total_units=Count('unified_charges'),  # همه واحدهای مرتبط
             notified_count=Count(
                 'unified_charges',
                 filter=Q(unified_charges__send_notification=True)
-            ),
-            total_units=Count('unified_charges')
+            )
         ).order_by('-created_at')
+        context['charges'] = charges
         paginate_by = self.request.GET.get('paginate', '20')
 
         if paginate_by == '1000':  # نمایش همه
@@ -4565,6 +4569,7 @@ def middle_area_charge_notification_view(request, pk):
                 user=request.user,
                 unit=unit,
                 amount=base,
+                house=unit.myhouse,
                 base_charge=total,
                 total_charge_month=total,
                 title=charge.name,
@@ -4811,6 +4816,7 @@ class MiddlePersonChargeCreateView(CreateView):
                     user=self.request.user,
                     unit=unit,
                     bank=None,
+                    house=unit.myhouse,
                     charge_type=person_charge.charge_type,
                     amount=base_amount,
                     base_charge=total_monthly_charge,
@@ -4851,7 +4857,7 @@ class MiddlePersonChargeCreateView(CreateView):
             total=Sum('people_count'))['total'] or 0
         context['total_people'] = total_people
 
-        charges = PersonCharge.objects.annotate(
+        charges = PersonCharge.objects.filter(user=self.request.user).annotate(
             notified_count=Count(
                 'unified_charges',
                 filter=Q(unified_charges__send_notification=True)
@@ -5023,6 +5029,7 @@ def middle_person_charge_notification_view(request, pk):
                 unit=unit,
                 amount=base,
                 base_charge=total,
+                house=unit.myhouse,
                 total_charge_month=total,
                 title=charge.name,
                 main_charge=charge,
@@ -5271,6 +5278,7 @@ class MiddleFixAreaChargeCreateView(CreateView):
                     user=self.request.user,
                     unit=unit,
                     bank=None,
+                    house=unit.myhouse,
                     charge_type=fix_area_charge.charge_type,
                     main_charge=fix_area_charge,
                     amount=base_amount,
@@ -5314,7 +5322,7 @@ class MiddleFixAreaChargeCreateView(CreateView):
             Unit.objects.filter(Q(user=self.request.user) | Q(user__in=managed_users), is_active=True).aggregate(total=Sum('area'))[
                 'total'] or 0
 
-        charges = FixAreaCharge.objects.annotate(
+        charges = FixAreaCharge.objects.filter(user=self.request.user).annotate(
             notified_count=Count(
                 'unified_charges',
                 filter=Q(unified_charges__send_notification=True)
@@ -5387,6 +5395,7 @@ def middle_fix_area_charge_edit(request, pk):
                     UnifiedCharge.objects.update_or_create(
                         user=request.user,
                         unit=unit,
+                        house=unit.myhouse,
                         content_type=ContentType.objects.get_for_model(FixAreaCharge),
                         object_id=charge.id,
                         defaults={
@@ -5484,6 +5493,7 @@ def middle_show_fix_area_charge_notification_form(request, pk):
                 user=request.user,
                 unit=unit,
                 amount=base,
+                house=unit.myhouse,
                 base_charge=total,
                 total_charge_month=total,
                 title=charge.name,
@@ -5734,6 +5744,7 @@ class MiddleFixPersonChargeCreateView(CreateView):
                     user=self.request.user,
                     unit=unit,
                     bank=None,
+                    house=unit.myhouse,
                     charge_type=fix_person_charge.charge_type,
                     main_charge=fix_person_charge,
                     amount=base_amount,
@@ -5778,7 +5789,7 @@ class MiddleFixPersonChargeCreateView(CreateView):
                 total=Sum('area'))[
                 'total'] or 0
 
-        charges = FixPersonCharge.objects.annotate(
+        charges = FixPersonCharge.objects.filter(user=self.request.user).annotate(
             notified_count=Count(
                 'unified_charges',
                 filter=Q(unified_charges__send_notification=True)
@@ -5851,6 +5862,7 @@ def middle_fix_person_charge_edit(request, pk):
                     UnifiedCharge.objects.update_or_create(
                         user=request.user,
                         unit=unit,
+                        house=unit.myhouse,
                         content_type=ContentType.objects.get_for_model(FixPersonCharge),
                         object_id=charge.id,
                         defaults={
@@ -5948,6 +5960,7 @@ def middle_show_fix_person_charge_notification_form(request, pk):
                 unit=unit,
                 amount=base,
                 base_charge=total,
+                house=unit.myhouse,
                 total_charge_month=total,
                 title=charge.name,
                 main_charge=charge,
@@ -6196,6 +6209,7 @@ class MiddlePersonAreaChargeCreateView(CreateView):
                     user=self.request.user,
                     unit=unit,
                     bank=None,
+                    house=unit.myhouse,
                     charge_type=person_area_charge.charge_type,
                     main_charge=person_area_charge,
                     amount=base_amount,
@@ -6240,7 +6254,7 @@ class MiddlePersonAreaChargeCreateView(CreateView):
                 total=Sum('area'))[
                 'total'] or 0
 
-        charges = ChargeByPersonArea.objects.annotate(
+        charges = ChargeByPersonArea.objects.filter(user=self.request.user).annotate(
             notified_count=Count(
                 'unified_charges',
                 filter=Q(unified_charges__send_notification=True)
@@ -6312,6 +6326,7 @@ def middle_person_area_charge_edit(request, pk):
                     # آپدیت یا ایجاد UnifiedCharge برای این واحد
                     UnifiedCharge.objects.update_or_create(
                         user=request.user,
+                        house=unit.myhouse,
                         unit=unit,
                         content_type=ContentType.objects.get_for_model(ChargeByPersonArea),
                         object_id=charge.id,
@@ -6409,6 +6424,7 @@ def middle_show_person_area_charge_notification_form(request, pk):
                 user=request.user,
                 unit=unit,
                 amount=base,
+                house=unit.myhouse,
                 base_charge=total,
                 total_charge_month=total,
                 title=charge.name,
@@ -6657,6 +6673,7 @@ class MiddlePersonAreaFixChargeCreateView(CreateView):
                     user=self.request.user,
                     unit=unit,
                     bank=None,
+                    house=unit.myhouse,
                     charge_type=fix_person_area_charge.charge_type,
                     main_charge=fix_person_area_charge,
                     amount=base_amount,
@@ -6701,7 +6718,7 @@ class MiddlePersonAreaFixChargeCreateView(CreateView):
                 total=Sum('area'))[
                 'total'] or 0
 
-        charges = ChargeByFixPersonArea.objects.annotate(
+        charges = ChargeByFixPersonArea.objects.filter(user=self.request.user).annotate(
             notified_count=Count(
                 'unified_charges',
                 filter=Q(unified_charges__send_notification=True)
@@ -6774,6 +6791,7 @@ def middle_person_area_fix_charge_edit(request, pk):
                     UnifiedCharge.objects.update_or_create(
                         user=request.user,
                         unit=unit,
+                        house=unit.myhouse,
                         content_type=ContentType.objects.get_for_model(ChargeByFixPersonArea),
                         object_id=charge.id,
                         defaults={
@@ -6870,6 +6888,7 @@ def middle_show_fix_person_area_charge_notification_form(request, pk):
                 user=request.user,
                 unit=unit,
                 amount=base,
+                house=unit.myhouse,
                 base_charge=total,
                 total_charge_month=total,
                 title=charge.name,
@@ -7124,6 +7143,7 @@ class MiddleVariableFixChargeCreateView(CreateView):
                     user=self.request.user,
                     unit=unit,
                     bank=None,
+                    house=unit.myhouse,
                     charge_type=fix_variable.charge_type,
                     extra_parking_price=parking_total,
                     main_charge=fix_variable,
@@ -7169,7 +7189,7 @@ class MiddleVariableFixChargeCreateView(CreateView):
                 total=Sum('area'))[
                 'total'] or 0
 
-        charges = ChargeFixVariable.objects.annotate(
+        charges = ChargeFixVariable.objects.filter(user=self.request.user).annotate(
             notified_count=Count(
                 'unified_charges',
                 filter=Q(unified_charges__send_notification=True)
@@ -7246,6 +7266,7 @@ def middle_variable_fix_charge_edit(request, pk):
                     UnifiedCharge.objects.update_or_create(
                         user=request.user,
                         unit=unit,
+                        house=unit.myhouse,
                         content_type=ContentType.objects.get_for_model(ChargeFixVariable),
                         object_id=charge.id,
                         defaults={
@@ -7343,6 +7364,7 @@ def middle_show_fix_variable_notification_form(request, pk):
                 user=request.user,
                 unit=unit,
                 amount=base,
+                house=unit.myhouse,
                 base_charge=total,
                 total_charge_month=total,
                 title=charge.name,
@@ -8427,57 +8449,6 @@ def middle_send_sms(request, pk):
         'sms': sms,
         'units_with_details': units_with_details,
     })
-
-
-# def middle_send_sms(request, pk):
-#     sms = get_object_or_404(SmsManagement, id=pk, user=request.user)
-#
-#     if request.method == "POST":
-#         selected_units = request.POST.getlist('units')
-#         if not selected_units:
-#             messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
-#             return redirect('middle_register_sms')
-#
-#         units_qs = Unit.objects.filter(is_active=True, user__manager=request.user)
-#         if 'all' in selected_units:
-#             units_to_notify = units_qs
-#         else:
-#             units_to_notify = units_qs.filter(id__in=selected_units)
-#
-#         if not units_to_notify.exists():
-#             messages.warning(request, 'هیچ واحد معتبری برای ارسال پیامک پیدا نشد.')
-#             return redirect('middle_register_sms')
-#
-#         notified_units = []
-#         with transaction.atomic():
-#             for unit in units_to_notify:
-#                 if unit.user and unit.user.mobile:
-#                     helper.send_sms_to_user(
-#                         mobile=unit.user.mobile,
-#                         message=sms.message,
-#                         full_name=unit.user.full_name,
-#                         otp=None
-#                     )
-#                     notified_units.append(unit)  # append instance, NOT string
-#
-#         if notified_units:
-#             sms.notified_units.set(notified_units)  # ✅ correct
-#             sms.send_notification = True
-#             sms.send_notification_date = timezone.now().date()  # use .date()
-#             sms.save()
-#             messages.success(request,
-#                              f'پیامک برای واحدهای زیر ارسال شد: {", ".join(str(u.unit) for u in notified_units)}')
-#         else:
-#             messages.info(request, 'پیامکی ارسال نشد؛ ممکن است شماره موبایل واحدها موجود نباشد.')
-#
-#         return redirect('middle_sms_management')
-#
-#     # اگر GET بود، فرم را رندر کن
-#     units_with_details = Unit.objects.filter(is_active=True)
-#     return render(request, 'middle_admin/middle_send_sms.html', {
-#         'sms': sms,
-#         'units_with_details': units_with_details,
-#     })
 
 
 @method_decorator(middle_admin_required, name='dispatch')

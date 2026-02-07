@@ -117,7 +117,13 @@
                 <i class="mdi mdi-square-inc-cash menu-icon"></i>
               </a>
             </li>
-          
+              <li class="nav-item mt-0">
+                 {% url 'charge_issued' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title">شارژ های صادره</i>
+                <i class="mdi mdi-square-inc-cash menu-icon"></i>
+              </a>
+            </li>
 
              <li class="nav-item border-top mt-0">
               <a class="nav-link" data-bs-toggle="collapse" href="#general23" aria-expanded="true"
@@ -176,9 +182,23 @@
             </li>
 
              <li class="nav-item border-top mt-0">
-                    {% url 'sms_management' as address_url %}
+                    {% url 'admin_register_sms' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title"> ارسال پیامک </i>
+                <i class="fas fa-comment-dots menu-icon"></i>
+              </a>
+            </li>
+                  <li class="nav-item mt-0">
+                    {% url 'admin_sms_management' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
                 <i class="menu-title"> مدیریت پیامک ها</i>
+                <i class="fas fa-comment-dots menu-icon"></i>
+              </a>
+            </li>
+                       <li class="nav-item mt-0">
+                    {% url 'sms_management' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title"> مدیریت شارژ پیامک</i>
                 <i class="fas fa-comment-dots menu-icon"></i>
               </a>
             </li>

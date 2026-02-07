@@ -9,14 +9,14 @@
 {% endblock page_title %}
 
 {% block main_content %}
-    <hr/>
-<div class="container mt-3">
- <div class="col-12 mb-2">
-                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">                   
-                        <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
-                    افزودن شارژ جدید 
-                </button>
-                 </div>
+{#    <hr/>#}
+<div class="container py-5">
+{# <div class="col-12 mb-2">#}
+{#                <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong">                   #}
+{#                        <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">#}
+{#                    افزودن شارژ جدید #}
+{#                </button>#}
+{#                 </div>#}
                <div class="table-responsive">
                             <table class="table table-bordered border-primary">
                                 <thead class="text-center">
@@ -27,12 +27,12 @@
                                         <th >تعداد نفرات ساختمان</th>
                                         <th> شارژ عمرانی </th>
                                          <th> سایر هزینه ها </th>
-                                        <th> توضیحات </th>
+{#                                        <th> توضیحات </th>#}
                                            <th>تاریخ ثبت شارژ</th>
                                           <th> دیرکرد</th>
                                             <th>مهلت پرداخت </th>
                                         <th> اعلام شارژ </th>
-                                        <th>دستورات</th>
+{#                                        <th>دستورات</th>#}
                                     </tr>
                                 </thead>
                             {% if charges %}
@@ -45,7 +45,7 @@
                                             <td>{{ total_people }}</td>
                                             <td>{{charge.civil|three_digit_currency }}</td>
                                              <td>{{charge.other_cost_amount|three_digit_currency }}</td>
-                                            <td>{{charge.details }}</td>
+{#                                            <td>{{charge.details }}</td>#}
                                             
                                             <td>{{charge.created_at|show_jalali }}</td>
                                                <td>% {{charge.payment_penalty_amount }}</td>
@@ -53,32 +53,32 @@
                                              <td class="bg-light">
                                                 <span>{{ charge.notified_count }} از {{ unit_count }} واحد</span>
                                                 </td>
-                                               <td class="p-0 col-1">
-                                                      <a
-                                           class="btn btn-gradient-info p-1 edit-charge-person-btn"
-                                           data-id="{{ charge.id }}"
-                                           data-name="{{ charge.name }}"
-                                           data-person_amount="{{ charge.person_amount}}"
-                                           data-civil="{{ charge.civil }}"
-                                           data-other_cost_amount="{{ charge.other_cost_amount }}"
-                                           data-details="{{ charge.details }}"
-                                           data-payment_penalty_amount="{{ charge.payment_penalty_amount }}"
-                                           data-payment_deadline="{{ charge.payment_deadline|show_jalali }}"
-                                           data-bs-toggle="modal"
-                                           data-bs-target="#exampleModalLong">
-                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
-                                        </a>
-                                          <a href="{% url 'charge-person_delete' charge.id %}" class="btn btn-gradient-danger p-1"
-                                       onclick="return confirmDeleteWithSweetAlert(event)">
-                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
-                                            </a>
-                                     <a href="{% url 'show_notification_person_charge_form' charge.id %}"
-                                       class="btn btn-gradient-success p-1" 
-                                          data-bs-toggle="tooltip"  title="اعلان شارژ">
-                                         <i class="fas fa-bullhorn fa-flip-horizontal"></i>
-                                            </a>
-
-                                        </td>
+{#                                               <td class="p-0 col-1">#}
+{#                                                      <a#}
+{#                                           class="btn btn-gradient-info p-1 edit-charge-person-btn"#}
+{#                                           data-id="{{ charge.id }}"#}
+{#                                           data-name="{{ charge.name }}"#}
+{#                                           data-person_amount="{{ charge.person_amount}}"#}
+{#                                           data-civil="{{ charge.civil }}"#}
+{#                                           data-other_cost_amount="{{ charge.other_cost_amount }}"#}
+{#                                           data-details="{{ charge.details }}"#}
+{#                                           data-payment_penalty_amount="{{ charge.payment_penalty_amount }}"#}
+{#                                           data-payment_deadline="{{ charge.payment_deadline|show_jalali }}"#}
+{#                                           data-bs-toggle="modal"#}
+{#                                           data-bs-target="#exampleModalLong">#}
+{#                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>#}
+{#                                        </a>#}
+{#                                          <a href="{% url 'charge-person_delete' charge.id %}" class="btn btn-gradient-danger p-1"#}
+{#                                       onclick="return confirmDeleteWithSweetAlert(event)">#}
+{#                                              <i class="mdi mdi-delete" aria-hidden="true"></i>#}
+{#                                            </a>#}
+{#                                     <a href="{% url 'show_notification_person_charge_form' charge.id %}"#}
+{#                                       class="btn btn-gradient-success p-1" #}
+{#                                          data-bs-toggle="tooltip"  title="اعلان شارژ">#}
+{#                                         <i class="fas fa-bullhorn fa-flip-horizontal"></i>#}
+{#                                            </a>#}
+{##}
+{#                                        </td>#}
                                         </tr>
                                     {% endfor %}
                                         {% else %}
@@ -90,10 +90,26 @@
                             
                             </table>
                 
-       
+         <div class="col-12">
+    <div class="pagination d-flex justify-content-center mt-5">
+
+        {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}" class="rounded">قبلی</a>
+        {% endif %}
+
+        {% for pageNumber in page_obj.paginator.page_range %}
+            <a href="?page={{ pageNumber }}" class="{% if page_obj.number == pageNumber %}active{% endif %}">{{ pageNumber }}</a>
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}" class="rounded">بعدی</a>
+        {% endif %}
+
+    </div>
+</div>
                </div>
 
-    <hr>
+ 
 
 </div>
     

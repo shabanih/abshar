@@ -11,7 +11,7 @@ from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, 
                                 Property, Maintenance, ChargeByPersonArea, ChargeByFixPersonArea, FixCharge, AreaCharge,
                                 PersonCharge,
                                 FixPersonCharge, FixAreaCharge, ChargeFixVariable, SmsManagement, UnifiedCharge,
-                                MessageToUser, SmsCredit, AdminMessageToMiddle)
+                                MessageToUser, SmsCredit, AdminMessageToMiddle, AdminSmsManagement)
 
 from user_app.models import Unit, Bank, User, MyHouse, ChargeMethod, Renter
 
@@ -2101,6 +2101,30 @@ class SmsForm(forms.ModelForm):
 
     class Meta:
         model = SmsManagement
+        fields = ['subject', 'message', 'is_active']
+
+
+class AdminSmsForm(forms.ModelForm):
+    subject = forms.CharField(error_messages=error_message, max_length=20, widget=forms.TextInput(attrs=attr),
+                              required=True,
+                              label='عنوان پیامک ')
+    message = forms.CharField(
+        error_messages=error_message,
+        required=True,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 2,
+            'id': 'sms_message',
+            'placeholder': 'متن پیامک را وارد کنید...'
+        }),
+        label='متن پیامک'
+    )
+
+    is_active = forms.ChoiceField(label='فعال /غیرفعال نمودن پیامک', required=True,
+                                  error_messages=error_message, choices=CHOICES, widget=forms.Select(attrs=attr))
+
+    class Meta:
+        model = AdminSmsManagement
         fields = ['subject', 'message', 'is_active']
 
 

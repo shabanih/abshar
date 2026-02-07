@@ -125,6 +125,14 @@ class Expense(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='house_expenses',
+        verbose_name='ساختمان مرتبط'
+    )
     receiver_name = models.CharField(max_length=400, null=True, blank=True)
 
     category = models.ForeignKey(ExpenseCategory, on_delete=models.CASCADE, verbose_name='گروه',
@@ -175,6 +183,14 @@ class Income(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='house_incomes',
+        verbose_name='ساختمان مرتبط'
+    )
     payer_name = models.CharField(max_length=400, null=True, blank=True)
     category = models.ForeignKey(IncomeCategory, on_delete=models.CASCADE, verbose_name='گروه', related_name='incomes')
     doc_date = models.DateField(verbose_name='تاریخ سند')
@@ -216,6 +232,14 @@ class ReceiveMoney(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='house_receives',
+        verbose_name='ساختمان مرتبط'
+    )
     payer_name = models.CharField(max_length=400, null=True, blank=True)
     doc_date = models.DateField(verbose_name='تاریخ سند')
     doc_number = models.IntegerField(verbose_name='شماره سند')
@@ -272,6 +296,14 @@ class PayMoney(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='house_payments',
+        verbose_name='ساختمان مرتبط'
+    )
     receiver_name = models.CharField(max_length=200, verbose_name='دریافت کننده')
     document_date = models.DateField(verbose_name='تاریخ سند')
     document_number = models.IntegerField(verbose_name='شماره سند')
@@ -319,6 +351,14 @@ class PayDocument(models.Model):
 # =========================== middleProperty Views ====================
 class Property(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='house_property',
+        verbose_name='ساختمان مرتبط'
+    )
     property_name = models.CharField(max_length=400, verbose_name='نام')
     property_unit = models.CharField(max_length=3000, verbose_name='واحد')
     property_location = models.CharField(max_length=400, verbose_name='آدرس')
@@ -351,6 +391,14 @@ class PropertyDocument(models.Model):
 # ======================== Maintenance =============================
 class Maintenance(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='house_maintenance',
+        verbose_name='ساختمان مرتبط'
+    )
     maintenance_description = models.CharField(max_length=1000, verbose_name='')
     maintenance_start_date = models.DateField(verbose_name='')
     maintenance_end_date = models.DateField(verbose_name='')
@@ -536,6 +584,14 @@ class UnifiedCharge(models.Model):
         null=True,
         blank=True
     )
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.CASCADE,
+        related_name="unified_charges",
+        null=True,
+        blank=True
+    )
+
     bank = models.ForeignKey(
         Bank,
         on_delete=models.CASCADE,
@@ -624,6 +680,11 @@ class UnifiedCharge(models.Model):
 
     # تاریخ ایجاد
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if self.unit:
+            self.house = self.unit.myhouse
+        super().save(*args, **kwargs)
 
     @property
     def app_label(self):
@@ -871,6 +932,13 @@ class SmsCredit(models.Model):
 class SmsManagement(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, related_name='sms_unit', blank=True, null=True)
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.CASCADE,
+        related_name="house_sms",
+        null=True,
+        blank=True
+    )
     subject = models.CharField(max_length=200)
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -918,3 +986,54 @@ class SmsManagement(models.Model):
         تعداد کل پیامک = تعداد پیامک هر متن × تعداد واحدها
         """
         return self.sms_count * self.notified_units_count
+
+
+class AdminSmsManagement(models.Model):
+    # فرستنده پیامک
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="admin_sms_sent"
+    )
+
+    # گیرندگان پیامک
+    notified_users = models.ManyToManyField(
+        User,
+        blank=True,
+        related_name="admin_sms_received"
+    )
+    subject = models.CharField(max_length=200)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    send_notification = models.BooleanField(default=False)
+    send_notification_date = models.DateField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+
+    total_units_sent = models.PositiveIntegerField(default=0)
+    sms_per_message = models.PositiveIntegerField(default=0)
+    total_sms_sent = models.PositiveIntegerField(default=0)
+
+    total_price = models.DecimalField(
+        max_digits=12,
+        decimal_places=0,
+        default=0
+    )
+
+    @property
+    def sms_count(self):
+        """
+        هر ۷۰ کاراکتر = ۱ پیامک
+        """
+        if not self.message:
+            return 0
+        return math.ceil(len(self.message) / 70)
+
+    @property
+    def notified_users_count(self):
+        return self.notified_users.count()
+
+    def total_sms_needed(self):
+        """
+        تعداد کل پیامک = تعداد پیامک هر متن × تعداد واحدها
+        """
+        return self.sms_count * self.notified_users_count

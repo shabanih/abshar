@@ -1,0 +1,277 @@
+{% extends 'shared/base_template.html' %}
+{% load poll_extras %}
+
+{% block page_title %}
+    لیست شارژ 
+{% endblock page_title %}
+
+{% block main_content %}
+    
+    <div class="container">
+        <hr class="p-0">
+     <div class="row g-2">
+     
+        <div class="col-12 mb-3 text-start">
+            <a class="btn btn-gradient-primary px-3 py-2" href="{% url 'charge_issued' %}">برگشت به لیست </a>
+        </div>
+  
+        <!-- بخش جستجو -->
+        <div class="col-12 col-md-4 col-xl-4 align-self-center">
+            <form method="get" action="" class="d-flex gap-2 align-items-center">
+                <input type="text"
+                       class="p-2 w-100 w-md-75"
+                       name="q"
+                       id="searchInput"
+                       autocomplete="off"
+                       value="{{ query }}"
+                       placeholder="جستجو ..."
+                       dir="rtl"
+                       oninput="if(this.value === '') this.form.submit();">
+                <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
+            </form>
+        </div>
+       <div class=" col-12 col-md-6 col-xl-6 text-end text-md-center align-self-center">
+            <a href=""
+                class="btn btn-gradient-success px-4 py-2"> Excel</a>
+            <a href=""
+                   class="btn btn-gradient-danger px-4 py-2">
+                    PDF
+                </a>
+                <a class="btn btn-gradient-warning px-4 py-2" 
+                   href=""> PDF همه صورتحساب ها</a>
+
+            </div>
+
+        <!-- بخش تعداد نمایش → فقط دسکتاپ -->
+        <div class="col-12 col-md-2 col-xl-2 text-start p-0 d-none d-md-block">
+            <div class="d-flex align-items-center gap-1">
+                <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label>
+           <select id="cardsPerPage"
+        class="form-select select-fix"
+        style="width: auto;"
+        onchange="window.location.href='?q={{ query }}&paginate=' + this.value;">
+    <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option>
+    <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option>
+    <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option>
+    <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+</select>
+
+            </div>
+        </div>
+    </div>
+    
+
+<div class="row mt-4">
+               <div class="table-responsive p-0">
+                <table class="table table-bordered" >
+                      <thead>
+                           <tr>
+                            <th>#</th>
+                            <th>عنوان</th>
+                            <th>نام مالک/مستاجر</th>
+                            <th>شارژ ماهیانه</th>
+                            <th> توضیحات</th>
+                            <th>تاریخ ارسال اطلاعیه</th>
+                            <th>مهلت پرداخت</th>
+                            <th>جریمه دیرکرد</th>
+                               <th>مبلغ قابل پرداخت</th>
+                            <th>وضعیت </th>
+{#                            <th>تاریخ پرداخت</th>#}
+                            <th>مشاهده/دستورات</th>
+                        </tr>
+                    </thead>
+    {% if unified_charges  %}
+    {% for charge in unified_charges  %}
+                <tbody>
+                <tr>
+                 <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
+                 <td>{{ charge.title}}</td>
+                 <td>{{ charge.unit.get_label }}</td>
+                    <td>{{ charge.base_charge|three_digit_currency }} </td>
+                    <td>
+                             {% if charge.details %}
+                                  <span class="text-danger"> دارد</span>
+                                        {% else %}
+                                        <span>ندارد</span>
+                                    {% endif %} 
+                    </td>
+               
+                    <td>{{ charge.send_notification_date|show_jalali }}</td>
+                <td>{{ charge.payment_deadline_date|show_jalali }}</td>
+                       <td>
+                               {% if charge.penalty_amount %}
+                                  {{ charge.penalty_amount|three_digit_currency }}
+                                      {% else %} 
+                                    ----
+                                   {% endif %} 
+                              </td>
+                <td  class="fw-bold shadow-sm">{{ charge.total_charge_month|three_digit_currency }}</td>
+                       <td>
+                            {% if charge.is_paid %}
+                                <span class="badge badge-success p-1">پرداخت شده</span>
+                            {% else %}
+                                <span class="badge badge-danger p-1">پرداخت نشده</span>
+                            {% endif %}
+                        </td>
+                
+           
+                  <td class="shadow_style p-1">
+                      <a href="{% url 'single_charge_invoice_pdf' charge.id %}">
+                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
+                               style="width: 35px; height: 33px">
+                      </a>|
+                      {% if charge.is_paid %}
+                       <button data-bs-toggle="modal" data-bs-target="#exampleModalLong77{{ charge.id }}"
+                        class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
+                        </button> 
+                            {% else %}
+                         <button data-bs-toggle="modal" data-bs-target="#exampleModalLong77{{ charge.id }}"
+                        class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
+                      </button> | 
+{#                     <a href="{% url 'unit_charge_payment' charge.id %}"#}
+{#                         class="btn btn-gradient-success px-1 py-1" #}
+{#                          data-bs-toggle="tooltip"  title="امور مالی">#}
+{#                         <i class="fas fa-money-check-alt"></i>#}
+{#                            </a>#}
+                        {% endif %} 
+
+                 
+                    </td>
+                <!-- Modal -->
+                <div class="modal fade"  id="exampleModalLong77{{ charge.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ charge.id }}" aria-hidden="true">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalLabel{{ charge.id }}">مشاهده جزئیات </h5>
+                            </div>
+                          <hr/>
+                            <div class="modal-body text-end">
+                    <div class="d-flex gap-3 mb-3 ">
+                        <span>
+                            <strong>عنوان:</strong>
+                            {{ charge.title }}
+                        </span>
+                       
+                    </div>
+                      <div class="d-flex gap-3 mb-3 ">
+                       <span>
+                            <strong>نام مالک/مستاجر:</strong>
+                            {{ charge.unit.get_label }} 
+                        </span>
+                                    
+                                   </div>
+                               <div class="d-flex gap-4 mb-3 ">
+                       <span>
+                            <strong>تعداد نفرات:</strong>
+                            {{ charge.unit.people_count|default:"—" }} نفر
+                        </span>
+                             <span>
+                            <strong>متراژ واحد:</strong>
+                            {{ charge.unit.area|default:"—" }} متر
+                        </span>
+                       
+                    </div>
+                          
+                                    <hr/> 
+                                  <p class="text-dark shadow_style text-center">
+                                            <strong>مبلغ شارژ ماهانه:</strong>
+                                            {{ charge.amount|three_digit_currency }} تومان
+                                        </p>
+                            
+                       
+
+                                       {% if charge.civil %}
+                                <p><strong>شارژ عمرانی:</strong> {{ charge.civil|three_digit_currency }} تومان</p>
+                                           {% else %}
+                                <p><strong>شارژ عمرانی:</strong> -- </p>
+                            {% endif %}
+
+                            {% if charge.other_cost_amount %}
+                            	 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost_amount|three_digit_currency }} تومان</p>
+                                 {% else %}
+                            	 <p><strong>سایر هزینه ها:</strong> -- </p>
+                                {% endif %}
+                               {% if charge.penalty_amount %}
+                                <p><strong>جریمه دیرکرد:</strong> {{ charge.penalty_amount|three_digit_currency }} تومان</p>
+                                   {% else %}
+                                   <p><strong>جریمه دیرکرد:</strong> -- </p>
+                                {% endif %}
+                             {% if charge.extra_parking_price %}
+                                <p><strong>هزینه پارکینگ اضافه:</strong> {{ charge.extra_parking_price|three_digit_currency }} تومان</p>
+                                   {% else %}
+{#                                   <p><strong>هزینه پارکینگ اضافه:</strong> -- </p>#}
+                                {% endif %}
+                                <p class="text-dark shadow_style text-center"><strong>جمع کل قابل پرداخت:</strong> {{ charge.total_charge_month|three_digit_currency }} تومان</p>
+                            {% if charge.is_penalty_waived %}
+                            	  <p class="text-danger mt-2 text-small">توجه: جریمه دیرکرد به مبلغ {{ charge.previous_penalty_amount|three_digit_currency }} تومان در تاریخ {{ charge.penalty_waived_at|show_jalali_date_only }}بخشیده شد.</p>
+
+                            {% endif %} 
+                              <hr>
+                                <p class="bg-warning"><strong>توضیحات:</strong> 
+                                    {% if charge.details %}
+                                        {{ charge.details }}
+                                        {% else %}
+                                         ثبت نشده است
+                                    {% endif %} 
+
+                                </p>
+                                   <p><strong>تاریخ ارسال اطلاعیه:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>
+                                   <p><strong>مهلت پرداخت:</strong> {{ charge.payment_deadline_date|show_jalali_date_only }}</p>
+                            
+                           {% if charge.transaction_reference %} 
+                                <p><strong>تاریخ پرداخت:</strong> {{ charge.payment_date|show_jalali_date_only }}</p>
+                                <p><strong> کد پیگیری:</strong> {{ charge.transaction_reference }}</p>
+                            {% endif %}
+                                    <p><strong>وضعیت:</strong> 
+                                    {% if charge.is_paid %}
+                                    	<span class="badge bg-success">پرداخت شده</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span></p>
+                                    {% endif %} 
+                            </div>
+                            <hr/>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </tr>
+                  {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ اطلاعیه شارژی برای نمایش وجود ندارد.</td>
+                            </tr>
+                     <tbody>
+                    {% endif %}
+                </table>
+            </div>
+    </div>
+
+
+
+        <!-- Pagination -->
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="pagination d-flex justify-content-center mt-5">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&paginate={{ paginate }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+            {% endif %}
+
+            {% for page_number in page_obj.paginator.page_range %}
+                <a href="?q={{ query }}&paginate={{ paginate }}&page={{ page_number }}"
+                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
+                    {{ page_number }}
+                </a>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&paginate={{ paginate }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</div>
+    
+    
+{% endblock main_content %}

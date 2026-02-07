@@ -69,23 +69,20 @@ def send_notify_user_by_sms(mobile, name, amount):
     #     return {"success": False, "error": str(e)}
 
 
-def send_sms_to_user(mobile, message, full_name, otp=None):
-    mobile = str(mobile)  # مطمئن شو عدد به رشته تبدیل شده
-    full_name = str(full_name)
-    message = str(message)
-    text = '.'
+def send_sms_to_middle(mobile, message, full_name, otp=None):
+    mobile = [mobile]  # مطمئن شو عدد به رشته تبدیل شده
+    full_name = full_name
+    message = message
+
 
     try:
         api = KavenegarAPI(Kavenegar_API)
 
         params = {
-            'receptor': [mobile],  # List of strings for mobile numbers
-
-            'token': full_name,
-            'token10': message,
-            # 'token20': message,
-            'template': 'smsToUser',  # Template name (if using a template)
-            'message': otp,  # Custom message
+            'receptor': mobile,  # List of strings for mobile numbers
+            'token10': full_name,
+            'token': message,
+            'template': 'raya',
             'type': 'sms'
         }
 
