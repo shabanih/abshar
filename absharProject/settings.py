@@ -112,6 +112,7 @@ TEMPLATES = [
                 'absharProject.context_processors.user_header_notifications',
                 'absharProject.context_processors.current_middle_house',
                 'absharProject.context_processors.middle_header_notifications',
+                'absharProject.context_processors.admin_header_notifications',
             ],
         },
     },

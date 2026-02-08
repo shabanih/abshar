@@ -919,6 +919,13 @@ class AdminFund(models.Model):
 
 class SmsCredit(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='مدیر')
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.CASCADE,
+        related_name="sms_credit",
+        null=True,
+        blank=True
+    )
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='مبلغ شارژ')
     amount_with_tax = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='مبلغ با مالیات', default=0)
     is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده؟')

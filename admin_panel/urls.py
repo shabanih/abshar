@@ -32,7 +32,6 @@ urlpatterns = [
     # path('house/edit/<int:pk>/', views.MyHouseUpdateView.as_view(), name='edit_house'),
     # path('delete/house/<int:pk>/', views.house_delete, name='delete_house'),
 
-
     # Bank Urls
     path('manage-bank', views.AddBankView.as_view(), name='manage_bank'),
     # path('bank/edit/<int:pk>/', views.BankUpdateView.as_view(), name='edit_bank'),
@@ -162,7 +161,6 @@ urlpatterns = [
     # path('remove-send-notification-fix-area/<int:pk>/', views.remove_send_notification_fix_area,
     #      name='remove_send_notification_fix_area'),
 
-
     path('add-person_area-charge', views.PersonAreaChargeCreateView.as_view(), name='add_person_area_charge'),
     # path('area/person/charge/edit/<int:pk>/', views.person_area_charge_edit, name='charge_area_person_edit'),
     # path('area/person/charge/delete/<int:pk>/', views.person_area_charge_delete, name='charge_area_person_delete'),
@@ -173,8 +171,8 @@ urlpatterns = [
     # path('remove-send-notification-person-area/<int:pk>/', views.remove_send_notification_person_area,
     #      name='remove_send_notification_person_area'),
 
-
-    path('add-person_area-fix-charge', views.PersonAreaFixChargeCreateView.as_view(),name='add_person_area_fix_charge'),
+    path('add-person_area-fix-charge', views.PersonAreaFixChargeCreateView.as_view(),
+         name='add_person_area_fix_charge'),
     # path('fix/area/person/charge/edit/<int:pk>/', views.person_area_fix_charge_edit,
     #      name='charge_area_person_fix_edit'),
     # path('fix/area/person/charge/delete/<int:pk>/', views.person_area_fix_delete, name='charge_area_person_fix_delete'),
@@ -210,6 +208,21 @@ urlpatterns = [
     path('admin/sms/send/form/<int:pk>/', views.admin_show_send_sms_form, name='admin_show_send_sms_form'),
     path('admin-send-sms/<int:pk>/', views.admin_send_sms, name='admin_send_sms'),
     path('admin/sms/management/', views.AdminSmsListView.as_view(), name='admin_sms_management'),
+    path('admin/sms/approved/', views.ApprovedSms.as_view(), name='admin_sms_approved'),
+    path(
+        "sms/<int:house_id>/",
+        views.ApprovedSmsDetailView.as_view(),
+        name="sms_approved_list"
+    ),
+    path('admin-approved-sms/<int:pk>/', views.approve_sms, name='admin_approved_sms'),
+    path('admin-disapproved-sms/<int:pk>/', views.disapprove_sms, name='admin_disapproved_sms'),
+    path('admin/sms/credit/', views.CreditSmsManagement.as_view(), name='admin_sms_credit'),
+    path(
+        "credit/sms/<int:house_id>/",
+        views.CreditSmsDetailView.as_view(),
+        name="sms_credit_list"
+    ),
+    path('middle/sms/report/', views.middleSmsManagementReport.as_view(), name='middle_sms_report'),
 
     # مسیر دریافت نوت‌ها
     path('calendar/notes/<int:year>/<int:month>/', views.get_notes, name='get_notes'),

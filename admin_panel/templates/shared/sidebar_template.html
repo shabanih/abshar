@@ -180,27 +180,62 @@
                 </ul>
               </div>
             </li>
+          
+          
+            {% url 'admin_register_sms' as url_sms_to_middle %}
+            {% url 'admin_sms_management' as url_admin_sms_issued %}
+            {% url 'admin_sms_approved' as url_admin_sms_approved %}
+            {% url 'admin_sms_credit' as url_admin_credit_sms %}
+            {% url 'middle_sms_report' as url_middle_sms_report %}
 
-             <li class="nav-item border-top mt-0">
-                    {% url 'admin_register_sms' as address_url %}
-                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                <i class="menu-title"> ارسال پیامک </i>
-                <i class="fas fa-comment-dots menu-icon"></i>
+            <li class="nav-item border-top mt-0">
+              <a class="nav-link" data-bs-toggle="collapse"
+                 href="#general146"
+                 aria-expanded="true"
+                 aria-controls="general146">
+                <i class="menu-title"> مدیریت پیامک ها </i>
+                <i class="menu-arrow"></i>
+                <i class="mdi mdi-email-outline menu-icon"></i>
               </a>
-            </li>
+
+              <div class="collapse 
+{% if request.path == url_sms_to_middle or request.path == url_admin_sms_issued or request.path == url_admin_sms_approved or request.path == url_admin_credit_sms or request.path == url_middle_sms_report %}show{% endif %}" id="general146">
+                <ul class="nav flex-column sub-menu">
+
                   <li class="nav-item mt-0">
-                    {% url 'admin_sms_management' as address_url %}
-                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                <i class="menu-title"> مدیریت پیامک ها</i>
-                <i class="fas fa-comment-dots menu-icon"></i>
-              </a>
-            </li>
-                       <li class="nav-item mt-0">
-                    {% url 'sms_management' as address_url %}
-                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                <i class="menu-title"> مدیریت شارژ پیامک</i>
-                <i class="fas fa-comment-dots menu-icon"></i>
-              </a>
+                    <a class="nav-link {% if request.path == url_sms_to_middle %}active{% endif %}"
+                       href="{{ url_sms_to_middle }}">
+                       ثبت پیامک
+                    </a>
+                  </li>
+
+                  <li class="nav-item mt-0">
+                    <a class="nav-link {% if request.path == url_admin_sms_issued %}active{% endif %}"
+                       href="{{ url_admin_sms_issued }}">
+                       پیامک های ارسالی
+                    </a>
+                  </li>
+                   <li class="nav-item mt-0">
+                    <a class="nav-link {% if request.path == url_admin_sms_approved %}active{% endif %}"
+                       href="{{ url_admin_sms_approved }}">
+                       پیامک در انتظار تایید
+                    </a>
+                  </li>
+                   <li class="nav-item mt-0">
+                    <a class="nav-link {% if request.path == url_admin_credit_sms %}active{% endif %}"
+                       href="{{ url_admin_credit_sms }}">
+                      لیست شارژ پیامک
+                    </a>
+                  </li>
+                    <li class="nav-item mt-0">
+                    <a class="nav-link {% if request.path == url_middle_sms_report %}active{% endif %}"
+                       href="{{ url_middle_sms_report }}">
+                      لیست پیامک مدیران
+                    </a>
+                  </li>
+
+                </ul>
+              </div>
             </li>
 {#             <li class="nav-item border-top mt-0">#}
 {#                                {% url 'sms_management' as address_url %}#}

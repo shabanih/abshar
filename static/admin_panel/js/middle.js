@@ -1195,3 +1195,181 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
 });
+
+// ========================================================
+function confirmApprovedWithSweetAlert(event) {
+    event.preventDefault(); // جلوگیری از رفتن به لینک فوری
+
+    const url = event.currentTarget.href; // آدرس لینک
+
+    Swal.fire({
+        title: 'آیا نسبت به تایید پیامک اطمینان دارید؟',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'بله',
+        cancelButtonText: 'خیر',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // اگر کاربر تأیید کرد، به لینک هدایت شود
+            window.location.href = url;
+        }
+        // اگر لغو کرد، کاری انجام نمی‌شود
+    });
+
+    return false;
+}
+
+function confirmDisapprovedWithSweetAlert(event) {
+    event.preventDefault(); // جلوگیری از رفتن به لینک فوری
+
+    const url = event.currentTarget.href; // آدرس لینک
+
+    Swal.fire({
+        title: 'آیا نسبت به عدم تایید پیامک اطمینان دارید؟',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'بله',
+        cancelButtonText: 'خیر',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // اگر کاربر تأیید کرد، به لینک هدایت شود
+            window.location.href = url;
+        }
+        // اگر لغو کرد، کاری انجام نمی‌شود
+    });
+
+    return false;
+}
+
+// ================= admin to middle message ================
+
+document.addEventListener("DOMContentLoaded", function() {
+    const available = document.getElementById("availableManagers");
+    const selected = document.getElementById("selectedManagers");
+    const addBtn = document.getElementById("addBtn");
+    const removeBtn = document.getElementById("removeBtn");
+    const addAllBtn = document.getElementById("addAllBtn");
+    const removeAllBtn = document.getElementById("removeAllBtn");
+    const searchAvailable = document.getElementById("searchAvailable");
+    const searchSelected = document.getElementById("searchSelected");
+    const form = document.querySelector("form");
+
+    // انتقال گزینه‌ها
+    addBtn.onclick = () => moveOptions(available, selected);
+    removeBtn.onclick = () => moveOptions(selected, available);
+    addAllBtn.onclick = () => moveAllOptions(available, selected);
+    removeAllBtn.onclick = () => moveAllOptions(selected, available);
+
+    function moveOptions(from, to) {
+        [...from.selectedOptions].forEach(opt => {
+            to.add(opt);
+            opt.selected = true; // ✅ اینجا اضافه شد
+        });
+    }
+
+    function moveAllOptions(from, to) {
+        [...from.options].forEach(opt => {
+            to.add(opt);
+            opt.selected = true; // ✅ اینجا اضافه شد
+        });
+    }
+    // جستجو
+    searchAvailable.addEventListener("keyup", function() {
+        const filter = this.value.toLowerCase();
+        [...available.options].forEach(opt => {
+            opt.style.display = opt.text.toLowerCase().includes(filter) ? "" : "none";
+        });
+    });
+
+    searchSelected.addEventListener("keyup", function() {
+        const filter = this.value.toLowerCase();
+        [...selected.options].forEach(opt => {
+            opt.style.display = opt.text.toLowerCase().includes(filter) ? "" : "none";
+        });
+    });
+
+    // SweetAlert تأیید ارسال
+    form.addEventListener("submit", function(e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'ارسال پیامک؟',
+            text: "آیا از ارسال پیامک برای واحدهای انتخاب‌شده اطمینان دارید؟",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'بله، ارسال شود',
+            cancelButtonText: 'خیر',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                [...selected.options].forEach(opt => opt.selected = true);
+                form.submit();
+            }
+        });
+    });
+});
+
+
+document.addEventListener("DOMContentLoaded", function() {
+    const available = document.getElementById("availableUnits");
+    const selected = document.getElementById("selectedUnits");
+    const addBtn = document.getElementById("addBtn");
+    const removeBtn = document.getElementById("removeBtn");
+    const addAllBtn = document.getElementById("addAllBtn");
+    const removeAllBtn = document.getElementById("removeAllBtn");
+    const searchAvailable = document.getElementById("searchAvailable");
+    const searchSelected = document.getElementById("searchSelected");
+    const form = document.querySelector("form");
+
+    // انتقال گزینه‌ها
+    addBtn.onclick = () => moveOptions(available, selected);
+    removeBtn.onclick = () => moveOptions(selected, available);
+    addAllBtn.onclick = () => moveAllOptions(available, selected);
+    removeAllBtn.onclick = () => moveAllOptions(selected, available);
+
+    function moveOptions(from, to) {
+        [...from.selectedOptions].forEach(opt => {
+            to.add(opt);
+            opt.selected = true; // ✅ اینجا اضافه شد
+        });
+    }
+
+    function moveAllOptions(from, to) {
+        [...from.options].forEach(opt => {
+            to.add(opt);
+            opt.selected = true; // ✅ اینجا اضافه شد
+        });
+    }
+    // جستجو
+    searchAvailable.addEventListener("keyup", function() {
+        const filter = this.value.toLowerCase();
+        [...available.options].forEach(opt => {
+            opt.style.display = opt.text.toLowerCase().includes(filter) ? "" : "none";
+        });
+    });
+
+    searchSelected.addEventListener("keyup", function() {
+        const filter = this.value.toLowerCase();
+        [...selected.options].forEach(opt => {
+            opt.style.display = opt.text.toLowerCase().includes(filter) ? "" : "none";
+        });
+    });
+
+    // SweetAlert تأیید ارسال
+    form.addEventListener("submit", function(e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'ارسال پیامک؟',
+            text: "آیا از ارسال پیامک برای واحدهای انتخاب‌شده اطمینان دارید؟",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'بله، ارسال شود',
+            cancelButtonText: 'خیر',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                [...selected.options].forEach(opt => opt.selected = true);
+                form.submit();
+            }
+        });
+    });
+});

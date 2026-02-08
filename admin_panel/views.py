@@ -41,7 +41,7 @@ from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDo
     MaintenanceDocument, ChargeByPersonArea, \
     ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
     FixPersonCharge, FixAreaCharge, ChargeFixVariable, \
-    SmsManagement, Fund, UnifiedCharge, AdminSmsManagement
+    SmsManagement, Fund, UnifiedCharge, AdminSmsManagement, SmsCredit
 from notifications.models import AdminTicket
 from user_app.models import Unit, Bank, Renter, User, MyHouse, ChargeMethod, CalendarNote
 
@@ -132,8 +132,6 @@ class MiddleAdminUpdateView(UpdateView):
         context['middleAdmins'] = middle_admins
         context['users'] = User.objects.filter(is_active=True).order_by('-created_time')
         return context
-
-
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
@@ -3251,7 +3249,8 @@ class AdminSmsManagementView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['all_sms'] = AdminSmsManagement.objects.filter(user=self.request.user, send_notification=False).order_by(
+        context['all_sms'] = AdminSmsManagement.objects.filter(user=self.request.user,
+                                                               send_notification=False).order_by(
             '-created_at')
         context['units'] = Unit.objects.all()
 
@@ -3305,8 +3304,6 @@ def admin_show_send_sms_form(request, pk):
     })
 
 
-
-
 def admin_send_sms(request, pk):
     sms = get_object_or_404(AdminSmsManagement, id=pk, user=request.user)
 
@@ -3342,19 +3339,8 @@ def admin_send_sms(request, pk):
             managers_to_notify = User.objects.filter(id__in=selected_managers, is_middle_admin=True, is_active=True)
 
         # جمع همه گیرندگان
-        notified_units = []
-        notified_users = []
 
-        # ارسال به واحدها
-        for unit in units_to_notify:
-            if unit.user and unit.user.mobile:
-                helper.send_sms_to_middle(
-                    mobile=unit.user.mobile,
-                    message=sms.message,
-                    full_name=unit.user.full_name,
-                    otp=None
-                )
-                notified_units.append(unit)
+        notified_users = []
 
         # ارسال به مدیران
         for manager in managers_to_notify:
@@ -3363,30 +3349,26 @@ def admin_send_sms(request, pk):
                     mobile=manager.mobile,
                     message=sms.message,
                     full_name=manager.full_name,
-                    otp=None
                 )
                 notified_users.append(manager)
-
         # ❌ اگر هیچ کاربری پیدا نشد
-        if not notified_units and not notified_users:
+        if not notified_users:
             messages.warning(request, 'هیچ گیرنده معتبری برای ارسال پیامک پیدا نشد.')
             return redirect('admin_sms_management')
 
         # محاسبه تعداد پیامک و هزینه
-        total_recipients_count = len(notified_units) + len(notified_users)
+        total_recipients_count = len(notified_users)
         sms_per_message = sms.sms_count
         total_sms_needed = total_recipients_count * sms_per_message
         sms_price = Decimal(str(settings.SMS_PRICE))
         total_price = total_sms_needed * sms_price
 
         # ذخیره اطلاعات پیامک
-        sms.total_units_sent = len(notified_units)
         sms.sms_per_message = sms_per_message
         sms.total_sms_sent = total_sms_needed
         sms.total_price = total_price
 
         # ثبت واحدها و مدیران در ManyToMany
-        sms.notified_users.set(notified_units)
         sms.notified_users.set(notified_users)  # اضافه کن اگر فیلد notified_users داری
         sms.send_notification = True
         sms.send_notification_date = timezone.now().date()
@@ -3450,6 +3432,275 @@ class AdminSmsListView(ListView):
         context['sms_list'] = AdminSmsManagement.objects.filter(user=self.request.user).order_by('-created_at')
 
         return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class ApprovedSms(ListView):
+    model = MyHouse
+    template_name = 'admin_panel/approved_sms.html'
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        qs = (
+            MyHouse.objects
+            .filter(house_sms__is_active=True)
+            .annotate(
+                total_sms=Count(
+                    'house_sms',
+                    filter=Q(house_sms__is_approved=False)
+                )
+            )
+            .distinct()
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class ApprovedSmsDetailView(ListView):
+    model = SmsManagement
+    template_name = "admin_panel/sms_approved_list.html"
+    context_object_name = "all_sms"
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        house_id = self.kwargs['house_id']
+        query = self.request.GET.get('q', '')
+
+        qs = SmsManagement.objects.filter(
+            house_id=house_id,
+
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(title__icontains=query) |
+                Q(unit__owner_name__icontains=query) |
+                Q(unit__renters__renter_name__icontains=query) |
+                Q(total_charge_month_str__icontains=query) |
+                Q(base_charge_str__icontains=query) |
+                Q(details__icontains=query)
+            )
+
+        return qs.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        # اضافه کردن اطلاعات خانه
+        context['house'] = MyHouse.objects.filter(id=self.kwargs['house_id']).first()
+        return context
+
+
+def approve_sms(request, pk):
+    sms = get_object_or_404(SmsManagement, pk=pk)
+
+    sms.is_approved = True
+    sms.approved_at = timezone.now()
+    sms.save()
+
+    messages.success(request, "پیامک تایید شد.")
+    return redirect("sms_approved_list", house_id=sms.house.id)
+
+
+def disapprove_sms(request, pk):
+    sms = get_object_or_404(SmsManagement, pk=pk)
+
+    if sms.send_notification:
+        messages.success(request, " عدم تایید پیامک بدلیل ارسال آن توسط مدیر ساختمان امکانپذیر نیست")
+
+    sms.is_approved = False
+    sms.approved_at = None
+    sms.save()
+
+    messages.success(request, "پیامک تایید نگردید.")
+    return redirect("sms_approved_list", house_id=sms.house.id)
+
+
+@method_decorator(admin_required, name='dispatch')
+class middleSmsManagementReport(ListView):
+    model = MyHouse
+    template_name = 'admin_panel/middle_sms_report.html'
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        qs = (
+            MyHouse.objects
+            .filter(house_sms__send_notification=True)
+            .annotate(
+                total_credit_sms=Count(
+                    'house_sms',
+                    filter=Q(house_sms__send_notification=True)
+                )
+            )
+            .distinct()
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class middleReportSmsDetailView(ListView):
+    model = SmsCredit
+    template_name = "admin_panel/credit_sms_list.html"
+    context_object_name = "all_credit"
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        house_id = self.kwargs['house_id']
+        query = self.request.GET.get('q', '')
+
+        qs = SmsCredit.objects.filter(
+            house_id=house_id,
+
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(amount__icontains=query)
+            )
+
+        return qs.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        # اضافه کردن اطلاعات خانه
+        context['house'] = MyHouse.objects.filter(id=self.kwargs['house_id']).first()
+        return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class CreditSmsManagement(ListView):
+    model = MyHouse
+    template_name = 'admin_panel/credit_sms_management.html'
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        qs = (
+            MyHouse.objects
+            .filter(sms_credit__is_paid=True)
+            .annotate(
+                total_credit_sms=Count(
+                    'sms_credit',
+                    filter=Q(sms_credit__is_paid=True)
+                )
+            )
+            .distinct()
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class CreditSmsDetailView(ListView):
+    model = SmsCredit
+    template_name = "admin_panel/credit_sms_list.html"
+    context_object_name = "all_credit"
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        house_id = self.kwargs['house_id']
+        query = self.request.GET.get('q', '')
+
+        qs = SmsCredit.objects.filter(
+            house_id=house_id,
+
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(amount__icontains=query)
+            )
+
+        return qs.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        # اضافه کردن اطلاعات خانه
+        context['house'] = MyHouse.objects.filter(id=self.kwargs['house_id']).first()
+        return context
+
+
 
 # ==================================================================
 @login_required

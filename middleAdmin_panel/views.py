@@ -8259,7 +8259,9 @@ class MiddleSmsManagementView(CreateView):
     def form_valid(self, form):
         sms = form.save(commit=False)
         sms.user = self.request.user
+
         try:
+            sms.house = MyHouse.objects.filter(user=self.request.user).first()
             sms.save()
             self.object = sms
             messages.success(self.request, 'پیامک موفقیت ثبت گردید')
@@ -8420,7 +8422,6 @@ def middle_send_sms(request, pk):
                         mobile=unit.user.mobile,
                         message=sms.message,
                         full_name=unit.user.full_name,
-                        otp=None
                     )
                     notified_units.append(unit)
 

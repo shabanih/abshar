@@ -1,9 +1,10 @@
 from decimal import Decimal
 
+from django.core.cache import cache
 from django.db.models import Q, Sum
 
 from admin_panel.models import UnifiedCharge, Announcement, MessageToUser, MessageReadStatus, SmsCredit, \
-    MiddleMessageReadStatus
+    MiddleMessageReadStatus, SmsManagement
 from user_app.models import MyHouse, Unit
 
 
@@ -131,3 +132,15 @@ def middle_header_notifications(request):
         'middle_new_messages_count': middle_new_messages_count,
         'middle_current_credit': middle_current_credit,
     }
+
+
+def admin_header_notifications(request):
+    if not request.user.is_authenticated or not request.user.is_superuser:
+        return {'admin_new_messages_count': 0}
+
+    admin_new_messages_count = SmsManagement.objects.filter(
+            is_approved=False,
+            is_active=True
+        ).count()
+
+    return {'admin_new_messages_count': admin_new_messages_count}

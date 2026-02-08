@@ -3,11 +3,13 @@
 {% load poll_extras %}
 
 {% block page_title %}
-مدیریت پیامک ها
+پیامک های ارسالی
 {% endblock page_title %}
 
 {% block main_content %}
-        <div class="row mb-4">
+       
+    <div class="container py-5">
+     <div class="row mb-2">
         <!-- بخش جستجو -->
         <div class="col-12 col-md-10 col-xl-10 align-self-center">
             <form method="get" action="" class="d-flex gap-2 align-items-center">
@@ -41,7 +43,6 @@
             </div>
         </div>
     </div>
-    <div class="container p-0 mt-2">
         <div class="row mt-2">
             <div class="table-responsive">
                 <table class="table table-bordered">
@@ -107,7 +108,7 @@
             <div class="modal-body text-end">
                 <p><strong>لیست واحدهای ارسالی:</strong></p>
        {% for manager in sms.notified_users.all %}
-                    {{ manager.name}}<br/>
+                    {{ manager.full_name}}<br/>
                 {% empty %}
                     هیچ واحدی ارسال نشده است.
                 {% endfor %}
@@ -143,8 +144,7 @@
                 </table>
             </div>
         </div>
-    </div>
-   <!-- Pagination -->
+       <!-- Pagination -->
     <div class="col-12">
         <div class="pagination d-flex justify-content-center mt-5">
             {% if page_obj.has_previous %}
@@ -163,6 +163,8 @@
             {% endif %}
         </div>
     </div>
+    </div>
+
 {% endblock %}
 
 

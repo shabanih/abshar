@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from admin_panel.models import SmsCredit, AdminFund
 from payment_app.views import ZP_API_STARTPAY, ZP_API_REQUEST
-from user_app.models import Bank
+from user_app.models import Bank, MyHouse
 
 MERCHANT = "3d6d6a26-c139-49ac-9d8d-b03a8cdf0fdd"
 
@@ -95,6 +95,7 @@ def verify_sms_credit_pay(request):
     credit_id = request.GET.get('credit_id')
     authority = request.GET.get('Authority')
     status = request.GET.get('Status')
+    house = MyHouse.objects.filter(user=request.user).first()
 
     if not credit_id:
         return render(request, 'admin_payment_done.html', {'error': 'شناسه پرداخت ارسال نشده است'})
@@ -133,6 +134,7 @@ def verify_sms_credit_pay(request):
 
             # ثبت اطلاعات پرداخت
             credit.is_paid = True
+            credit.house = house
             credit.paid_at = timezone.now()
             credit.transaction_reference = ref_id
             credit.payment_gateway = 'پرداخت اینترنتی'
