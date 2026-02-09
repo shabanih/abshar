@@ -3560,11 +3560,11 @@ class middleSmsManagementReport(ListView):
 
         qs = (
             MyHouse.objects
-            .filter(house_sms__send_notification=True)
+            .filter(house_sms__is_active=True)
             .annotate(
                 total_credit_sms=Count(
                     'house_sms',
-                    filter=Q(house_sms__send_notification=True)
+                    filter=Q(house_sms__is_active=True)
                 )
             )
             .distinct()
@@ -3587,9 +3587,9 @@ class middleSmsManagementReport(ListView):
 
 @method_decorator(admin_required, name='dispatch')
 class middleReportSmsDetailView(ListView):
-    model = SmsCredit
-    template_name = "admin_panel/credit_sms_list.html"
-    context_object_name = "all_credit"
+    model = SmsManagement
+    template_name = "admin_panel/middle_sms_report_list.html"
+    context_object_name = "all_sms"
 
     def get_paginate_by(self, queryset):
         paginate = self.request.GET.get('paginate')
@@ -3601,14 +3601,15 @@ class middleReportSmsDetailView(ListView):
         house_id = self.kwargs['house_id']
         query = self.request.GET.get('q', '')
 
-        qs = SmsCredit.objects.filter(
+        qs = SmsManagement.objects.filter(
             house_id=house_id,
 
         )
 
         if query:
             qs = qs.filter(
-                Q(amount__icontains=query)
+                Q(subject__icontains=query)
+
             )
 
         return qs.order_by('-created_at')
@@ -3617,7 +3618,10 @@ class middleReportSmsDetailView(ListView):
         context = super().get_context_data(**kwargs)
         context['query'] = self.request.GET.get('q', '')
         context['paginate'] = self.request.GET.get('paginate', '20')
-        # اضافه کردن اطلاعات خانه
+        context['sms_list'] = SmsManagement.objects.filter(user=self.request.user).annotate(
+            unit_number=F('notified_units__unit'),
+            user_full_name=F('notified_units__user__full_name')
+        )
         context['house'] = MyHouse.objects.filter(id=self.kwargs['house_id']).first()
         return context
 
@@ -3698,6 +3702,88 @@ class CreditSmsDetailView(ListView):
         context['paginate'] = self.request.GET.get('paginate', '20')
         # اضافه کردن اطلاعات خانه
         context['house'] = MyHouse.objects.filter(id=self.kwargs['house_id']).first()
+        return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class AdminTicketReport(ListView):
+    model = MyHouse
+    template_name = 'admin_panel/admin_ticket_report.html'
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        qs = (
+            MyHouse.objects
+            .filter(admin_tickets__is_sent=True)
+            .annotate(
+                total_tickets=Count(
+                    'admin_tickets',
+                    filter=Q(admin_tickets__is_sent=True)
+                )
+            )
+            .distinct()
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class AdminTicketDetailView(ListView):
+    model = AdminTicket
+    template_name = "admin_panel/admin_tickets_report_list.html"
+    context_object_name = "admin_tickets"
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        house_id = self.kwargs['house_id']
+        query = self.request.GET.get('q', '')
+
+        qs = AdminTicket.objects.filter(
+            house_id=house_id
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(subject__icontains=query)
+            )
+
+        return qs.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+
+        context['house'] = MyHouse.objects.filter(
+            id=self.kwargs['house_id']
+        ).first()
+
         return context
 
 

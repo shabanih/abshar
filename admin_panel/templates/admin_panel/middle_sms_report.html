@@ -3,7 +3,7 @@
 {% load poll_extras %}
 
 {% block page_title %}
-مدیریت پیامک های ارسالی مدیران
+مدیریت پیامک مدیران
 {% endblock page_title %}
 
 {% block main_content %}
@@ -52,7 +52,7 @@
                             <th>#</th>
                             <th>مدیر ساختمان</th>
                             <th>نام ساختمان</th>
-                            <th>تعداد شارژ</th>
+                            <th>تعداد پیامک</th>
                             <th>دستورات</th>
                         </tr>
                     </thead>
@@ -66,7 +66,7 @@
                                 <td> {{ house.total_credit_sms}} </td>
                                 
                                <td class="col-lg-1 col-xl-1">
-                                       <a href="{% url 'sms_credit_list' house.id %}" class="btn btn-info p-1 p-1">
+                                       <a href="{% url 'middle_sms_report_list' house.id %}" class="btn btn-info p-1 p-1">
                                               <i class="mdi mdi-eye" aria-hidden="true"></i>
                                             </a>
                             </td>

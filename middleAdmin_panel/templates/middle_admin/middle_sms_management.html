@@ -52,7 +52,7 @@
                             <th>عنوان </th>
                             <th>متن پیامک </th>
                             <th>تاریخ ایجاد</th>
-{#                            <th>فعال/غیرفعال</th>#}
+                            <th>تاریخ تایید</th>
                             <th>وضعیت</th>
                             <th>تاریخ ارسال</th>
                             <th>تعداد پیامک ارسالی</th>
@@ -69,6 +69,7 @@
                                 <td>{{ sms.message }}</td>
 
                                 <td>{{ sms.created_at|show_jalali}}</td>
+                                <td>{{ sms.approved_at|show_jalali}}</td>
 {#                                  <td>#}
 {#                                   {% if sms.is_active == True %}#}
 {#                                    <button class="btn btn-gradient-success bg-success p-2">فعال</button>#}

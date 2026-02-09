@@ -926,7 +926,7 @@ class SmsCredit(models.Model):
         null=True,
         blank=True
     )
-    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='مبلغ شارژ')
+    amount = models.DecimalField(max_digits=10, decimal_places=0, verbose_name='مبلغ شارژ')
     amount_with_tax = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='مبلغ با مالیات', default=0)
     is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده؟')
     created_at = models.DateTimeField(auto_now_add=True)

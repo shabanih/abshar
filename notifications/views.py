@@ -16,11 +16,12 @@ from django.views.generic.edit import FormMixin
 
 from admin_panel.forms import MessageToUserForm, AdminMessageToMiddleForm
 from admin_panel.models import MessageToUser, MessageReadStatus, AdminMessageToMiddle, MiddleMessageReadStatus
+from admin_panel.views import admin_required
 from middleAdmin_panel.views import middle_admin_required
 from notifications.models import SupportUser, SupportFile, SupportMessage, Notification, AdminTicket, AdminTicketFile, \
     AdminTicketMessage, MiddleAdminNotification
 from user_app.forms import SupportUserForm, SupportMessageForm, MiddleAdminTicketForm, MiddleAdminMessageForm
-from user_app.models import User, Unit
+from user_app.models import User, Unit, MyHouse
 
 
 @method_decorator(login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN), name='dispatch')
@@ -336,6 +337,8 @@ class MiddleAdminTicketCreateView(CreateView):
         # 1️⃣ ایجاد تیکت
         obj = form.save(commit=False)
         obj.user = self.request.user
+        house = MyHouse.objects.filter(user=self.request.user).first()
+        obj.house = house
         obj.is_sent = True
         # 👇 اختصاص ادمین (فرض می‌کنیم تنها یک ادمین داریم)
         obj.assigned_admin = User.objects.filter(is_superuser=True).first()
@@ -489,7 +492,7 @@ def middlAdmin_close_ticket(request, pk):
 
 
 # -------------------------------------------------------------------------------
-@method_decorator(middle_admin_required, name='dispatch')
+@method_decorator(admin_required, name='dispatch')
 class AdminTicketsView(ListView):
     model = AdminTicket
     template_name = 'admin_tickets.html'
@@ -625,7 +628,6 @@ def admin_is_continue(request, pk):
     ticket.is_waiting = False
     ticket.save()
     return redirect('admin_ticket_detail', pk=ticket.id)
-
 
 # ========================= Message To User ======
 @method_decorator(login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN), name='dispatch')

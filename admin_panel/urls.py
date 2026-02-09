@@ -223,6 +223,17 @@ urlpatterns = [
         name="sms_credit_list"
     ),
     path('middle/sms/report/', views.middleSmsManagementReport.as_view(), name='middle_sms_report'),
+    path(
+        "middle/report/sms/<int:house_id>/",
+        views.middleReportSmsDetailView.as_view(),
+        name="middle_sms_report_list"
+    ),
+    path('admin/ticket/report/', views.AdminTicketReport.as_view(), name='admin_ticket_report'),
+    path(
+        "admin/report/ticket/<int:house_id>/",
+        views.AdminTicketDetailView.as_view(),
+        name="admin_ticket_report_list"
+    ),
 
     # مسیر دریافت نوت‌ها
     path('calendar/notes/<int:year>/<int:month>/', views.get_notes, name='get_notes'),

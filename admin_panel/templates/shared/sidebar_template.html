@@ -230,7 +230,7 @@
                     <li class="nav-item mt-0">
                     <a class="nav-link {% if request.path == url_middle_sms_report %}active{% endif %}"
                        href="{{ url_middle_sms_report }}">
-                      لیست پیامک مدیران
+                      مدیریت پیامک مدیران
                     </a>
                   </li>
 
@@ -244,15 +244,60 @@
 {#                            <i class="fas fa-send menu-icon"></i>#}
 {#                          </a>#}
 {#                        </li>#}
-              <li class="nav-item border-top mt-0">
-                    {% url 'admin_tickets' as address_url %}
-                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                <i class="menu-title">پشتبانی</i>
-                <span id="ticket-counter-admin" class="badge bg-danger bordered counter-badge">0</span>
+{#              <li class="nav-item border-top mt-0">#}
+{#                    {% url 'admin_tickets' as address_url %}#}
+{#                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">#}
+{#                <i class="menu-title">پشتبانی</i>#}
+{#                <span id="ticket-counter-admin" class="badge bg-danger bordered counter-badge">0</span>#}
+{##}
+{#                <i class="fas fa-headphones-alt menu-icon"></i>#}
+{#              </a>#}
+{#            </li>#}
+          
+          {% url 'admin_tickets' as url_admin_ticket %}
+            {% url 'admin_ticket_report' as url_ticket_list %}
 
-                <i class="fas fa-headphones-alt menu-icon"></i>
-              </a>
+            <li class="nav-item border-top mt-0">
+
+                <a class="nav-link
+                    {% if request.path == url_admin_ticket or request.path == url_ticket_list %}active{% endif %}"
+                   data-bs-toggle="collapse"
+                   href="#general4">
+
+                    <i class="menu-title">پشتیبانی</i>
+
+                    <span id="ticket-counter-admin" class="badge bg-danger bordered counter-badge">0</span>
+
+                    <i class="menu-arrow"></i>
+                    <i class="mdi mdi-headphones-box menu-icon"></i>
+                </a>
+
+                <div class="collapse
+                    {% if request.path == url_admin_ticket or request.path == url_ticket_list %}show{% endif %}"
+                     id="general4">
+
+                    <ul class="nav flex-column sub-menu">
+
+                        <li class="nav-item mt-0">
+                            <a class="nav-link {% if request.path == url_admin_ticket %}active{% endif %}"
+                               href="{{ url_admin_ticket }}">
+                                 تیکت های من
+                            </a>
+                        </li>
+
+                        <li class="nav-item mt-0">
+                            <a class="nav-link {% if request.path == url_ticket_list %}active{% endif %}"
+                               href="{{ url_ticket_list }}">
+                                گزارش تیکت ها
+                            </a>
+                        </li>
+
+                    </ul>
+                </div>
+
             </li>
+          
+          
           </ul>
 
 </nav>

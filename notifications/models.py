@@ -4,7 +4,7 @@ import random
 from ckeditor_uploader.fields import RichTextUploadingField
 from django.db import models
 
-from user_app.models import User
+from user_app.models import User, MyHouse
 
 
 def generate_ticket_no():
@@ -17,6 +17,7 @@ def generate_ticket_no():
 
 class SupportUser(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+
     subject = models.CharField(max_length=200, null=True, blank=True, verbose_name='عنوان')
     ticket_no = models.PositiveIntegerField(unique=True, editable=False, default=generate_ticket_no)
     message = RichTextUploadingField()
@@ -108,6 +109,13 @@ class AdminTicket(models.Model):
         null=True,
         blank=True,
         related_name="assigned_tickets"
+    )
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.CASCADE,
+        related_name="admin_tickets",
+        null=True,
+        blank=True
     )
 
     ticket_no = models.PositiveIntegerField(unique=True, editable=False, default=generate_ticket_no)
