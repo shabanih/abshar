@@ -84,7 +84,11 @@ class Bank(models.Model):
     account_holder_name = models.CharField(max_length=100, verbose_name='نام صاحب حساب')
     sheba_number = models.CharField(max_length=100, verbose_name='شماره شبا')
     cart_number = models.CharField(max_length=100, verbose_name='شماره کارت')
-    initial_fund = models.PositiveIntegerField(verbose_name='موجودی اولیه صندوق')
+    initial_fund = models.PositiveIntegerField(
+        verbose_name='موجودی اولیه صندوق',
+        null=True,
+        blank=True
+    )
     is_default = models.BooleanField(default=False, verbose_name='حساب پیش فرض')
     is_gateway = models.BooleanField(default=False, verbose_name='حساب پیش فرض درگاه اینترنتی')
     create_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
@@ -451,6 +455,13 @@ class UserPayMoney(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
+    house = models.ForeignKey(
+        'MyHouse',
+        on_delete=models.CASCADE,
+        related_name='user_pay_money',
+        null=True,  # اگر دیتای قدیمی داری
+        blank=True
+    )
     payer_name = models.CharField(max_length=400, null=True, blank=True)
     payment_gateway = models.CharField(max_length=400, null=True, blank=True)
     description = models.CharField(max_length=4000, verbose_name='شرح')
@@ -459,6 +470,7 @@ class UserPayMoney(models.Model):
     details = models.TextField(verbose_name='توضیحات', null=True, blank=True)
     is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده/ نشده')
     transaction_reference = models.CharField(max_length=20, null=True, blank=True)
+
     payment_date = models.DateField(
         null=True,
         blank=True,

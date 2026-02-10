@@ -234,6 +234,12 @@ urlpatterns = [
         views.AdminTicketDetailView.as_view(),
         name="admin_ticket_report_list"
     ),
+    path('admin/fund/report/', views.AdminFundReport.as_view(), name='admin_fund_report'),
+    path(
+        "admin/report/fund/<int:house_id>/",
+        views.AdminFundReportDetailView.as_view(),
+        name="admin_fund_report_list"
+    ),
 
     # مسیر دریافت نوت‌ها
     path('calendar/notes/<int:year>/<int:month>/', views.get_notes, name='get_notes'),

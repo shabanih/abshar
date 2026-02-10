@@ -217,7 +217,7 @@
 
                                 </p>
                                 <hr>
-                             {% if receive.transaction_reference %} 
+                             {% if receive.is_paid %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ receive.payment_date|show_jalali_date_only }}</p>
                                 <p><strong> کد پیگیری:</strong> {{ receive.transaction_reference }}</p>
                                 <p><strong> بانک:</strong> {{ receive.bank }}</p>

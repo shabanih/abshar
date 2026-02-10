@@ -460,16 +460,16 @@ class middleAddBankView(CreateView):
 
     @transaction.atomic
     def form_valid(self, form):
-        # ذخیره بانک
         form.instance.user = self.request.user
         response = super().form_valid(form)
+
         bank = self.object
+        house = bank.house  # اینجا هم اصلاح شد
 
         # اگر موجودی اولیه دارد → Fund افتتاحیه
         if bank.initial_fund and bank.initial_fund > 0:
             content_type = ContentType.objects.get_for_model(Bank)
 
-            # جلوگیری از ثبت تکراری
             if not Fund.objects.filter(
                     content_type=content_type,
                     object_id=bank.id,
@@ -478,21 +478,23 @@ class middleAddBankView(CreateView):
                 Fund.objects.create(
                     user=self.request.user,
                     bank=bank,
-                    payer_name=f'{bank.account_holder_name}',
+                    house=house,
+                    payer_name=bank.account_holder_name,
                     receiver_name='صندوق',
                     payment_gateway='پرداخت الکترونیک',
                     content_type=content_type,
                     object_id=bank.id,
                     is_initial=True,
                     is_paid=True,
-                    amount=Decimal(bank.initial_fund),
-                    debtor_amount=Decimal(bank.initial_fund),
+                    amount=bank.initial_fund,
+                    debtor_amount=bank.initial_fund,
                     creditor_amount=Decimal(0),
                     payment_date=bank.create_at.date(),
                     payment_description=f'افتتاحیه حساب بانک {bank.bank_name}'
                 )
-            messages.success(self.request, 'حساب بانکی با موفقیت ثبت گردید!')
-            return super().form_valid(form)
+
+        messages.success(self.request, 'حساب بانکی با موفقیت ثبت گردید!')
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -517,13 +519,22 @@ class middleBankUpdateView(UpdateView):
         bank = self.get_object()
         old_initial_fund = bank.initial_fund  # مقدار قبلی
 
+        # ست کردن کاربر قبل از ذخیره فرم
         form.instance.user = self.request.user
+
+        # ذخیره Bank (شامل house و بقیه فیلدها)
         response = super().form_valid(form)
 
-        bank.refresh_from_db()  # مقدار جدید
+        # بارگذاری دوباره بانک بعد از ذخیره
+        bank.refresh_from_db()
         new_initial_fund = bank.initial_fund
+        house = bank.house  # حتما house را از بانک بگیری
 
-        # پیدا کردن Fund افتتاحیه مرتبط با بانک
+        # بررسی تغییر مقدار اولیه
+        if old_initial_fund == new_initial_fund:
+            messages.success(self.request, 'اطلاعات حساب بانکی بروزرسانی شد.')
+            return response
+
         content_type = ContentType.objects.get_for_model(Bank)
         initial_fund_obj = Fund.objects.filter(
             content_type=content_type,
@@ -531,23 +542,24 @@ class middleBankUpdateView(UpdateView):
             is_initial=True
         ).first()
 
+        # اگر موجودی جدید مثبت است → ایجاد یا بروزرسانی Fund
         if new_initial_fund and new_initial_fund > 0:
             if initial_fund_obj:
-                # اگر قبلاً Fund افتتاحیه وجود دارد → بروزرسانی
+                # بروزرسانی
                 initial_fund_obj.amount = Decimal(new_initial_fund)
                 initial_fund_obj.debtor_amount = Decimal(new_initial_fund)
                 initial_fund_obj.creditor_amount = Decimal(0)
                 initial_fund_obj.payment_description = f'افتتاحیه حساب بانک {bank.bank_name}'
+                initial_fund_obj.house = house  # ✅ مهم
                 initial_fund_obj.save()
-
-                # 🔁 بازمحاسبه مانده‌ها از این سند به بعد
                 Fund.recalc_final_amounts_from(initial_fund_obj)
             else:
-                # اگر وجود ندارد → ایجاد Fund افتتاحیه جدید
-                Fund.objects.create(
+                # ایجاد Fund جدید
+                fund = Fund.objects.create(
                     user=self.request.user,
                     bank=bank,
-                    payer_name=f'{bank.account_holder_name}',
+                    house=house,  # ✅ مهم
+                    payer_name=bank.account_holder_name,
                     receiver_name='صندوق',
                     payment_gateway='پرداخت الکترونیک',
                     content_type=content_type,
@@ -557,15 +569,25 @@ class middleBankUpdateView(UpdateView):
                     amount=Decimal(new_initial_fund),
                     debtor_amount=Decimal(new_initial_fund),
                     creditor_amount=Decimal(0),
-                    payment_date=bank.create_at.date(),
+                    payment_date=bank.created_at.date(),
                     payment_description=f'افتتاحیه حساب بانک {bank.bank_name}'
                 )
+                Fund.recalc_final_amounts_from(fund)
+
+        # اگر موجودی صفر یا حذف شد → حذف Fund افتتاحیه
         else:
-            # اگر موجودی صفر شد یا حذف شد → حذف Fund افتتاحیه
             if initial_fund_obj:
+                next_fund = Fund.objects.filter(
+                    bank=bank,
+                    id__gt=initial_fund_obj.id
+                ).order_by('id').first()
+
                 initial_fund_obj.delete()
 
-        messages.success(self.request, 'اطلاعات حساب بانکی با موفقیت ثبت/ویرایش شد!')
+                if next_fund:
+                    Fund.recalc_final_amounts_from(next_fund)
+
+        messages.success(self.request, 'اطلاعات حساب بانکی با موفقیت بروزرسانی شد!')
         return response
 
     def get_context_data(self, **kwargs):
@@ -1247,6 +1269,8 @@ class MiddleExpenseView(CreateView):
 
     def form_valid(self, form):
         form.instance.user = self.request.user
+        house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
+        form.instance.house = house  # 🔹 این مهم است
 
         try:
             with transaction.atomic():
@@ -1364,16 +1388,22 @@ def expense_pay_view(request, expense_id):
                     receiver_name = form.cleaned_data.get('receiver_name')
                     unit = form.cleaned_data['unit']
 
-                    # 🔹 موجودی فعلی صندوق
-                    last_fund = Fund.objects.order_by('-doc_number').first()
-                    current_final = (
-                        last_fund.final_amount
-                        if last_fund and last_fund.final_amount is not None
-                        else bank.initial_fund
-                    )
+                    # 🔹 موجودی فعلی صندوق بانک انتخاب شده
+
+                    funds = Fund.objects.filter(user=request.user, bank=bank)
+                    print(f"Funds count for bank {bank.id}: {funds.count()}")
+                    for f in funds:
+                        print(f"Fund: {f.id}, bank: {f.bank}, final: {f.final_amount}")
+
+                    bank_funds = Fund.objects.filter(user=request.user, bank=bank)
+                    total_debit = bank_funds.aggregate(Sum('debtor_amount'))['debtor_amount__sum'] or 0
+                    total_credit = bank_funds.aggregate(Sum('creditor_amount'))['creditor_amount__sum'] or 0
+                    current_final = Decimal(total_debit) - Decimal(total_credit)
+
+                    print(f'bank-fund:{current_final}')
 
                     # 🔴 بررسی موجودی
-                    if current_final - expense.amount < 0:
+                    if current_final < expense.amount:
                         messages.error(
                             request,
                             'موجودی صندوق کافی نیست'
@@ -1386,6 +1416,7 @@ def expense_pay_view(request, expense_id):
                         receiver_name=receiver_name if not unit else f' {unit.get_label()}',
                         user=request.user,
                         bank=bank,
+                        house=expense.house,
                         content_object=expense,
                         amount=expense.amount,
                         debtor_amount=0,
@@ -1494,6 +1525,11 @@ def expense_cancel_pay_view(request, expense_id):
 def middle_expense_edit(request, pk):
     expense = get_object_or_404(Expense, pk=pk)
 
+    # اگر پرداخت شده → ویرایش مجاز نیست
+    if expense.is_paid:
+        messages.warning(request, 'این هزینه پرداخت شده است و قابل ویرایش نیست.')
+        return redirect('middle_add_expense')
+
     if request.method != 'POST':
         return redirect('middle_add_expense')
 
@@ -1509,34 +1545,10 @@ def middle_expense_edit(request, pk):
         messages.error(request, "مقدار مبلغ وارد شده معتبر نیست.")
         return redirect('middle_add_expense')
 
-    expense_ct = ContentType.objects.get_for_model(Expense)
-
     with transaction.atomic():
-        # دریافت یا ایجاد Fund مرتبط با این Expense
-        fund, created = Fund.objects.get_or_create(
-            content_type=expense_ct,
-            object_id=expense.id,
-            defaults={
-                'user': expense.user,
-                'amount': Decimal(0),
-                'debtor_amount': Decimal(0),
-                'creditor_amount': Decimal(0),
-                'payment_date': expense.date,
-                'payment_gateway': 'پرداخت الکترونیک',
-                'payment_description': f"هزینه: {(expense.description or '')[:50]}",
-            }
-        )
-
-        old_creditor = fund.creditor_amount or Decimal(0)
-        delta = new_amount - old_creditor  # 🔹 تغییر واقعی
-
-        # محاسبه موجودی فعلی صندوق کلی (بدون بانک)
-        last_fund = Fund.objects.order_by('-doc_number').first()
-        current_final = Decimal(last_fund.final_amount if last_fund else 0)
-
-        if current_final - delta < 0:
-            messages.error(request, "خطا: موجودی صندوق کافی نیست. ویرایش هزینه باعث منفی شدن موجودی می‌شود.")
-            return redirect('middle_add_expense')
+        # 🔹 ست کردن خانه مرتبط با کاربر
+        house = MyHouse.objects.filter(user=request.user, is_active=True).first()
+        form.instance.house = house
 
         # ذخیره Expense
         expense = form.save()
@@ -1545,20 +1557,9 @@ def middle_expense_edit(request, pk):
         for f in request.FILES.getlist('document'):
             ExpenseDocument.objects.create(expense=expense, document=f)
 
-        # بروزرسانی Fund با مقدار جدید
-        fund.creditor_amount = new_amount
-        fund.debtor_amount = Decimal(0)
-        fund.amount = new_amount
-        fund.payment_date = expense.date
-        fund.payment_gateway = 'پرداخت الکترونیک'
-        fund.payment_description = f"هزینه: {(expense.description or '')[:50]}"
-        fund.save()
-
-        # بازمحاسبه موجودی کل صندوق
-        Fund.recalc_final_amounts_from(fund)
-
     messages.success(request, 'هزینه با موفقیت ویرایش شد.')
     return redirect('middle_add_expense')
+
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -1847,6 +1848,8 @@ class MiddleIncomeView(CreateView):
 
     def form_valid(self, form):
         form.instance.user = self.request.user
+        house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
+        form.instance.house = house  # 🔹 این مهم است
 
         try:
             with transaction.atomic():
@@ -1981,11 +1984,13 @@ def income_pay_view(request, income_id):
                     payer_name = form.cleaned_data.get('payer_name')
                     unit = form.cleaned_data['unit']
 
+
                     fund = Fund.objects.create(
                         unit=unit if unit else None,
                         payer_name=payer_name if not unit else f' {unit.get_label()}',
                         user=request.user,
                         bank=bank,
+                        house=income.house,
                         content_object=income,
                         amount=income.amount,
                         debtor_amount=income.amount,
@@ -2096,6 +2101,10 @@ def income_cancel_pay_view(request, income_id):
 def middle_income_edit(request, pk):
     income = get_object_or_404(Income, pk=pk)
 
+    if income.is_paid:
+        messages.warning(request, 'این درآمد پرداخت شده است و قابل ویرایش نیست.')
+        return redirect('middle_add_income')
+
     if request.method != 'POST':
         return redirect('middle_add_income')
 
@@ -2107,41 +2116,11 @@ def middle_income_edit(request, pk):
 
     try:
         with transaction.atomic():
+            house = MyHouse.objects.filter(user=request.user, is_active=True).first()
+            form.instance.house = house
             income = form.save()
 
-            # 🔹 بروزرسانی سند مالی
-            content_type = ContentType.objects.get_for_model(Income)
-            fund = Fund.objects.filter(
-                content_type=content_type,
-                object_id=income.id
-            ).first()
-
-            if fund:
-                fund.bank = income.bank
-                fund.debtor_amount = income.amount
-                fund.amount = income.amount or 0
-                fund.creditor_amount = 0
-                fund.payment_date = income.doc_date
-                fund.payment_gateway = 'پرداخت الکترونیک'
-                fund.payment_description = f"درآمد (ویرایش): {(income.description or '')[:50]}"
-                fund.save()
-                Fund.recalc_final_amounts_from(fund)
-            else:
-                # اگر قبلاً سند نداشته (حالت غیرمنتظره)
-                Fund.objects.create(
-                    content_type=content_type,
-                    object_id=income.id,
-                    bank=income.bank,
-                    debtor_amount=income.amount or 0,
-                    amount=income.amount or 0,
-                    creditor_amount=0,
-                    user=request.user,
-                    payment_date=income.doc_date,
-                    payment_gateway='پرداخت الکترونیک',
-                    payment_description=f"درآمد: {(income.description or '')[:50]}",
-                )
-
-            # 🔹 ذخیره فایل‌ها
+            # 🔹 ذخیره فایل‌های جدید بدون حذف قبلی
             files = request.FILES.getlist('document')
             for f in files:
                 IncomeDocument.objects.create(income=income, document=f)
@@ -2152,6 +2131,7 @@ def middle_income_edit(request, pk):
     except Exception as e:
         messages.error(request, 'خطا در ویرایش درآمد.')
         return redirect('middle_add_income')
+
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -2376,6 +2356,10 @@ class MiddleReceiveMoneyCreateView(CreateView):
     def form_valid(self, form):
         form.instance.user = self.request.user
         try:
+            # 🔹 مشخص کردن خانه کاربر
+            house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
+            form.instance.house = house  # ذخیره خانه در ReceiveMoney
+
             self.object = form.save(commit=False)
             self.object.payer_name = self.object.get_payer_display()
             self.object.is_received_money = True
@@ -2385,12 +2369,15 @@ class MiddleReceiveMoneyCreateView(CreateView):
             content_type = ContentType.objects.get_for_model(self.object)
             payer_name_for_fund = self.object.payer_name if not self.object.unit else f"{self.object.unit}"
 
+
+            # 🔹 ذخیره سند در Fund با خانه
             Fund.objects.create(
                 user=self.request.user,
                 content_type=content_type,
                 object_id=self.object.id,
                 bank=self.object.bank,
                 unit=self.object.unit,
+                house=house,  # ← اضافه شد
                 amount=self.object.amount or 0,
                 debtor_amount=self.object.amount or 0,
                 creditor_amount=0,
@@ -2403,15 +2390,16 @@ class MiddleReceiveMoneyCreateView(CreateView):
                 is_paid=True,
                 is_received_money=True
             )
-            files = self.request.FILES.getlist('document')
 
-            # ذخیره فایل‌ها در مدل ExpenseDocument
+            files = self.request.FILES.getlist('document')
             for f in files:
                 ReceiveDocument.objects.create(receive=self.object, document=f)
+
             messages.success(self.request, 'سند دریافت با موفقیت ثبت گردید!')
             return super().form_valid(form)
-        except:
-            messages.error(self.request, 'خطا در ثبت!')
+
+        except Exception as e:
+            messages.error(self.request, f'خطا در ثبت! {e}')
             return self.form_invalid(form)
 
     def get_queryset(self):
@@ -2491,6 +2479,9 @@ def middle_receive_edit(request, pk):
         pk=pk,
         user=request.user
     )
+    if receive.is_paid:
+        messages.warning(request, 'این سند بدلیل ثبت رکورد پرداخت قابل ویرایش نیست')
+        return redirect('middle_add_receive')
 
     if request.method == 'POST':
         form = ReceiveMoneyForm(
@@ -2800,21 +2791,53 @@ class MiddlePaymentMoneyCreateView(CreateView):
 
     def form_valid(self, form):
         form.instance.user = self.request.user
-        try:
+        house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
+        form.instance.house = house
+
+        with transaction.atomic():
+
             self.object = form.save(commit=False)
+
+            bank = self.object.bank
+            amount = self.object.amount
+
+            bank_funds = Fund.objects.filter(
+                user=self.request.user,
+                bank=bank
+            )
+
+            total_debit = bank_funds.aggregate(
+                Sum('debtor_amount')
+            )['debtor_amount__sum'] or 0
+
+            total_credit = bank_funds.aggregate(
+                Sum('creditor_amount')
+            )['creditor_amount__sum'] or 0
+
+            current_final = Decimal(total_debit) - Decimal(total_credit)
+
+            if current_final < amount:
+                messages.error(self.request, 'موجودی صندوق کافی نیست')
+                return self.form_invalid(form)
+
             self.object.receiver_name = self.object.get_receiver_display
             self.object.is_paid_money = True
             self.object.save()
             form.save_m2m()
 
             content_type = ContentType.objects.get_for_model(self.object)
-            receiver_name_for_fund = self.object.receiver_name if not self.object.unit else f"{self.object.unit}"
+
+            receiver_name_for_fund = (
+                self.object.receiver_name
+                if not self.object.unit else f"{self.object.unit}"
+            )
 
             Fund.objects.create(
                 user=self.request.user,
                 content_type=content_type,
                 object_id=self.object.id,
-                bank=self.object.bank,
+                bank=bank,
+                house=house,
                 unit=self.object.unit,
                 amount=self.object.amount,
                 debtor_amount=0,
@@ -2835,9 +2858,9 @@ class MiddlePaymentMoneyCreateView(CreateView):
             messages.success(self.request, 'سند پرداخت با موفقیت ثبت گردید!')
             return super().form_valid(form)
 
-        except Exception as e:
-            messages.error(self.request, f'خطا در ثبت: {e}')
-            return self.form_invalid(form)
+        # except Exception as e:
+        #     messages.error(self.request, f'خطا در ثبت: {e}')
+        #     return self.form_invalid(form)
 
     def get_queryset(self):
         queryset = PayMoney.objects.filter(user=self.request.user).order_by('-created_at')
@@ -2913,6 +2936,10 @@ class MiddlePaymentMoneyCreateView(CreateView):
 def middle_pay_edit(request, pk):
     # گرفتن رکورد پرداخت موجود
     payment = get_object_or_404(PayMoney, pk=pk)
+
+    if payment.is_paid:
+        messages.warning(request, 'این سند بدلیل ثبت رکورد پرداخت قابل ویرایش نیست')
+        return redirect('middle_add_pay')
 
     if request.method == 'POST':
         # فرم با instance برای ویرایش
@@ -3215,6 +3242,8 @@ class MiddlePropertyCreateView(CreateView):
 
     def form_valid(self, form):
         form.instance.user = self.request.user
+        house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
+        form.instance.house = house
         try:
             self.object = form.save()
             files = self.request.FILES.getlist('document')
@@ -3519,6 +3548,8 @@ class MiddleMaintenanceCreateView(CreateView):
 
     def form_valid(self, form):
         form.instance.user = self.request.user
+        house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
+        form.instance.house = house
         try:
             self.object = form.save()
             files = self.request.FILES.getlist('document')

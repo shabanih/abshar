@@ -78,6 +78,66 @@ def to_jalali(date_obj):
     jalali_date = jdatetime.date.fromgregorian(date=date_obj)
     return jalali_date.strftime('%Y/%m/%d')
 
+class MiddleBankList(ListView):
+    model = Bank
+    template_name = 'bank_list.html'
+    context_object_name = 'banks'
+    paginate_by = 20
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        banks = Bank.objects.filter(user=self.request.user).order_by('-create_at')
+
+        bank_transactions = {}  # کل تراکنش‌ها و موجودی هر بانک
+
+        for bank in banks:
+            funds = Fund.objects.filter(bank=bank).order_by('doc_number')
+            running_total = Decimal(0)
+            transactions = []
+            for f in funds:
+                running_total += (f.debtor_amount or 0) - (f.creditor_amount or 0)
+                transactions.append({
+                    'date': f.payment_date,
+                    'description': f.payment_description,
+                    'debit': f.debtor_amount,
+                    'credit': f.creditor_amount,
+                    'balance': running_total
+                })
+            bank_transactions[bank.id] = {
+                'transactions': transactions,
+                'balance': running_total
+            }
+
+        context['banks'] = banks
+        context['bank_transactions'] = bank_transactions
+        return context
+
+
+
+def bank_detail_view(request, bank_id):
+    bank = get_object_or_404(Bank, id=bank_id, user=request.user)
+
+    # تراکنش‌ها
+    funds = Fund.objects.filter(bank=bank).order_by('doc_number')
+    running_total = Decimal(0)
+    transactions = []
+    for f in funds:
+        running_total += (f.debtor_amount or 0) - (f.creditor_amount or 0)
+        transactions.append({
+            'date': f.payment_date,
+            'description': f.payment_description,
+            'debit': f.debtor_amount,
+            'credit': f.creditor_amount,
+            'balance': running_total
+        })
+
+    context = {
+        'bank': bank,
+        'transactions': transactions,
+        'balance': running_total,
+    }
+    return render(request, 'bank_turnover_detail.html', context)
+
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def fund_middle_turnover(request):
@@ -89,7 +149,6 @@ def fund_middle_turnover(request):
     funds = Fund.objects.select_related('bank', 'content_type', 'unit').filter(
         Q(unit__user=manager) | Q(unit__user__manager=manager) | Q(user=manager)
     ).order_by('-payment_date')
-
 
     if query:
         funds = funds.filter(
@@ -282,7 +341,7 @@ def admin_fund_turnover(request):
     paginator = Paginator(funds, paginate)
     page_obj = paginator.get_page(request.GET.get('page'))
 
-    return render(request, 'admin_reports/admin_fund_turnover.html', {
+    return render(request, 'admin_reports/../admin_panel/templates/report/admin_fund_turnover.html', {
         'funds': page_obj,
         'query': query,
         'paginate': paginate,
@@ -294,7 +353,6 @@ def admin_fund_turnover(request):
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def admin_export_middle_report_pdf(request):
-
     # Queryset اصلی
     funds = Fund.objects.all()
     house = None
@@ -646,7 +704,6 @@ def fund_turnover_user(request):
     })
 
 
-
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def export_user_report_excel(request):
     user = request.user
@@ -878,6 +935,7 @@ def charge_units_list_report_pdf(request):
     response = HttpResponse(pdf, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="charge_units_report.pdf"'
     return response
+
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def charge_units_list_report_excel(request):
@@ -1968,8 +2026,9 @@ class ReportPropertyView(ListView):
         context['page_obj'] = page_obj
         context['total_properties'] = Property.objects.filter(user=self.request.user).count()
         context['properties'] = Property.objects.filter(user=self.request.user)
-        context['total_amount'] = Property.objects.filter(user=self.request.user).aggregate(total=Sum('property_price'))[
-                                      'total'] or 0
+        context['total_amount'] = \
+        Property.objects.filter(user=self.request.user).aggregate(total=Sum('property_price'))[
+            'total'] or 0
         return context
 
 
@@ -2203,6 +2262,7 @@ def parse_jalali_to_gregorian(date_str):
     except Exception:
         return None
 
+
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def export_maintenance_report_pdf(request):
     maintenances = Maintenance.objects.filter(user=request.user).order_by('-created_at')
@@ -2271,6 +2331,7 @@ def export_maintenance_report_pdf(request):
 
     pdf_merger.write(response)
     return response
+
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def export_maintenance_report_excel(request):
@@ -2614,8 +2675,8 @@ def house_balance_view(request):
     balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
 
     total_charge_unpaid = \
-    UnifiedCharge.objects.filter(is_paid=False, user=request.user).aggregate(Sum('total_charge_month'))[
-        'total_charge_month__sum']
+        UnifiedCharge.objects.filter(is_paid=False, user=request.user).aggregate(Sum('total_charge_month'))[
+            'total_charge_month__sum']
 
     context = {
         'total_incomes_exclude_unpaid': total_incomes_exclude_unpaid,

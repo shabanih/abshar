@@ -134,6 +134,7 @@ def verify_pay(request: HttpRequest):
                         content_type=content_type,
                         object_id=payment_charge.id,
                         unit=payment_charge.unit,
+                        house=payment_charge.house,
                         bank=default_bank,
                         debtor_amount=payment_charge.total_charge_month,
                         amount=payment_charge.total_charge_month,
@@ -206,6 +207,7 @@ def payment_charge_user_view(request, pk):
                 content_type=content_type,
                 object_id=charge.id,
                 unit=charge.unit,
+                house=charge.house,
                 bank=charge.bank,
                 debtor_amount=charge.total_charge_month,
                 amount=charge.total_charge_month,
@@ -252,6 +254,7 @@ def user_pay_money_view(request, pk):
                 content_type=content_type,
                 object_id=pay.id,
                 unit=pay.unit,
+                house=pay.house,
                 bank=selected_bank,
                 debtor_amount=pay.amount,
                 amount=pay.amount,
@@ -390,6 +393,7 @@ def verify_user_pay_money(request: HttpRequest):
                 content_type=content_type,
                 object_id=pay.id,
                 unit=pay.unit,
+                house=pay.house,
                 bank=bank,
                 debtor_amount=0,
                 amount=pay.amount,
@@ -401,6 +405,7 @@ def verify_user_pay_money(request: HttpRequest):
                 transaction_no=ref_id,
                 payment_gateway='پرداخت اینترنتی'
             )
+
 
             messages.success(request, f'پرداخت با موفقیت انجام شد. کد پیگیری: {ref_id}')
             return redirect('user_pay_money')
@@ -466,6 +471,7 @@ def unit_charge_middle_payment_view(request, charge_id):
                     object_id=unified_charge.id,
                     bank=unified_charge.bank,
                     unit=unified_charge.unit,
+                    house=unified_charge.house,
                     payer_name=unified_charge.unit.get_label(),
                     debtor_amount=unified_charge.total_charge_month,
                     amount=unified_charge.total_charge_month,
@@ -509,8 +515,3 @@ def unit_charge_middle_payment_view(request, charge_id):
     })
 
 
-
-# @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-# def charge_payment_done_view(request, pk):
-#     charge = get_object_or_404(UnifiedCharge, pk=pk)
-#     return render(request, 'charge_payment_gateway.html', {'charge': charge})

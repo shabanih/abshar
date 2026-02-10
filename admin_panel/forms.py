@@ -324,8 +324,8 @@ class BankForm(forms.ModelForm):
                                   min_length=16,
                                   required=False, widget=forms.TextInput(attrs=attr),
                                   label='شماره کارت')
-    initial_fund = forms.CharField(error_messages=error_message, required=True, widget=forms.NumberInput(attrs=attr),
-                                   label='موجودی اولیه')
+    initial_fund = forms.CharField(error_messages=error_message, required=False, widget=forms.NumberInput(attrs=attr),
+                                   label='موجودی اولیه', initial=0)
     is_default = forms.ChoiceField(choices=IS_CHOICES, label='حساب پیش فرض باشد', widget=forms.Select(attrs=attr))
     is_gateway = forms.ChoiceField(choices=IS_CHOICES, label='حساب پیش فرض درگاه اینترنتی باشد',
                                    widget=forms.Select(attrs=attr))
@@ -927,7 +927,7 @@ class ExpensePayForm(forms.ModelForm):
     payment_date = JalaliDateField(
         label='تاریخ پرداخت',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
-        error_messages=error_message, required=False
+        error_messages=error_message, required=True
     )
     transaction_reference = forms.IntegerField(error_messages=error_message,
                                                widget=forms.TextInput(attrs=attr),
@@ -1262,9 +1262,9 @@ class ReceiveMoneyForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
 
-    amount = forms.CharField(
-        max_length=20, required=True, label='مبلغ',
-        widget=forms.TextInput(attrs={'class': 'form-control'})
+    amount = forms.IntegerField(
+        required=True, label='مبلغ',
+        widget=forms.NumberInput(attrs={'class': 'form-control'})
     )
 
     description = forms.CharField(
@@ -1371,8 +1371,8 @@ class PayerMoneyForm(forms.ModelForm):
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
 
-    amount = forms.CharField(error_messages=error_message, max_length=20, required=True,
-                             widget=forms.TextInput(attrs=attr),
+    amount = forms.IntegerField(error_messages=error_message, required=True,
+                             widget=forms.NumberInput(attrs=attr),
                              label='مبلغ')
     description = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=True,
                                   label='شرح سند')

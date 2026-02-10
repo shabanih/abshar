@@ -825,6 +825,14 @@ class UnifiedCharge(models.Model):
 class Fund(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='house_funds',
+        verbose_name='ساختمان مرتبط'
+    )
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     doc_number = models.PositiveIntegerField(null=True, blank=True)
     payer_name = models.CharField(max_length=200, null=True, blank=True)
@@ -896,6 +904,33 @@ class Fund(models.Model):
                     raise ValidationError(f"خطا: موجودی صندوق در سند شماره {f.doc_number} منفی شد!")
                 f.final_amount = running_total
                 f.save(update_fields=['final_amount'])
+
+
+class BankFund(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='bank_funds',
+        verbose_name='ساختمان مرتبط'
+    )
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+
+    amount = models.DecimalField(max_digits=12, decimal_places=0, null=True, blank=True)
+    payment_gateway = models.CharField(max_length=100, null=True, blank=True)
+    payment_date = models.DateField(null=True, blank=True)
+    transaction_no = models.CharField(max_length=15, null=True, blank=True)
+    payment_description = models.CharField(max_length=500, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_paid = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Fund: {self.payment_description} for {self.content_object}"
 
 
 class AdminFund(models.Model):

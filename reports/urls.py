@@ -6,6 +6,8 @@ from reports import views
 
 urlpatterns = [
     path('fund/turnover', views.fund_middle_turnover, name='fund_turn_over'),
+    path('middle/banks', views.MiddleBankList.as_view(), name='middle_bank_list'),
+    path('middle/banks<int:bank_id>/', views.bank_detail_view, name='middle_bank_detail'),
     path('tarakonesh', views.fund_turnover_user, name='fund_turn_over_user'),
     path('units/fund/', views.UnitReportsTurnOver.as_view(), name='unit_reports'),
     path('debtor/units/report/', views.debtor_units_report, name='debtor_units_report'),

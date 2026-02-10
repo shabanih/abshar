@@ -1,0 +1,80 @@
+{% extends 'middleShared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+مدیریت حساب بانکی
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container mt-3">
+               <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="text-center">
+                                    <tr>
+                                        <th>#</th>
+{#                                        <th>مدیر ساختمان</th>#}
+{#                                        <th>نام ساختمان</th>#}
+                                        <th> نام بانک</th>
+                                        <th>نام صاحب حساب</th>
+                                        <th>شماره حساب</th>
+                                        <th>شماره شبا</th>
+                                        <th>شماره کارت</th>
+                                     
+                                        <th>فعال/حساب پیش فرض</th>
+                                           <th>موجودی در حال حاضر</th>
+                                        <th>گردش حساب</th>
+                                    </tr>
+                                </thead>
+                            {% if banks %}
+                           {% for bank in banks %}
+                                    <tbody class="text-center">
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+{#                                            <td>{{ bank.user.full_name }}</td>#}
+{#                                            <td>{{bank.house }}</td>#}
+                                            <td>{{bank.bank_name }}</td>
+                                            <td>{{bank.account_holder_name }}</td>
+                                            <td>{{bank.account_no }}</td>
+                                            <td>{{bank.sheba_number }}</td>
+                                            <td>{{bank.cart_number|four_digit_cart }}</td>
+                                        
+                                              <td>
+                                               {% if bank.is_active == True %}
+                                                <button class="btn btn-primary bg-gradient-success p-1">فعال</button>
+                                                   {% else %}
+                                                   <button class="btn btn-gradient-danger p-1">غیر فعال</button>
+                                               {% endif %}
+                                                  {% if bank.is_default == True %}
+                                                <button class="btn btn-gradient-warning p-1">پیش فرض</button>
+                                               {% endif %}
+                                            </td>
+{% with bank_data=bank_transactions|dict_get:bank.id %}
+    <td>{{ bank_data.balance|three_digit_currency }}</td>
+{% endwith %}
+
+                                     <td class="col-lg-1 col-xl-1">
+                                       <a href="{% url 'middle_bank_detail' bank.id %}" class="btn btn-info p-1 p-1">
+                                              <i class="mdi mdi-eye" aria-hidden="true"></i>
+                                            </a>
+
+                                        </td>
+                                        </tr>
+                                    {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="11" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
+                                        </tr>
+                                 <tbody>
+                                {% endif %}
+                            </table>
+               </div>
+
+    <hr>
+</div>
+    
+{% endblock %}
+
+

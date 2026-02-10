@@ -13313,3 +13313,2059 @@ Not Found: /ws/tickets/admin/
 Not Found: /ws/tickets/admin/
 Not Found: /ws/tickets/admin/
 Not Found: /ws/tickets/admin/
+Watching for file changes with StatReloader
+Not Found: /favicon.ico
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\reports\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Internal Server Error: /admin-panel/admin/report/fund/4/
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\utils\decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\list.py", line 158, in get
+    self.object_list = self.get_queryset()
+                       ^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\admin_panel\views.py", line 1113, in get_queryset
+    qs = Fund.objects.filter(
+         ^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\query.py", line 1481, in filter
+    return self._filter_or_exclude(False, args, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\query.py", line 1499, in _filter_or_exclude
+    clone._filter_or_exclude_inplace(negate, args, kwargs)
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\query.py", line 1506, in _filter_or_exclude_inplace
+    self._query.add_q(Q(*args, **kwargs))
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1643, in add_q
+    clause, _ = self._add_q(q_object, can_reuse)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1675, in _add_q
+    child_clause, needed_inner = self.build_filter(
+                                 ^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1523, in build_filter
+    lookups, parts, reffed_expression = self.solve_lookup_type(arg, summarize)
+                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1330, in solve_lookup_type
+    _, field, _, lookup_parts = self.names_to_path(lookup_splitted, self.get_meta())
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1802, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'house_id' into field. Choices are: amount, bank, bank_id, content_object, content_type, content_type_id, created_at, creditor_amount, debtor_amount, doc_number, final_amount, id, is_initial, is_paid, is_paid_money, is_received_money, object_id, payer_name, payment_date, payment_description, payment_gateway, receiver_name, transaction_no, unit, unit_id, user, user_id
+Not Found: /favicon.ico
+D:\Django_project\absharProject\admin_panel\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\payment_app\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\payment_app\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\user_app\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\payment_app\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\payment_app\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\admin_payment_app\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_payment_app\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_payment_app\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Internal Server Error: /middle-admin-panel/middle-manage-bank
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 204, in _get_response
+    self.check_response(response, callback)
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 332, in check_response
+    raise ValueError(
+ValueError: The view middleAdmin_panel.views.view didn't return an HttpResponse object. It returned None instead.
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\forms.py changed, reloading.
+Watching for file changes with StatReloader
+Internal Server Error: /middle-admin-panel/middle-manage-bank
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2128, in get_prep_value
+    return int(value)
+           ^^^^^^^^^^
+ValueError: invalid literal for int() with base 10: ''
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\utils\decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 182, in post
+    return super().post(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 151, in post
+    return self.form_valid(form)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python312\Lib\contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\middleAdmin_panel\views.py", line 465, in form_valid
+    response = super().form_valid(form)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 133, in form_valid
+    self.object = form.save()
+                  ^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\forms\models.py", line 554, in save
+    self.instance.save()
+  File "D:\Django_project\absharProject\user_app\models.py", line 97, in save
+    super().save(*args, **kwargs)
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\query.py", line 1854, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1880, in execute_sql
+    for sql, params in self.as_sql():
+                       ^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1805, in as_sql
+    self.prepare_value(field, self.pre_save_val(field, obj))
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1740, in prepare_value
+    return field.get_db_prep_save(value, connection=self.connection)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 1012, in get_db_prep_save
+    return self.get_db_prep_value(value, connection=connection, prepared=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2135, in get_db_prep_value
+    value = super().get_db_prep_value(value, connection, prepared)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 1005, in get_db_prep_value
+    value = self.get_prep_value(value)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2130, in get_prep_value
+    raise e.__class__(
+ValueError: Field 'initial_fund' expected a number but got ''.
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Internal Server Error: /middle-admin-panel/middle-manage-bank
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2128, in get_prep_value
+    return int(value)
+           ^^^^^^^^^^
+ValueError: invalid literal for int() with base 10: ''
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\utils\decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 182, in post
+    return super().post(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 151, in post
+    return self.form_valid(form)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python312\Lib\contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\middleAdmin_panel\views.py", line 465, in form_valid
+    response = super().form_valid(form)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 133, in form_valid
+    self.object = form.save()
+                  ^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\forms\models.py", line 554, in save
+    self.instance.save()
+  File "D:\Django_project\absharProject\user_app\models.py", line 97, in save
+    super().save(*args, **kwargs)
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\query.py", line 1854, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1880, in execute_sql
+    for sql, params in self.as_sql():
+                       ^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1805, in as_sql
+    self.prepare_value(field, self.pre_save_val(field, obj))
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1740, in prepare_value
+    return field.get_db_prep_save(value, connection=self.connection)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 1012, in get_db_prep_save
+    return self.get_db_prep_value(value, connection=connection, prepared=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2135, in get_db_prep_value
+    value = super().get_db_prep_value(value, connection, prepared)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 1005, in get_db_prep_value
+    value = self.get_prep_value(value)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2130, in get_prep_value
+    raise e.__class__(
+ValueError: Field 'initial_fund' expected a number but got ''.
+D:\Django_project\absharProject\admin_panel\forms.py changed, reloading.
+Watching for file changes with StatReloader
+Internal Server Error: /middle-admin-panel/middle-manage-bank
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\backends\sqlite3\base.py", line 360, in execute
+    return super().execute(query, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+sqlite3.IntegrityError: NOT NULL constraint failed: user_app_bank.initial_fund
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\utils\decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 182, in post
+    return super().post(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 151, in post
+    return self.form_valid(form)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python312\Lib\contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\middleAdmin_panel\views.py", line 465, in form_valid
+    response = super().form_valid(form)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 133, in form_valid
+    self.object = form.save()
+                  ^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\forms\models.py", line 554, in save
+    self.instance.save()
+  File "D:\Django_project\absharProject\user_app\models.py", line 97, in save
+    super().save(*args, **kwargs)
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\query.py", line 1854, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1881, in execute_sql
+    cursor.execute(sql, params)
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\backends\sqlite3\base.py", line 360, in execute
+    return super().execute(query, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: NOT NULL constraint failed: user_app_bank.initial_fund
+D:\Django_project\absharProject\user_app\models.py changed, reloading.
+Watching for file changes with StatReloader
+Internal Server Error: /middle-admin-panel/middle-manage-bank
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 204, in _get_response
+    self.check_response(response, callback)
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 332, in check_response
+    raise ValueError(
+ValueError: The view middleAdmin_panel.views.view didn't return an HttpResponse object. It returned None instead.
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Internal Server Error: /middle-admin-panel/middle-manage-bank
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 204, in _get_response
+    self.check_response(response, callback)
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 332, in check_response
+    raise ValueError(
+ValueError: The view middleAdmin_panel.views.view didn't return an HttpResponse object. It returned None instead.
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\forms.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /middle-admin-panel/middle/delete/bank/9/
+Not Found: /favicon.ico
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Internal Server Error: /middle-admin-panel/middle-manage-bank
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2128, in get_prep_value
+    return int(value)
+           ^^^^^^^^^^
+ValueError: invalid literal for int() with base 10: ''
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\utils\decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 182, in post
+    return super().post(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 151, in post
+    return self.form_valid(form)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python312\Lib\contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\middleAdmin_panel\views.py", line 464, in form_valid
+    response = super().form_valid(form)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 133, in form_valid
+    self.object = form.save()
+                  ^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\forms\models.py", line 554, in save
+    self.instance.save()
+  File "D:\Django_project\absharProject\user_app\models.py", line 101, in save
+    super().save(*args, **kwargs)
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\query.py", line 1854, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1880, in execute_sql
+    for sql, params in self.as_sql():
+                       ^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1805, in as_sql
+    self.prepare_value(field, self.pre_save_val(field, obj))
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1740, in prepare_value
+    return field.get_db_prep_save(value, connection=self.connection)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 1012, in get_db_prep_save
+    return self.get_db_prep_value(value, connection=connection, prepared=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2135, in get_db_prep_value
+    value = super().get_db_prep_value(value, connection, prepared)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 1005, in get_db_prep_value
+    value = self.get_prep_value(value)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2130, in get_prep_value
+    raise e.__class__(
+ValueError: Field 'initial_fund' expected a number but got ''.
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Internal Server Error: /middle-admin-panel/middle-manage-bank
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2128, in get_prep_value
+    return int(value)
+           ^^^^^^^^^^
+ValueError: invalid literal for int() with base 10: ''
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\utils\decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 182, in post
+    return super().post(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 151, in post
+    return self.form_valid(form)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python312\Lib\contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\middleAdmin_panel\views.py", line 464, in form_valid
+    response = super().form_valid(form)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 133, in form_valid
+    self.object = form.save()
+                  ^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\forms\models.py", line 554, in save
+    self.instance.save()
+  File "D:\Django_project\absharProject\user_app\models.py", line 101, in save
+    super().save(*args, **kwargs)
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 902, in save
+    self.save_base(
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 1008, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 1169, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\base.py", line 1210, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\query.py", line 1854, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1880, in execute_sql
+    for sql, params in self.as_sql():
+                       ^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1805, in as_sql
+    self.prepare_value(field, self.pre_save_val(field, obj))
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\compiler.py", line 1740, in prepare_value
+    return field.get_db_prep_save(value, connection=self.connection)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 1012, in get_db_prep_save
+    return self.get_db_prep_value(value, connection=connection, prepared=False)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2135, in get_db_prep_value
+    value = super().get_db_prep_value(value, connection, prepared)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 1005, in get_db_prep_value
+    value = self.get_prep_value(value)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\fields\__init__.py", line 2130, in get_prep_value
+    raise e.__class__(
+ValueError: Field 'initial_fund' expected a number but got ''.
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\forms.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Internal Server Error: /middle-admin-panel/middle/bank/edit/11/
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\utils\decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 206, in post
+    return super().post(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 151, in post
+    return self.form_valid(form)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python312\Lib\contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\middleAdmin_panel\views.py", line 569, in form_valid
+    payment_date=bank.created_at.date(),
+                 ^^^^^^^^^^^^^^^
+AttributeError: 'Bank' object has no attribute 'created_at'. Did you mean: 'create_at'?
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /middle-admin-panel/expense/cancel-pay/3/
+Not Found: /favicon.ico
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\reports\urls.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\reports\urls.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\reports\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\reports\views.py changed, reloading.
+Watching for file changes with StatReloader
+Internal Server Error: /reports/middle/banks
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\list.py", line 178, in get
+    context = self.get_context_data()
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\reports\views.py", line 89, in get_context_data
+    context['banks'] = Bank.objects.filter(user=self.request.user).order_by('-created_at')
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\query.py", line 1708, in order_by
+    obj.query.add_ordering(*field_names)
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\query.py", line 2288, in add_ordering
+    self.names_to_path(item.split(LOOKUP_SEP), self.model._meta)
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\sql\query.py", line 1802, in names_to_path
+    raise FieldError(
+django.core.exceptions.FieldError: Cannot resolve keyword 'created_at' into field. Choices are: account_holder_name, account_no, adminfund, bank_name, bankfund, cart_number, create_at, expense, fund, house, house_id, id, income, initial_fund, is_active, is_default, is_gateway, paymoney, receivemoney, renter, sheba_number, unified_charges, unit, user, user_id, userpaymoney
+Not Found: /favicon.ico
+D:\Django_project\absharProject\reports\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Internal Server Error: /reports/middle/banks
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\backends\django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\defaulttags.py", line 327, in render
+    return nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\defaulttags.py", line 243, in render
+    nodelist.append(node.render_annotated(context))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\defaulttags.py", line 480, in render
+    url = reverse(view_name, args=args, kwargs=kwargs, current_app=current_app)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\urls\base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\urls\resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'sms_approved_list' with arguments '('',)' not found. 1 pattern(s) tried: ['admin\\-panel/sms/(?P<house_id>[0-9]+)/\\Z']
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\reports\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\reports\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\reports\urls.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Internal Server Error: /reports/middle/banks11/
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\reports\views.py", line 115, in bank_detail_view
+    return render(request, 'bank_turnover_detail.html', context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\loader.py", line 61, in render_to_string
+    template = get_template(template_name, using=using)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\loader.py", line 15, in get_template
+    return engine.get_template(template_name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\backends\django.py", line 79, in get_template
+    return Template(self.engine.get_template(template_name), self)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\engine.py", line 177, in get_template
+    template, origin = self.find_template(template_name)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\engine.py", line 159, in find_template
+    template = loader.get_template(name, skip=skip)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\loaders\cached.py", line 57, in get_template
+    template = super().get_template(template_name, skip)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\loaders\base.py", line 28, in get_template
+    return Template(
+           ^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 154, in __init__
+    self.nodelist = self.compile_nodelist()
+                    ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 196, in compile_nodelist
+    nodelist = parser.parse()
+               ^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 518, in parse
+    raise self.error(token, e)
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 516, in parse
+    compiled_result = compile_func(self, token)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\loader_tags.py", line 299, in do_extends
+    nodelist = parser.parse()
+               ^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 518, in parse
+    raise self.error(token, e)
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 516, in parse
+    compiled_result = compile_func(self, token)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\loader_tags.py", line 234, in do_block
+    nodelist = parser.parse(("endblock",))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 489, in parse
+    raise self.error(token, e)
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 487, in parse
+    filter_expression = self.compile_filter(token.contents)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 609, in compile_filter
+    return FilterExpression(token, self)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 705, in __init__
+    filter_func = parser.find_filter(filter_name)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 615, in find_filter
+    raise TemplateSyntaxError("Invalid filter: '%s'" % filter_name)
+django.template.exceptions.TemplateSyntaxError: Invalid filter: 'intcomma'
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\reports\views.py changed, reloading.
+Watching for file changes with StatReloader
+Internal Server Error: /reports/middle/banks
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\list.py", line 178, in get
+    context = self.get_context_data()
+              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\reports\views.py", line 90, in get_context_data
+    bank = get_object_or_404(Bank, user=self.request.user)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\db\models\query.py", line 636, in get
+    raise self.model.MultipleObjectsReturned(
+user_app.models.Bank.MultipleObjectsReturned: get() returned more than one Bank -- it returned 3!
+D:\Django_project\absharProject\reports\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Internal Server Error: /reports/middle/banks
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 890, in _resolve_lookup
+    raise TypeError
+TypeError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 901, in _resolve_lookup
+    current = getattr(current, bit)
+              ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'int' object has no attribute 'balance'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 907, in _resolve_lookup
+    current = current[int(bit)]
+                      ^^^^^^^^
+ValueError: invalid literal for int() with base 10: 'balance'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 220, in _get_response
+    response = response.render()
+               ^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\response.py", line 114, in render
+    self.content = self.rendered_content
+                   ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\response.py", line 92, in rendered_content
+    return template.render(context, self._request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\backends\django.py", line 107, in render
+    return self.template.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 171, in render
+    return self._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 163, in _render
+    return self.nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\defaulttags.py", line 327, in render
+    return nodelist.render(context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 1016, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\defaulttags.py", line 243, in render
+    nodelist.append(node.render_annotated(context))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 977, in render_annotated
+    return self.render(context)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 1075, in render
+    output = self.filter_expression.resolve(context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 743, in resolve
+    arg_vals.append(arg.resolve(context))
+                    ^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 854, in resolve
+    value = self._resolve_lookup(context)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\template\base.py", line 914, in _resolve_lookup
+    raise VariableDoesNotExist(
+django.template.base.VariableDoesNotExist: Failed lookup for key [balance] in 11
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\forms.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\forms.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\forms.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\forms.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /favicon.ico
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Internal Server Error: /middle-admin-panel/middle-add-pay
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\utils\decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 182, in post
+    return super().post(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 151, in post
+    return self.form_valid(form)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\middleAdmin_panel\views.py", line 2820, in form_valid
+    self.object.receiver_name = self.object.get_receiver_display()
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: 'str' object is not callable
+Not Found: /favicon.ico
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Internal Server Error: /middle-admin-panel/middle-add-pay
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\utils\decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 182, in post
+    return super().post(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 151, in post
+    return self.form_valid(form)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\middleAdmin_panel\views.py", line 2820, in form_valid
+    self.object.receiver_name = self.object.get_receiver_display()
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: 'str' object is not callable
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
