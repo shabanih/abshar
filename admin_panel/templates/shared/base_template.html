@@ -49,7 +49,14 @@
 
 
 
-     
+     {% if request.session.impersonator_id %}
+<div style="background:red;color:white;padding:10px;text-align:center;">
+    شما به‌جای این کاربر وارد شده‌اید
+    <a href="{% url 'stop_impersonation' %}" style="color:yellow;">
+        بازگشت به حساب ادمین
+    </a>
+</div>
+{% endif %}
   
     <!-- End layout styles -->
 

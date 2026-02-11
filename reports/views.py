@@ -78,6 +78,8 @@ def to_jalali(date_obj):
     jalali_date = jdatetime.date.fromgregorian(date=date_obj)
     return jalali_date.strftime('%Y/%m/%d')
 
+
+@method_decorator(middle_admin_required, name='dispatch')
 class MiddleBankList(ListView):
     model = Bank
     template_name = 'bank_list.html'
@@ -113,7 +115,7 @@ class MiddleBankList(ListView):
         return context
 
 
-
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def bank_detail_view(request, bank_id):
     bank = get_object_or_404(Bank, id=bank_id, user=request.user)
 
@@ -341,7 +343,7 @@ def admin_fund_turnover(request):
     paginator = Paginator(funds, paginate)
     page_obj = paginator.get_page(request.GET.get('page'))
 
-    return render(request, 'admin_reports/../admin_panel/templates/report/admin_fund_turnover.html', {
+    return render(request, 'fund_turnover_user.html', {
         'funds': page_obj,
         'query': query,
         'paginate': paginate,

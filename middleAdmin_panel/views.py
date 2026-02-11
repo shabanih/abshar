@@ -655,6 +655,7 @@ class MiddleUnitRegisterView(CreateView):
                             'full_name': full_name,
                             'is_active': True,
                             'manager': self.request.user,
+                            'is_unit': True,  # ← اضافه شد
                         }
                     )
                 if created:
@@ -793,6 +794,7 @@ def add_renter_to_unit(request, unit_id):
                         'full_name': form.cleaned_data['renter_name'],
                         'is_active': True,
                         'manager': request.user,
+                        'is_unit': True,  # ← اضافه شد
                     }
                 )
 

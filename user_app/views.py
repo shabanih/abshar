@@ -73,6 +73,7 @@ from user_app.models import User, Unit, Bank, MyHouse, CalendarNote, UserPayMone
 #     return render(request, 'index.html', {'form': form})
 from django.db.models import Exists, OuterRef
 
+
 @login_required
 def switch_to_manager(request):
     """
@@ -87,6 +88,7 @@ def switch_to_manager(request):
 
     # redirect به داشبورد مدیر
     return redirect('middle_admin_dashboard')
+
 
 def index(request):
     form = LoginForm(request.POST or None)
@@ -229,9 +231,17 @@ def site_header_component(request):
     return render(request, 'partials/notification_template.html', context)
 
 
-@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+# @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def user_panel(request):
     user = request.user
+    # اگر سوپریوزر در حال impersonate است، اجازه ورود بده
+    if request.session.get('impersonator_id'):
+        # impersonation فعال است، user همان target است
+        pass
+    else:
+        # کاربر معمولی فقط ساکن باشد
+        if not user.is_unit:
+            return redirect('/index/')  # یا مسیر login خودتان
 
     # -------------------------
     # Unified Charges
@@ -861,10 +871,8 @@ def export_user_pay_money_pdf(request):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def export_user_pay_money_excel(request):
-
     # Queryset اصلی بر اساس واحد
     payments = UserPayMoney.objects.filter(user=request.user).order_by('-register_date')
-
 
     # Create Excel
     wb = openpyxl.Workbook()
@@ -896,7 +904,6 @@ def export_user_pay_money_excel(request):
         ws.cell(row=row_num, column=5, value=show_jalali(pay.payment_date))
         ws.cell(row=row_num, column=6, value=pay.transaction_reference)
         ws.cell(row=row_num, column=7, value=pay.payment_gateway)
-
 
     # Return response
     response = HttpResponse(

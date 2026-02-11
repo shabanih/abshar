@@ -80,6 +80,7 @@ class UnitUpdateService:
     def _deactivate_renters(self):
         self.unit.renters.filter(renter_is_active=True).update(renter_is_active=False)
 
+
     def _update_user(self, owner_changed):
         # اگر مالک تغییر کرده، اصلاً مستاجر را بررسی نکن
         if owner_changed:
@@ -121,6 +122,7 @@ class UnitUpdateService:
         if password:
             user.set_password(password)
 
+        user.is_unit = True
         user.save()
 
         if password and user.pk == self.request.user.pk:
@@ -149,6 +151,7 @@ class UnitUpdateService:
                     'full_name': self.form.cleaned_data.get('renter_name'),
                     'is_active': True,
                     'manager': self.request.user,
+                    'is_unit': True
                 }
             )
             if not created and renter_user.manager is None:

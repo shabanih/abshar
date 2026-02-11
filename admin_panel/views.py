@@ -4,6 +4,7 @@ import os
 from decimal import Decimal
 
 import sweetify
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.contenttypes.models import ContentType
@@ -41,13 +42,127 @@ from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDo
     MaintenanceDocument, ChargeByPersonArea, \
     ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
     FixPersonCharge, FixAreaCharge, ChargeFixVariable, \
-    SmsManagement, Fund, UnifiedCharge, AdminSmsManagement, SmsCredit
+    SmsManagement, Fund, UnifiedCharge, AdminSmsManagement, SmsCredit, ImpersonationLog
 from notifications.models import AdminTicket
 from user_app.models import Unit, Bank, Renter, User, MyHouse, ChargeMethod, CalendarNote
 
 
 def admin_required(view_func):
     return user_passes_test(lambda u: u.is_superuser, login_url=settings.LOGIN_URL_ADMIN)(view_func)
+
+
+class UserManagementListView(ListView):
+    model = User
+    template_name = 'admin_panel/user_management.html'
+    context_object_name = 'users'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        qs = (
+            User.objects.all()
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(full_name__icontains=query) |
+                Q(mobile__icontains=query) |
+                Q(username__icontains=query)
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '1')
+        context.update(
+            User.objects.aggregate(
+                admin_count=Count('id', filter=Q(is_superuser=True)),
+                middle_count=Count('id', filter=Q(is_middle_admin=True, is_superuser=False)),
+                unit_count=Count('id', filter=Q(is_unit=True, is_superuser=False, is_middle_admin=False)),
+            )
+        )
+        return context
+
+
+def dashboard_redirect(request):
+    """
+    بعد از login یا impersonation، کاربر به پنل مناسب هدایت شود
+    """
+    user = request.user
+
+    if request.session.get('impersonator_id'):
+        # اگر سوپریوزر در حالت impersonate است، به پنل کاربر target برو
+        if user.is_middle_admin:
+            return redirect('middle_admin_dashboard')
+        elif user.is_unit:
+            return redirect('user_panel')
+        else:
+            return redirect('user_panel')  # کاربران بدون نقش خاص
+
+    # کاربر معمولی
+    if user.is_superuser:
+        return redirect('/admin-panel/')  # پنل سوپریوزر
+    elif user.is_middle_admin:
+        return redirect('middle_admin_dashboard')
+    elif user.is_unit:
+        return redirect('user_panel')
+    else:
+        return redirect('user_panel')
+
+
+def impersonate_user(request, user_id):
+    target = get_object_or_404(User, id=user_id)
+
+    if not request.user.is_superuser:
+        return redirect("/")
+
+    impersonator_id = request.user.id  # ذخیره موقت
+
+    log = ImpersonationLog.objects.create(
+        admin=request.user,
+        target_user=target,
+        ip_address=request.META.get("REMOTE_ADDR"),
+    )
+
+    # backend لازم
+    target.backend = 'django.contrib.auth.backends.ModelBackend'
+
+    login(request, target)  # اول login
+
+    # بعدش session رو پر کن
+    request.session["impersonator_id"] = impersonator_id
+    request.session["impersonation_log"] = log.id
+    request.session["is_impersonating"] = True
+    request.session.save()
+
+    print("AFTER LOGIN SESSION:", request.session.items())
+
+    if target.is_middle_admin:
+        return redirect('middle_admin_dashboard')
+    else:
+        return redirect('user_panel')
+
+
+def stop_impersonation(request):
+    admin_id = request.session.get("impersonator_id")
+
+    if admin_id:
+        admin_user = User.objects.get(id=admin_id)
+        admin_user.backend = 'django.contrib.auth.backends.ModelBackend'
+        login(request, admin_user)
+
+        # پاک کردن session
+        request.session.pop("impersonator_id", None)
+        request.session.pop("impersonation_log", None)
+
+    return redirect('/admin-panel/')
 
 
 @method_decorator(admin_required, name='dispatch')
@@ -2650,14 +2765,28 @@ class ChargeCategoryCreateView(CreateView):
     success_url = reverse_lazy('add_charge_category')
 
     def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.save()
-
-        # announce_instance = form.instance
+        self.object = form.save()
         messages.success(self.request, 'روش شارژ با موفقیت ثبت گردید!')
-        return super(ChargeCategoryCreateView, self).form_valid(form)
+        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
+        # ساخت رکوردهای پیش‌فرض اگر نبودن
+        defaults = [
+            {'name': 'شارژ ثابت', 'is_active': True},
+            {'name': 'شارژ متراژی', 'is_active': True},
+            {'name': 'شارژ نفری', 'is_active': True},
+            {'name': 'شارژ واحدی متراژی', 'is_active': True},
+            {'name': 'شارژ واحدی نفری', 'is_active': True},
+            {'name': 'شارژ نفری متراژی', 'is_active': True},
+            {'name': 'شارژ واحدی متراژی نفری', 'is_active': True},
+            {'name': 'شارژ ثابت و متغیر', 'is_active': True},
+        ]
+        for item in defaults:
+            ChargeMethod.objects.get_or_create(
+                name=item['name'],
+                defaults={'is_active': item['is_active']}
+            )
+
         context = super().get_context_data(**kwargs)
         context['charges'] = ChargeMethod.objects.all()
         return context
@@ -3832,7 +3961,7 @@ def delete_note(request):
     return JsonResponse({"status": "error"}, status=400)
 
 
-# =======================================================================
+# ========================== Report for Admin =============================================
 @method_decorator(admin_required, name='dispatch')
 class AdminFundReport(ListView):
     model = MyHouse
@@ -3878,7 +4007,7 @@ class AdminFundReport(ListView):
 @method_decorator(admin_required, name='dispatch')
 class AdminFundReportDetailView(ListView):
     model = Fund
-    template_name = "report/admin_fund_turnover.html"
+    template_name = "report/admin_fund_detail.html"
     context_object_name = "funds"
 
     def get_paginate_by(self, queryset):
@@ -3897,12 +4026,11 @@ class AdminFundReportDetailView(ListView):
 
         if query:
             qs = qs.filter(
-                Q(title__icontains=query) |
-                Q(unit__owner_name__icontains=query) |
-                Q(unit__renters__renter_name__icontains=query) |
-                Q(total_charge_month_str__icontains=query) |
-                Q(base_charge_str__icontains=query) |
-                Q(details__icontains=query)
+                Q(payment_description__icontains=query) |
+                Q(payer_name__icontains=query) |
+                Q(receiver_name__icontains=query) |
+                Q(creditor_amount__icontains=query) |
+                Q(debtor_amount__icontains=query)
             )
 
         return qs.order_by('-created_at')
@@ -3914,3 +4042,171 @@ class AdminFundReportDetailView(ListView):
         # اضافه کردن اطلاعات خانه
         context['house'] = MyHouse.objects.filter(id=self.kwargs['house_id']).first()
         return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class AdminBanksReport(ListView):
+    model = MyHouse
+    template_name = 'report/bank_report.html'
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        qs = (
+            MyHouse.objects
+            .filter(banks__is_active=True)
+            .annotate(
+                total_banks=Count(
+                    'banks',
+                    filter=Q(banks__is_active=True)
+                )
+            )
+            .distinct()
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class AdminBanksListReportView(ListView):
+    model = Bank
+    template_name = "report/admin_bank_list.html"
+    context_object_name = "banks"
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        house_id = self.kwargs['house_id']
+        query = self.request.GET.get('q', '')
+
+        qs = Bank.objects.filter(
+            house_id=house_id,
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(bank_name__icontains=query) |
+                Q(account_no__icontains=query) |
+                Q(account_holder_name__icontains=query) |
+                Q(sheba_number__icontains=query) |
+                Q(cart_number__icontains=query)
+
+            )
+
+        return qs.order_by('-create_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        context['house'] = MyHouse.objects.filter(
+            id=self.kwargs['house_id']
+        ).first()
+
+        banks = context['banks'].prefetch_related(
+            Prefetch(
+                'fund_set',
+                queryset=Fund.objects.order_by('doc_number')
+            )
+        )
+
+        bank_transactions = {}
+
+        for bank in banks:
+            running_total = Decimal('0')
+            transactions = []
+
+            for f in bank.fund_set.all():
+                running_total += (
+                        (f.debtor_amount or Decimal('0')) -
+                        (f.creditor_amount or Decimal('0'))
+                )
+
+                transactions.append({
+                    'date': f.payment_date,
+                    'description': f.payment_description,
+                    'debit': f.debtor_amount,
+                    'credit': f.creditor_amount,
+                    'balance': running_total
+                })
+
+            bank_transactions[bank.id] = {
+                'transactions': transactions,
+                'balance': running_total
+            }
+
+        context['bank_transactions'] = bank_transactions
+        return context
+
+
+def admin_bank_detail_view(request, bank_id):
+    bank = get_object_or_404(
+        Bank.objects.prefetch_related(
+            Prefetch(
+                'fund_set',
+                queryset=Fund.objects.order_by('doc_number')
+            )
+        ),
+        id=bank_id
+    )
+
+    funds = bank.fund_set.all()
+
+    # -------- paginate --------
+    page_number = request.GET.get('page', 1)
+    paginator = Paginator(funds, 20)  # 20 تراکنش در هر صفحه
+    page_obj = paginator.get_page(page_number)
+    # --------------------------
+
+    running_total = Decimal('0')
+    transactions = []
+
+    # محاسبه running balance فقط برای آیتم‌های همین صفحه
+    # (اگر running کل تاریخچه میخوای پایین‌تر توضیح دادم)
+    for f in page_obj:
+        running_total += (
+                (f.debtor_amount or Decimal('0')) -
+                (f.creditor_amount or Decimal('0'))
+        )
+
+        transactions.append({
+            'date': f.payment_date,
+            'description': f.payment_description,
+            'debit': f.debtor_amount,
+            'credit': f.creditor_amount,
+            'balance': running_total
+        })
+
+    context = {
+        'bank': bank,
+        'house': bank.house,
+        'transactions': transactions,
+        'page_obj': page_obj,
+        'balance': running_total,
+    }
+
+    return render(request, 'report/admin_bank_detail.html', context)

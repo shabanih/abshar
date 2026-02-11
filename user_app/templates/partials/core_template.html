@@ -95,7 +95,19 @@
         {% include 'partials/sidebar_template.html' %}
         <!-- partial -->
         <div class="main-panel">
+        {% if is_impersonating %}
+<div id="impersonation-banner">
+    🔐 شما در حال مشاهده حساب
+    <strong>{{ request.user.full_name }}</strong>
+    هستید
+
+    <a href="{% url 'stop_impersonation' %}" class="btn btn-gradient-warning">
+        خروج از حساب
+    </a>
+</div>
+{% endif %}
           <div class="content-wrapper">
+          
         <div class="container" dir="rtl">
       <div class="row align-items-center p-0">
     <!-- News Ticker (col-9) -->

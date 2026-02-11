@@ -1,0 +1,67 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+حساب بانکی: {{ bank.bank_name }} - موجودی: {{ balance|three_digit_currency }} تومان
+{% endblock page_title %}
+
+{% block main_content %}
+  
+<div class="container py-5">
+  <div class="row text-md-start mb-3">
+        <div class="col">
+            <a href="{% url 'admin_bank_report_list' house.id %}" class="btn btn-gradient-info py-2 px-3">برگشت به لیست</a>
+        </div>
+    </div>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>تاریخ</th>
+            <th>شرح</th>
+            <th>بدهکار</th>
+            <th>بستانکار</th>
+            <th>موجودی</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for t in transactions %}
+        <tr>
+            <td>{{ t.date|show_jalali }}</td>
+            <td>{{ t.description }}</td>
+            <td>{{ t.debit|default:0|three_digit_currency }}</td>
+            <td>{{ t.credit|default:0|three_digit_currency }}</td>
+            <td>{{ t.balance|three_digit_currency }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">هیچ تراکنشی موجود نیست</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+      <div class="col-12">
+        <div class="pagination d-flex justify-content-center mt-5">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+            {% endif %}
+
+            {% for page_number in page_obj.paginator.page_range %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_number }}"
+                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
+                    {{ page_number }}
+                </a>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+

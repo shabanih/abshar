@@ -27,6 +27,18 @@ class Announcement(models.Model):
     def __str__(self):
         return self.title
 
+class ImpersonationLog(models.Model):
+    admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name="impersonated_by_me")
+    target_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="impersonated_me")
+
+    start_time = models.DateTimeField(auto_now_add=True)
+    end_time = models.DateTimeField(null=True, blank=True)
+
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.admin} → {self.target_user}"
+
 
 class MessageToUser(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

@@ -272,18 +272,6 @@ class UserRegistrationForm(forms.ModelForm):
         if commit:
             user.save()
 
-            # ذخیره روش‌های شارژ برای مدیر سطح میانی
-            if user.is_middle_admin:
-                selected_methods = self.cleaned_data.get('charge_methods')
-                if hasattr(user, 'charge_access'):
-                    # اگر دسترسی قبلا وجود داشت، آپدیت کن
-                    user.charge_access.charge_methods.set(selected_methods)
-                else:
-                    # اگر دسترسی وجود نداشت، بساز
-                    from .models import MiddleAdminChargeAccess
-                    access = MiddleAdminChargeAccess.objects.create(manager=user)
-                    access.charge_methods.set(selected_methods)
-
         return user
 
 

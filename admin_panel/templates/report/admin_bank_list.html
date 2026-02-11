@@ -1,4 +1,4 @@
-{% extends 'middleShared/base_template.html' %}
+{% extends 'shared/base_template.html' %}
 {% load static %}
 {% load poll_extras %}
 {% load jalali_tags %}
@@ -10,16 +10,58 @@
 {% block main_content %}
     <hr/>
 <div class="container mt-3">
+  <div class="row text-md-start mb-3">
+        <div class="col">
+            <a href="{% url 'admin_banks_report' %}" class="btn btn-gradient-info py-2 px-3">برگشت به لیست</a>
+        </div>
+    </div>
+<div class="row mb-2 mt-4">
+        <!-- بخش جستجو -->
+        <div class="col-12 col-md-10 col-xl-10 align-self-center">
+            <form method="get" action="" class="d-flex gap-2 align-items-center">
+                <input type="text"
+                       class="p-2 w-50 w-md-75"
+                       name="q"
+                       id="searchInput"
+                       autocomplete="off"
+                       value="{{ query }}"
+                       placeholder="جستجوی ..."
+                       dir="rtl"
+                       oninput="if(this.value === '') this.form.submit();">
+                <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
+            </form>
+        </div>
+
+        <!-- بخش تعداد نمایش → فقط دسکتاپ -->
+        <div class="col-12 col-md-2 col-xl-2 p-0 d-none d-md-block">
+            <div class="d-flex align-items-center gap-1">
+                <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label>
+           <select id="cardsPerPage" 
+        class="form-select select-fix"
+        style="width: auto;"
+        onchange="window.location.href='?q={{ query }}&paginate=' + this.value;">
+    <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option>
+    <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option>
+    <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option>
+    <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+</select>
+
+            </div>
+        </div>
+    </div>
                <div class="table-responsive">
                             <table class="table table-bordered">
                                 <thead class="text-center">
                                     <tr>
                                         <th>#</th>
+{#                                        <th>مدیر ساختمان</th>#}
+{#                                        <th>نام ساختمان</th>#}
                                         <th> نام بانک</th>
                                         <th>نام صاحب حساب</th>
                                         <th>شماره حساب</th>
                                         <th>شماره شبا</th>
                                         <th>شماره کارت</th>
+                                     
                                         <th>فعال/حساب پیش فرض</th>
                                            <th>موجودی در حال حاضر</th>
                                         <th>گردش حساب</th>
@@ -30,6 +72,8 @@
                                     <tbody class="text-center">
                                         <tr>
                                             <td>{{ forloop.counter }}</td>
+{#                                            <td>{{ bank.user.full_name }}</td>#}
+{#                                            <td>{{bank.house }}</td>#}
                                             <td>{{bank.bank_name }}</td>
                                             <td>{{bank.account_holder_name }}</td>
                                             <td>{{bank.account_no }}</td>
@@ -46,12 +90,14 @@
                                                 <button class="btn btn-gradient-warning p-1">پیش فرض</button>
                                                {% endif %}
                                             </td>
-                                                {% with bank_data=bank_transactions|dict_get:bank.id %}
-                                                    <td>{{ bank_data.balance|three_digit_currency }}</td>
-                                                {% endwith %}
+
+{% with bank_data=bank_transactions|dict_get:bank.id %}
+    <td>{{ bank_data.balance|three_digit_currency }}</td>
+{% endwith %}
+
 
                                      <td class="col-lg-1 col-xl-1">
-                                       <a href="{% url 'middle_bank_detail' bank.id %}" class="btn btn-info p-1 p-1">
+                                       <a href="{% url 'admin_bank_detail' bank.id %}" class="btn btn-info p-1 p-1">
                                               <i class="mdi mdi-eye" aria-hidden="true"></i>
                                             </a>
 
@@ -69,7 +115,7 @@
 
     <hr>
 </div>
-      <div class="col-12">
+        <div class="col-12">
         <div class="pagination d-flex justify-content-center mt-5">
             {% if page_obj.has_previous %}
                 <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>

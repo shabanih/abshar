@@ -8,6 +8,9 @@ urlpatterns = [
     path('', views.admin_dashboard, name='admin_dashboard'),
     path('login-admin/', views.admin_login_view, name='login_admin'),
     path('log-out-admin/', views.logout_admin, name='logout_admin'),
+    path('user-management/', views.UserManagementListView.as_view(), name='user_management'),
+    path("impersonate/<int:user_id>/", views.impersonate_user, name="impersonate"),
+    path("stop-impersonation/", views.stop_impersonation, name="stop_impersonation"),
 
     path('create-middle-admin/', views.MiddleAdminCreateView.as_view(), name='create_middle_admin'),
     path('middle/edit/<int:pk>/', views.MiddleAdminUpdateView.as_view(), name='edit_middle_admin'),
@@ -240,6 +243,13 @@ urlpatterns = [
         views.AdminFundReportDetailView.as_view(),
         name="admin_fund_report_list"
     ),
+    path('admin/banks/report/', views.AdminBanksReport.as_view(), name='admin_banks_report'),
+    path(
+        "admin/report/bank/list/<int:house_id>/",
+        views.AdminBanksListReportView.as_view(),
+        name="admin_bank_report_list"
+    ),
+    path('admin/banks/details<int:bank_id>/', views.admin_bank_detail_view, name='admin_bank_detail'),
 
     # مسیر دریافت نوت‌ها
     path('calendar/notes/<int:year>/<int:month>/', views.get_notes, name='get_notes'),

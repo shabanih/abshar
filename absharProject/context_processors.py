@@ -144,3 +144,10 @@ def admin_header_notifications(request):
         ).count()
 
     return {'admin_new_messages_count': admin_new_messages_count}
+
+
+def impersonation_banner(request):
+    return {
+        "is_impersonating": bool(request.session.get("impersonator_id")),
+        "impersonator_id": request.session.get("impersonator_id"),
+    }

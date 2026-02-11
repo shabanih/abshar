@@ -48,9 +48,6 @@
     <link rel="stylesheet" href="{% static 'admin_panel/css/style.css' %}">
       <link rel="stylesheet" href="{% static 'admin_panel/css/custom_style.css' %}">
 
-
-
-     
   
     <!-- End layout styles -->
 
@@ -90,13 +87,30 @@
            
         </div>
       </nav>
+
+
+
+
       <!-- partial -->
       <div class="container-fluid page-body-wrapper">
         <!-- partial:partials/_sidebar.html -->
         {% include 'middleShared/middle_sidebar_template.html' %}
+
         <!-- partial -->
         <div class="main-panel">
+
           <div class="content-wrapper">
+          {% if is_impersonating %}
+<div id="impersonation-banner">
+    🔐 شما در حال مشاهده حساب
+    <strong>{{ request.user.full_name }}</strong>
+    هستید
+
+    <a href="{% url 'stop_impersonation' %}" class="btn btn-gradient-warning">
+        خروج از حساب
+    </a>
+</div>
+{% endif %}
              <div class="page-header mb-2">
               <h3 class="page-title pb-1 pt-5">
                 <span class="page-title-icon bg-gradient-primary text-white">
@@ -112,6 +126,7 @@
 {#                </ul>#}
 {#              </nav>#}
             </div>
+
 
 
                {{ form.non_field_errors }}

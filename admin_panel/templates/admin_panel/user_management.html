@@ -1,0 +1,165 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+مدیریت کاربران
+{% endblock page_title %}
+
+{% block main_content %}
+<div class="container mt-3">
+    <div class="container p-3">
+    <div class="card shadow-lg">
+    <div class="row text-center mt-3">
+        <div class="col-4">
+            <p class="align-items-center">تعداد ادمین:
+                <strong>{{ admin_count }}</strong>
+            </p>
+        </div>
+
+        <div class="col-4">
+            <p>تعداد مدیر ساختمان:
+                <strong>{{ middle_count }}</strong>
+            </p>
+        </div>
+
+        <div class="col-4">
+            <p>تعداد مالک/مستاجر:
+                <strong>{{ unit_count }}</strong>
+            </p>
+        </div>
+    </div>
+</div>
+
+       <div class="row mb-2 mt-4">
+        <!-- بخش جستجو -->
+        <div class="col-12 col-md-10 col-xl-10 align-self-center">
+            <form method="get" action="" class="d-flex gap-2 align-items-center">
+                <input type="text"
+                       class="p-2 w-50 w-md-75"
+                       name="q"
+                       id="searchInput"
+                       autocomplete="off"
+                       value="{{ query }}"
+                       placeholder="جستجوی ..."
+                       dir="rtl"
+                       oninput="if(this.value === '') this.form.submit();">
+                <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
+            </form>
+        </div>
+
+        <!-- بخش تعداد نمایش → فقط دسکتاپ -->
+        <div class="col-12 col-md-2 col-xl-2 p-0 d-none d-md-block">
+            <div class="d-flex align-items-center gap-1">
+                <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label>
+           <select id="cardsPerPage" 
+        class="form-select select-fix"
+        style="width: auto;"
+        onchange="window.location.href='?q={{ query }}&paginate=' + this.value;">
+    <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option>
+    <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option>
+    <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option>
+    <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+</select>
+
+            </div>
+        </div>
+    </div>
+
+        <div class="row mt-2">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th>نام کاربر</th>
+                            <th>شماره همراه</th>
+                            <th>نام کاربری</th>
+                            <th>نوع کاربری</th>
+                            <th>فعال/غیرفعال</th>
+                            <th>تاریخ ایجاد </th>
+                            <th>آخرین ورود </th>
+                            <th>دستورات</th>
+                        </tr>
+                    </thead>
+                    {% if users %}
+                        {% for user in users %}
+                        <tbody class="text-center p-0">
+                            <tr>
+{#                                <td>{{ forloop.counter }}</td>#}
+                           <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
+                                <td>{{user.full_name }}</td>
+                                <td>{{ user.mobile }}</td>
+                                <td>{{ user.username}}</td>
+                                <td>
+                                    {% if user.is_superuser %}
+                                        <button class="badge badge-info px-3 py-2">ادمین</button>
+                                          {% elif user.is_middle_admin %}
+                                             <button class="badge badge-online text-dark px-2 py-2"> مدیر ساختمان</button>
+                                          {% else %}
+                                        مالک/مستاجر
+                                    {% endif %} 
+                                  
+                                </td>
+                            <td>
+                                {% if user.is_active %}
+                                    <button class="badge badge-success">فعال</button>
+                                    {% else %}
+                                    <button class="badge badge-danger">غیرفعال</button>
+                                	
+                                {% endif %} 
+                            </td>
+                               <td>{{ user.created_time|show_jalali_date_time}}</td>
+                                <td>{{ user.last_login|show_jalali_date_time}}</td>
+                             
+
+                               <td class="col-lg-1 col-xl-1">
+                                       <a href="{% url 'impersonate' user.id %}" class="btn btn-info p-1 p-1" title="ورود به پنل کاربری">
+                                              <i class="mdi mdi-view-dashboard" aria-hidden="true"></i>
+                                            </a>
+                            </td>
+
+                            </tr>
+                        </tbody>
+                        {% endfor %}
+                    {% else %}
+                        <tbody>
+                            <tr>
+                                <td colspan="7" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
+                            </tr>
+                        </tbody>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+ <!-- Pagination -->
+    <div class="col-12">
+        <div class="pagination d-flex justify-content-center mt-5">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+            {% endif %}
+
+            {% for page_number in page_obj.paginator.page_range %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_number }}"
+                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
+                    {{ page_number }}
+                </a>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+    
+{% endblock %}
+
+
+
+
+
+
+
+
