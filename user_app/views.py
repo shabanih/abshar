@@ -604,6 +604,7 @@ class UserPayMoneyViewCreateView(CreateView):
             return redirect(self.success_url)
 
         form.instance.unit = unit
+        form.instance.house = unit.myhouse if hasattr(unit, 'myhouse') else None
 
         try:
             with transaction.atomic():

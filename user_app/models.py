@@ -219,7 +219,7 @@ class Unit(models.Model):
         if not is_new:
             old = Unit.objects.get(pk=self.pk)
 
-        # --- محاسبه پارکینگ ---
+        # محاسبه پارکینگ
         count = 0
         if self.extra_parking_first:
             count += 1
@@ -227,21 +227,19 @@ class Unit(models.Model):
             count += 1
         self.parking_counts = count
 
+        # ذخیره اولیه
         super().save(*args, **kwargs)
 
-        # --- بروزرسانی نفرات ---
+        # بروزرسانی نفرات
         self.update_people_count()
         super().save(update_fields=['people_count', 'parking_counts'])
 
-        # ==================================
-        # ثبت تاریخچه اقامت
-        # ==================================
-
+        # مستاجر فعال
         active_renter = self.get_active_renter()
 
-        # ----------------------
+        # -----------------------
         # واحد جدید
-        # ----------------------
+        # -----------------------
         if is_new:
             UnitResidenceHistory.objects.create(
                 unit=self,
@@ -252,51 +250,76 @@ class Unit(models.Model):
                 from_date=today,
                 changed_by=self.user
             )
+            if active_renter:
+                UnitResidenceHistory.objects.create(
+                    unit=self,
+                    resident_type='renter',
+                    renter=active_renter,
+                    name=active_renter.renter_name,
+                    mobile=active_renter.renter_mobile,
+                    people_count=int(active_renter.renter_people_count or 0),
+                    from_date=active_renter.start_date or today,
+                    changed_by=self.user
+                )
             return
 
-        # ----------------------
-        # تغییر مالک
-        # ----------------------
-        if old and (
-                old.owner_name != self.owner_name or
-                old.owner_mobile != self.owner_mobile
-        ):
+        # -----------------------
+        # بروزرسانی مالک
+        # -----------------------
+        last_owner = UnitResidenceHistory.objects.filter(
+            unit=self,
+            resident_type='owner',
+        ).first()
 
-            # بستن همه activeها
-            self._close_current_resident(today)
+        if old and last_owner:
+            old_name = old.owner_name or ""
+            new_name = self.owner_name or ""
+            old_mobile = old.owner_mobile or ""
+            new_mobile = self.owner_mobile or ""
 
-            # غیرفعال کردن مستاجر
-            if active_renter:
-                Renter.objects.filter(pk=active_renter.pk).update(
-                    renter_is_active=False,
-                    end_date=today
+            # اگر تغییر کامل (نام و موبایل) داشتیم → رکورد جدید بساز
+            if old_name != new_name and old_mobile != new_mobile:
+                self._close_current_resident(today)
+                if active_renter:
+                    Renter.objects.filter(pk=active_renter.pk).update(
+                        renter_is_active=False,
+                        end_date=today
+                    )
+                UnitResidenceHistory.objects.create(
+                    unit=self,
+                    resident_type='owner',
+                    name=self.owner_name,
+                    mobile=self.owner_mobile,
+                    people_count=int(self.owner_people_count or 0),
+                    from_date=today,
+                    changed_by=self.user
                 )
+            # اگر فقط نام یا موبایل تغییر کرده → بروزرسانی رکورد موجود
+            elif old_name != new_name or old_mobile != new_mobile:
+                last_owner.name = self.owner_name
+                last_owner.mobile = self.owner_mobile
+                last_owner.people_count = int(self.owner_people_count or 0)
+                last_owner.save(update_fields=['name', 'mobile', 'people_count'])
 
-            # ثبت مالک جدید
-            UnitResidenceHistory.objects.create(
+        # -----------------------
+        # بروزرسانی مستاجر
+        # -----------------------
+        if active_renter:
+            last_renter = UnitResidenceHistory.objects.filter(
                 unit=self,
-                resident_type='owner',
-                name=self.owner_name,
-                mobile=self.owner_mobile,
-                people_count=int(self.owner_people_count or 0),
-                from_date=today,
-                changed_by=self.user
-            )
-
-        # ----------------------
-        # اگر مستاجر فعال داریم
-        # ----------------------
-        elif active_renter:
-
-            last = UnitResidenceHistory.objects.filter(
-                unit=self,
+                resident_type='renter',
                 to_date__isnull=True
             ).first()
 
-            # اگر هنوز در تاریخچه ثبت نشده
-            if not last or last.renter != active_renter:
+            if last_renter and last_renter.renter == active_renter:
+                # فقط بروزرسانی رکورد موجود
+                last_renter.name = active_renter.renter_name
+                last_renter.mobile = active_renter.renter_mobile
+                last_renter.people_count = int(active_renter.renter_people_count or 0)
+                last_renter.save(update_fields=['name', 'mobile', 'people_count'])
+            else:
+                # مستاجر جدید → رکورد قبلی بسته شود و رکورد جدید ایجاد شود
                 self._close_current_resident(today)
-
                 UnitResidenceHistory.objects.create(
                     unit=self,
                     resident_type='renter',
@@ -312,6 +335,13 @@ class Unit(models.Model):
 class Renter(models.Model):
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, verbose_name='واحد', related_name='renters', null=True,
                              blank=True)
+    myhouse = models.ForeignKey(
+        'MyHouse',
+        on_delete=models.CASCADE,
+        related_name='renters',
+        null=True,  # اگر دیتای قدیمی داری
+        blank=True
+    )
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='کاربر')
     renter_bank = models.ForeignKey(Bank, on_delete=models.CASCADE, null=True, blank=True, verbose_name='شماره حساب')
     renter_name = models.CharField(max_length=100, null=True, blank=True, verbose_name='نام مستاجر')

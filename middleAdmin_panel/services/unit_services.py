@@ -1,6 +1,7 @@
 from decimal import Decimal
 from django.db import transaction
 from django.contrib.auth import update_session_auth_hash
+from django.utils import timezone
 
 from admin_panel.models import Fund
 from user_app.models import User, Renter, MyHouse
@@ -12,53 +13,30 @@ class UnitUpdateService:
         self.form = form
         self.request = request
 
-    # def execute(self):
-    #     with transaction.atomic():
-    #         owner_changed = self._check_owner_changed()
-    #         if owner_changed:
-    #             self._deactivate_renters()
-    #             # آپدیت مالک در واحد
-    #             self.unit.owner_name = self.form.cleaned_data.get('owner_name')
-    #             self.unit.owner_mobile = self.form.cleaned_data.get('owner_mobile')
-    #             self.unit.save(update_fields=['owner_name', 'owner_mobile'])
-    #
-    #         self._update_user(owner_changed)
-    #         self._update_unit()
-    #
-    #         if self.unit.is_renter:
-    #             self._update_or_create_renter()
-    #
-    #         self._handle_renter_charge()
-    #         self._handle_owner_charge()
-    #         self._update_people_count()
     def execute(self):
         with transaction.atomic():
             if not self.unit.myhouse:
                 self.unit.myhouse = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
 
             owner_changed = self._check_owner_changed()
-            print("OWNER CHANGED:", owner_changed)
             if owner_changed:
                 self._deactivate_renters()
                 self.unit.owner_name = self.form.cleaned_data.get('owner_name')
                 self.unit.owner_mobile = self.form.cleaned_data.get('owner_mobile')
-                self.unit.save(update_fields=['owner_name', 'owner_mobile'])
+                self.unit.is_renter = False
+                self.unit.save(update_fields=['owner_name', 'owner_mobile', 'is_renter'])
 
             self._update_user(owner_changed)
-            self._update_unit()
-            # if self.unit.is_renter:
-            #     self._update_or_create_renter()
-            self._handle_renter_charge()
-            self._handle_owner_charge()
-            self._update_people_count()
+            self._update_unit(owner_changed=owner_changed)
 
-            # # اضافه کردن مالک و مستاجر فعال به residents
-            # if self.unit.user and self.unit.myhouse and self.unit.user not in self.unit.myhouse.residents.all():
-            #     self.unit.myhouse.residents.add(self.unit.user)
-            #
-            # renter = self.unit.get_active_renter()
-            # if renter and renter.user not in self.unit.myhouse.residents.all():
-            #     self.unit.myhouse.residents.add(renter.user)
+            # فقط وقتی مالک تغییر نکرده، مستاجر را به‌روزرسانی کن
+            # if self.unit.is_renter and not owner_changed:
+            #     self._update_or_create_renter()
+            #     self._handle_renter_charge()
+
+            self._handle_owner_charge()
+            self._handle_renter_charge()
+            self._update_people_count()
 
     # ------------------------------
 
@@ -128,8 +106,15 @@ class UnitUpdateService:
         if password and user.pk == self.request.user.pk:
             update_session_auth_hash(self.request, user)
 
-    def _update_unit(self):
-        self.unit.is_renter = self.form.cleaned_data.get('is_renter', False)
+    # def _update_unit(self):
+    #     self.unit.is_renter = self.form.cleaned_data.get('is_renter', False)
+    #     self.unit.owner_bank = self.form.cleaned_data.get('owner_bank')
+    #     self.unit.save(update_fields=['is_renter', 'owner_bank'])
+
+    def _update_unit(self, owner_changed=False):
+        if not owner_changed:
+            # فقط وقتی مالک تغییر نکرده، مقدار فرم را اعمال کن
+            self.unit.is_renter = bool(self.form.cleaned_data.get('is_renter', False))
         self.unit.owner_bank = self.form.cleaned_data.get('owner_bank')
         self.unit.save(update_fields=['is_renter', 'owner_bank'])
 
@@ -186,6 +171,7 @@ class UnitUpdateService:
         Fund.objects.update_or_create(
             unit=self.unit,
             user=renter.user,
+            house=renter.myhouse,
             payment_description='شارژ اولیه مستاجر',
             is_initial=True,
             defaults={
@@ -208,6 +194,7 @@ class UnitUpdateService:
         Fund.objects.update_or_create(
             unit=self.unit,
             user=self.unit.user,
+            house=self.unit.myhouse,
             payment_description='شارژ اولیه مالک',
             is_initial=True,
             defaults={
@@ -236,6 +223,4 @@ class UnitUpdateService:
 
         self.unit.save(update_fields=['people_count'])
 
-
-# =======================================================
 
