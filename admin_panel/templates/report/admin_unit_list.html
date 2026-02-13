@@ -1,0 +1,240 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+لیست واحدها ( تعداد کل:{{ total_units }} )
+{% endblock page_title %}
+
+{% block main_content %}
+      <div class="row text-md-start mb-3">
+        <div class="col">
+            <a href="{% url 'admin_unit_fund_report' %}" class="btn btn-gradient-info py-2 px-3">برگشت به لیست اصلی</a>
+        </div>
+    </div>
+      <div class="row align-self-center mb-2">
+          <div class="col-12 col-md-6 col-xl-6">
+              <input type="text" id="searchInput" placeholder="جستجوی سریع در جدول..." onkeyup="searchTableUnit()" class="form-control mb-2 mt-2 p-1">
+          </div>
+        <div class=" col-12 col-md-4 col-xl-4 align-self-center">
+            <button onclick="openQuery()" class="btn btn-gradient-info px-2 py-2">جستجوی پیشرفته</button>
+{#            {% if object_list  %}#}
+{#            <a href="{% url 'export_units_excel' house.id %}?{{ request.GET.urlencode }}"#}
+{#   class="btn btn-facebook text-white px-2 py-2">خروجی Excel</a>#}
+{#            <a href="{% url 'export_units_pdf' house.id %}?{{ request.GET.urlencode }}"#}
+{#               class="btn btn-gradient-danger px-2 py-2">#}
+{#               خروجی PDF#}
+{#            </a>#}
+{#            {% else %}#}
+{#                     <button class="btn btn-facebook text-white px-2 py-2" disabled>خروجی Excel</button>#}
+{#                    <button class="btn btn-gradient-danger px-2 py-2" disabled>خروجی PDF</button>#}
+{#            {% endif %}#}
+            </div>
+    
+            <!-- بخش تعداد نمایش → فقط دسکتاپ -->
+        <div class="col-12 col-md-2 col-xl-2 px-4 d-none d-md-block">
+            <div class="d-flex align-items-end justify-content-start">
+                <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label>
+           <select id="cardsPerPage"
+        class="form-select select-fix"
+        style="width: auto;"
+        onchange="window.location.href='?q={{ query }}&paginate=' + this.value;">
+    <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option>
+    <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option>
+    <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option>
+    <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+</select>
+
+            </div>
+        </div>
+    
+          </div>
+
+       <div id="query-form" style="display: none;" class="row mt-2">
+            <form method="get">
+               <div class="row mt-2">
+                     <div class="col-md-2">
+                          <input type="text" name="unit" class="form-control" placeholder="شماره واحد"
+                               value="{{ request.GET.unit }}">
+                    </div>
+                     <div class="col-md-2">
+                        <input type="text" name="owner_name" class="form-control" placeholder="نام مالک"
+                               value="{{ request.GET.owner_name }}">
+                    </div>
+                     <div class="col-md-2">
+                        <input type="text" name="owner_mobile" class="form-control" placeholder="موبایل مالک"
+                               value="{{ request.GET.owner_mobile }}">
+                    </div>
+                     <div class="col-md-2">
+                            <input type="text"  name="area" class="form-control" placeholder=" متراژ"
+                                   value="{{ request.GET.area }}">
+                          </div>
+                     <div class="col-md-2">
+                        <input type="text"  name="bedrooms_count" class="form-control" placeholder=" تعداد خواب"
+                               value="{{ request.GET.bedrooms_count }}">
+                        </div>
+                           <div class="col-md-2">
+                   <select name="is_renter" class="form-control form-control-sm">
+                    <option value="">وضعیت سکونت</option>
+                    <option value="0" {% if request.GET.is_renter == "0" %}selected{% endif %}>
+                        مالک 
+                    </option>
+                    <option value="1" {% if request.GET.is_renter == "1" %}selected{% endif %}>
+                         مستاجر
+                    </option>
+                </select>
+               </div>
+               </div>
+                <div class="row mt-2 mb-2">
+                      <div class="col-md-2">
+                <input type="text" name="renter_name" class="form-control" placeholder=" نام مستاجر"
+                       value="{{ request.GET.renter_name }}">
+            </div>
+                      <div class="col-md-2">
+                       <input type="text" name="renter_mobile" class="form-control" placeholder=" موبایل مستاجر"
+                       value="{{ request.GET.renter_mobile }}">
+                      </div>
+                     <div class="col-md-2">
+                       <input type="text" name="people_count" class="form-control" placeholder=" تعداد نفرات"
+                       value="{{ request.GET.people_count }}">
+                      </div>
+{#                     <div class="col-md-2">#}
+{#                       <input type="text" name="status_residence" class="form-control" placeholder="وضعیت سکونت"#}
+{#                       value="{{ request.GET.status_residence }}">#}
+{#                      </div>#}
+                    
+                   <div class="col-md-2">
+                   <select name="status_residence" class="form-control form-control-sm">
+                    <option value="">وضعیت سکونت</option>
+                    <option value="occupied" {% if request.GET.status_residence == "occupied" %}selected{% endif %}>
+                        ساکن 
+                    </option>
+                    <option value="empty" {% if request.GET.status_residence == "empty" %}selected{% endif %}>
+                         خالی
+                    </option>
+                </select>
+               </div>
+                    
+                     <div class="col-md-2 align-self-center text-center">
+                      <button type="submit" class="btn btn-facebook px-4 py-2">جستجوی پیشرفته</button>
+                    </div>
+                    <div class="col-md-2 align-self-center text-center ">
+                      <a href="" class="btn btn-gradient-danger px-4 py-2">پاک‌کردن فیلتر</a>
+                    </div>
+                    </div>
+               </form>
+         </div>
+
+            <div class="table-responsive">
+                <table class="table table-bordered" id="unitTable">
+                    <thead class="text-center">
+                        <tr>
+                            <th> واحد</th>
+                            <th>نام مالک</th>
+                            <th>موبایل مالک</th>
+                        
+                          
+                            <th>نام مستاجر</th>
+                            <th>موبایل مستاجر</th>
+                         
+                            <th>وضعیت سکونت</th>
+                            <th>فعال/غیرفعال</th>
+                            <th>تعداد تراکنش ها</th>
+                            <th>دستورات</th>
+                        </tr>
+                    </thead>
+               
+                        <tbody class="text-center">
+                         {% if object_list  %}
+                      {% for unit in object_list  %}
+                            <tr>
+                            <td>{{ unit.unit }}</td>
+                            <td>{{ unit.owner_name }}</td>
+                            <td>{{ unit.owner_mobile }}</td>
+                            
+                            <!-- Display Renters (multiple possible) -->
+                     <td>
+    {% if unit.active_renters %}
+        {% for renter in unit.active_renters %}
+            {{ renter.renter_name }} <br>
+        {% endfor %}
+    {% else %}
+        ---
+    {% endif %}
+</td>
+
+<td>
+    {% if unit.active_renters %}
+        {% for renter in unit.active_renters %}
+            {{ renter.renter_mobile }} <br>
+        {% endfor %}
+    {% else %}
+        ---
+    {% endif %}
+</td>
+                           
+<td>
+    {% if unit.status_residence == 'occupied' %}
+        <span>ساکن</span>
+    {% elif unit.status_residence == 'empty' %}
+        <span>خالی</span>
+    {% else %}
+        ---
+    {% endif %}
+</td>
+                            <td>
+                                {% if unit.is_active %}
+                                    <button class="btn btn-primary bg-success p-1">فعال</button>
+                                {% else %}
+                                    <button class="btn btn-danger p-1">غیر فعال</button>
+                                {% endif %}
+                            </td>
+                            <td>{{ unit.total_transaction }}</td>
+
+                                   <td>
+                                      <a href="{% url 'admin_Unit_Fund_detail' unit.id %}" class="btn btn-info p-1">
+                                            <i class="mdi mdi-eye" aria-hidden="true"></i>
+                                        </a>
+
+
+                            </td>
+                            </tr>
+                        {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="13" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
+                            </tr>
+                 {% endif %}
+                     <tbody>
+                   
+                </table>
+
+
+
+            </div>
+    
+    <div class="col-12">
+            <div class="pagination d-flex justify-content-center mt-5">
+
+            {% if page_obj.has_previous %}
+                 <a href="?page={{ page_obj.previous_page_number }}" class="rounded">قبلی</a>
+            {% endif %}
+
+                {% for pageNumber in paginator.page_range %}
+                      <a href="?page={{ pageNumber }}" class="{% if page_obj.number == pageNumber %}active{% endif %}">{{ pageNumber }}</a>
+                {% endfor %}
+
+            {% if page_obj.has_next %}
+                 <a href="?page={{ page_obj.next_page_number }}" class="rounded">بعدی</a>
+            {% endif %}
+            </div>
+        </div>
+{% endblock %}
+
+
+
+
+
+
+
+
