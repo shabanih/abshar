@@ -190,8 +190,22 @@ class MiddleAdminCreateView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['middleAdmins'] = User.objects.filter(is_middle_admin=True).order_by('-created_time')
-        context['users'] = User.objects.filter(is_active=True).order_by('created_time')
+
+        context['middleAdmins'] = User.objects.filter(
+            is_middle_admin=True
+        ).order_by('-created_time')
+
+        context['users'] = User.objects.filter(
+            is_active=True
+        ).order_by('created_time')
+
+        if self.request.user.charge_methods.exists():
+            context['allowed_methods'] = list(
+                self.request.user.charge_methods.values_list('id', flat=True)
+            )
+        else:
+            context['allowed_methods'] = []
+
         return context
 
 
@@ -2765,30 +2779,12 @@ class ChargeCategoryCreateView(CreateView):
     success_url = reverse_lazy('add_charge_category')
 
     def form_valid(self, form):
-        self.object = form.save()
         messages.success(self.request, 'روش شارژ با موفقیت ثبت گردید!')
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
-        # ساخت رکوردهای پیش‌فرض اگر نبودن
-        defaults = [
-            {'name': 'شارژ ثابت', 'is_active': True},
-            {'name': 'شارژ متراژی', 'is_active': True},
-            {'name': 'شارژ نفری', 'is_active': True},
-            {'name': 'شارژ واحدی متراژی', 'is_active': True},
-            {'name': 'شارژ واحدی نفری', 'is_active': True},
-            {'name': 'شارژ نفری متراژی', 'is_active': True},
-            {'name': 'شارژ واحدی متراژی نفری', 'is_active': True},
-            {'name': 'شارژ ثابت و متغیر', 'is_active': True},
-        ]
-        for item in defaults:
-            ChargeMethod.objects.get_or_create(
-                name=item['name'],
-                defaults={'is_active': item['is_active']}
-            )
-
         context = super().get_context_data(**kwargs)
-        context['charges'] = ChargeMethod.objects.all()
+        context['charges'] = ChargeMethod.objects.all().order_by('code')
         return context
 
 
@@ -4374,7 +4370,7 @@ def admin_Unit_Fund_detail(request, unit_id):
 @method_decorator(admin_required, name='dispatch')
 class AdminDebtorReport(ListView):
     model = MyHouse
-    template_name = 'report/unit_fund_report.html'
+    template_name = 'report/unit_debtor_report.html'
     context_object_name = 'houses'
 
     def get_paginate_by(self, queryset):
@@ -4385,11 +4381,12 @@ class AdminDebtorReport(ListView):
 
     def get_queryset(self):
         query = self.request.GET.get('q', '')
-
-        # حالا خانه‌ها را با تعداد واحد فعال
         qs = MyHouse.objects.annotate(
-            total_units=Count('units', filter=Q(units__is_active=True))
-        ).filter(total_units__gt=0)
+            total_debtors=Count(
+                'units__unified_charges',
+                filter=Q(units__unified_charges__is_paid=False)
+            )
+        ).filter(total_debtors__gt=0)
 
         if query:
             qs = qs.filter(
@@ -4400,11 +4397,71 @@ class AdminDebtorReport(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['query'] = self.request.GET.get('q', '')
+        query = self.request.GET.get('q', '').strip()
+        context['query'] = query
         context['paginate'] = self.request.GET.get('paginate', '20')
-        # context['house'] = MyHouse.objects.filter(
-        #     id=self.kwargs['house_id']
-        # ).first()
+
+        houses_data = []
+
+        for house in context['houses']:
+            total_debt_house = UnifiedCharge.objects.filter(
+                is_paid=False,
+                unit__myhouse=house
+            ).aggregate(total=Sum('total_charge_month'))['total'] or 0
+
+            debt_units_count = UnifiedCharge.objects.filter(
+                is_paid=False,
+                unit__myhouse=house
+            ).values('unit').distinct().count()
+
+            houses_data.append({
+                'house': house,
+                'total_debt_house': total_debt_house,
+                'debt_units_count': debt_units_count
+            })
+
+        context['houses_data'] = houses_data
+        return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class AdminDebtorUnitDetailView(DetailView):
+    model = MyHouse
+    template_name = 'report/admin_debtor_detail.html'
+    context_object_name = 'house'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        house = self.object
+        query = self.request.GET.get('q', '').strip()
+
+        units = house.units.filter(is_active=True)
+
+        unit_debts = []
+        for unit in units:
+            charges = unit.unified_charges.filter(is_paid=False)
+            if query:
+                charges = charges.filter(
+                    Q(unit__unit__icontains=query) |
+                    Q(title__icontains=query) |
+                    Q(unit__owner_name__icontains=query) |
+                    Q(unit__renters__renter_name__icontains=query)
+                ).distinct()
+
+            total_debt_unit = sum(c.total_charge_month or 0 for c in charges)
+            if total_debt_unit > 0:
+                renter = unit.get_active_renter()
+                label = f"واحد {unit.unit} - {renter.renter_name}" if renter else f"واحد {unit.unit} - {unit.owner_name}"
+                unit_debts.append({
+                    'id': unit.id,
+                    'label': label,
+                    'total_debt': total_debt_unit,
+                    'charges': charges
+                })
+
+        context['unit_debts'] = unit_debts
+        context['total_debt_house'] = sum(u['total_debt'] for u in unit_debts)
+        context['query'] = query
         return context
 
 

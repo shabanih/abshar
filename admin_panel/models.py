@@ -836,7 +836,7 @@ class UnifiedCharge(models.Model):
 
 class Fund(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
-    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True, related_name='funds')
     house = models.ForeignKey(
         MyHouse,
         on_delete=models.SET_NULL,

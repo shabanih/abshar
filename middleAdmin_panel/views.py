@@ -22,7 +22,7 @@ from django.contrib.auth import authenticate, login, logout, update_session_auth
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.db import transaction, IntegrityError, models
 from django.db.models import ProtectedError, Count, Q, Sum, F
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import get_template, render_to_string
 from django.urls import reverse, reverse_lazy
@@ -988,20 +988,35 @@ class MiddleUnitInfoView(DetailView):
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_unit_delete(request, pk):
     unit = get_object_or_404(Unit, id=pk)
+
+    # اگر رکورد مرتبط در Fund یا UnifiedCharge وجود داشته باشد، حذف امکان‌پذیر نیست
+    if unit.funds.exists():
+        messages.error(
+            request,
+            "امکان حذف وجود ندارد! برای این واحد در گردش صندوق رکورد ثبت شده است."
+        )
+        return redirect(reverse('middle_manage_unit'))
+
     try:
-        # --- حذف مستاجرها ---
+        # فقط زمانی مستاجر حذف می‌شود که Unit قابل حذف باشد
         unit.renters.all().delete()
 
-        # --- حذف کاربر فقط اگر هیچ واحد دیگری نداشته باشد ---
+        # حذف کاربر فقط اگر هیچ واحد دیگری نداشته باشد
         if unit.user and not Unit.objects.filter(user=unit.user).exclude(pk=unit.pk).exists():
             unit.user.delete()
 
-        # --- حذف خود واحد ---
+        # حذف خود واحد
         unit.delete()
-        messages.success(request, 'واحد با موفقیت حذف گردید!')
+        messages.success(
+            request,
+            "واحد با موفقیت حذف گردید! مستاجرها و سوابق سکونت به درستی مدیریت شدند."
+        )
+
     except ProtectedError:
         messages.error(request, "امکان حذف وجود ندارد!")
+
     return redirect(reverse('middle_manage_unit'))
+
 
 
 @method_decorator(middle_admin_required, name='dispatch')
@@ -3870,14 +3885,19 @@ def export_maintenance_excel(request):
 def middle_charge_view(request):
     user = request.user
 
-    allowed_methods = list(
-        user.charge_methods.values_list('id', flat=True)
-    )
+    if not user.is_middle_admin:
+        return HttpResponseForbidden()
 
     context = {
-        'allowed_methods': allowed_methods
+        "allowed_methods": user.charge_method_codes
     }
-    return render(request, 'middleCharge/add_charge.html', context)
+
+    return render(
+        request,
+        "middleCharge/add_charge.html",
+        context
+    )
+
 
 
 @method_decorator(middle_admin_required, name='dispatch')

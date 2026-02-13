@@ -7,6 +7,7 @@ from django.utils.safestring import mark_safe
 
 
 class ChargeMethod(models.Model):
+    code = models.PositiveSmallIntegerField(unique=True)
     name = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True, verbose_name='')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
@@ -56,8 +57,12 @@ class User(AbstractUser):
         return self.full_name
 
     @property
-    def charge_method_ids(self):
-        return list(self.charge_methods.values_list('id', flat=True))
+    def charge_method_codes(self):
+        return list(
+            self.charge_methods
+            .filter(is_active=True)
+            .values_list('code', flat=True)
+        )
 
     @staticmethod
     def get_manager_for_user(user):
@@ -427,8 +432,9 @@ class UnitResidenceHistory(models.Model):
 
     unit = models.ForeignKey(
         Unit,
-        on_delete=models.CASCADE,
-        related_name='residence_histories'
+        on_delete=models.SET_NULL,
+        related_name='residence_histories',
+        null=True, blank=True
     )
 
     resident_type = models.CharField(

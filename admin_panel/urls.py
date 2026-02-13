@@ -186,7 +186,12 @@ urlpatterns = [
 
     # Debtor Report
 
-    path('admin/ddebtor/report/', views.AdminDebtorReport.as_view(), name='admin_debtor_report'),
+    path('admin/debtor/report/', views.AdminDebtorReport.as_view(), name='admin_debtor_report'),
+    path('admin/unit/debtor/<int:pk>/', views.AdminDebtorUnitDetailView.as_view(), name='admin_unit_debtor_detail'),
+
+    # Unit History Report
+
+    path('admin/unit/history/report/', views.AdminUnitHistoryReport.as_view(), name='admin_unit_history_report'),
 
     # Expense Report
 

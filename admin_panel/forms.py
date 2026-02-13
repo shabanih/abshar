@@ -139,10 +139,6 @@ class AdminMessageToMiddleForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
 
-
-
-
-
 RESIDENCE_STATUS_CHOICES = {
     '': '--- انتخاب کنید ---',
     'occupied': 'ساکن',
@@ -855,30 +851,19 @@ class ExpenseForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
-        default_categories = ['هزینه آب', 'هزینه برق', 'هزینه گاز']  # آیتم های پیش‌فرض
+        default_categories = ['هزینه آب', 'هزینه برق', 'هزینه گاز']
         if user:
-            # ابتدا مطمئن می‌شویم که آیتم‌های پیش‌فرض وجود دارند
             for title in default_categories:
-                obj, created = ExpenseCategory.objects.get_or_create(
+                ExpenseCategory.objects.get_or_create(
                     title=title,
-                    defaults={'is_active': True, 'user': user}
+                    user=user,
+                    defaults={'is_active': True}
                 )
 
-            # سپس queryset فرم را تعریف می‌کنیم
             self.fields['category'].queryset = ExpenseCategory.objects.filter(
                 is_active=True,
                 user=user
             )
-
-    # def __init__(self, *args, **kwargs):
-    #     user = kwargs.pop('user', None)
-    #     super().__init__(*args, **kwargs)
-    #
-    #     if user:
-    #         self.fields['category'].queryset = ExpenseCategory.objects.filter(
-    #             is_active=True,
-    #             user=user
-    #         )
 
     def clean_amount(self):
         """
