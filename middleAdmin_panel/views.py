@@ -232,7 +232,6 @@ def middle_admin_dashboard(request):
     return render(request, 'middleShared/home_template.html', context)
 
 
-
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def middle_admin_login_view(request):
     if request.method == 'POST':
@@ -653,6 +652,14 @@ class MiddleUnitRegisterView(CreateView):
                     }
                 )
 
+                # اگر قبلاً وجود داشته → نقش‌ها آپدیت شود
+                if not owner_created:
+                    owner_user.is_unit = True
+                    owner_user.manager = self.request.user
+                    owner_user.full_name = owner_name
+                    owner_user.save()
+
+                # اگر تازه ساخته شده → پسورد ست شود
                 if owner_created:
                     password = form.cleaned_data.get('password')
                     if password:
@@ -1586,7 +1593,6 @@ def middle_expense_edit(request, pk):
     return redirect('middle_add_expense')
 
 
-
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_expense_delete(request, pk):
     expense = get_object_or_404(Expense, id=pk)
@@ -2009,7 +2015,6 @@ def income_pay_view(request, income_id):
                     payer_name = form.cleaned_data.get('payer_name')
                     unit = form.cleaned_data['unit']
 
-
                     fund = Fund.objects.create(
                         unit=unit if unit else None,
                         payer_name=payer_name if not unit else f' {unit.get_label()}',
@@ -2156,7 +2161,6 @@ def middle_income_edit(request, pk):
     except Exception as e:
         messages.error(request, 'خطا در ویرایش درآمد.')
         return redirect('middle_add_income')
-
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -2393,7 +2397,6 @@ class MiddleReceiveMoneyCreateView(CreateView):
 
             content_type = ContentType.objects.get_for_model(self.object)
             payer_name_for_fund = self.object.payer_name if not self.object.unit else f"{self.object.unit}"
-
 
             # 🔹 ذخیره سند در Fund با خانه
             Fund.objects.create(
@@ -4109,6 +4112,7 @@ def middle_fix_charge_delete(request, pk):
 
     return redirect(reverse('middle_add_fixed_charge'))
 
+
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_fix_charge_notification_view(request, pk):
     charge = get_object_or_404(FixCharge, id=pk, user=request.user)
@@ -4431,7 +4435,7 @@ class MiddleAreaChargeCreateView(CreateView):
         unit_count = Unit.objects.filter(
             Q(user=self.request.user) | Q(user__in=managed_users),
             is_active=True,
-                                         ).count()
+        ).count()
 
         context['unit_count'] = unit_count
         print(unit_count)
@@ -4593,7 +4597,6 @@ def middle_area_charge_delete(request, pk):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_area_charge_notification_view(request, pk):
-
     charge = get_object_or_404(AreaCharge, id=pk, user=request.user)
     content_type = ContentType.objects.get_for_model(AreaCharge)
 
@@ -5196,10 +5199,10 @@ def middle_person_charge_notification_view(request, pk):
         }
 
     return render(request, "middleCharge/notify_person_charge_template.html", {
-            "charge": charge,
-            "page_obj": page_units,
-            # "paginator": paginator,
-        })
+        "charge": charge,
+        "page_obj": page_units,
+        # "paginator": paginator,
+    })
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -5375,7 +5378,8 @@ class MiddleFixAreaChargeCreateView(CreateView):
             total=Sum('people_count'))['total'] or 0
         context['total_people'] = total_people
         context['total_area'] = \
-            Unit.objects.filter(Q(user=self.request.user) | Q(user__in=managed_users), is_active=True).aggregate(total=Sum('area'))[
+            Unit.objects.filter(Q(user=self.request.user) | Q(user__in=managed_users), is_active=True).aggregate(
+                total=Sum('area'))[
                 'total'] or 0
 
         charges = FixAreaCharge.objects.filter(user=self.request.user).annotate(
@@ -5636,7 +5640,7 @@ def middle_show_fix_area_charge_notification_form(request, pk):
 
         return redirect(request.path)
 
-# آماده‌سازی داده‌ها برای قالب
+    # آماده‌سازی داده‌ها برای قالب
     uc_map = {
         uc.unit_id: uc
         for uc in UnifiedCharge.objects.filter(
@@ -5661,10 +5665,10 @@ def middle_show_fix_area_charge_notification_form(request, pk):
         }
 
     context = {
-            'charge': charge,
-            'page_obj': page_units,
-            # 'paginator': paginator,
-        }
+        'charge': charge,
+        'page_obj': page_units,
+        # 'paginator': paginator,
+    }
 
     return render(request, 'middleCharge/notify_area_fix_charge_template.html', context)
 
@@ -7769,8 +7773,6 @@ def base_charge_list(request):
         )
 
         charges_data.append(data)
-
-
 
     # 📄 pagination
     paginator = Paginator(charges_data, paginate)

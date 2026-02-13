@@ -116,95 +116,27 @@ urlpatterns = [
     path('charges-method', views.charge_view, name='charges_method'),
 
     path('add-fixed-Charge', views.FixChargeCreateView.as_view(), name='add_fixed_charge'),
-    # path('charge/edit/<int:pk>/', views.fix_charge_edit, name='charge_edit'),
-    # path('charge/delete/<int:pk>/', views.fix_charge_delete, name='fix_charge_delete'),
-    # path('charge/notify/<int:pk>/', views.show_fix_charge_notification_form, name='show_notification_fix_charge_form'),
-    # # path('charge/fix/notify/send/<int:pk>/', views.send_notification_fix_charge_to_user,
-    # #      name='send_notification_fix_charge_to_user'),
-    # path('remove-send-notification-fix/<int:pk>/', views.remove_send_notification_fix,
-    #      name='remove_send_notification_fix'),
 
     path('add-area-charge', views.AreaChargeCreateView.as_view(), name='add_area_charge'),
-    # path('area/charge/edit/<int:pk>/', views.area_charge_edit, name='charge_area_edit'),
-    # path('area/charge/delete/<int:pk>/', views.area_charge_delete, name='charge-area_delete'),
-    # path('charge/area/notify/<int:pk>/', views.show_area_charge_notification_form,
-    #      name='show_notification_area_charge_form'),
-    # path('charge/area/notify/send/<int:pk>/', views.send_notification_area_charge_to_user,
-    #      name='send_notification_area_charge_to_user'),
-    # path('remove-send-notification-ajax/<int:pk>/', views.remove_send_notification_ajax,
-    #      name='remove_send_notification_ajax'),
 
     path('add-person-charge', views.PersonChargeCreateView.as_view(), name='add_person_charge'),
-    # path('person/charge/edit/<int:pk>/', views.person_charge_edit, name='charge_person_edit'),
-    # path('person/charge/delete/<int:pk>/', views.person_charge_delete, name='charge-person_delete'),
-    # path('charge/person/notify/<int:pk>/', views.show_person_charge_notification_form,
-    #      name='show_notification_person_charge_form'),
-    # path('charge/person/notify/send/<int:pk>/', views.send_notification_person_charge_to_user,
-    #      name='send_notification_person_charge_to_user'),
-    # path('remove-send-notification-person/<int:pk>/', views.remove_send_notification_person,
-    #      name='remove_send_notification_person'),
 
     path('add-fix_person-charge', views.FixPersonChargeCreateView.as_view(), name='add_fix_person_charge'),
-    # path('fix/person/charge/edit/<int:pk>/', views.fix_person_charge_edit, name='charge_fix_person_edit'),
-    # path('fix/person/charge/delete/<int:pk>/', views.fix_person_charge_delete, name='charge_fix_person_delete'),
-    # path('charge/fix/person/notify/<int:pk>/', views.show_fix_person_charge_notification_form,
-    #      name='show_notification_fix_person_charge_form'),
-    # path('charge/fix/person/notify/send/<int:pk>/', views.send_notification_fix_person_charge_to_user,
-    #      name='send_notification_fix_person_charge_to_user'),
-    # path('remove-send-notification-fix-person/<int:pk>/', views.remove_send_notification_fix_person,
-    #      name='remove_send_notification_fix_person'),
 
     path('add-fix_area-charge', views.FixAreaChargeCreateView.as_view(), name='add_fix_area_charge'),
-    # path('fix/area/charge/edit/<int:pk>/', views.fix_area_charge_edit, name='charge_fix_area_edit'),
-    # path('fix/area/charge/delete/<int:pk>/', views.fix_area_charge_delete, name='charge-fix_area_delete'),
-    # path('charge/fix/area/notify/<int:pk>/', views.show_fix_area_charge_notification_form,
-    #      name='show_notification_fix_area_charge_form'),
-    # path('charge/fix/area/notify/send/<int:pk>/', views.send_notification_fix_area_charge_to_user,
-    #      name='send_notification_fix_area_charge_to_user'),
-    # path('remove-send-notification-fix-area/<int:pk>/', views.remove_send_notification_fix_area,
-    #      name='remove_send_notification_fix_area'),
 
     path('add-person_area-charge', views.PersonAreaChargeCreateView.as_view(), name='add_person_area_charge'),
-    # path('area/person/charge/edit/<int:pk>/', views.person_area_charge_edit, name='charge_area_person_edit'),
-    # path('area/person/charge/delete/<int:pk>/', views.person_area_charge_delete, name='charge_area_person_delete'),
-    # path('charge/person/area/notify/<int:pk>/', views.show_person_area_charge_notification_form,
-    #      name='show_notification_person_area_charge_form'),
-    # path('charge/person/area/notify/send/<int:pk>/', views.send_notification_person_area_charge_to_user,
-    #      name='send_notification_person_area_charge_to_user'),
-    # path('remove-send-notification-person-area/<int:pk>/', views.remove_send_notification_person_area,
-    #      name='remove_send_notification_person_area'),
 
     path('add-person_area-fix-charge', views.PersonAreaFixChargeCreateView.as_view(),
          name='add_person_area_fix_charge'),
-    # path('fix/area/person/charge/edit/<int:pk>/', views.person_area_fix_charge_edit,
-    #      name='charge_area_person_fix_edit'),
-    # path('fix/area/person/charge/delete/<int:pk>/', views.person_area_fix_delete, name='charge_area_person_fix_delete'),
-    # path('charge/fix/person/area/notify/<int:pk>/', views.show_fix_person_area_charge_notification_form,
-    #      name='show_notification_fix_person_area_charge_form'),
-    # path('charge/fix/person/area/notify/send/<int:pk>/', views.send_notification_fix_person_area_charge_to_user,
-    #      name='send_notification_fix_person_area_charge_to_user'),
-    # path('remove-send-notification-fix-person-area/<int:pk>/', views.remove_send_notification_fix_person_area,
-    #      name='remove_send_notification_fix_person_area'),
 
     path('add-variable-fix-charge', views.VariableFixChargeCreateView.as_view(), name='add_variable_fix_charge'),
-    # path('fix/variable/charge/edit/<int:pk>/', views.variable_fix_charge_edit, name='charge_variable_fix_edit'),
-    # path('variable/fix/charge/delete/<int:pk>/', views.variable_fix_charge_delete, name='charge_variable_fix_delete'),
-    # path('charge/fix/variable/middleCharge/notify/<int:pk>/', views.show_fix_variable_notification_form,
-    #      name='show_notification_fix_variable_charge_form'),
-    # path('charge/fix/variable/middleCharge/notify/send/<int:pk>/', views.send_notification_fix_variable_to_user,
-    #      name='send_notification_fix_variable_charge_to_user'),
-    # path('remove-send-notification-fix-variable-middleCharge/<int:pk>/', views.remove_send_notification_fix_variable,
-    #      name='remove_send_notification_fix_variable_charge'),
 
     # Sms_Management
 
     path('charge/issued/', views.ChargeIssued.as_view(), name='charge_issued'),
     path(
-        "charges/<int:house_id>/",
-        views.ChargeIssuedDetailView.as_view(),
-        name="charges_issued_detail"
-    ),
-
+        "charges/<int:house_id>/", views.ChargeIssuedDetailView.as_view(), name="charges_issued_detail"),
     path('admin/register/sms/', views.AdminSmsManagementView.as_view(), name='admin_register_sms'),
     path('admin/edit/sms/<int:pk>/', views.AdminSmsUpdateView.as_view(), name='admin_edit_sms'),
     path('admin-sms-delete/<int:pk>/', views.admin_sms_delete, name='admin_delete_sms'),
@@ -213,51 +145,74 @@ urlpatterns = [
     path('admin/sms/management/', views.AdminSmsListView.as_view(), name='admin_sms_management'),
     path('admin/sms/approved/', views.ApprovedSms.as_view(), name='admin_sms_approved'),
     path(
-        "sms/<int:house_id>/",
-        views.ApprovedSmsDetailView.as_view(),
-        name="sms_approved_list"
-    ),
+        "sms/<int:house_id>/", views.ApprovedSmsDetailView.as_view(), name="sms_approved_list"),
+
     path('admin-approved-sms/<int:pk>/', views.approve_sms, name='admin_approved_sms'),
     path('admin-disapproved-sms/<int:pk>/', views.disapprove_sms, name='admin_disapproved_sms'),
     path('admin/sms/credit/', views.CreditSmsManagement.as_view(), name='admin_sms_credit'),
     path(
-        "credit/sms/<int:house_id>/",
-        views.CreditSmsDetailView.as_view(),
-        name="sms_credit_list"
-    ),
+        "credit/sms/<int:house_id>/", views.CreditSmsDetailView.as_view(), name="sms_credit_list"),
+
     path('middle/sms/report/', views.middleSmsManagementReport.as_view(), name='middle_sms_report'),
     path(
-        "middle/report/sms/<int:house_id>/",
-        views.middleReportSmsDetailView.as_view(),
-        name="middle_sms_report_list"
-    ),
+        "middle/report/sms/<int:house_id>/", views.middleReportSmsDetailView.as_view(), name="middle_sms_report_list"),
+
     path('admin/ticket/report/', views.AdminTicketReport.as_view(), name='admin_ticket_report'),
     path(
-        "admin/report/ticket/<int:house_id>/",
-        views.AdminTicketDetailView.as_view(),
-        name="admin_ticket_report_list"
-    ),
+        "admin/report/ticket/<int:house_id>/", views.AdminTicketDetailView.as_view(), name="admin_ticket_report_list"),
+
+    # Fund Report
+
     path('admin/fund/report/', views.AdminFundReport.as_view(), name='admin_fund_report'),
     path(
-        "admin/report/fund/<int:house_id>/",
-        views.AdminFundReportDetailView.as_view(),
-        name="admin_fund_report_list"
-    ),
+        "admin/report/fund/<int:house_id>/", views.AdminFundReportDetailView.as_view(), name="admin_fund_report_list"),
+
+    # Bank Fund Report
+
     path('admin/banks/report/', views.AdminBanksReport.as_view(), name='admin_banks_report'),
     path(
-        "admin/report/bank/list/<int:house_id>/",
-        views.AdminBanksListReportView.as_view(),
-        name="admin_bank_report_list"
-    ),
+        "admin/report/bank/list/<int:house_id>/", views.AdminBanksListReportView.as_view(),
+        name="admin_bank_report_list"),
+
     path('admin/banks/details<int:bank_id>/', views.admin_bank_detail_view, name='admin_bank_detail'),
+
+    # Unit Fund Report
+
+    path('admin/unit/fund/report/', views.AdminUnitFundReport.as_view(), name='admin_unit_fund_report'),
+    path(
+        "admin/report/unit/list/<int:house_id>/", views.AdminUnitsListReportView.as_view(),
+        name="admin_unit_report_list"),
+    path('admin/unit/fund/details/<int:unit_id>/', views.admin_Unit_Fund_detail, name='admin_Unit_Fund_detail'),
+
+    # Debtor Report
+
+    path('admin/ddebtor/report/', views.AdminDebtorReport.as_view(), name='admin_debtor_report'),
+
+    # Expense Report
+
+    path('admin/expense/report/', views.AdminExpenseReport.as_view(), name='admin_expense_report'),
+
+    # Income Report
+
+    path('admin/income/report/', views.AdminIncomeReport.as_view(), name='admin_income_report'),
+
+    # Receive Pay Report
+
+    path('admin/receive/pay/report/', views.AdminReceivePayReport.as_view(), name='admin_receive_pay_report'),
+
+    # Property Report
+
+    path('admin/property/report/', views.AdminPropertyReport.as_view(), name='admin_property_report'),
+
+    # Maintenance Report
+
+    path('admin/maintenance/report/', views.AdminMaintenanceReport.as_view(), name='admin_maintenance_report'),
+
+    # billan Report
 
     # مسیر دریافت نوت‌ها
     path('calendar/notes/<int:year>/<int:month>/', views.get_notes, name='get_notes'),
-
-    # مسیر ذخیره نوت
     path('calendar/save-note/', views.save_note, name='save_note'),
-
-    # مسیر حذف نوت
     path('calendar/delete-note/', views.delete_note, name='delete_note'),
 ]
 if settings.DEBUG:

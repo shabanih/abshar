@@ -238,10 +238,10 @@ def user_panel(request):
     if request.session.get('impersonator_id'):
         # impersonation فعال است، user همان target است
         pass
-    else:
-        # کاربر معمولی فقط ساکن باشد
-        if not user.is_unit:
-            return redirect('/index/')  # یا مسیر login خودتان
+    # else:
+    #     # کاربر معمولی فقط ساکن باشد
+    #     if not user.is_unit:
+    #         return redirect('/index/')  # یا مسیر login خودتان
 
     # -------------------------
     # Unified Charges

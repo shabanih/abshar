@@ -3961,7 +3961,7 @@ def delete_note(request):
     return JsonResponse({"status": "error"}, status=400)
 
 
-# ========================== Report for Admin =============================================
+# ========================== Fund Report =============================================
 @method_decorator(admin_required, name='dispatch')
 class AdminFundReport(ListView):
     model = MyHouse
@@ -3979,12 +3979,9 @@ class AdminFundReport(ListView):
 
         qs = (
             MyHouse.objects
-            .filter(house_funds__is_paid=True)
+            .filter(house_funds__id__isnull=False)
             .annotate(
-                total_fund=Count(
-                    'house_funds',
-                    filter=Q(house_funds__is_paid=True)
-                )
+                total_fund=Count('house_funds')
             )
             .distinct()
         )
@@ -4044,6 +4041,7 @@ class AdminFundReportDetailView(ListView):
         return context
 
 
+# ================================== Bank Report ===================================
 @method_decorator(admin_required, name='dispatch')
 class AdminBanksReport(ListView):
     model = MyHouse
@@ -4163,6 +4161,7 @@ class AdminBanksListReportView(ListView):
         return context
 
 
+@login_required
 def admin_bank_detail_view(request, bank_id):
     bank = get_object_or_404(
         Bank.objects.prefetch_related(
@@ -4210,3 +4209,431 @@ def admin_bank_detail_view(request, bank_id):
     }
 
     return render(request, 'report/admin_bank_detail.html', context)
+
+
+# ============================ unit Fund report ====================================
+
+@method_decorator(admin_required, name='dispatch')
+class AdminUnitFundReport(ListView):
+    model = MyHouse
+    template_name = 'report/unit_fund_report.html'
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        # حالا خانه‌ها را با تعداد واحد فعال
+        qs = MyHouse.objects.annotate(
+            total_units=Count('units', filter=Q(units__is_active=True))
+        ).filter(total_units__gt=0)
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        # context['house'] = MyHouse.objects.filter(
+        #     id=self.kwargs['house_id']
+        # ).first()
+        return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class AdminUnitsListReportView(ListView):
+    model = Unit
+    template_name = 'report/admin_unit_list.html'
+    context_object_name = 'object_list'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None
+        return int(paginate) if paginate and paginate.isdigit() else 20
+
+    def get_queryset(self):
+        house_id = self.kwargs['house_id']
+
+        # پایه: همه واحدهای خانه و فعال + تعداد تراکنش‌ها
+        qs = (
+            Unit.objects
+            .filter(myhouse_id=house_id, is_active=True)
+            .annotate(
+                total_transaction=Count(
+                    'fund',  # همان related_name واقعی
+                    filter=Q(fund__isnull=False)
+                )
+            )
+
+            .prefetch_related(
+                Prefetch(
+                    'renters',
+                    queryset=Renter.objects.filter(renter_is_active=True),
+                    to_attr='active_renters'
+                )
+            )
+            .order_by('unit')
+        )
+
+        params = self.request.GET
+        filters = Q()
+
+        if params.get('unit') and params['unit'].isdigit():
+            filters &= Q(unit=int(params['unit']))
+        if params.get('owner_name'):
+            filters &= Q(owner_name__icontains=params['owner_name'])
+        if params.get('owner_mobile'):
+            filters &= Q(owner_mobile__icontains=params['owner_mobile'])
+        if params.get('area') and params['area'].isdigit():
+            filters &= Q(area=int(params['area']))
+        if params.get('bedrooms_count') and params['bedrooms_count'].isdigit():
+            filters &= Q(bedrooms_count=int(params['bedrooms_count']))
+        if params.get('renter_name'):
+            filters &= Q(renters__renter_name__icontains=params['renter_name'])
+        if params.get('renter_mobile'):
+            filters &= Q(renters__renter_mobile__icontains=params['renter_mobile'])
+        if params.get('people_count') and params['people_count'].isdigit():
+            filters &= Q(owner_people_count=int(params['people_count']))
+        if params.get('status_residence'):
+            filters &= Q(status_residence__icontains=params['status_residence'])
+        if params.get('is_renter'):
+            filters &= Q(is_renter__icontains=params['is_renter'])
+
+        qs = qs.filter(filters).distinct()
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        house = MyHouse.objects.filter(
+            id=self.kwargs['house_id']
+        ).first()
+        context['house'] = house
+        context['total_units'] = Unit.objects.filter(myhouse_id=house, is_active=True).count()
+        context['query_params'] = self.request.GET.urlencode()
+        return context
+
+
+@login_required
+def admin_Unit_Fund_detail(request, unit_id):
+    # گرفتن واحد برای اطلاعات اضافی در template
+    unit = get_object_or_404(Unit, id=unit_id, is_active=True)
+
+    # فقط فاندهای همین واحد
+    funds = (
+        Fund.objects
+        .filter(unit=unit)
+        .select_related('bank', 'content_type')
+        .order_by('-payment_date')
+    )
+
+    # -------- paginate --------
+    page_number = request.GET.get('page', 1)
+    paginator = Paginator(funds, 20)  # 20 تراکنش در هر صفحه
+    page_obj = paginator.get_page(page_number)
+    # --------------------------
+
+    # محاسبه running balance فقط برای همین صفحه
+    running_total = Decimal('0')
+    transactions = []
+    for f in page_obj:
+        running_total += (f.debtor_amount or Decimal('0')) - (f.creditor_amount or Decimal('0'))
+        transactions.append({
+            'payment_date': f.payment_date,
+            'payment_description': f.payment_description,
+            'debtor_amount': f.debtor_amount,
+            'creditor_amount': f.creditor_amount,
+            'payment_gateway': f.payment_gateway,
+            'transaction_no': f.transaction_no,
+            'balance': running_total
+        })
+
+    context = {
+        'unit': unit,
+        'house': unit.myhouse,  # ← اضافه شد
+        'transactions': transactions,
+        'page_obj': page_obj,
+        'balance': running_total,
+    }
+
+    return render(request, 'report/admin_unit_fund_detail.html', context)
+
+
+# ==================================== Debtor unit report ========================================
+@method_decorator(admin_required, name='dispatch')
+class AdminDebtorReport(ListView):
+    model = MyHouse
+    template_name = 'report/unit_fund_report.html'
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        # حالا خانه‌ها را با تعداد واحد فعال
+        qs = MyHouse.objects.annotate(
+            total_units=Count('units', filter=Q(units__is_active=True))
+        ).filter(total_units__gt=0)
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        # context['house'] = MyHouse.objects.filter(
+        #     id=self.kwargs['house_id']
+        # ).first()
+        return context
+
+
+# ==================================== History Unit report ========================================
+@method_decorator(admin_required, name='dispatch')
+class AdminUnitHistoryReport(ListView):
+    model = MyHouse
+    template_name = 'report/unit_fund_report.html'
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        # حالا خانه‌ها را با تعداد واحد فعال
+        qs = MyHouse.objects.annotate(
+            total_units=Count('units', filter=Q(units__is_active=True))
+        ).filter(total_units__gt=0)
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        # context['house'] = MyHouse.objects.filter(
+        #     id=self.kwargs['house_id']
+        # ).first()
+        return context
+
+
+# ==================================== Expense Report ========================================
+@method_decorator(admin_required, name='dispatch')
+class AdminExpenseReport(ListView):
+    model = MyHouse
+    template_name = 'report/unit_fund_report.html'
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        # حالا خانه‌ها را با تعداد واحد فعال
+        qs = MyHouse.objects.annotate(
+            total_units=Count('units', filter=Q(units__is_active=True))
+        ).filter(total_units__gt=0)
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        # context['house'] = MyHouse.objects.filter(
+        #     id=self.kwargs['house_id']
+        # ).first()
+        return context
+
+
+# ==================================== Income Report ========================================
+@method_decorator(admin_required, name='dispatch')
+class AdminIncomeReport(ListView):
+    model = MyHouse
+    template_name = 'report/unit_fund_report.html'
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        # حالا خانه‌ها را با تعداد واحد فعال
+        qs = MyHouse.objects.annotate(
+            total_units=Count('units', filter=Q(units__is_active=True))
+        ).filter(total_units__gt=0)
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        # context['house'] = MyHouse.objects.filter(
+        #     id=self.kwargs['house_id']
+        # ).first()
+        return context
+
+
+# ==================================== Receive & Pay Report ========================================
+
+@method_decorator(admin_required, name='dispatch')
+class AdminReceivePayReport(ListView):
+    model = MyHouse
+    template_name = 'report/unit_fund_report.html'
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        # حالا خانه‌ها را با تعداد واحد فعال
+        qs = MyHouse.objects.annotate(
+            total_units=Count('units', filter=Q(units__is_active=True))
+        ).filter(total_units__gt=0)
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        # context['house'] = MyHouse.objects.filter(
+        #     id=self.kwargs['house_id']
+        # ).first()
+        return context
+
+
+# ==================================== Property Report ========================================
+@method_decorator(admin_required, name='dispatch')
+class AdminPropertyReport(ListView):
+    model = MyHouse
+    template_name = 'report/unit_fund_report.html'
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        # حالا خانه‌ها را با تعداد واحد فعال
+        qs = MyHouse.objects.annotate(
+            total_units=Count('units', filter=Q(units__is_active=True))
+        ).filter(total_units__gt=0)
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        # context['house'] = MyHouse.objects.filter(
+        #     id=self.kwargs['house_id']
+        # ).first()
+        return context
+
+
+# ==================================== Maintenance Report ========================================
+@method_decorator(admin_required, name='dispatch')
+class AdminMaintenanceReport(ListView):
+    model = MyHouse
+    template_name = 'report/unit_fund_report.html'
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        # حالا خانه‌ها را با تعداد واحد فعال
+        qs = MyHouse.objects.annotate(
+            total_units=Count('units', filter=Q(units__is_active=True))
+        ).filter(total_units__gt=0)
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        # context['house'] = MyHouse.objects.filter(
+        #     id=self.kwargs['house_id']
+        # ).first()
+        return context
+
+# ==================================== Billan Report ========================================
