@@ -1,0 +1,100 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+سوابق سکونت واحدها
+{% endblock page_title %}
+
+{% block main_content %}
+<div class="container py-4">
+   <div class="row text-md-start mb-3">
+        <div class="col">
+            <a href="{% url 'admin_unit_history_list' house.id %}" class="btn btn-gradient-info py-2 px-3">برگشت به لیست اصلی</a>
+        </div>
+    </div>
+<div class="row">
+<table class="table table-bordered text-center" id="unitTable">
+    <thead class="table-dark">
+        <tr>
+            <th>ردیف</th>
+            <th>نوع سکونت</th>
+            <th>نام</th>
+            <th>موبایل</th>
+            <th>تعداد نفرات</th>
+            <th>از تاریخ</th>
+            <th>تا تاریخ</th>
+            <th>وضعیت</th>
+        </tr>
+    </thead>
+
+    <tbody>
+    {% if page_obj %}
+        {% for h in page_obj %}
+            <tr>
+                 <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
+                <td>
+                    {% if h.resident_type == 'owner' %}
+                        <span class="badge bg-primary">مالک</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">مستاجر</span>
+                    {% endif %}
+                </td>
+                <td>{{ h.name }}</td>
+                <td>{{ h.mobile }}</td>
+                <td>{{ h.people_count }}</td>
+                <td>{{ h.from_date|show_jalali }}</td>
+                <td>
+                    {% if h.to_date %}
+                        {{ h.to_date|show_jalali }}
+                    {% else %}
+                        <span class="text-success fw-bold">اکنون</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if not h.to_date %}
+                        <span class="badge bg-success">فعال</span>
+                    {% else %}
+                        <span class="badge bg-secondary">پایان یافته</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    {% else %}
+        <tr>
+            <td colspan="8" class="text-center">
+                هیچ سابقه‌ای برای نمایش وجود ندارد
+            </td>
+        </tr>
+    {% endif %}
+    </tbody>
+</table>
+
+<!-- Pagination -->
+      <div class="col-12">
+        <div class="pagination d-flex justify-content-center mt-5">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+            {% endif %}
+
+            {% for page_number in page_obj.paginator.page_range %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_number }}"
+                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
+                    {{ page_number }}
+                </a>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</div>
+
+
+{% endblock %}
+
+    
+

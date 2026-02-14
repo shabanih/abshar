@@ -1,0 +1,154 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+لیست تعمیر و نگهداری
+{% endblock page_title %}
+
+{% block main_content %}
+
+<div class="container py-2">
+    <div class="row text-md-start">
+        <div class="col">
+            <a href="{% url 'admin_maintenance_report' %}" class="btn btn-gradient-info py-2 px-3">برگشت به لیست </a>
+        </div>
+    </div>
+    <div class="row g-2 align-items-center mb-1 mt-4">
+
+        <!-- جستجو -->
+        <div class="col-12 col-md-7 py-1">
+            <form method="get" class="d-flex gap-2">
+                <input type="text"
+                       class="form-control"
+                       name="q"
+                       value="{{ query }}"
+                       placeholder="جستجو..."
+                       dir="rtl"
+                       autocomplete="off"
+                       oninput="if(this.value==='') this.form.submit();">
+                <button type="submit" class="btn btn-info py-2">
+                    جستجو
+                </button>
+            </form>
+        </div>
+
+        <!-- خروجی -->
+{#        <div class="col-12 col-md-3 d-flex gap-1">#}
+{#            <a href="{% url 'export_user_report_excel' %}"#}
+{#               class="btn btn-gradient-success w-50">#}
+{#                Excel#}
+{#            </a>#}
+{#            <a href="{% url 'export_user_report_pdf' %}?{{ request.GET.urlencode }}"#}
+{#               class="btn btn-gradient-danger w-50">#}
+{#                PDF#}
+{#            </a>#}
+{#        </div>#}
+
+        <!-- تعداد نمایش -->
+     <div class="col-12 col-md-5 col-xl-5 py-1 text-center"> 
+         <div class="d-flex align-items-center justify-content-end gap-1"> 
+             <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label> 
+             <select id="cardsPerPage" class="form-select select-fix" 
+                     style="width: auto;" onchange="window.location.href='?q={{ query }}&paginate=' + this.value;"> 
+                 <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option> 
+                 <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option> 
+                 <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option> 
+                 <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+             </select>
+         </div> 
+     </div>
+
+    </div>
+
+<div class="row mt-1">
+   <div class="table-responsive">
+                <table class="table table-bordered " id="expenseTable">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th>شرح کار</th>
+                             <th>تاریخ شروع</th>
+                             <th>تاریخ پایان</th>
+                            <th>اجرت/دستمزد</th>
+                              <th>شرکت خدماتی</th>
+                            <th>شماره فاکتور</th>
+                             <th>توضیحات </th>
+                             <th>آخرین وضعیت</th>
+                            <th>تصویر سند</th>
+                         
+                        </tr>
+                    </thead>
+                {% if page_obj %}
+               {% for maintenance in page_obj %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                               <td>{{maintenance.maintenance_description }}</td>
+                             <td class="col-12 col-lg-1 col-xl-1">{{maintenance.maintenance_start_date|show_jalali }}</td>
+                                 <td class="col-12 col-lg-1 col-xl-1">{{maintenance.maintenance_end_date|show_jalali }}</td>
+                              <td>{{maintenance.maintenance_price|three_digit_currency }}</td>
+                                <td>{{maintenance.service_company }}</td>
+                                <td>{{maintenance.maintenance_document_no }}</td>
+                               <td>{{maintenance.details }}</td>
+                            <td class="col-12 col-lg-1 col-xl-1 p-0">
+                                {% if maintenance.maintenance_status == 'در حال انجام' %}
+                                	<button class="btn btn-gradient-warning px-1 py-2">درحال انجام</button>
+                                    {% elif maintenance.maintenance_status == 'تکمیل شده' %}
+                                    <button class="btn btn-gradient-success px-1 py-2">تکمیل شده</button>
+                                    {% else %}
+                                    <button class="btn btn-gradient-danger px-1 py-2">تکمیل نشده</button>
+                                {% endif %} 
+                              
+                            </td>
+                            
+                            
+                                <td class=" justify-content-center align-self-center">
+                                  {% for doc in maintenance.documents.all %}
+                                        <a href="{{ doc.document.url }}" target="_blank" 
+                                           > 
+                                            <i class="fas fa-image fa-2x me-2"></i></a>
+                                    {% empty %}
+                                     !No File
+                                    {% endfor %}
+                                </td>
+                      
+                            </tr>
+                        {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ سندی برای نمایش وجود ندارد.</td>
+                            </tr>
+                     <tbody>
+                    {% endif %}
+                </table>
+                   <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+</div>
+
+</div>
+
+
+
+
+{% endblock %}
+
+

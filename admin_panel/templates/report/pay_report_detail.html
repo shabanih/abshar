@@ -1,0 +1,215 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+لیست اسناد پرداختی
+{% endblock page_title %}
+
+{% block main_content %}
+
+<div class="container py-2">
+    <div class="row text-md-start">
+        <div class="col">
+            <a href="{% url 'admin_pay_report' %}" class="btn btn-gradient-info py-2 px-3">برگشت به لیست </a>
+        </div>
+    </div>
+    <div class="row g-2 align-items-center mb-1 mt-4">
+
+        <!-- جستجو -->
+        <div class="col-12 col-md-7 py-1">
+            <form method="get" class="d-flex gap-2">
+                <input type="text"
+                       class="form-control"
+                       name="q"
+                       value="{{ query }}"
+                       placeholder="جستجو..."
+                       dir="rtl"
+                       autocomplete="off"
+                       oninput="if(this.value==='') this.form.submit();">
+                <button type="submit" class="btn btn-info py-2">
+                    جستجو
+                </button>
+            </form>
+        </div>
+
+        <!-- خروجی -->
+{#        <div class="col-12 col-md-3 d-flex gap-1">#}
+{#            <a href="{% url 'export_user_report_excel' %}"#}
+{#               class="btn btn-gradient-success w-50">#}
+{#                Excel#}
+{#            </a>#}
+{#            <a href="{% url 'export_user_report_pdf' %}?{{ request.GET.urlencode }}"#}
+{#               class="btn btn-gradient-danger w-50">#}
+{#                PDF#}
+{#            </a>#}
+{#        </div>#}
+
+        <!-- تعداد نمایش -->
+     <div class="col-12 col-md-5 col-xl-5 py-1 text-center"> 
+         <div class="d-flex align-items-center justify-content-end gap-1"> 
+             <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label> 
+             <select id="cardsPerPage" class="form-select select-fix" 
+                     style="width: auto;" onchange="window.location.href='?q={{ query }}&paginate=' + this.value;"> 
+                 <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option> 
+                 <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option> 
+                 <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option> 
+                 <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+             </select>
+         </div> 
+     </div>
+
+    </div>
+
+<div class="row mt-1">
+      <div class="table-responsive">
+                <table class="table table-bordered " id="expenseTable">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                           
+                            <th>شرح سند</th>
+                              <th>شماره سند</th>
+                             <th>مبلغ</th>
+                            <th>تاریخ سند</th>
+                             <th>توضیحات </th>
+                            <th>تصویر سند</th>
+                             <th>شماره حساب</th>
+                            <th>وضعیت پرداخت</th>
+                            <th>دستورات</th>
+                        </tr>
+                    </thead>
+                {% if page_obj %}
+               {% for payment in page_obj %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{payment.description }}</td>
+                                 <td>{{payment.amount|three_digit_currency }}</td>
+                                <td>{{payment.document_number }}</td>
+                                 <td>{{payment.document_date|show_jalali }}</td>
+                               <td>{% if payment.details  %}
+                                   دارد
+                               	{% else %}
+                                   ندارد
+                               {% endif %} 
+                                  
+                               </td>
+                                <td class="d-flex justify-content-center align-self-center">
+                                  {% for doc in payment.documents.all %}
+                                        <a href="{{ doc.document.url }}" target="_blank" 
+                                           > 
+                                            <i class="fas fa-image fa-2x me-2"></i></a>
+                                    {% empty %}
+                                     !No File
+                                    {% endfor %}
+                                </td>
+                                        <td>
+                                     {% if payment.is_paid  %}
+                                      {{payment.receiver_name }}
+                                         {% else %}
+                                   ---
+                                     {% endif %} 
+                                   
+                                 </td>
+                                  <td>
+                                    {% if payment.is_paid %}
+                                    	<span class="badge bg-success">پرداخت شده</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span>
+                                    {% endif %} 
+                            </td>
+                                   <td class="col-lg-1 col-xl-1 p-0">
+                              <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ payment.id }}" title="نمایش جزئیات"
+                                                        class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
+                                                </button>
+
+                            </td>
+                                    <div class="modal fade"  id="exampleModalLong2{{ payment.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ payment.id }}" aria-hidden="true">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalLabel{{ payment.id }}">مشاهده جزئیات </h5>
+                            </div>
+                          <hr/>
+                            <div class="modal-body text-end">
+                                 <p><strong>شرح سند:</strong> {{ payment.description }}</p>
+                                <p><strong>مبلغ:</strong> {{ payment.amount|three_digit_currency }} تومان</p>
+                                <p><strong>شماره سند:</strong> {{ payment.document_number }} </p>
+                                <p><strong>تاریخ سند :</strong> {{ payment.document_date|show_jalali_date_only}} </p>
+                                <p><strong>توضیحات:</strong>
+                                    {% if receive.details %}
+                                        <span class="badge bg-warning">{{ payment.details }} </span>
+                                        {% else %}
+                                         ثبت نشده است
+                                    {% endif %}
+
+                                </p>
+                                <hr>
+                             {% if payment.transaction_reference %} 
+                                <p><strong>تاریخ پرداخت:</strong> {{ payment.payment_date|show_jalali_date_only }}</p>
+                                <p><strong> کد پیگیری:</strong> {{ payment.transaction_reference }}</p>
+                                <p><strong> بانک:</strong> {{ payment.bank }}</p>
+                                <p><strong> پرداخت کننده:</strong> 
+                                 {% if payment.receiver_name  %}
+                                 	 {{ payment.receiver_name }}
+                                     {% elif payment.unit %}
+                                      {{ payment.unit }}
+                                 {% endif %}   
+                                </p>
+                            {% endif %}
+                                    <p><strong>وضعیت:</strong> 
+                                    {% if payment.is_paid %}
+                                    	<span class="badge bg-success">پرداخت شده</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span></p>
+                                    {% endif %} 
+
+                            </div>
+                            <hr/>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                            </tr>
+                        {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ سندی برای نمایش وجود ندارد.</td>
+                            </tr>
+                     <tbody>
+                    {% endif %}
+                </table>
+                   <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+</div>
+
+</div>
+
+
+
+
+{% endblock %}
+
+

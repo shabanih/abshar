@@ -1366,7 +1366,7 @@ class PayerMoneyForm(forms.ModelForm):
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
-    is_active = forms.BooleanField(required=False)
+
     payment_date = JalaliDateField(
         label='تاریخ پرداخت',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
@@ -1379,7 +1379,7 @@ class PayerMoneyForm(forms.ModelForm):
     class Meta:
         model = PayMoney
         fields = ['bank', 'amount', 'document_date', 'description', 'document_number',
-                  'details', 'document', 'is_active', 'receiver_name', 'unit', 'payment_date', 'transaction_reference']
+                  'details', 'document', 'receiver_name', 'unit', 'payment_date', 'transaction_reference']
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)

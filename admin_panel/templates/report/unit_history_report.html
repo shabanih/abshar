@@ -1,0 +1,125 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+   سوابق سکونت واحدها
+{% endblock page_title %}
+
+{% block main_content %}
+<div class="container mt-3">
+    <div class="container p-3">
+       <div class="row mb-2 mt-4">
+        <!-- بخش جستجو -->
+        <div class="col-12 col-md-10 col-xl-10 align-self-center">
+            <form method="get" action="" class="d-flex gap-2 align-items-center">
+                <input type="text"
+                       class="p-2 w-50 w-md-75"
+                       name="q"
+                       id="searchInput"
+                       autocomplete="off"
+                       value="{{ query }}"
+                       placeholder="جستجوی ..."
+                       dir="rtl"
+                       oninput="if(this.value === '') this.form.submit();">
+                <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
+            </form>
+        </div>
+
+        <!-- بخش تعداد نمایش → فقط دسکتاپ -->
+        <div class="col-12 col-md-2 col-xl-2 p-0 d-none d-md-block">
+            <div class="d-flex align-items-center gap-1">
+                <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label>
+           <select id="cardsPerPage" 
+        class="form-select select-fix"
+        style="width: auto;"
+        onchange="window.location.href='?q={{ query }}&paginate=' + this.value;">
+    <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option>
+    <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option>
+    <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option>
+    <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+</select>
+
+            </div>
+        </div>
+    </div>
+
+        <div class="row mt-2">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th>مدیر ساختمان</th>
+                            <th>نام ساختمان</th>
+                            <th>تعداد واحدها</th>
+                            <th>دستورات</th>
+                        </tr>
+                    </thead>
+                    {% if houses %}
+                        {% for house in houses %}
+                        <tbody class="text-center p-0">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{house.user.full_name }}</td>
+                                <td>{{ house.name }}</td>
+                            
+                                <td class="p-0">
+                                    {% if house.total_units %}
+                                    	 {{ house.total_units}}
+                                        {% else %}
+                                        0
+                                    {% endif %} 
+                              
+                                </td>
+
+                               <td class="col-lg-1 col-xl-1">
+                                       <a href="{% url 'admin_unit_history_list' house.id %}" class="btn btn-info p-1 p-1">
+                                              <i class="mdi mdi-eye" aria-hidden="true"></i>
+                                            </a>
+                            </td>
+
+                            </tr>
+                        </tbody>
+                        {% endfor %}
+                    {% else %}
+                        <tbody>
+                            <tr>
+                                <td colspan="7" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                            </tr>
+                        </tbody>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+ <!-- Pagination -->
+    <div class="col-12">
+        <div class="pagination d-flex justify-content-center mt-5">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+            {% endif %}
+
+            {% for page_number in page_obj.paginator.page_range %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_number }}"
+                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
+                    {{ page_number }}
+                </a>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+    
+{% endblock %}
+
+
+
+
+
+
+
+

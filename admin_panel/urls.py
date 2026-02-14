@@ -192,26 +192,52 @@ urlpatterns = [
     # Unit History Report
 
     path('admin/unit/history/report/', views.AdminUnitHistoryReport.as_view(), name='admin_unit_history_report'),
+    path(
+        "admin/history/unit/list/<int:house_id>/", views.AdminUnitsHistoryListView.as_view(),
+        name="admin_unit_history_list"),
+    path('admin/unit/history/details/<int:unit_id>/', views.admin_Unit_history_detail, name='admin_Unit_history_detail'),
 
     # Expense Report
 
     path('admin/expense/report/', views.AdminExpenseReport.as_view(), name='admin_expense_report'),
+    path(
+        "admin/report/expenses/<int:house_id>/", views.AdminExpensesDetailView.as_view(),
+        name="admin_expenses_report_list"),
 
     # Income Report
 
     path('admin/income/report/', views.AdminIncomeReport.as_view(), name='admin_income_report'),
+    path(
+        "admin/report/incomes/<int:house_id>/", views.AdminIncomesDetailView.as_view(),
+        name="admin_incomes_report_list"),
 
-    # Receive Pay Report
+    # Receive Report
 
-    path('admin/receive/pay/report/', views.AdminReceivePayReport.as_view(), name='admin_receive_pay_report'),
+    path('admin/receive/report/', views.AdminReceiveReport.as_view(), name='admin_receive_report'),
+    path(
+        "admin/report/receives/<int:house_id>/", views.AdminReceiveDetailView.as_view(),
+        name="admin_receives_report_list"),
+
+    # Pay Report
+
+    path('admin/pay/report/', views.AdminPayReport.as_view(), name='admin_pay_report'),
+    path(
+        "admin/report/payments/<int:house_id>/", views.AdminPayDetailView.as_view(),
+        name="admin_payments_report_list"),
 
     # Property Report
 
     path('admin/property/report/', views.AdminPropertyReport.as_view(), name='admin_property_report'),
+    path(
+        "admin/report/property/<int:house_id>/", views.AdminPropertyDetailView.as_view(),
+        name="admin_property_report_list"),
 
     # Maintenance Report
 
     path('admin/maintenance/report/', views.AdminMaintenanceReport.as_view(), name='admin_maintenance_report'),
+    path(
+        "admin/report/maintenance/<int:house_id>/", views.AdminMaintenanceDetailView.as_view(),
+        name="admin_maintenance_report_list"),
 
     # billan Report
 
