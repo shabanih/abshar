@@ -1,14 +1,18 @@
-{% extends 'middleShared/base_template.html' %}
+{% extends 'shared/base_template.html' %}
 {% load static %}
 {% load poll_extras %}
 {% block page_title %}
-  بیلان ساختمان
+  بیلان ساختمان ({{ house.name }})
 {% endblock page_title %}
 
 {% block main_content %}
-    <hr/>
-    <div class="container p-0">
-     
+{#    <hr/>#}
+    <div class="container py-4">
+         <div class="row text-md-start">
+        <div class="col">
+            <a href="{% url 'admin_billan_report' %}" class="btn btn-gradient-info py-2 px-3">برگشت به لیست </a>
+        </div>
+    </div>
          <div class="row row-cols-1 py-3">
       <div class="col">
         <div class="card h-100 shadow-lg">
@@ -50,7 +54,7 @@
          </div>
     <div class="container py-4">
         <form method="get">
-        <div class="row g-2">
+        <div class="row g-3">
             <div class="col-12 col-xl-3 col-md-3">
                 <input type="text"
                        name="start_date"
@@ -83,7 +87,7 @@
             <div class="col-12 col-xl-3 col-md-3 d-flex gap-1">
                     <button class="btn btn-gradient-primary" type="submit">اعمال فیلتر</button>
                     <button type="button"
-                        class="btn btn-gradient-danger px-3"
+                        class="btn btn-gradient-danger px-4"
                         onclick="clearFilters()">
                     حذف فیلتر
                 </button>

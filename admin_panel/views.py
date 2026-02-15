@@ -44,6 +44,7 @@ from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDo
     FixPersonCharge, FixAreaCharge, ChargeFixVariable, \
     SmsManagement, Fund, UnifiedCharge, AdminSmsManagement, SmsCredit, ImpersonationLog
 from notifications.models import AdminTicket
+from polls.templatetags.poll_extras import jalali_to_gregorian
 from user_app.models import Unit, Bank, Renter, User, MyHouse, ChargeMethod, CalendarNote, UnitResidenceHistory
 
 
@@ -4267,8 +4268,8 @@ class AdminUnitsListReportView(ListView):
             .filter(myhouse_id=house_id, is_active=True)
             .annotate(
                 total_transaction=Count(
-                    'fund',  # همان related_name واقعی
-                    filter=Q(fund__isnull=False)
+                    'funds',  # همان related_name واقعی
+                    filter=Q(funds__isnull=False)
                 )
             )
 
@@ -4352,7 +4353,8 @@ def admin_Unit_Fund_detail(request, unit_id):
             'creditor_amount': f.creditor_amount,
             'payment_gateway': f.payment_gateway,
             'transaction_no': f.transaction_no,
-            'balance': running_total
+            'balance': running_total,
+            'unit': unit.get_label()
         })
 
     context = {
@@ -5077,4 +5079,166 @@ class AdminMaintenanceDetailView(ListView):
         context['house'] = MyHouse.objects.filter(id=self.kwargs['house_id']).first()
         return context
 
+
 # ==================================== Billan Report ========================================
+
+@method_decorator(admin_required, name='dispatch')
+class AdminBillanReport(ListView):
+    model = MyHouse
+    template_name = 'report/billan_report.html'
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        qs = MyHouse.objects.all()
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        # context['house'] = MyHouse.objects.filter(
+        #     id=self.kwargs['house_id']
+        # ).first()
+        return context
+
+
+def admin_house_balance(request, house_id):
+    house = get_object_or_404(MyHouse, id=house_id)
+    bank_id = request.GET.get('bank')
+
+    start_date_j = request.GET.get('start_date')
+    end_date_j = request.GET.get('end_date')
+
+    # تبدیل تاریخ شمسی به میلادی
+    start_date = jalali_to_gregorian(start_date_j) if start_date_j else None
+    end_date = jalali_to_gregorian(end_date_j) if end_date_j else None
+
+    # ---------- فیلترها ----------
+
+    # برای پرداخت‌ها و دریافت‌ها
+    payment_filter = {}
+    if start_date:
+        payment_filter['payment_date__gte'] = start_date
+    if end_date:
+        payment_filter['payment_date__lte'] = end_date
+    if bank_id:
+        payment_filter['bank_id'] = bank_id
+
+    # برای درآمدهای دریافت نشده (doc_date)
+    doc_income_filter = {}
+    if start_date:
+        doc_income_filter['doc_date__gte'] = start_date
+    if end_date:
+        doc_income_filter['doc_date__lte'] = end_date
+
+
+    # برای هزینه‌های دریافت نشده (date)
+    doc_expense_filter = {}
+    if start_date:
+        doc_expense_filter['date__gte'] = start_date
+    if end_date:
+        doc_expense_filter['date__lte'] = end_date
+
+
+    # ---------- کوئری‌ها ----------
+
+    total_incomes_exclude_unpaid = Income.objects.filter(
+        is_paid=False,
+        house=house,
+        **doc_income_filter
+         ).aggregate(Sum('amount'))[
+        'amount__sum']
+
+    total_expenses_exclude_unpaid = Expense.objects.filter(
+        is_paid=False,
+        house=house,
+        **doc_expense_filter
+    ).aggregate(Sum('amount'))[
+        'amount__sum']
+
+    total_incomes = Income.objects.filter(
+        house=house,
+        is_paid=True,
+        **payment_filter,
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
+    total_expenses = Expense.objects.filter(
+        house=house,
+        is_paid=True,
+        **payment_filter,
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
+    total_pay_money = PayMoney.objects.filter(
+        house=house,
+        is_paid=True,
+        **payment_filter,
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
+    total_receive_money = ReceiveMoney.objects.filter(
+        house=house,
+        is_paid=True,
+        **payment_filter,
+    ).aggregate(total=Sum('amount'))['total'] or 0
+
+    total_assets = total_incomes + total_receive_money
+    total_debts = total_pay_money + total_expenses
+    total_amount_assets_debts = total_assets - total_debts
+
+    funds = Fund.objects.filter(
+        house=house,
+        **payment_filter,
+
+    )
+
+    totals = funds.aggregate(
+        total_income=Sum('debtor_amount'),
+        total_expense=Sum('creditor_amount'),
+    )
+
+    balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
+
+    total_charge_unpaid = UnifiedCharge.objects.filter(
+        house=house,
+        is_paid=False
+    ).aggregate(total=Sum('total_charge_month'))['total'] or 0
+
+    context = {
+
+        'house': house,
+        'total_incomes': total_incomes,
+        'total_expenses': total_expenses,
+        'total_pay_money': total_pay_money,
+        'total_receive_money': total_receive_money,
+        'total_assets': total_assets,
+        'total_debts': total_debts,
+        'balance': balance,
+        'total_charge_unpaid': total_charge_unpaid,
+        'total_amount_assets_debts': total_amount_assets_debts,
+        # 'start_date': start_date,
+        # 'end_date': end_date,
+        'start_date': start_date_j,  # همینو به input میدیم
+        'end_date': end_date_j,
+        'bank_id': bank_id,
+        'banks': Bank.objects.filter(house=house),
+        'total_incomes_exclude_unpaid': total_incomes_exclude_unpaid,
+        'total_expenses_exclude_unpaid': total_expenses_exclude_unpaid,
+        'today': timezone.now()
+    }
+
+    return render(request, 'report/house_balance_detail.html', context)
+

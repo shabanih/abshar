@@ -195,7 +195,8 @@ urlpatterns = [
     path(
         "admin/history/unit/list/<int:house_id>/", views.AdminUnitsHistoryListView.as_view(),
         name="admin_unit_history_list"),
-    path('admin/unit/history/details/<int:unit_id>/', views.admin_Unit_history_detail, name='admin_Unit_history_detail'),
+    path('admin/unit/history/details/<int:unit_id>/', views.admin_Unit_history_detail,
+         name='admin_Unit_history_detail'),
 
     # Expense Report
 
@@ -240,6 +241,12 @@ urlpatterns = [
         name="admin_maintenance_report_list"),
 
     # billan Report
+    path('admin/billan/report/', views.AdminBillanReport.as_view(), name='admin_billan_report'),
+    path(
+        'admin/billan/<int:house_id>/',
+        views.admin_house_balance,
+        name='admin_house_balance'
+    ),
 
     # مسیر دریافت نوت‌ها
     path('calendar/notes/<int:year>/<int:month>/', views.get_notes, name='get_notes'),

@@ -68,6 +68,17 @@ def show_jalali(value):
         return ''
     return f'{jalali.year}-{jalali.month:02d}-{jalali.day:02d}'
 
+@register.filter(name='show_jalali_admin')
+def show_jalali(value):
+    if not value:
+        return ''
+    if isinstance(value, datetime.datetime):
+        jalali = jdatetime.datetime.fromgregorian(datetime=value)
+    elif isinstance(value, datetime.date):
+        jalali = jdatetime.date.fromgregorian(date=value)
+    else:
+        return ''
+    return f'{jalali.day:02d}-{jalali.month:02d}-{jalali.year}'
 
 @register.filter(name='three_digit_currency')
 def three_digit_currency(value):
@@ -103,3 +114,25 @@ def get_field(obj, field_name):
 @register.filter
 def dict_get(d, key):
     return d.get(key)
+
+
+# def jalali_to_gregorian(jdate_str):
+#     if not jdate_str:
+#         return None
+#
+#     y, m, d = map(int, jdate_str.split('/'))
+#     return jdatetime.date(y, m, d).togregorian()
+def jalali_to_gregorian(jdate):
+    if not jdate:
+        return None
+
+    # اگر قبلاً date هست
+    if isinstance(jdate, datetime.date):
+        return jdate
+
+    # اگر رشته است
+    if isinstance(jdate, str):
+        y, m, d = map(int, jdate.split('/'))
+        return jdatetime.date(y, m, d).togregorian()
+
+    return None

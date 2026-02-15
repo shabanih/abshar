@@ -29,7 +29,7 @@ from admin_panel.models import Fund, Expense, Income, Property, ExpenseCategory,
     UnifiedCharge, PersonCharge, FixPersonCharge, FixAreaCharge, AreaCharge, \
     FixCharge, ChargeByPersonArea, ChargeFixVariable, ChargeByFixPersonArea, PayMoney, ReceiveMoney, AdminFund
 from middleAdmin_panel.views import middle_admin_required
-from polls.templatetags.poll_extras import show_jalali
+from polls.templatetags.poll_extras import show_jalali, jalali_to_gregorian
 from user_app.forms import UnitReportForm
 from user_app.models import Unit, MyHouse, UnitResidenceHistory, Bank, User
 from openpyxl.styles import PatternFill, Font, Alignment
@@ -2642,19 +2642,59 @@ def export_pay_receive_report_excel(request):
 # ==============================================================
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def house_balance_view(request):
-    total_incomes_exclude_unpaid = Income.objects.filter(is_paid=False, user=request.user).aggregate(Sum('amount'))[
+    bank_id = request.GET.get('bank')
+    start_date_j = request.GET.get('start_date')
+    end_date_j = request.GET.get('end_date')
+
+    # تبدیل تاریخ شمسی به میلادی
+    start_date = jalali_to_gregorian(start_date_j) if start_date_j else None
+    end_date = jalali_to_gregorian(end_date_j) if end_date_j else None
+
+    # ---------- فیلترها ----------
+
+    # برای پرداخت‌ها و دریافت‌ها
+    payment_filter = {}
+    if start_date:
+        payment_filter['payment_date__gte'] = start_date
+    if end_date:
+        payment_filter['payment_date__lte'] = end_date
+    if bank_id:
+        payment_filter['bank_id'] = bank_id
+
+    # برای درآمدهای دریافت نشده (doc_date)
+    doc_income_filter = {}
+    if start_date:
+        doc_income_filter['doc_date__gte'] = start_date
+    if end_date:
+        doc_income_filter['doc_date__lte'] = end_date
+
+    # برای هزینه‌های دریافت نشده (date)
+    doc_expense_filter = {}
+    if start_date:
+        doc_expense_filter['date__gte'] = start_date
+    if end_date:
+        doc_expense_filter['date__lte'] = end_date
+
+    total_incomes_exclude_unpaid = Income.objects.filter(is_paid=False,
+                                                         user=request.user,
+                                                         **doc_income_filter
+                                                         ).aggregate(Sum('amount'))[
         'amount__sum']
 
-    total_expenses_exclude_unpaid = Expense.objects.filter(is_paid=False, user=request.user).aggregate(Sum('amount'))[
+    total_expenses_exclude_unpaid = Expense.objects.filter(
+        is_paid=False,
+        user=request.user,
+        **doc_expense_filter
+    ).aggregate(Sum('amount'))[
         'amount__sum']
 
-    total_incomes = Income.objects.filter(user=request.user).aggregate(Sum('amount'))[
+    total_incomes = Income.objects.filter(user=request.user, **payment_filter,).aggregate(Sum('amount'))[
         'amount__sum']
-    total_pay_money = PayMoney.objects.filter(user=request.user).aggregate(Sum('amount'))[
+    total_pay_money = PayMoney.objects.filter(user=request.user, **payment_filter,).aggregate(Sum('amount'))[
         'amount__sum']
-    total_receive_money = ReceiveMoney.objects.filter(is_paid=True, user=request.user).aggregate(Sum('amount'))[
+    total_receive_money = ReceiveMoney.objects.filter(is_paid=True, user=request.user, **payment_filter,).aggregate(Sum('amount'))[
         'amount__sum']
-    total_expenses = Expense.objects.filter(is_paid=True, user=request.user).aggregate(Sum('amount'))[
+    total_expenses = Expense.objects.filter(is_paid=True, user=request.user, **payment_filter,).aggregate(Sum('amount'))[
         'amount__sum']
 
     total_assets = (total_incomes or 0) + (total_receive_money or 0)
@@ -2665,7 +2705,7 @@ def house_balance_view(request):
     funds = (
         Fund.objects
         .select_related('bank', 'content_type')
-        .filter(Q(user=request.user) | Q(user__manager=request.user))
+        .filter(Q(user=request.user) | Q(user__manager=request.user), **payment_filter)
         .order_by('-payment_date')
     )
 
@@ -2681,8 +2721,7 @@ def house_balance_view(request):
             'total_charge_month__sum']
 
     context = {
-        'total_incomes_exclude_unpaid': total_incomes_exclude_unpaid,
-        'total_expenses_exclude_unpaid': total_expenses_exclude_unpaid,
+        # 'house': house,
         'total_incomes': total_incomes,
         'total_expenses': total_expenses,
         'total_pay_money': total_pay_money,
@@ -2691,7 +2730,16 @@ def house_balance_view(request):
         'total_debts': total_debts,
         'balance': balance,
         'total_charge_unpaid': total_charge_unpaid,
-        'total_amount_assets_debts': total_amount_assets_debts
+        'total_amount_assets_debts': total_amount_assets_debts,
+        # 'start_date': start_date,
+        # 'end_date': end_date,
+        'start_date': start_date_j,  # همینو به input میدیم
+        'end_date': end_date_j,
+        'bank_id': bank_id,
+        'banks': Bank.objects.filter(user=request.user),
+        'total_incomes_exclude_unpaid': total_incomes_exclude_unpaid,
+        'total_expenses_exclude_unpaid': total_expenses_exclude_unpaid,
+        'today': timezone.now()
     }
     return render(request, 'house_balance.html', context)
 
