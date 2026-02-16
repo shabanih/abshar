@@ -1,4 +1,5 @@
 {% load static %}
+{% load poll_extras %}
 <nav class="sidebar sidebar-offcanvas" id="sidebar">
 
           <ul class="nav">
@@ -26,6 +27,13 @@
             </li>
 
                 <li class="nav-item border-top  mt-0">
+                 {% url 'subscription' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title"> مدیریت اشتراک</i>
+                <i class="mdi mdi mdi-web menu-icon"></i>
+              </a>
+            </li>
+             <li class="nav-item border-top  mt-0">
                  {% url 'announcement' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
                 <i class="menu-title"> مدیریت اطلاعیه ها</i>
@@ -158,67 +166,150 @@
 {#              </div>#}
 {#             </li>#}
           
-          <li class="nav-item mt-0 border-top">
-  <a class="nav-link" data-bs-toggle="collapse" href="#general3"
-     aria-expanded="{% if request.resolver_match.url_name in 'admin_fund_report admin_banks_report admin_unit_fund_report charge_issued admin_debtor_report admin_unit_history_report admin_expense_report admin_income_report admin_receive_report admin_pay_report admin_property_report admin_maintenance_report admin_billan_report' %}true{% else %}false{% endif %}"
-     aria-controls="general3">
+{#          <li class="nav-item mt-0 border-top">#}
+{#  <a class="nav-link" data-bs-toggle="collapse" href="#general3"#}
+{#     aria-expanded="{% if request.resolver_match.url_name in 'admin_fund_report admin_banks_report admin_unit_fund_report charge_issued admin_debtor_report admin_unit_history_report admin_expense_report admin_income_report admin_receive_report admin_pay_report admin_property_report admin_maintenance_report admin_billan_report' %}true{% else %}false{% endif %}"#}
+{#     aria-controls="general3">#}
+{#    <i class="menu-title">گزارشات</i>#}
+{#    <i class="menu-arrow"></i>#}
+{#    <i class="mdi mdi-clipboard-text menu-icon"></i>#}
+{#  </a>#}
+{#  <div class="collapse {% if request.resolver_match.url_name in 'admin_fund_report admin_banks_report admin_unit_fund_report charge_issued admin_debtor_report admin_unit_history_report admin_expense_report admin_income_report admin_receive_report admin_pay_report admin_property_report admin_maintenance_report admin_billan_report' %}show{% endif %}" id="general3">#}
+{#    <ul class="nav flex-column sub-menu">#}
+{#      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_fund_report' %}active{% endif %}" href="{% url 'admin_fund_report' %}">گردش صندوق</a></li>#}
+{#      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_unit_fund_report' %}active{% endif %}" href="{% url 'admin_unit_fund_report' %}">گردش مالی اشخاص</a></li>#}
+{#      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_banks_report' %}active{% endif %}" href="{% url 'admin_banks_report' %}"> بانک ها</a></li>#}
+{#        <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'charge_issued' %}active{% endif %}" href="{% url 'charge_issued' %}">شارژ های اعلامی</a></li>#}
+{#      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_debtor_report' %}active{% endif %}" href="{% url 'admin_debtor_report' %}">واحدهای بدهکار</a></li>#}
+{#      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_unit_history_report' %}active{% endif %}" href="{% url 'admin_unit_history_report' %}">سوابق سکونت واحدها</a></li>#}
+{#      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_expense_report' %}active{% endif %}" href="{% url 'admin_expense_report' %}">هزینه‌ها</a></li>#}
+{#      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_income_report' %}active{% endif %}" href="{% url 'admin_income_report' %}">درآمدها</a></li>#}
+{#       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_receive_report' %}active{% endif %}" href="{% url 'admin_receive_report' %}">اسناد دریافتی</a></li>#}
+{#       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_pay_report' %}active{% endif %}" href="{% url 'admin_pay_report' %}">اسناد پرداختی </a></li>#}
+{#      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_property_report' %}active{% endif %}" href="{% url 'admin_property_report' %}">اموال ساختمان</a></li>#}
+{#      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_maintenance_report' %}active{% endif %}" href="{% url 'admin_maintenance_report' %}">تعمیر و نگهداری</a></li>#}
+{#      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_billan_report' %}active{% endif %}" href="{% url 'admin_billan_report' %}">بیلان ساختمان</a></li>#}
+{##}
+{#    </ul>#}
+{#  </div>#}
+{#</li>#}
+{% with url=request.resolver_match.url_name %}
+
+{% is_report_section url as report_open %}
+
+<li class="nav-item mt-0 border-top">
+
+  <a class="nav-link"
+     data-bs-toggle="collapse"
+     href="#general3"
+     aria-expanded="{% if report_open %}true{% else %}false{% endif %}">
+
     <i class="menu-title">گزارشات</i>
     <i class="menu-arrow"></i>
     <i class="mdi mdi-clipboard-text menu-icon"></i>
   </a>
-  <div class="collapse {% if request.resolver_match.url_name in 'admin_fund_report admin_banks_report admin_unit_fund_report charge_issued admin_debtor_report admin_unit_history_report admin_expense_report admin_income_report admin_receive_report admin_pay_report admin_property_report admin_maintenance_report admin_billan_report' %}show{% endif %}" id="general3">
+
+  <div class="collapse {% if report_open %}show{% endif %}" id="general3">
     <ul class="nav flex-column sub-menu">
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_fund_report' %}active{% endif %}" href="{% url 'admin_fund_report' %}">گردش صندوق</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_unit_fund_report' %}active{% endif %}" href="{% url 'admin_unit_fund_report' %}">گردش مالی اشخاص</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_banks_report' %}active{% endif %}" href="{% url 'admin_banks_report' %}"> بانک ها</a></li>      
-        <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'charge_issued' %}active{% endif %}" href="{% url 'charge_issued' %}">شارژ های اعلامی</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_debtor_report' %}active{% endif %}" href="{% url 'admin_debtor_report' %}">واحدهای بدهکار</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_unit_history_report' %}active{% endif %}" href="{% url 'admin_unit_history_report' %}">سوابق سکونت واحدها</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_expense_report' %}active{% endif %}" href="{% url 'admin_expense_report' %}">هزینه‌ها</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_income_report' %}active{% endif %}" href="{% url 'admin_income_report' %}">درآمدها</a></li>
-       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_receive_report' %}active{% endif %}" href="{% url 'admin_receive_report' %}">اسناد دریافتی</a></li>
-       <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_pay_report' %}active{% endif %}" href="{% url 'admin_pay_report' %}">اسناد پرداختی </a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_property_report' %}active{% endif %}" href="{% url 'admin_property_report' %}">اموال ساختمان</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_maintenance_report' %}active{% endif %}" href="{% url 'admin_maintenance_report' %}">تعمیر و نگهداری</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'admin_billan_report' %}active{% endif %}" href="{% url 'admin_billan_report' %}">بیلان ساختمان</a></li>
+
+      <li class="nav-item">
+      <a class="nav-link {% if 'admin_fund' in url %}active{% endif %}"
+   href="{% url 'admin_fund_report' %}">
+   گردش صندوق
+</a>
+      </li>
+
+      <li class="nav-item">
+       <a class="nav-link {% if 'admin_bank' in url %}active{% endif %}"
+   href="{% url 'admin_bank_report' %}">
+   بانک‌ها
+</a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link {% if 'admin_unit_fund' in url %}active{% endif %}"
+           href="{% url 'admin_unit_fund_report' %}">
+           گردش اشخاص
+        </a>
+      </li>
+
+      <li class="nav-item">
+      <a class="nav-link {% if 'charge' in url %}active{% endif %}"
+   href="{% url 'charge_issued' %}">
+   شارژها
+</a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link {% if 'admin_debtor' in url %}active{% endif %}"
+           href="{% url 'admin_debtor_report' %}">
+           واحدهای بدهکار
+        </a>
+      </li>
+
+   <li class="nav-item">
+  <a class="nav-link {% if 'admin_unit_history' in url %}active{% endif %}"
+     href="{% url 'admin_unit_history_report' %}">
+     سوابق سکونت
+  </a>
+</li>
+
+      <li class="nav-item">
+        <a class="nav-link {% if 'admin_expense' in url %}active{% endif %}"
+           href="{% url 'admin_expense_report' %}">
+           هزینه‌ها
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link {% if 'admin_income' in url %}active{% endif %}"
+           href="{% url 'admin_income_report' %}">
+           درآمدها
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link {% if 'admin_receive' in url %}active{% endif %}"
+           href="{% url 'admin_receive_report' %}">
+           اسناد دریافتی
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link {% if 'admin_pay' in url %}active{% endif %}"
+           href="{% url 'admin_pay_report' %}">
+           اسناد پرداختی
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link {% if 'admin_property' in url %}active{% endif %}"
+           href="{% url 'admin_property_report' %}">
+           اموال
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link {% if 'admin_maintenance' in url %}active{% endif %}"
+           href="{% url 'admin_maintenance_report' %}">
+           تعمیر و نگهداری
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link {% if 'admin_house_balance' in url %}active{% endif %}"
+           href="{% url 'admin_house_balance_report' %}">
+           بیلان
+        </a>
+      </li>
 
     </ul>
   </div>
+
 </li>
-{#          #}
-{#          <li class="nav-item mt-0">#}
-{#              <a class="nav-link" data-bs-toggle="collapse" href="#general2" aria-expanded="true"#}
-{#                 aria-controls="general2">#}
-{#                <i class="menu-title"> گزارشات </i>#}
-{#                <i class="menu-arrow"></i>#}
-{#                <i class="mdi mdi-clipboard-text menu-icon"></i>#}
-{#              </a>#}
-{#              <div class="collapse" id="general2">#}
-{#                <ul class="nav flex-column sub-menu">#}
-{#                    <li class="nav-item mt-0">#}
-{#                    <a class="nav-link" href="{% url 'admin_fund_report' %}"> گردش صندوق </a></li>#}
-{#                    <li class="nav-item mt-0">#}
-{#                    <a class="nav-link" href="{% url 'admin_banks_report' %}"> بانک ها </a></li>#}
-{#                    <li class="nav-item mt-0">#}
-{#                    <a class="nav-link" href="{% url 'admin_unit_fund_report' %}"> گردش مالی اشخاص </a></li>#}
-{#                  <li class="nav-item mt-0">#}
-{#                    <a class="nav-link" href="#"> واحدهای بدهکار/بستانکار </a></li>#}
-{#                    <li class="nav-item mt-0">#}
-{#                    <a class="nav-link" href="#">  قبوض </a></li>#}
-{#                    <li class="nav-item mt-0">#}
-{#                    <a class="nav-link" href="#"> هزینه ها </a></li>#}
-{#                    <li class="nav-item mt-0">#}
-{#                    <a class="nav-link" href="#"> درآمدها </a></li>#}
-{#                     <li class="nav-item mt-0">#}
-{#                    <a class="nav-link" href="#"> اموال ساختمان </a></li>#}
-{#                     <li class="nav-item mt-0">#}
-{#                    <a class="nav-link" href="#"> تعمیر و نکهداری </a></li>#}
-{#                    <li class="nav-item mt-0">#}
-{#                    <a class="nav-link" href="#"> بیلان ساختمان </a></li>#}
-{#                </ul>#}
-{#              </div>#}
-{#            </li>#}
-          
+
+{% endwith %}
+
           
             {% url 'admin_register_sms' as url_sms_to_middle %}
             {% url 'admin_sms_management' as url_admin_sms_issued %}

@@ -3,7 +3,7 @@
 {% load poll_extras %}
 
 {% block page_title %}
-لیست هزینه ها
+لیست هزینه ها({{ house.name }})
 {% endblock page_title %}
 
 {% block main_content %}
@@ -225,27 +225,7 @@
             </div>
     </div>
 </div>
-      <!-- Pagination -->
-<div class="row mt-3">
-    <div class="col-12">
-        <div class="pagination d-flex justify-content-center mt-5">
-            {% if page_obj.has_previous %}
-                <a href="?q={{ query }}&paginate={{ paginate }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
-            {% endif %}
 
-            {% for page_number in page_obj.paginator.page_range %}
-                <a href="?q={{ query }}&paginate={{ paginate }}&page={{ page_number }}"
-                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
-                    {{ page_number }}
-                </a>
-            {% endfor %}
-
-            {% if page_obj.has_next %}
-                <a href="?q={{ query }}&paginate={{ paginate }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
-            {% endif %}
-        </div>
-    </div>
-</div>
 </div>
 
 

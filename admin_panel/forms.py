@@ -11,7 +11,8 @@ from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, 
                                 Property, Maintenance, ChargeByPersonArea, ChargeByFixPersonArea, FixCharge, AreaCharge,
                                 PersonCharge,
                                 FixPersonCharge, FixAreaCharge, ChargeFixVariable, SmsManagement, UnifiedCharge,
-                                MessageToUser, SmsCredit, AdminMessageToMiddle, AdminSmsManagement)
+                                MessageToUser, SmsCredit, AdminMessageToMiddle, AdminSmsManagement, Subscription,
+                                SubscriptionPlan)
 
 from user_app.models import Unit, Bank, User, MyHouse, ChargeMethod, Renter
 
@@ -2101,6 +2102,12 @@ class AdminSmsForm(forms.ModelForm):
         fields = ['subject', 'message', 'is_active']
 
 
+class SubscriptionPlanForm(forms.ModelForm):
+    class Meta:
+        model = SubscriptionPlan
+        fields = ['duration', 'price_per_unit']
+
+
 class SmsCreditForm(forms.ModelForm):
     class Meta:
         model = SmsCredit
@@ -2108,3 +2115,10 @@ class SmsCreditForm(forms.ModelForm):
         widgets = {
             'amount': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'مبلغ را وارد کنید'})
         }
+
+
+class SubscriptionForm(forms.ModelForm):
+    class Meta:
+        model = Subscription
+        # house حذف شده، فقط کاربر تعداد واحد و پلن انتخاب می‌کنه
+        fields = ['units_count', 'plan']

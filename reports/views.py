@@ -2642,6 +2642,7 @@ def export_pay_receive_report_excel(request):
 # ==============================================================
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def house_balance_view(request):
+    house = MyHouse.objects.filter(user=request.user).first()
     bank_id = request.GET.get('bank')
     start_date_j = request.GET.get('start_date')
     end_date_j = request.GET.get('end_date')
@@ -2721,7 +2722,7 @@ def house_balance_view(request):
             'total_charge_month__sum']
 
     context = {
-        # 'house': house,
+        'house': house,
         'total_incomes': total_incomes,
         'total_expenses': total_expenses,
         'total_pay_money': total_pay_money,

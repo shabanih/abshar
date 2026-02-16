@@ -27,6 +27,7 @@ class Announcement(models.Model):
     def __str__(self):
         return self.title
 
+
 class ImpersonationLog(models.Model):
     admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name="impersonated_by_me")
     target_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="impersonated_me")
@@ -1091,3 +1092,35 @@ class AdminSmsManagement(models.Model):
         تعداد کل پیامک = تعداد پیامک هر متن × تعداد واحدها
         """
         return self.sms_count * self.notified_users_count
+
+
+class SubscriptionPlan(models.Model):
+    DURATION_CHOICES = (
+        (3, 'سه ماهه'),
+        (6, 'شش ماهه'),
+        (12, 'دوازده ماهه'),
+    )
+
+    duration = models.PositiveSmallIntegerField(choices=DURATION_CHOICES, unique=True, verbose_name="مدت اشتراک")
+    price_per_unit = models.PositiveIntegerField(verbose_name="هزینه هر واحد برای این پلن")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
+
+    def __str__(self):
+        return f"{self.get_duration_display()} - {self.price_per_unit} تومان"
+
+
+class Subscription(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    house = models.ForeignKey(MyHouse, on_delete=models.CASCADE)
+    units_count = models.PositiveIntegerField(verbose_name="تعداد واحد")
+    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.CASCADE, verbose_name="پلن اشتراک")
+    total_amount = models.PositiveIntegerField(verbose_name="مبلغ کل")
+    payment_date = models.DateTimeField(null=True, blank=True)
+    transaction_id = models.CharField(max_length=150, null=True, blank=True)
+    is_paid = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def calculate_total(self):
+        return self.units_count * self.plan.price_per_unit
+
+

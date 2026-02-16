@@ -839,7 +839,7 @@ class MiddleMessageToUserListView(ListView):
 
 
 # ========================= Message admin to middleAdmin ===============
-@method_decorator(middle_admin_required, name='dispatch')
+@method_decorator(admin_required, name='dispatch')
 class AdminMessageToMiddleListCreateView(CreateView):
     model = AdminMessageToMiddle
     form_class = AdminMessageToMiddleForm
@@ -874,7 +874,7 @@ class AdminMessageToMiddleListCreateView(CreateView):
         return context
 
 
-@method_decorator(middle_admin_required, name='dispatch')
+@method_decorator(admin_required, name='dispatch')
 class AdminMessageToMiddleUpdateView(UpdateView):
     model = AdminMessageToMiddle
     form_class = AdminMessageToMiddleForm

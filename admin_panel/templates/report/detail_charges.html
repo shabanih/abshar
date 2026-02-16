@@ -2,7 +2,7 @@
 {% load poll_extras %}
 
 {% block page_title %}
-    لیست شارژ 
+    لیست شارژ ({{ house.name }}) 
 {% endblock page_title %}
 
 {% block main_content %}
@@ -117,7 +117,7 @@
            
                   <td class="shadow_style p-1">
                       <a href="{% url 'single_charge_invoice_pdf' charge.id %}">
-                          <img src="/static/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon"  alt="" 
+                          <img src="/admin_panel/icone8/icons8-pdf-60.png" class="pdf_icon" alt=""
                                style="width: 35px; height: 33px">
                       </a>|
                       {% if charge.is_paid %}

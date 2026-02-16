@@ -36,13 +36,13 @@ from admin_panel.forms import announcementForm, UnitForm, ExpenseForm, ExpenseCa
     IncomeForm, IncomeCategoryForm, BankForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, \
     MaintenanceForm, FixChargeForm, PersonAreaChargeForm, AreaChargeForm, PersonChargeForm, FixAreaChargeForm, \
     FixPersonChargeForm, PersonAreaFixChargeForm, VariableFixChargeForm, UserRegistrationForm, SmsForm, MyHouseForm, \
-    ChargeCategoryForm, AdminSmsForm
+    ChargeCategoryForm, AdminSmsForm, SubscriptionPlanForm
 from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDocument, Income, IncomeDocument, \
     IncomeCategory, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, ChargeByPersonArea, \
     ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
     FixPersonCharge, FixAreaCharge, ChargeFixVariable, \
-    SmsManagement, Fund, UnifiedCharge, AdminSmsManagement, SmsCredit, ImpersonationLog
+    SmsManagement, Fund, UnifiedCharge, AdminSmsManagement, SmsCredit, ImpersonationLog, SubscriptionPlan
 from notifications.models import AdminTicket
 from polls.templatetags.poll_extras import jalali_to_gregorian
 from user_app.models import Unit, Bank, Renter, User, MyHouse, ChargeMethod, CalendarNote, UnitResidenceHistory
@@ -50,6 +50,21 @@ from user_app.models import Unit, Bank, Renter, User, MyHouse, ChargeMethod, Cal
 
 def admin_required(view_func):
     return user_passes_test(lambda u: u.is_superuser, login_url=settings.LOGIN_URL_ADMIN)(view_func)
+
+
+class AddSubscriptionPlan(CreateView):
+    model = SubscriptionPlan
+    form_class = SubscriptionPlanForm
+    template_name = 'admin_panel/add_plan.html'
+    success_url = reverse_lazy('subscription')
+
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['plans']= SubscriptionPlan.objects.all()
+        return context
+
+
 
 
 class UserManagementListView(ListView):
@@ -3264,97 +3279,6 @@ class VariableFixChargeCreateView(CreateView):
         return context
 
 
-# ======================   issued Charge   ============
-
-@method_decorator(admin_required, name='dispatch')
-class ChargeIssued(ListView):
-    model = MyHouse
-    template_name = 'charge/charge_issued.html'
-    context_object_name = 'houses'
-
-    def get_paginate_by(self, queryset):
-        paginate = self.request.GET.get('paginate')
-        if paginate == '1000':
-            return None  # نمایش همه آیتم‌ها
-        return int(paginate or 20)
-
-    def get_queryset(self):
-        query = self.request.GET.get('q', '')
-
-        qs = (
-            MyHouse.objects
-            .filter(unified_charges__send_notification=True)
-            .annotate(
-                total_charges=Count(
-                    'unified_charges',
-                    filter=Q(unified_charges__send_notification=True)
-                )
-            )
-            .distinct()
-        )
-
-        if query:
-            qs = qs.filter(
-                Q(name__icontains=query) |
-                Q(user__full_name__icontains=query)
-            )
-
-        return qs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['query'] = self.request.GET.get('q', '')
-        context['paginate'] = self.request.GET.get('paginate', '20')
-        return context
-
-
-@method_decorator(admin_required, name='dispatch')
-class ChargeIssuedDetailView(ListView):
-    model = UnifiedCharge
-    template_name = "charge/detail_charges.html"
-    context_object_name = "unified_charges"
-
-    def get_paginate_by(self, queryset):
-        paginate = self.request.GET.get('paginate')
-        if paginate == '1000':
-            return None  # نمایش همه آیتم‌ها
-        return int(paginate or 20)
-
-    def get_queryset(self):
-        house_id = self.kwargs['house_id']
-        query = self.request.GET.get('q', '')
-
-        qs = UnifiedCharge.objects.filter(
-            house_id=house_id,
-            send_notification=True
-        )
-
-        if query:
-            qs = qs.annotate(
-                total_charge_month_str=Cast('total_charge_month', CharField()),
-                base_charge_str=Cast('base_charge', CharField())
-            ).filter(
-                Q(title__icontains=query) |
-                Q(unit__owner_name__icontains=query) |
-                Q(unit__renters__renter_name__icontains=query) |
-                Q(total_charge_month_str__icontains=query) |
-                Q(base_charge_str__icontains=query) |
-                Q(details__icontains=query)
-            )
-
-        return qs.order_by('-created_at')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['query'] = self.request.GET.get('q', '')
-        context['paginate'] = self.request.GET.get('paginate', '20')
-        # اضافه کردن اطلاعات خانه
-        context['house'] = MyHouse.objects.filter(id=self.kwargs['house_id']).first()
-        for charge in context['unified_charges']:
-            charge.update_penalty()
-        return context
-
-
 # =========================================================================================
 @method_decorator(admin_required, name='dispatch')
 class AdminSmsManagementView(CreateView):
@@ -4368,6 +4292,97 @@ def admin_Unit_Fund_detail(request, unit_id):
     return render(request, 'report/admin_unit_fund_detail.html', context)
 
 
+# ======================   issued Charge   ====================================
+
+@method_decorator(admin_required, name='dispatch')
+class ChargeIssued(ListView):
+    model = MyHouse
+    template_name = 'report/charge_issued.html'
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        qs = (
+            MyHouse.objects
+            .filter(unified_charges__send_notification=True)
+            .annotate(
+                total_charges=Count(
+                    'unified_charges',
+                    filter=Q(unified_charges__send_notification=True)
+                )
+            )
+            .distinct()
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class ChargeIssuedDetailView(ListView):
+    model = UnifiedCharge
+    template_name = "report/detail_charges.html"
+    context_object_name = "unified_charges"
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        house_id = self.kwargs['house_id']
+        query = self.request.GET.get('q', '')
+
+        qs = UnifiedCharge.objects.filter(
+            house_id=house_id,
+            send_notification=True
+        )
+
+        if query:
+            qs = qs.annotate(
+                total_charge_month_str=Cast('total_charge_month', CharField()),
+                base_charge_str=Cast('base_charge', CharField())
+            ).filter(
+                Q(title__icontains=query) |
+                Q(unit__owner_name__icontains=query) |
+                Q(unit__renters__renter_name__icontains=query) |
+                Q(total_charge_month_str__icontains=query) |
+                Q(base_charge_str__icontains=query) |
+                Q(details__icontains=query)
+            )
+
+        return qs.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        # اضافه کردن اطلاعات خانه
+        context['house'] = MyHouse.objects.filter(id=self.kwargs['house_id']).first()
+        for charge in context['unified_charges']:
+            charge.update_penalty()
+        return context
+
+
 # ==================================== Debtor unit report ========================================
 @method_decorator(admin_required, name='dispatch')
 class AdminDebtorReport(ListView):
@@ -4595,6 +4610,7 @@ def admin_Unit_history_detail(request, unit_id):
         'unit': unit,
         'house': unit.myhouse,  # ← اضافه شد
         'page_obj': page_obj,
+        'unit_detail': unit.get_label()
     }
 
     return render(request, 'report/unit_history_detail.html', context)
@@ -5146,7 +5162,6 @@ def admin_house_balance(request, house_id):
     if end_date:
         doc_income_filter['doc_date__lte'] = end_date
 
-
     # برای هزینه‌های دریافت نشده (date)
     doc_expense_filter = {}
     if start_date:
@@ -5154,14 +5169,13 @@ def admin_house_balance(request, house_id):
     if end_date:
         doc_expense_filter['date__lte'] = end_date
 
-
     # ---------- کوئری‌ها ----------
 
     total_incomes_exclude_unpaid = Income.objects.filter(
         is_paid=False,
         house=house,
         **doc_income_filter
-         ).aggregate(Sum('amount'))[
+    ).aggregate(Sum('amount'))[
         'amount__sum']
 
     total_expenses_exclude_unpaid = Expense.objects.filter(
@@ -5241,4 +5255,3 @@ def admin_house_balance(request, house_id):
     }
 
     return render(request, 'report/house_balance_detail.html', context)
-

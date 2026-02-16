@@ -134,9 +134,6 @@ urlpatterns = [
 
     # Sms_Management
 
-    path('charge/issued/', views.ChargeIssued.as_view(), name='charge_issued'),
-    path(
-        "charges/<int:house_id>/", views.ChargeIssuedDetailView.as_view(), name="charges_issued_detail"),
     path('admin/register/sms/', views.AdminSmsManagementView.as_view(), name='admin_register_sms'),
     path('admin/edit/sms/<int:pk>/', views.AdminSmsUpdateView.as_view(), name='admin_edit_sms'),
     path('admin-sms-delete/<int:pk>/', views.admin_sms_delete, name='admin_delete_sms'),
@@ -167,9 +164,15 @@ urlpatterns = [
     path(
         "admin/report/fund/<int:house_id>/", views.AdminFundReportDetailView.as_view(), name="admin_fund_report_list"),
 
+    # Charge Report
+
+    path('charge/issued/', views.ChargeIssued.as_view(), name='charge_issued'),
+    path(
+        "charges/<int:house_id>/", views.ChargeIssuedDetailView.as_view(), name="charges_issued_detail"),
+
     # Bank Fund Report
 
-    path('admin/banks/report/', views.AdminBanksReport.as_view(), name='admin_banks_report'),
+    path('admin/banks/report/', views.AdminBanksReport.as_view(), name='admin_bank_report'),
     path(
         "admin/report/bank/list/<int:house_id>/", views.AdminBanksListReportView.as_view(),
         name="admin_bank_report_list"),
@@ -181,13 +184,13 @@ urlpatterns = [
     path('admin/unit/fund/report/', views.AdminUnitFundReport.as_view(), name='admin_unit_fund_report'),
     path(
         "admin/report/unit/list/<int:house_id>/", views.AdminUnitsListReportView.as_view(),
-        name="admin_unit_report_list"),
-    path('admin/unit/fund/details/<int:unit_id>/', views.admin_Unit_Fund_detail, name='admin_Unit_Fund_detail'),
+        name="admin_unit_fund_report_list"),
+    path('admin/unit/fund/details/<int:unit_id>/', views.admin_Unit_Fund_detail, name='admin_unit_fund_detail'),
 
     # Debtor Report
 
     path('admin/debtor/report/', views.AdminDebtorReport.as_view(), name='admin_debtor_report'),
-    path('admin/unit/debtor/<int:pk>/', views.AdminDebtorUnitDetailView.as_view(), name='admin_unit_debtor_detail'),
+    path('admin/unit/debtor/<int:pk>/', views.AdminDebtorUnitDetailView.as_view(), name='admin_debtor_detail'),
 
     # Unit History Report
 
@@ -196,35 +199,35 @@ urlpatterns = [
         "admin/history/unit/list/<int:house_id>/", views.AdminUnitsHistoryListView.as_view(),
         name="admin_unit_history_list"),
     path('admin/unit/history/details/<int:unit_id>/', views.admin_Unit_history_detail,
-         name='admin_Unit_history_detail'),
+         name='admin_unit_history_detail'),
 
     # Expense Report
 
     path('admin/expense/report/', views.AdminExpenseReport.as_view(), name='admin_expense_report'),
     path(
         "admin/report/expenses/<int:house_id>/", views.AdminExpensesDetailView.as_view(),
-        name="admin_expenses_report_list"),
+        name="admin_expense_report_list"),
 
     # Income Report
 
     path('admin/income/report/', views.AdminIncomeReport.as_view(), name='admin_income_report'),
     path(
         "admin/report/incomes/<int:house_id>/", views.AdminIncomesDetailView.as_view(),
-        name="admin_incomes_report_list"),
+        name="admin_income_report_list"),
 
     # Receive Report
 
     path('admin/receive/report/', views.AdminReceiveReport.as_view(), name='admin_receive_report'),
     path(
         "admin/report/receives/<int:house_id>/", views.AdminReceiveDetailView.as_view(),
-        name="admin_receives_report_list"),
+        name="admin_receive_report_list"),
 
     # Pay Report
 
     path('admin/pay/report/', views.AdminPayReport.as_view(), name='admin_pay_report'),
     path(
         "admin/report/payments/<int:house_id>/", views.AdminPayDetailView.as_view(),
-        name="admin_payments_report_list"),
+        name="admin_pay_report_list"),
 
     # Property Report
 
@@ -241,17 +244,20 @@ urlpatterns = [
         name="admin_maintenance_report_list"),
 
     # billan Report
-    path('admin/billan/report/', views.AdminBillanReport.as_view(), name='admin_billan_report'),
+    path('admin/billan/report/', views.AdminBillanReport.as_view(), name='admin_house_balance_report'),
     path(
         'admin/billan/<int:house_id>/',
         views.admin_house_balance,
-        name='admin_house_balance'
+        name='admin_house_balance_detail'
     ),
 
     # مسیر دریافت نوت‌ها
     path('calendar/notes/<int:year>/<int:month>/', views.get_notes, name='get_notes'),
     path('calendar/save-note/', views.save_note, name='save_note'),
     path('calendar/delete-note/', views.delete_note, name='delete_note'),
+
+    path('subscription/', views.AddSubscriptionPlan.as_view(), name='subscription'),
+
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

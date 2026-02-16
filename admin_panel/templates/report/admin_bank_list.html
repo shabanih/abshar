@@ -4,7 +4,7 @@
 {% load jalali_tags %}
 
 {% block page_title %}
-مدیریت حساب بانکی
+مدیریت حساب بانکی ({{ house.name }})
 {% endblock page_title %}
 
 {% block main_content %}
@@ -12,7 +12,7 @@
 <div class="container mt-3">
   <div class="row text-md-start mb-3">
         <div class="col">
-            <a href="{% url 'admin_banks_report' %}" class="btn btn-gradient-info py-2 px-3">برگشت به لیست</a>
+            <a href="{% url 'admin_bank_report' %}" class="btn btn-gradient-info py-2 px-3">برگشت به لیست</a>
         </div>
     </div>
 <div class="row mb-2 mt-4">

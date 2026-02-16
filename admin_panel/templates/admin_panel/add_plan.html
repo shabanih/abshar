@@ -1,0 +1,134 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+ثبت اشتراک 
+{% endblock page_title %}
+
+{% block main_content %}
+<div class="container mt-3">
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+
+  <button class="btn btn-gradient-success" type="submit">ثبت پلن</button>
+</form>
+{#    <form action="" method="post" novalidate>#}
+{#        {% csrf_token %}#}
+{##}
+{#<div class="row">#}
+{#    <div class="col-8">#}
+{#        {{ form.duration.label_tag }}#}
+{#        {{ form.duration }}#}
+{#        {{ form.duration.errors }}#}
+{#    </div>#}
+{#    <div class="col-4 py-2">#}
+{#        {{ form.price_per_unit.label_tag }}#}
+{#        {{ form.price_per_unit }}#}
+{#        {{ form.price_per_unit.errors }}#}
+{#    </div>#}
+{#</div>#}
+{##}
+{#        <div class="row">#}
+{#                          {% if form.instance.id %}#}
+{#                    <div class=" col-12 pt-2 text-start">#}
+{#                         <button type="submit" class="btn btn-gradient-success">ذخیره پیام</button>#}
+{#                      </div>#}
+{#                     {% else %}#}
+{#                     <div class="col-12 pt-2 text-start">#}
+{#                         <button type="submit" class="btn btn-gradient-success">ثبت پیام</button>#}
+{#                      </div>#}
+{#                {% endif %}#}
+{#        #}
+{#                </div>#}
+{##}
+{##}
+{#    </form>#}
+{#         {{ form.media }}#}
+
+    <div class="container p-3">
+    
+       <div class="container p-0 mt-4">
+        <div class="row mt-2">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th>نوع اشتراک</th>
+                            <th>مبلغ هر واحد </th>
+                            <th>تاریخ ایجاد</th>
+                            <th>دستورات</th>
+                        </tr>
+                    </thead>
+                    {% if plans %}
+                        {% for plan in plans %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{plan.duration }}ماهه</td>
+                                <td>{{ plan.price_per_unit|three_digit_currency }}</td>
+                                <td>{{ plan.created_at|show_jalali }}</td>
+
+                                
+
+
+                               <td class="col-1 p-0">
+                                   <a href="" class="btn btn-primary p-1">
+                              <i class="mdi mdi-lead-pencil" aria-hidden="true"></i></a>
+                                     <a href="" class="btn btn-gradient-danger p-1"
+                                        onclick="return confirmDeleteWithSweetAlert(event)">
+                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                            </a>
+                         
+
+                            </td>
+
+                            </tr>
+                        </tbody>
+                        {% endfor %}
+                    {% else %}
+                        <tbody>
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ رکوردی ثبت نشده است.</td>
+                            </tr>
+                        </tbody>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+    </div>
+ <!-- Pagination -->
+      <div class="col-12">
+        <div class="pagination d-flex justify-content-center mt-5">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+            {% endif %}
+
+            {% for page_number in page_obj.paginator.page_range %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_number }}"
+                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
+                    {{ page_number }}
+                </a>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
+{% endblock main_content %}
+
+
+
+
+
+
+
+
+

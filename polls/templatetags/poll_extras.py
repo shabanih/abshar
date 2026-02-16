@@ -136,3 +136,26 @@ def jalali_to_gregorian(jdate):
         return jdatetime.date(y, m, d).togregorian()
 
     return None
+
+
+REPORT_PREFIXES = [
+    "admin_fund",
+    "charge",
+    "admin_bank",
+    "admin_unit_fund",
+    "admin_debtor",
+    "admin_unit_history",
+    "admin_expense",
+    "admin_income",
+    "admin_receive",
+    "admin_pay",
+    "admin_property",
+    "admin_maintenance",
+    "admin_house_balance",
+]
+
+@register.simple_tag
+def is_report_section(url_name):
+    if not url_name:
+        return False
+    return any(url_name.startswith(p) for p in REPORT_PREFIXES)

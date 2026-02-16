@@ -9,9 +9,12 @@
 
 {% block main_content %}
     <hr/>
-<div class="container mt-3">
-{#        <h3>حساب بانکی: {{ bank.bank_name }} - موجودی: {{ balance|three_digit_currency }} تومان</h3>#}
-
+<div class="container py-3">
+    <div class="row text-md-start mb-2">
+        <div class="col">
+            <a href="{% url 'middle_bank_list' %}" class="btn btn-gradient-info py-2 px-3">برگشت به لیست </a>
+        </div>
+    </div>
 <table class="table table-bordered">
     <thead>
         <tr>
