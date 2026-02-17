@@ -256,7 +256,9 @@ urlpatterns = [
     path('calendar/save-note/', views.save_note, name='save_note'),
     path('calendar/delete-note/', views.delete_note, name='delete_note'),
 
-    path('subscription/', views.AddSubscriptionPlan.as_view(), name='subscription'),
+    path('subscription/', views.AddSubscriptionPlan.as_view(), name='subscription_plan'),
+    path('subscription/edit/<int:pk>/"', views.SubscriptionPlanUpdate.as_view(), name='subscription_plan_edit'),
+    path('subscription/delete/<int:pk>/"', views.subscription_plan_delete, name='subscription_plan_delete'),
 
 ]
 if settings.DEBUG:

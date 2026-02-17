@@ -2,22 +2,53 @@ from decimal import Decimal
 
 from django.core.cache import cache
 from django.db.models import Q, Sum
+from django.utils import timezone
 
 from admin_panel.models import UnifiedCharge, Announcement, MessageToUser, MessageReadStatus, SmsCredit, \
-    MiddleMessageReadStatus, SmsManagement
+    MiddleMessageReadStatus, SmsManagement, Subscription
 from user_app.models import MyHouse, Unit
 
 
+# def current_middle_house(request):
+#     if not request.user.is_authenticated:
+#         return {}
+#
+#     middle_house = MyHouse.objects.filter(
+#         residents=request.user,
+#         is_active=True
+#     ).order_by('-created_at').first()
+#
+#     return {'middle_house': middle_house}
+
 def current_middle_house(request):
+    """
+    برمی‌گرداند خانه مرتبط با کاربر و آخرین اشتراک فعال.
+    در تمپلیت‌ها با {{ middle_house }} و {{ current_subscription }} قابل دسترسی است.
+    """
     if not request.user.is_authenticated:
         return {}
 
+    # آخرین خانه فعال کاربر
     middle_house = MyHouse.objects.filter(
         residents=request.user,
         is_active=True
     ).order_by('-created_at').first()
 
-    return {'middle_house': middle_house}
+    # آخرین اشتراک کاربر
+    current_subscription = None
+    last_sub = Subscription.objects.filter(user=request.user).order_by('-created_at').first()
+    if last_sub:
+        # بررسی Trial فعال
+        if last_sub.is_trial and last_sub.trial_end and timezone.now() <= last_sub.trial_end:
+            current_subscription = last_sub
+        # یا اگر اشتراک پولی فعال باشد
+        elif last_sub.is_paid:
+            current_subscription = last_sub
+
+    return {
+        'middle_house': middle_house,
+        'current_subscription': current_subscription
+    }
 
 
 def current_house(request):

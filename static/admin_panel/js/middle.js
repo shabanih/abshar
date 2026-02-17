@@ -346,9 +346,11 @@ $(document).on('click', '.edit-middle-btn', function () {
      // تعیین مقدار is_active
     let isActive = $(this).data('is_active') ? '1' : '0';
     let isResident = $(this).data('is_resident') ? '1' : '0';
+    let isTrial = $(this).data('is_trial') ? '1' : '0';
 
     $('#middleForm select[name="is_active"]').val(isActive);
     $('#middleForm select[name="is_resident"]').val(isResident);
+    $('#middleForm select[name="is_trial"]').val(isTrial);
 
 
 

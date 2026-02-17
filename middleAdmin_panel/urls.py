@@ -10,6 +10,8 @@ urlpatterns = [
     path('log-out/', views.logout__middle_admin, name='logout_middle_admin'),
     path('switch-to-resident/', views.switch_to_resident, name='switch_to_resident'),
 
+    path('buy-subscription/', views.buy_subscription, name='buy_subscription'),
+
     path('middle/profile/', views.middle_profile, name='middle_profile'),
 
     path('middle-send-announcement/', views.MiddleAnnouncementView.as_view(), name='middle_send_announcement'),

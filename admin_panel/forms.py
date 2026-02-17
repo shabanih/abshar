@@ -227,12 +227,14 @@ class UserRegistrationForm(forms.ModelForm):
 
     is_active = forms.ChoiceField(choices=MIDDLE_CHOICES, label='فعال باشد؟', widget=forms.Select(attrs=attr))
 
-    is_resident = forms.ChoiceField(choices=MIDDLE_CHOICES, label='ساکن ساختمان میباشد؟',
+    is_resident = forms.ChoiceField(choices=MIDDLE_CHOICES, label='ساکن ساختمان میباشد؟', initial=0,
+                                    widget=forms.Select(attrs=attr))
+    is_trial = forms.ChoiceField(choices=MIDDLE_CHOICES, label='اشتراک رایگان؟', initial=0,
                                     widget=forms.Select(attrs=attr))
 
     class Meta:
         model = User
-        fields = ['full_name', 'mobile', 'username', 'password', 'is_active', 'charge_methods', 'is_resident']
+        fields = ['full_name', 'mobile', 'username', 'password', 'is_active', 'charge_methods', 'is_resident', 'is_trial']
 
     def clean_mobile(self):
         mobile = self.cleaned_data.get('mobile')

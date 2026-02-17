@@ -1,4 +1,5 @@
 {% load static %}
+{% load poll_extras %}
 <nav class="sidebar sidebar-offcanvas" id="sidebar">
 
                       <ul class="nav">
@@ -21,19 +22,51 @@
 <li class="nav-item text-center mb-1">
 
 
+<div class="row py-2">
+  <div class="col-12 p-0 m-0 text-center">
+    <div class="card shadow-lg card-small text-center d-flex flex-column justify-content-center"
+         >
+      <div class="card-body py-3">
 
+        <!-- نمایش وضعیت اشتراک -->
+        {% if current_subscription %}
+          {% if current_subscription.is_trial %}
+            <h6 class="text-success mb-3">
+              {{ current_subscription.trial_days_remaining }} روز اعتبار رایگان
+            </h6>
+          {% elif current_subscription.is_paid %}
+            <h6 class="text-primary mb-3">
+              مبلغ آخرین اشتراک: {{ current_subscription.total_amount|three_digit_currency }} تومان
+            </h6>
+          {% else %}
+            <h6 class="text-warning mb-3">اشتراک فعال نیست</h6>
+          {% endif %}
+        {% else %}
+          <h6 class="text-success mb-3">35 روز اشتراک رایگان</h6>
+        {% endif %}
+
+        <!-- دکمه افزودن اعتبار -->
+        <a href="{% url 'buy_subscription' %}" class="btn btn-gradient-primary p-1">
+          <img src="{% static 'admin_panel/icone8/icons8-plus.gif' %}" class="mx-2" width="20" alt="">
+          خرید اشتراک
+        </a>
+
+      </div>
+    </div>
+  </div>
+</div>
     <div class="row d-flex justify-content-between">
-                {% if user.is_resident %}
+                {% if user.is_resident and user.is_unit %}
   <a href="{% url 'switch_to_resident' %}"
      class="btn btn-gradient-primary px-3 py-2">
       ورود به پنل ساکنین
   </a>
 {% endif %}
-  <a href="" class="btn btn-gradient-info px-3 py-1 mt-2">
-       <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
-      افزودن اعتبار
-  </a>
 </div>
+
+
+
+
 
 </li>
 

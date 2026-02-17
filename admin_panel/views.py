@@ -1,6 +1,7 @@
 import io
 import json
 import os
+from datetime import timedelta
 from decimal import Decimal
 
 import sweetify
@@ -42,7 +43,7 @@ from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDo
     MaintenanceDocument, ChargeByPersonArea, \
     ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
     FixPersonCharge, FixAreaCharge, ChargeFixVariable, \
-    SmsManagement, Fund, UnifiedCharge, AdminSmsManagement, SmsCredit, ImpersonationLog, SubscriptionPlan
+    SmsManagement, Fund, UnifiedCharge, AdminSmsManagement, SmsCredit, ImpersonationLog, SubscriptionPlan, Subscription
 from notifications.models import AdminTicket
 from polls.templatetags.poll_extras import jalali_to_gregorian
 from user_app.models import Unit, Bank, Renter, User, MyHouse, ChargeMethod, CalendarNote, UnitResidenceHistory
@@ -52,21 +53,63 @@ def admin_required(view_func):
     return user_passes_test(lambda u: u.is_superuser, login_url=settings.LOGIN_URL_ADMIN)(view_func)
 
 
+@method_decorator(admin_required, name='dispatch')
 class AddSubscriptionPlan(CreateView):
     model = SubscriptionPlan
     form_class = SubscriptionPlanForm
     template_name = 'admin_panel/add_plan.html'
-    success_url = reverse_lazy('subscription')
-
+    success_url = reverse_lazy('subscription_plan')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['plans']= SubscriptionPlan.objects.all()
+        context['plans'] = SubscriptionPlan.objects.all().order_by('-created_at')
         return context
 
 
+@method_decorator(admin_required, name='dispatch')
+class SubscriptionPlanUpdate(UpdateView):
+    model = SubscriptionPlan
+    form_class = SubscriptionPlanForm
+    template_name = 'admin_panel/add_plan.html'
+    success_url = reverse_lazy('subscription_plan')
+
+    def form_valid(self, form):
+        old_plan = self.get_object()
+        new_price = form.cleaned_data['price_per_unit']
+
+        # اگر قیمت تغییر نکرده، فقط برگرد
+        if old_plan.price_per_unit == new_price:
+            return redirect(self.success_url)
+
+        # غیرفعال کردن رکورد قبلی
+        old_plan.is_active = False
+        old_plan.end_date = timezone.now()
+        old_plan.save()
+
+        # ساخت رکورد جدید با قیمت جدید
+        SubscriptionPlan.objects.create(
+            duration=old_plan.duration,
+            price_per_unit=new_price,
+            is_active=True
+        )
+
+        return redirect(self.success_url)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['plans'] = SubscriptionPlan.objects.all().order_by('-created_at')
+        return context
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def subscription_plan_delete(request, pk):
+    plan = get_object_or_404(SubscriptionPlan, pk=pk)
+    plan.delete()
+    messages.success(request, 'اشتراک با موفقیت حذف گردید')
+    return redirect('subscription_plan')
+
+
+@method_decorator(admin_required, name='dispatch')
 class UserManagementListView(ListView):
     model = User
     template_name = 'admin_panel/user_management.html'
@@ -185,35 +228,53 @@ def stop_impersonation(request):
 class MiddleAdminCreateView(CreateView):
     model = User
     template_name = 'admin_panel/add_middleAdmin.html'
-    form_class = UserRegistrationForm  # یا فرم سفارشی اگر تعریف کرده‌اید
+    form_class = UserRegistrationForm
     success_url = reverse_lazy('create_middle_admin')
 
     def form_valid(self, form):
+        # ایجاد کاربر
         self.object = form.save(commit=False)
-        raw_password = form.cleaned_data.get(
-            'password')  # Assuming you're using UserCreationForm or a custom form with 'password1'
-        self.object.set_password(raw_password)  # Hash the password properly
+        raw_password = form.cleaned_data.get('password')
+        self.object.set_password(raw_password)
         self.object.is_middle_admin = True
         self.object.manager = self.request.user
         self.object.save()
 
+        # ثبت charge_methods
         charge_methods = form.cleaned_data.get('charge_methods')
         if charge_methods:
             self.object.charge_methods.set(charge_methods)
 
-        messages.success(self.request, 'مدیر ساختمان با موفقیت ثبت گردید!')
+        # ساخت خانه پیش‌فرض برای مدیر جدید
+        # house = MyHouse.objects.create(
+        #     user=self.object,
+        #     name=f"ساختمان {self.object.full_name}",
+        #     floor_counts=1,
+        #     unit_counts=1,
+        #     address="-"
+        # )
+
+        # ایجاد اشتراک Trial 35 روزه و ذخیره مستقیم
+        Subscription.objects.create(
+            user=self.object,
+            units_count=1,
+            is_trial=True,
+            trial_start=timezone.now(),
+            trial_end=timezone.now() + timedelta(days=1)
+        )
+
+        messages.success(
+            self.request,
+            'مدیر ساختمان با موفقیت ثبت شد و 1 روز Trial فعال شد!'
+        )
         return redirect(self.success_url)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
         context['middleAdmins'] = User.objects.filter(
             is_middle_admin=True
         ).order_by('-created_time')
-
-        context['users'] = User.objects.filter(
-            is_active=True
-        ).order_by('created_time')
+        context['users'] = User.objects.filter(is_active=True).order_by('created_time')
 
         if self.request.user.charge_methods.exists():
             context['allowed_methods'] = list(
@@ -223,6 +284,49 @@ class MiddleAdminCreateView(CreateView):
             context['allowed_methods'] = []
 
         return context
+
+
+# class MiddleAdminCreateView(CreateView):
+#     model = User
+#     template_name = 'admin_panel/add_middleAdmin.html'
+#     form_class = UserRegistrationForm  # یا فرم سفارشی اگر تعریف کرده‌اید
+#     success_url = reverse_lazy('create_middle_admin')
+#
+#     def form_valid(self, form):
+#         self.object = form.save(commit=False)
+#         raw_password = form.cleaned_data.get(
+#             'password')  # Assuming you're using UserCreationForm or a custom form with 'password1'
+#         self.object.set_password(raw_password)  # Hash the password properly
+#         self.object.is_middle_admin = True
+#         self.object.manager = self.request.user
+#         self.object.save()
+#
+#         charge_methods = form.cleaned_data.get('charge_methods')
+#         if charge_methods:
+#             self.object.charge_methods.set(charge_methods)
+#
+#         messages.success(self.request, 'مدیر ساختمان با موفقیت ثبت گردید!')
+#         return redirect(self.success_url)
+#
+# def get_context_data(self, **kwargs):
+#     context = super().get_context_data(**kwargs)
+#
+#     context['middleAdmins'] = User.objects.filter(
+#         is_middle_admin=True
+#     ).order_by('-created_time')
+#
+#     context['users'] = User.objects.filter(
+#         is_active=True
+#     ).order_by('created_time')
+#
+#     if self.request.user.charge_methods.exists():
+#         context['allowed_methods'] = list(
+#             self.request.user.charge_methods.values_list('id', flat=True)
+#         )
+#     else:
+#         context['allowed_methods'] = []
+#
+#     return context
 
 
 @method_decorator(admin_required, name='dispatch')

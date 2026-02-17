@@ -11,7 +11,7 @@ from django.db import models, transaction
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.safestring import mark_safe
-from datetime import date
+from datetime import date, timedelta
 
 from user_app.models import Unit, User, Bank, MyHouse
 
@@ -1101,8 +1101,11 @@ class SubscriptionPlan(models.Model):
         (12, 'دوازده ماهه'),
     )
 
-    duration = models.PositiveSmallIntegerField(choices=DURATION_CHOICES, unique=True, verbose_name="مدت اشتراک")
+    duration = models.PositiveSmallIntegerField(choices=DURATION_CHOICES, verbose_name="مدت اشتراک")
     price_per_unit = models.PositiveIntegerField(verbose_name="هزینه هر واحد برای این پلن")
+    is_active = models.BooleanField(default=True)
+    start_date = models.DateTimeField(auto_now_add=True)
+    end_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
 
     def __str__(self):
@@ -1111,16 +1114,38 @@ class SubscriptionPlan(models.Model):
 
 class Subscription(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    house = models.ForeignKey(MyHouse, on_delete=models.CASCADE)
+    house = models.ForeignKey(MyHouse, on_delete=models.CASCADE, null=True, blank=True)
     units_count = models.PositiveIntegerField(verbose_name="تعداد واحد")
-    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.CASCADE, verbose_name="پلن اشتراک")
-    total_amount = models.PositiveIntegerField(verbose_name="مبلغ کل")
+    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.CASCADE, verbose_name="پلن اشتراک", null=True, blank=True)
+    total_amount = models.PositiveIntegerField(verbose_name="مبلغ کل", null=True, blank=True)
     payment_date = models.DateTimeField(null=True, blank=True)
     transaction_id = models.CharField(max_length=150, null=True, blank=True)
     is_paid = models.BooleanField(default=False)
+    is_trial = models.BooleanField(default=False)
+    trial_start = models.DateTimeField(null=True, blank=True)
+    trial_end = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def calculate_total(self):
-        return self.units_count * self.plan.price_per_unit
+    def start_trial(self):
+        self.is_trial = True
+        self.trial_start = timezone.now()
+        self.trial_end = self.trial_start + timedelta(days=1)
+        self.save()
+
+    def trial_active(self):
+        if self.is_trial and self.trial_end:
+            return timezone.now() <= self.trial_end
+        return False
+
+    @property
+    def trial_days_remaining(self):
+        """
+        تعداد روزهای باقی مانده از trial
+        """
+        if self.is_trial and self.trial_end:
+            delta = self.trial_end.date() - timezone.now().date()
+            return max(delta.days, 0)
+        return 0
+
 
 

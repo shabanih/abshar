@@ -44,6 +44,7 @@ class User(AbstractUser):
     is_middle_admin = models.BooleanField(default=False, verbose_name='مدیر سطح میانی')
     is_resident = models.BooleanField(default=False, verbose_name='مدیر ساکن ساختمان')
     is_unit = models.BooleanField(default=False, verbose_name=' ساکن ساختمان')
+    is_trial = models.BooleanField(default=False, verbose_name='')
 
     objects = UserManager()
 

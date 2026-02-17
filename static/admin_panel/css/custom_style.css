@@ -931,3 +931,69 @@ div.d-flex.justify-content-between div{
     z-index: 20;
     background-color: #fff3cd !important;
 }
+
+/*============ CSS for Sunscription ==============*/
+
+/* کارت پلن‌ها */
+.plan-card {
+    border-radius: 15px;
+    transition: 0.3s;
+    cursor: pointer;
+    border: 2px solid #f1f1f1;
+}
+
+/* هاور کارت */
+.plan-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    /*border-color: #202548F9;*/
+}
+
+/* عنوان پلن */
+.plan-card .card-title {
+    font-size: 22px;
+    font-weight: bold;
+}
+
+/* قیمت */
+.plan-card h4 {
+    font-weight: bold;
+}
+
+/* مبلغ کل پلن */
+.plan-card h5 {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* کارت مبلغ نهایی */
+.final-card {
+    border-radius: 20px;
+    background: linear-gradient(135deg, #0d6efd, #0a58ca);
+    color: white;
+}
+
+.final-card h4 {
+    font-weight: bold;
+}
+
+/* دکمه پرداخت */
+/*.btn-buy {*/
+/*    border-radius: 10px;*/
+/*    font-size: 18px;*/
+/*    padding: 10px 25px;*/
+/*}*/
+
+/* ورودی تعداد واحد */
+#units {
+    border-radius: 10px;
+    font-size: 18px;
+    text-align: center;
+}
+
+.card-small {
+    height: 100px;  /* ارتفاع ثابت */
+    min-height: 100px;
+    max-height: 120px;
+    border: 1px solid #ffb700;
+}

@@ -27,7 +27,7 @@
             </li>
 
                 <li class="nav-item border-top  mt-0">
-                 {% url 'subscription' as address_url %}
+                 {% url 'subscription_plan' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
                 <i class="menu-title"> مدیریت اشتراک</i>
                 <i class="mdi mdi mdi-web menu-icon"></i>

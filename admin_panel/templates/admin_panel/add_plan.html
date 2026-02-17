@@ -12,7 +12,17 @@
   {% csrf_token %}
   {{ form.as_p }}
 
-  <button class="btn btn-gradient-success" type="submit">ثبت پلن</button>
+             {% if form.instance.id %}
+        	<div class=" col-12 pt-4">
+                 <button type="submit" class="btn btn-gradient-success">ذخیره تغییرات</button>
+              </div>
+             {% else %}
+             <div class="col-12  pt-4">
+                 <button type="submit" class="btn btn-gradient-success">ثبت </button>
+              </div>
+        {% endif %}
+
+    
 </form>
 {#    <form action="" method="post" novalidate>#}
 {#        {% csrf_token %}#}
@@ -58,7 +68,9 @@
                             <th>#</th>
                             <th>نوع اشتراک</th>
                             <th>مبلغ هر واحد </th>
-                            <th>تاریخ ایجاد</th>
+                            <th>تاریخ شروع </th>
+                            <th>تاریخ پایان</th>
+                            <th>فعال/غیرفعال</th>
                             <th>دستورات</th>
                         </tr>
                     </thead>
@@ -69,15 +81,23 @@
                                 <td>{{ forloop.counter }}</td>
                                 <td>{{plan.duration }}ماهه</td>
                                 <td>{{ plan.price_per_unit|three_digit_currency }}</td>
-                                <td>{{ plan.created_at|show_jalali }}</td>
+                                <td>{{ plan.start_date|show_jalali }}</td>
+                                <td>{{ plan.end_date|show_jalali }}</td>
+                               <td>
+                                   {% if plan.is_active == True %}
+                                    <button class="btn btn-primary bg-gradient-success p-1">فعال</button>
+                                       {% else %}
+                                       <button class="btn btn-gradient-danger p-1">غیر فعال</button>
+                                   {% endif %}
+                                    </td>
 
                                 
 
 
                                <td class="col-1 p-0">
-                                   <a href="" class="btn btn-primary p-1">
+                                   <a href="{% url 'subscription_plan_edit' plan.id %}" class="btn btn-primary p-1">
                               <i class="mdi mdi-lead-pencil" aria-hidden="true"></i></a>
-                                     <a href="" class="btn btn-gradient-danger p-1"
+                                     <a href="{% url 'subscription_plan_delete' plan.id %}" class="btn btn-gradient-danger p-1"
                                         onclick="return confirmDeleteWithSweetAlert(event)">
                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
                                             </a>
