@@ -235,7 +235,8 @@ class MiddleAdminCreateView(CreateView):
         # ایجاد کاربر
         self.object = form.save(commit=False)
         raw_password = form.cleaned_data.get('password')
-        self.object.set_password(raw_password)
+        if raw_password:
+            self.object.set_password(raw_password)
         self.object.is_middle_admin = True
         self.object.manager = self.request.user
         self.object.save()
@@ -245,29 +246,28 @@ class MiddleAdminCreateView(CreateView):
         if charge_methods:
             self.object.charge_methods.set(charge_methods)
 
-        # ساخت خانه پیش‌فرض برای مدیر جدید
-        # house = MyHouse.objects.create(
-        #     user=self.object,
-        #     name=f"ساختمان {self.object.full_name}",
-        #     floor_counts=1,
-        #     unit_counts=1,
-        #     address="-"
-        # )
 
-        # ایجاد اشتراک Trial 35 روزه و ذخیره مستقیم
-        Subscription.objects.create(
-            user=self.object,
-            units_count=1,
-            is_trial=True,
-            trial_start=timezone.now(),
-            trial_end=timezone.now() + timedelta(days=1)
-        )
+        # اگر Trial فعال است
+        if form.cleaned_data.get('is_trial') == '1':
+            Subscription.objects.create(
+                user=self.object,
+                units_count=5,
+                is_trial=True,
+                start_date=timezone.now(),
+                end_date=timezone.now() + timedelta(days=1)
+            )
+            messages.success(
+                self.request,
+                'مدیر ساختمان با موفقیت ثبت شد!'
+            )
+        else:
+            messages.success(
+                self.request,
+                'مدیر ساختمان با موفقیت ثبت شد!!'
+            )
 
-        messages.success(
-            self.request,
-            'مدیر ساختمان با موفقیت ثبت شد و 1 روز Trial فعال شد!'
-        )
         return redirect(self.success_url)
+
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -285,48 +285,6 @@ class MiddleAdminCreateView(CreateView):
 
         return context
 
-
-# class MiddleAdminCreateView(CreateView):
-#     model = User
-#     template_name = 'admin_panel/add_middleAdmin.html'
-#     form_class = UserRegistrationForm  # یا فرم سفارشی اگر تعریف کرده‌اید
-#     success_url = reverse_lazy('create_middle_admin')
-#
-#     def form_valid(self, form):
-#         self.object = form.save(commit=False)
-#         raw_password = form.cleaned_data.get(
-#             'password')  # Assuming you're using UserCreationForm or a custom form with 'password1'
-#         self.object.set_password(raw_password)  # Hash the password properly
-#         self.object.is_middle_admin = True
-#         self.object.manager = self.request.user
-#         self.object.save()
-#
-#         charge_methods = form.cleaned_data.get('charge_methods')
-#         if charge_methods:
-#             self.object.charge_methods.set(charge_methods)
-#
-#         messages.success(self.request, 'مدیر ساختمان با موفقیت ثبت گردید!')
-#         return redirect(self.success_url)
-#
-# def get_context_data(self, **kwargs):
-#     context = super().get_context_data(**kwargs)
-#
-#     context['middleAdmins'] = User.objects.filter(
-#         is_middle_admin=True
-#     ).order_by('-created_time')
-#
-#     context['users'] = User.objects.filter(
-#         is_active=True
-#     ).order_by('created_time')
-#
-#     if self.request.user.charge_methods.exists():
-#         context['allowed_methods'] = list(
-#             self.request.user.charge_methods.values_list('id', flat=True)
-#         )
-#     else:
-#         context['allowed_methods'] = []
-#
-#     return context
 
 
 @method_decorator(admin_required, name='dispatch')
@@ -354,6 +312,21 @@ class MiddleAdminUpdateView(UpdateView):
         charge_methods = form.cleaned_data.get('charge_methods')
         if charge_methods is not None:
             obj.charge_methods.set(charge_methods)
+
+        subscription, created = Subscription.objects.get_or_create(
+            user=obj,
+            defaults={
+                'units_count': 1,
+                'is_trial': True,
+                'start_date': timezone.now(),
+                'end_date': timezone.now() + timedelta(days=35)
+            }
+        )
+        if not created:
+            # اگر قبلا وجود داشت، فقط مقادیر فرم را آپدیت کن، تاریخ Trial را تغییر نده
+            subscription.units_count = 1
+            # فقط اگر خواستی اشتراک پولی یا روش‌های دیگر اضافه شود می‌توانی اینجا تغییر دهی
+            subscription.save()
 
         messages.success(self.request, 'اطلاعات مدیر ساختمان با موفقیت ویرایش گردید!')
         return super().form_valid(form)

@@ -23,45 +23,86 @@
 
 
 <div class="row py-2">
-  <div class="col-12 p-0 m-0 text-center">
-    <div class="card shadow-lg card-small text-center d-flex flex-column justify-content-center"
-         >
-      <div class="card-body py-3">
+  <div class="col-12 text-center">
+    <div class="card shadow-lg card-small">
 
-        <!-- نمایش وضعیت اشتراک -->
-        {% if current_subscription %}
-          {% if current_subscription.is_trial %}
-            <h6 class="text-success mb-3">
-              {{ current_subscription.trial_days_remaining }} روز اعتبار رایگان
-            </h6>
-          {% elif current_subscription.is_paid %}
-            <h6 class="text-primary mb-3">
-              مبلغ آخرین اشتراک: {{ current_subscription.total_amount|three_digit_currency }} تومان
-            </h6>
-          {% else %}
-            <h6 class="text-warning mb-3">اشتراک فعال نیست</h6>
-          {% endif %}
-        {% else %}
-          <h6 class="text-success mb-3">35 روز اشتراک رایگان</h6>
-        {% endif %}
+      <div class="card-body py-1 p-3">
+ <div class="d-flex align-items-center justify-content-center">
 
-        <!-- دکمه افزودن اعتبار -->
-        <a href="{% url 'buy_subscription' %}" class="btn btn-gradient-primary p-1">
-          <img src="{% static 'admin_panel/icone8/icons8-plus.gif' %}" class="mx-2" width="20" alt="">
-          خرید اشتراک
-        </a>
+        <div class="subscription-circle-wrapper" style="width:80px; height:80px;">
+
+    <svg width="80" height="80" viewBox="0 0 130 130">
+      <!-- بک گراند -->
+      <circle cx="65" cy="65" r="55"
+              stroke="#000080"
+              stroke-width="10"
+              fill="none"/>
+
+      <!-- نوار پیشرفت -->
+      <circle cx="65" cy="65" r="55"
+              stroke="{% if sub_status == 'trial' %}#ffffff{% elif sub_status == 'paid' %}#ffffff{% elif sub_status == 'inactive' %}#ffffff{% else %}#ccc{% endif %}"
+              stroke-width="10"
+              fill="none"
+              stroke-dasharray="345"
+              stroke-dashoffset="{% widthratio remaining_days total_days 345 %}"
+              transform="rotate(-90 65 65)"
+              stroke-linecap="round"/>
+    </svg>
+
+    <!-- متن وسط دایره -->
+    <div class="subscription-circle-center">
+      <div class="subscription-remaining">{{ remaining_days }} </div>
+      <div class="subscription-divider"></div>
+      <div class="subscription-total">{{ total_days }}  </div>
+    </div>
+
+</div>
+
+
+          <!-- ===== اطلاعات اشتراک ===== -->
+
+
+        </div>
+    <div class="mt-1">
+            {% if sub_status == "trial" %}
+              <div class="subscription-status subscription-trial">اشتراک رایگان فعال</div>
+            {% elif sub_status == "paid" %}
+              <div class="subscription-status subscription-paid">اشتراک {{ plan }} فعال</div>
+                {% elif sub_status == "inactive" %}
+{#              <div class="subscription-status subscription-inactive">اشتراک منقضی شده</div>#}
+                    <a href="{% url 'buy_subscription' %}" class="btn btn-gradient-secondary p-1">
+                      <img src="{% static 'admin_panel/icone8/icons8-plus.gif' %}" class="mx-2" width="20" alt="">
+                      خرید اشتراک
+                    </a>
+                {% else %}
+            <!-- دکمه خرید اشتراک -->
+                    <a href="{% url 'buy_subscription' %}" class="btn btn-gradient-secondary p-1">
+                      <img src="{% static 'admin_panel/icone8/icons8-plus.gif' %}" class="mx-2" width="20" alt="">
+                      خرید اشتراک
+                    </a>
+            {% endif %}
+          </div>
+
+
+        <!-- دکمه خرید اشتراک -->
+{#        <a href="{% url 'buy_subscription' %}" class="btn btn-gradient-primary p-1">#}
+{#          <img src="{% static 'admin_panel/icone8/icons8-plus.gif' %}" class="mx-2" width="20" alt="">#}
+{#          خرید اشتراک#}
+{#        </a>#}
 
       </div>
     </div>
   </div>
 </div>
-    <div class="row d-flex justify-content-between">
+    <div class="row text-center">
+    <div class="col-12">
                 {% if user.is_resident and user.is_unit %}
   <a href="{% url 'switch_to_resident' %}"
-     class="btn btn-gradient-primary px-3 py-2">
+     class="btn btn-gradient-primary px-1 py-2 w-100">
       ورود به پنل ساکنین
   </a>
 {% endif %}
+    </div>
 </div>
 
 
@@ -169,13 +210,24 @@
               </a>
             </li>
           
-           <li class="nav-item  mt-0">
-                 {% url 'middle_manage_unit' as address_url %}
-                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                <i class="menu-title"> مدیریت واحدها</i>
-                <i class="mdi mdi-city menu-icon menu-icon"></i>
-              </a>
-            </li>
+{#           <li class="nav-item  mt-0">#}
+{#                 {% url 'middle_manage_unit' as address_url %}#}
+{#                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">#}
+{#                <i class="menu-title"> مدیریت واحدها</i>#}
+{#                <i class="mdi mdi-city menu-icon menu-icon"></i>#}
+{#              </a>#}
+{#            </li>#}
+                <li class="nav-item mt-0">
+    <a class="nav-link
+    {% if request.resolver_match.url_name == 'middle_manage_unit' or request.resolver_match.url_name == 'middle_unit_register'%}
+       active
+    {% endif %}"
+    href="{% url 'middle_manage_unit' %}">
+
+        <i class="menu-title">مدیریت واحدها</i>
+        <i class="mdi mdi-city menu-icon"></i>
+    </a>
+</li>
 
                  <li class="nav-item  mt-0">
                  {% url 'middleAdmin_fund_turn_over' as address_url %}
@@ -185,22 +237,64 @@
               </a>
             </li>
 
-                 <li class="nav-item border-top mt-0">
-  <a class="nav-link" data-bs-toggle="collapse" href="#general40"
-     aria-expanded="{% if request.resolver_match.url_name in 'middle_add_charge middle_add_expense    ' %}true{% else %}false{% endif %}"
-     aria-controls="general40">
+                {% with url=request.resolver_match.url_name %}
+
+{% is_charge_section url as charge_open %}
+
+<li class="nav-item mt-0 border-top">
+
+  <a class="nav-link"
+     data-bs-toggle="collapse"
+     href="#general3"
+     aria-expanded="{% if charge_open %}true{% else %}false{% endif %}">
+
     <i class="menu-title">مدیریت شارژ</i>
     <i class="menu-arrow"></i>
-        <i class="mdi mdi-square-inc-cash menu-icon"></i>
+    <i class="mdi mdi-clipboard-text menu-icon"></i>
   </a>
-  <div class="collapse {% if request.resolver_match.url_name in 'middle_add_charge middle_main_charges' %}show{% endif %}" id="general40">
+
+  <div class="collapse {% if charge_open %}show{% endif %}" id="general3">
     <ul class="nav flex-column sub-menu">
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_add_charge' %}active{% endif %}" href="{% url 'middle_add_charge' %}">افزودن شارژ</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_main_charges' %}active{% endif %}" href="{% url 'middle_main_charges' %}"> شارژ های من</a></li>
+
+      <li class="nav-item">
+      <a class="nav-link {% if 'middle_add' in url %}active{% endif %}"
+   href="{% url 'middle_add_charge' %}">
+   افزودن شارژ
+</a>
+      </li>
+
+      <li class="nav-item">
+       <a class="nav-link {% if 'middle_main_charges' in url %}active{% endif %}"
+   href="{% url 'middle_main_charges' %}">
+   شارژ های من
+</a>
+      </li>
+
 
     </ul>
   </div>
+
 </li>
+
+{% endwith %}
+
+
+{#   <li class="nav-item border-top mt-0">#}
+{#  <a class="nav-link" data-bs-toggle="collapse" href="#general40"#}
+{#     aria-expanded="{% if request.resolver_match.url_name in 'middle_add_charge middle_add_expense    ' %}true{% else %}false{% endif %}"#}
+{#     aria-controls="general40">#}
+{#    <i class="menu-title">مدیریت شارژ</i>#}
+{#    <i class="menu-arrow"></i>#}
+{#        <i class="mdi mdi-square-inc-cash menu-icon"></i>#}
+{#  </a>#}
+{#  <div class="collapse {% if request.resolver_match.url_name in 'middle_add_charge middle_main_charges' %}show{% endif %}" id="general40">#}
+{#    <ul class="nav flex-column sub-menu">#}
+{#      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_add_charge' %}active{% endif %}" href="{% url 'middle_add_charge' %}">افزودن شارژ</a></li>#}
+{#      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_main_charges' %}active{% endif %}" href="{% url 'middle_main_charges' %}"> شارژ های من</a></li>#}
+{##}
+{#    </ul>#}
+{#  </div>#}
+{#</li>#}
              <li class="nav-item border-top mt-0">
   <a class="nav-link" data-bs-toggle="collapse" href="#general23"
      aria-expanded="{% if request.resolver_match.url_name in 'middle_add_income middle_add_expense middle_add_receive middle_add_pay middle_add_property middle_add_maintenance' %}true{% else %}false{% endif %}"

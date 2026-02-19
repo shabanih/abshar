@@ -159,3 +159,16 @@ def is_report_section(url_name):
     if not url_name:
         return False
     return any(url_name.startswith(p) for p in REPORT_PREFIXES)
+
+
+CHARGE_PREFIXES = [
+    "middle_add",          # همه لینک‌های افزودن شارژ
+    "middle_main_charges", # صفحه شارژهای من
+]
+
+@register.simple_tag
+def is_charge_section(url_name):
+    """بررسی می‌کند که URL با پیشوند شارژ شروع شده باشد"""
+    if not url_name:
+        return False
+    return any(url_name.startswith(p) for p in CHARGE_PREFIXES)

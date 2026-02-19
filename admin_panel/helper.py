@@ -13,8 +13,8 @@ def send_notify_user_by_sms(mobile, name, amount):
 
         params = {
             'receptor': mobile,
-            'token10': name,   # نام شخص
-            'token': amount,       # نام شارژ
+            'token10': name,  # نام شخص
+            'token': amount,  # نام شارژ
             'template': 'raya',
             'type': 'sms'
         }
@@ -29,11 +29,11 @@ def send_notify_user_by_sms(mobile, name, amount):
         print(f"HTTPException: {e}")
         return {"error": str(e)}
 
+
 def send_sms_to_user(mobile, message, full_name, otp=None):
     mobile = [mobile]  # مطمئن شو عدد به رشته تبدیل شده
     full_name = full_name
     message = message
-
 
     try:
         api = KavenegarAPI(Kavenegar_API)
@@ -65,7 +65,6 @@ def send_sms_to_middle(mobile, message, full_name, otp=None):
     mobile = [mobile]  # مطمئن شو عدد به رشته تبدیل شده
     full_name = full_name
     message = message
-
 
     try:
         api = KavenegarAPI(Kavenegar_API)

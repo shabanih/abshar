@@ -1104,46 +1104,71 @@ class SubscriptionPlan(models.Model):
     duration = models.PositiveSmallIntegerField(choices=DURATION_CHOICES, verbose_name="مدت اشتراک")
     price_per_unit = models.PositiveIntegerField(verbose_name="هزینه هر واحد برای این پلن")
     is_active = models.BooleanField(default=True)
-    start_date = models.DateTimeField(auto_now_add=True)
-    end_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
 
     def __str__(self):
-        return f"{self.get_duration_display()} - {self.price_per_unit} تومان"
+        return f"{self.get_duration_display()}"
+
+    @property
+    def duration_days(self):
+        return self.duration * 1
 
 
 class Subscription(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     house = models.ForeignKey(MyHouse, on_delete=models.CASCADE, null=True, blank=True)
+
     units_count = models.PositiveIntegerField(verbose_name="تعداد واحد")
-    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.CASCADE, verbose_name="پلن اشتراک", null=True, blank=True)
-    total_amount = models.PositiveIntegerField(verbose_name="مبلغ کل", null=True, blank=True)
+    plan = models.ForeignKey(
+        SubscriptionPlan,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+
+    total_amount = models.PositiveIntegerField(null=True, blank=True)
     payment_date = models.DateTimeField(null=True, blank=True)
     transaction_id = models.CharField(max_length=150, null=True, blank=True)
+
     is_paid = models.BooleanField(default=False)
     is_trial = models.BooleanField(default=False)
-    trial_start = models.DateTimeField(null=True, blank=True)
-    trial_end = models.DateTimeField(null=True, blank=True)
+
+    start_date = models.DateTimeField(null=True, blank=True)
+    end_date = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def start_trial(self):
         self.is_trial = True
-        self.trial_start = timezone.now()
-        self.trial_end = self.trial_start + timedelta(days=1)
+        self.start_date = timezone.now()
+        self.end_date = self.start_date + timedelta(days=35)
         self.save()
 
     def trial_active(self):
-        if self.is_trial and self.trial_end:
-            return timezone.now() <= self.trial_end
-        return False
+        if self.is_trial and self.end_date:
+            if timezone.now() <= self.end_date:
+                return True
+            else:
+                # ⛔ تریال تمام شده → خاموشش کن
+                self.is_trial = False
+                self.save(update_fields=['is_trial'])
 
+                if hasattr(self.user, 'is_trial'):
+                    self.user.is_trial = False
+                    self.user.save(update_fields=['is_trial'])
+
+        return False
     @property
     def trial_days_remaining(self):
-        """
-        تعداد روزهای باقی مانده از trial
-        """
-        if self.is_trial and self.trial_end:
-            delta = self.trial_end.date() - timezone.now().date()
+        if self.is_trial and self.end_date:
+            delta = self.end_date.date() - timezone.now().date()
+            return max(delta.days, 0)
+        return 0
+
+    @property
+    def days_remaining(self):
+        if self.end_date:
+            delta = self.end_date.date() - timezone.now().date()
             return max(delta.days, 0)
         return 0
 

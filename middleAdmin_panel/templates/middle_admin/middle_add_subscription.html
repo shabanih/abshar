@@ -1,13 +1,3 @@
-{#{% extends 'middleShared/base_template.html' %}#}
-{#{% load static %}#}
-{#{% load poll_extras %}#}
-{#{% load jalali_tags %}#}
-{##}
-{#{% block page_title %}#}
-{#افزودن اعتبار#}
-{#{% endblock %}#}
-{##}
-{#{% block main_content %}#}
 {% load static %}
 {% load poll_extras %}
 <html lang="en">
@@ -16,7 +6,7 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>ورود با شماره همراه</title>
+    <title>خرید اشتراک</title>
      <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"/>
     <link rel="stylesheet" href="/static/css/all.css">
     <link rel="stylesheet" href="/static/css/bootstrap.min.css">
@@ -24,39 +14,36 @@
     <link rel="stylesheet" href="/static/css/bootstrap-rtl.min.css">
     <link rel="stylesheet" href="/static/css/login_style.css">
     <link rel="stylesheet" href="/static/css/core.css">
-
-
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="/static/js/jquery.min.js"></script>
-    <script src="/static/js/Bootstrap.min.js"></script>
-    <script src="/static/js/bootstrap.bundle.min.js"></script>
-    <script src="/static/js/popper.min.js"></script>
-    <script src="/static/js/sweetalert2@11.js"></script>
-    <script src="/static/js/jquery-3.5.1.slim.min.js"></script>
-    <script src="/static/js/custom.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="/static/admin_panel/css/custom_style.css">
+    
 </head>
 <body>
 <hr/>
 
 <div class="container py-3">
 <div class="col-12 mb-2">
-
-<form method="post">
+<form method="post" action="{% url 'request_subscription_pay' %}">
 {% csrf_token %}
 <h3 class="fw-bold py-2">خرید اشتراک</h3>
+
 <!-- تعداد واحد -->
 <div class="card shadow-sm mb-4">
     <div class="card-body">
         <label class="form-label">تعداد واحد ساختمان</label>
-        <input type="number"
+             <input type="number"
                name="units_count"
                id="units"
                class="form-control form-control-lg"
                placeholder="مثلاً 10"
+               value="{{ unit_count }}"
+               min="{{ unit_count }}"
                required>
+         <div id="units_error" class="text-danger mt-1" style="display:none;"></div>
+
     </div>
 </div>
+
+
 
 <!-- پلن‌ها -->
 <div class="row">
@@ -126,34 +113,27 @@
 </div>
 </div>
 
-<!-- ✅ CSS -->
-<style>
-.plan-card{
-    border-radius:15px;
-    border:2px solid #eee;
-    cursor:pointer;
-    transition:0.3s;
-}
-
-.plan-card:hover{
-    transform:translateY(-6px);
-    box-shadow:0 10px 25px rgba(0,0,0,0.1);
-}
-
-/* کارت انتخاب شده */
-.plan-wrapper input:checked + .plan-card{
-    border:2px solid #5FD247F9;
-    background:#eef4ff;
-    box-shadow:0 12px 30px rgba(13,110,253,0.25);
-}
-</style>
 
 <!-- ✅ JS -->
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script src="/static/js/jquery.min.js"></script>
+    <script src="/static/js/Bootstrap.min.js"></script>
+    <script src="/static/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/popper.min.js"></script>
+    <script src="/static/js/sweetalert2@11.js"></script>
+    <script src="/static/js/jquery-3.5.1.slim.min.js"></script>
+    <script src="/static/js/custom.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 const unitsInput = document.getElementById("units");
 const radios = document.querySelectorAll('input[name="plan"]');
 const finalPrice = document.getElementById("final_price");
 const cards = document.querySelectorAll(".plan-card");
+const unitsError = document.getElementById("units_error");
+
+// مقدار حداقل ثبت‌شده از backend
+const minUnits = parseInt(unitsInput.min);
 
 // تابع سه‌رقمی کردن اعداد
 function formatNumber(num){
@@ -169,8 +149,19 @@ cards.forEach(card=>{
     });
 });
 
+// محاسبه مبلغ کل
 function calculate(){
     let units = parseInt(unitsInput.value) || 0;
+
+    // ✅ بررسی تعداد واحد
+    if(units < minUnits){
+        unitsError.style.display = "block";
+        unitsError.innerText = `با توجه به تعداد واحد ثبتی، تعداد واحد نمی‌تواند کمتر از ${minUnits} باشد.`;
+        finalPrice.innerText = "0";
+        return; // جلوگیری از ادامه محاسبه
+    } else {
+        unitsError.style.display = "none";
+    }
 
     radios.forEach(radio=>{
         let price = parseInt(radio.dataset.price);
@@ -187,9 +178,12 @@ function calculate(){
     });
 }
 
+// محاسبه هنگام تغییر تعداد واحد
 unitsInput.addEventListener("input", calculate);
-</script>
 
+// محاسبه اولیه در صفحه
+calculate();
+</script>
 
 </body>
 </html>

@@ -992,8 +992,123 @@ div.d-flex.justify-content-between div{
 }
 
 .card-small {
-    height: 100px;  /* ارتفاع ثابت */
-    min-height: 100px;
-    max-height: 120px;
+    height: 124px;  /* ارتفاع ثابت */
+    min-height: 124px;
+    max-height: 124px;
     border: 1px solid #ffb700;
+}
+
+/* ===== کارت اشتراک ===== */
+.plan-card{
+    border-radius:15px;
+    border:2px solid #eee;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.plan-card:hover{
+    transform:translateY(-6px);
+    box-shadow:0 10px 25px rgba(0,0,0,0.1);
+}
+
+/* کارت انتخاب شده */
+.plan-wrapper input:checked + .plan-card{
+    border:2px solid #5FD247F9;
+    background:#eef4ff;
+    box-shadow:0 12px 30px rgba(13,110,253,0.25);
+}
+
+
+.subscription-card {
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    padding: 10px;
+    background: #fff;
+    margin: 0;
+}
+
+/* ===== کانتینر دایره ===== */
+.subscription-circle-wrapper {
+    position: relative;
+    width: 130px;
+    height: 130px;
+}
+
+/* ===== متن وسط دایره ===== */
+.subscription-circle-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+/* عدد روزهای مانده */
+.subscription-remaining {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* خط جداکننده */
+.subscription-divider {
+    width: 25px;
+    height: 2px;
+    background: #ccc;
+
+}
+
+/* کل روزها */
+.subscription-total {
+    font-size: 13px;
+    color: #888;
+}
+
+/* ===== وضعیت ها ===== */
+.subscription-status {
+    font-size: 14px;
+    font-weight: 400;
+    /*margin-bottom: 8px;*/
+}
+
+.subscription-trial {
+    color: #202548F9;
+}
+
+.subscription-paid {
+    color: #1cc88a;
+    margin: 0;
+}
+
+.subscription-inactive {
+    color: #dc3545;
+}
+
+.subscription-free {
+    color: #28a745;
+}
+
+/* ===== دکمه ===== */
+/*.subscription-btn {*/
+/*    padding: 8px 25px;*/
+/*    border-radius: 50px;*/
+/*    font-size: 14px;*/
+/*    font-weight: 500;*/
+/*}*/
+
+/* ===== ریسپانسیو ===== */
+@media (max-width: 768px) {
+    .subscription-card {
+        text-align: center;
+    }
+
+    .subscription-flex {
+        flex-direction: column;
+        align-items: center !important;
+    }
+
+    .subscription-circle-wrapper {
+        /*margin-bottom: 15px;*/
+    }
 }

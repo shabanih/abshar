@@ -32,7 +32,7 @@ urlpatterns = [
     path('middle/delete/bank/<int:pk>/', views.middle_bank_delete, name='middle_delete_bank'),
 
     # Unit Urls
-    path('middle-add-unit', views.MiddleUnitRegisterView.as_view(), name='middle_add_unit'),
+    path('middle-add-unit', views.MiddleUnitRegisterView.as_view(), name='middle_unit_register'),
     path('middle-info-unit/<int:pk>/', views.MiddleUnitInfoView.as_view(), name='middle_unit_info'),
     path('unit//add-renter/<int:unit_id>/', views.add_renter_to_unit, name='add_renter_to_unit'),
 
@@ -127,7 +127,7 @@ urlpatterns = [
     path('middle_main_charges_excel/', views.middle_base_charges_excel, name='middle_main_charges_excel'),
 
     path('base-charges/<str:app_label>/<str:model_name>/<int:charge_id>/units/', views.charge_units_list,
-         name='charge_units_list'),
+         name='middle_main_charges_units_list'),
     path('middle-charge/<str:app_label>/<str:model_name>/<int:charge_id>/units/pdf/', views.charge_units_list_pdf,
          name='charge_units_list_pdf'),
     path('middle-charge/<str:app_label>/<str:model_name>/<int:charge_id>/units/excel/', views.charge_units_list_excel,

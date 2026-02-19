@@ -496,15 +496,15 @@ window.addEventListener("DOMContentLoaded", function () {
         datasets: [
             {
                 label: 'پرداخت شده',
-                backgroundColor: Chart.helpers.color(chartColors.red).alpha(0.5).rgbString(),
-                borderColor: chartColors.red,
+                backgroundColor: Chart.helpers.color(chartColors.blue).alpha(0.5).rgbString(),
+                borderColor: chartColors.blue,
                 borderWidth: 1,
                 data: paidCharges
             },
             {
                 label: 'پرداخت نشده',
-                backgroundColor: Chart.helpers.color(chartColors.blue).alpha(0.5).rgbString(),
-                borderColor: chartColors.blue,
+                backgroundColor: Chart.helpers.color(chartColors.red).alpha(0.5).rgbString(),
+                borderColor: chartColors.red,
                 borderWidth: 1,
                 data: unpaidCharges
             }

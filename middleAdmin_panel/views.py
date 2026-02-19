@@ -62,22 +62,39 @@ def middle_admin_required(view_func):
         login_url=settings.LOGIN_URL_MIDDLE_ADMIN
     )(view_func)
 
-# ========================== Subcription =====================
 
-
+# ========================== Subscription =====================
 def buy_subscription(request):
-    # مرتب بر اساس duration
     plans = SubscriptionPlan.objects.filter(is_active=True).order_by('duration')
 
+    managed_users = request.user.managed_users.all()
+    unit_count = Unit.objects.filter(
+        Q(user=request.user) | Q(user__in=managed_users),
+        is_active=True,
+    ).count()
+
     if request.method == "POST":
-        units = int(request.POST.get("units_count"))
+        try:
+            units = int(request.POST.get("units_count"))
+        except ValueError:
+            sweetify.error(request, "تعداد واحد نامعتبر است.")
+            return redirect("buy_subscription")
+
+        # بررسی اینکه عدد وارد شده کمتر از تعداد واقعی نباشد
+        if units < unit_count:
+            messages.error(
+                request,
+                f"تعداد واحد وارد شده نمی‌تواند کمتر از تعداد ثبت‌شده ({unit_count}) باشد."
+            )
+            return redirect("buy_subscription")
+
         plan_id = int(request.POST.get("plan"))
         plan = SubscriptionPlan.objects.get(id=plan_id)
         total = units * plan.price_per_unit
 
         Subscription.objects.create(
             user=request.user,
-            house=request.user.myhouse,  # تغییر بده بر اساس ساختار
+            house=request.user.myhouse,
             units_count=units,
             plan=plan,
             total_amount=total,
@@ -87,14 +104,11 @@ def buy_subscription(request):
         return redirect("subscription_success")
 
     return render(request, "middle_admin/middle_add_subscription.html", {
-        "plans": plans
+        "plans": plans,
+        "unit_count": unit_count  # برای مقدار پیش‌فرض فرم
     })
 
-
-
-
-# ========================= Panel Switch ==================
-
+# ==============================================================
 def get_single_resident_building(user):
     units = Unit.objects.filter(
         Q(user=user) |
@@ -142,35 +156,18 @@ def switch_to_resident(request):
 
 
 # ================================================================
-
-
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_admin_dashboard(request):
     if not request.user.is_authenticated:
         return redirect('login')  # یا هر URL ورود شما
 
-    # ---- آخرین اشتراک کاربر ----
-    current_subscription = request.user.subscription_set.order_by('-created_at').first()
-
-    # بررسی اشتراک فعال یا Trial
-    has_active_subscription = False
-    if current_subscription:
-        if current_subscription.is_trial:
-            remaining_time = current_subscription.trial_end - timezone.now()
-            if remaining_time.total_seconds() > 0:  # هنوز زمان Trial باقی است
-                has_active_subscription = True
-        elif current_subscription.is_paid:
-            has_active_subscription = True
-
-    if not has_active_subscription:
-        # هدایت کاربر به صفحه خرید اشتراک
-        return redirect('buy_subscription')
-
-    # ---- ادامه ویو داشبورد ----
     managed_users = request.user.managed_users.all()
     resident_unit = get_single_resident_building(request.user)
     announcements = Announcement.objects.filter(is_active=True, user=request.user).order_by('-created_at')[:3]
-    units = Unit.objects.filter(Q(user=request.user) | Q(user__in=managed_users), is_active=True)
+    units = Unit.objects.filter(
+        myhouse__user=request.user,
+        is_active=True
+    ).distinct()
 
     unit_count = units.count()
     tickets = SupportUser.objects.filter(Q(user=request.user) | Q(user__in=managed_users)).order_by('-created_at')[:5]
@@ -183,16 +180,19 @@ def middle_admin_dashboard(request):
     balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
 
     unit_count_unpaid_charges = UnifiedCharge.objects.filter(
-        Q(user=request.user) | Q(user__in=managed_users),
+        house__user=request.user,
         send_notification=True,
         is_paid=False,
         unit__isnull=False
     ).count()
 
     # نمودار مالک/مستاجر
+    renter_units = units.filter(renters__renter_is_active=True).distinct()
+    owner_units = units.exclude(id__in=renter_units.values_list('id', flat=True))
+
     owner_renter_stats = {
-        'owner': units.exclude(renters__renter_is_active=True).count(),
-        'renter': units.filter(renters__renter_is_active=True).count(),
+        'owner': owner_units.count(),
+        'renter': renter_units.count(),
     }
 
     # نمودار خانه خالی/پر
@@ -214,10 +214,12 @@ def middle_admin_dashboard(request):
 
     # شارژهای پرداخت‌شده
     paid_charges_qs = UnifiedCharge.objects.filter(
+        house__user=request.user,
         send_notification=True,
         unit__in=units,
         is_paid=True
     )
+    print(f'paid-{paid_charges_qs.count()}')
     paid_counts = {i: 0 for i in range(1, 13)}
     for charge in paid_charges_qs:
         month = get_persian_month(charge.payment_date)
@@ -226,10 +228,12 @@ def middle_admin_dashboard(request):
 
     # شارژهای پرداخت‌نشده
     unpaid_charges_qs = UnifiedCharge.objects.filter(
+        house__user=request.user,
         send_notification=True,
         unit__in=units,
         is_paid=False
     )
+    print(unpaid_charges_qs.count())
     unpaid_counts = {i: 0 for i in range(1, 13)}
     for charge in unpaid_charges_qs:
         month = get_persian_month(charge.send_notification_date)
@@ -239,6 +243,8 @@ def middle_admin_dashboard(request):
     months = list(range(1, 13))
     paid_data = [paid_counts[m] for m in months]
     unpaid_data = [unpaid_counts[m] for m in months]
+
+    has_charge_data = any(paid_data) or any(unpaid_data)
 
     context = {
         'announcements': announcements,
@@ -252,146 +258,11 @@ def middle_admin_dashboard(request):
         'months': months,
         'paid_data': paid_data,
         'unpaid_data': unpaid_data,
-        'current_subscription': current_subscription,  # << اضافه شد
+        'has_charge_date': has_charge_data,
+        # 'current_subscription': current_subscription,  # << اضافه شد
     }
 
     return render(request, 'middleShared/home_template.html', context)
-
-# def middle_admin_dashboard(request):
-#     if not request.user.is_authenticated:
-#         return redirect('login')  # یا هر URL ورود شما
-#
-#         # --- بررسی اشتراک ---
-#     current_subscription = request.user.subscription_set.order_by('-created_at').first()
-#
-#     # بررسی اشتراک
-#     has_active_subscription = False
-#     if current_subscription:
-#         if current_subscription.is_trial:
-#             remaining_days = (current_subscription.trial_end - timezone.now()).days
-#             if remaining_days > 0:
-#                 has_active_subscription = True
-#         elif current_subscription.is_paid:
-#             has_active_subscription = True
-#
-#     if not has_active_subscription:
-#         # اگر اشتراک فعال نیست یا Trial تمام شده -> هدایت به خرید اشتراک
-#         return redirect('buy_subscription')
-#
-#     managed_users = request.user.managed_users.all()
-#     resident_unit = get_single_resident_building(request.user)
-#     announcements = Announcement.objects.filter(is_active=True, user=request.user).order_by('-created_at')[:3]
-#     units = Unit.objects.filter(Q(user=request.user) | Q(user__in=managed_users), is_active=True)
-#
-#     unit_count = units.count()
-#     tickets = SupportUser.objects.filter(Q(user=request.user) | Q(user__in=managed_users)).order_by('-created_at')[:5]
-#
-#     funds = Fund.objects.select_related('bank', 'content_type').filter(
-#         Q(user=request.user) | Q(user__in=managed_users)
-#     ).order_by('-payment_date')
-#
-#     totals = funds.aggregate(total_income=Sum('debtor_amount'), total_expense=Sum('creditor_amount'))
-#     balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
-#
-#     unit_count_unpaid_charges = UnifiedCharge.objects.filter(
-#         Q(user=request.user) | Q(user__in=managed_users),
-#         send_notification=True,
-#         is_paid=False,
-#         unit__isnull=False
-#     ).count()
-#
-#     # ---- نمودار مالک/مستاجر ----
-#     owner_renter_stats = {
-#         'owner': units.exclude(renters__renter_is_active=True).count(),
-#         'renter': units.filter(renters__renter_is_active=True).count(),
-#     }
-#
-#     # ---- نمودار خانه خالی/پر ----
-#     residence_stats = {
-#         'occupied': units.filter(status_residence='occupied').count(),
-#         'empty': units.filter(status_residence='empty').count(),
-#     }
-#
-#     # ------------------ تعریف ماه‌های شمسی ------------------
-#     persian_months = [
-#         "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
-#         "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
-#     ]
-#
-#     # تابع کمکی برای گرفتن ماه شمسی از تاریخ میلادی
-#     def get_persian_month(g_date):
-#         if g_date:
-#             return jdatetime.date.fromgregorian(date=g_date).month
-#         return None
-#
-#     # ------------------ شارژهای پرداخت‌شده ------------------
-#     paid_charges_qs = UnifiedCharge.objects.filter(
-#         send_notification=True,
-#         unit__in=units,
-#         is_paid=True
-#     )
-#
-#     # ایجاد دیکشن ماه شمسی -> تعداد
-#     paid_counts = {i: 0 for i in range(1, 13)}  # 1 تا 12
-#     for charge in paid_charges_qs:
-#         month = get_persian_month(charge.payment_date)
-#         if month:
-#             paid_counts[month] += 1
-#
-#     # ------------------ شارژهای پرداخت‌نشده ------------------
-#     unpaid_charges_qs = UnifiedCharge.objects.filter(
-#         send_notification=True,
-#         unit__in=units,
-#         is_paid=False
-#     )
-#
-#     unpaid_counts = {i: 0 for i in range(1, 13)}
-#     for charge in unpaid_charges_qs:
-#         month = get_persian_month(charge.send_notification_date)
-#         if month:
-#             unpaid_counts[month] += 1
-#
-#     # ------------------ آماده‌سازی آرایه برای JS ------------------
-#     months = list(range(1, 13))
-#     paid_data = [paid_counts[m] for m in months]
-#     unpaid_data = [unpaid_counts[m] for m in months]
-#
-#     chart_data = {
-#         'labels': persian_months,  # برچسب‌ها به فارسی
-#         'datasets': [
-#             {
-#                 'label': 'پرداخت شده',
-#                 'data': paid_data,
-#                 'backgroundColor': 'rgba(54, 162, 235, 0.6)',
-#                 'borderColor': 'rgba(54, 162, 235, 1)',
-#                 'borderWidth': 1
-#             },
-#             {
-#                 'label': 'پرداخت نشده',
-#                 'data': unpaid_data,
-#                 'backgroundColor': 'rgba(255, 99, 132, 0.6)',
-#                 'borderColor': 'rgba(255, 99, 132, 1)',
-#                 'borderWidth': 1
-#             }
-#         ]
-#     }
-#
-#     chart_data_json = json.dumps(chart_data)
-#
-#     context = {
-#         'announcements': announcements,
-#         'unit_count': unit_count,
-#         'fund_amount': balance,
-#         'tickets': tickets,
-#         'unit_count_unpaid_charges': unit_count_unpaid_charges,
-#         'resident_unit': resident_unit,
-#         'owner_renter_stats': owner_renter_stats,
-#         'residence_stats': residence_stats,
-#         'months': months,
-#         'paid_data': paid_data,
-#         'unpaid_data': unpaid_data,
-#     }
-#     return render(request, 'middleShared/home_template.html', context)
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
@@ -794,6 +665,22 @@ class MiddleUnitRegisterView(CreateView):
     def form_valid(self, form):
         try:
             with transaction.atomic():
+                # ---------- محدودیت بر اساس Subscription ----------
+                subscription = Subscription.objects.filter(
+                    house__user=self.request.user,
+                    is_paid=True
+                ).order_by('-created_at').first()
+
+                if not subscription:
+                    form.add_error(None, "هیچ اشتراک فعالی برای شما وجود ندارد. ابتدا اشتراک خریداری کنید.")
+                    return self.form_invalid(form)
+
+                current_units_count = Unit.objects.filter(myhouse__user=self.request.user).count()
+                if current_units_count >= subscription.units_count:
+                    messages.warning(self.request, f"شما مجاز به ثبت بیش از {subscription.units_count} واحد نیستید.")
+                    # form.add_error(None, f"شما مجاز به ثبت بیش از {subscription.units_count} واحد نیستید.")
+                    # return self.form_invalid(form)
+                    return redirect('middle_unit_register')
 
                 is_renter = str(form.cleaned_data.get('is_renter')).lower() == 'true'
 
@@ -1178,7 +1065,6 @@ def middle_unit_delete(request, pk):
         messages.error(request, "امکان حذف وجود ندارد!")
 
     return redirect(reverse('middle_manage_unit'))
-
 
 
 @method_decorator(middle_admin_required, name='dispatch')
@@ -4061,7 +3947,6 @@ def middle_charge_view(request):
     )
 
 
-
 @method_decorator(middle_admin_required, name='dispatch')
 class MiddleFixChargeCreateView(CreateView):
     model = FixCharge
@@ -4533,7 +4418,7 @@ class MiddleAreaChargeCreateView(CreateView):
         managed_users = self.request.user.managed_users.all()
 
         unit_count = UnifiedCharge.objects.filter(
-            user=self.request.user,
+            Q(user=self.request.user) | Q(user__in=managed_users),
             unit__is_active=True
         ).values('unit').distinct().count()
         form.instance.unit_count = unit_count
@@ -4684,7 +4569,9 @@ def middle_area_charge_edit(request, pk):
 
                 # کاربران و واحدهای تحت مدیریت
                 managed_users = request.user.managed_users.all()
-                units = Unit.objects.filter(is_active=True, user__in=managed_users)
+                units = Unit.objects.filter(
+                    Q(user=request.user) | Q(user__in=managed_users),
+                    is_active=True)
                 if not units.exists():
                     messages.error(request, 'هیچ واحد فعالی یافت نشد. لطفا ابتدا واحدها را ثبت کنید.')
                     return redirect('middle_manage_unit')

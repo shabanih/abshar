@@ -8,7 +8,6 @@ from admin_panel.models import UnifiedCharge, Announcement, MessageToUser, Messa
     MiddleMessageReadStatus, SmsManagement, Subscription
 from user_app.models import MyHouse, Unit
 
-
 # def current_middle_house(request):
 #     if not request.user.is_authenticated:
 #         return {}
@@ -20,35 +19,92 @@ from user_app.models import MyHouse, Unit
 #
 #     return {'middle_house': middle_house}
 
+
 def current_middle_house(request):
     """
-    برمی‌گرداند خانه مرتبط با کاربر و آخرین اشتراک فعال.
-    در تمپلیت‌ها با {{ middle_house }} و {{ current_subscription }} قابل دسترسی است.
+    برمی‌گرداند:
+    - خانه فعال کاربر
+    - اشتراک معتبر
+    - تعداد کل روزها
+    - روزهای مانده
+    - وضعیت اشتراک
+    - هشدار تمدید اشتراک (3 روز قبل یا بعد)
     """
+
     if not request.user.is_authenticated:
         return {}
 
-    # آخرین خانه فعال کاربر
+    # ===== خانه فعال =====
     middle_house = MyHouse.objects.filter(
         residents=request.user,
         is_active=True
     ).order_by('-created_at').first()
 
-    # آخرین اشتراک کاربر
+    # ===== مقادیر پیش‌فرض =====
     current_subscription = None
+    total_days = 0
+    remaining_days = 0
+    sub_status = "inactive"
+    plan = None
+    subscription_warning = False
+    redirect_to_buy = False
+
+    # ===== آخرین اشتراک =====
     last_sub = Subscription.objects.filter(user=request.user).order_by('-created_at').first()
-    if last_sub:
-        # بررسی Trial فعال
-        if last_sub.is_trial and last_sub.trial_end and timezone.now() <= last_sub.trial_end:
-            current_subscription = last_sub
-        # یا اگر اشتراک پولی فعال باشد
-        elif last_sub.is_paid:
-            current_subscription = last_sub
+    now = timezone.now()
+
+    if last_sub and last_sub.end_date:
+        days_remaining = (last_sub.end_date.date() - last_sub.start_date.date()).days
+        current_subscription = last_sub
+
+        # ---- Trial فعال ----
+        if last_sub.is_trial and days_remaining >= 0:
+            total_days = 1
+            remaining_days = days_remaining
+            sub_status = "trial"
+
+        # ---- Paid فعال ----
+        elif last_sub.is_paid and days_remaining >= 0:
+            total_days = (last_sub.end_date.date() - last_sub.start_date.date()).days
+            remaining_days = days_remaining
+            sub_status = "paid"
+            plan = last_sub.plan
+
+        # ---- منقضی شده ----
+        else:
+            total_days = 0
+            remaining_days = 0
+            sub_status = "inactive"
+
+        # هشدار 3 روزه قبل از پایان یا بعد از پایان
+        if -1 <= days_remaining <= 1:
+            subscription_warning = True
+
+        # هدایت مستقیم بعد از 3 روز از پایان اشتراک
+        if days_remaining < -1:
+            redirect_to_buy = True
+
+    # اگر هیچ اشتراکی وجود ندارد
+    else:
+        total_days = 0
+        remaining_days = 0
+        sub_status = "inactive"
+        # هشدار 3 روزه پس از عدم اشتراک
+        subscription_warning = True
+        redirect_to_buy = False  # هدایت فقط بعد از 3 روز از عدم اشتراک
 
     return {
-        'middle_house': middle_house,
-        'current_subscription': current_subscription
+        "middle_house": middle_house,
+        "current_subscription": current_subscription,
+        "total_days": total_days,
+        "remaining_days": remaining_days,
+        "sub_status": sub_status,
+        "plan": plan,
+        "subscription_warning": subscription_warning,
+        "redirect_to_buy": redirect_to_buy,
     }
+
+
 
 
 def current_house(request):
@@ -170,9 +226,9 @@ def admin_header_notifications(request):
         return {'admin_new_messages_count': 0}
 
     admin_new_messages_count = SmsManagement.objects.filter(
-            is_approved=False,
-            is_active=True
-        ).count()
+        is_approved=False,
+        is_active=True
+    ).count()
 
     return {'admin_new_messages_count': admin_new_messages_count}
 

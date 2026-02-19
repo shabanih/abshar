@@ -493,7 +493,7 @@ def unit_charge_middle_payment_view(request, charge_id):
 
             return redirect(
                 reverse(
-                    'charge_units_list',
+                    'middle_main_charges_units_list',
                     args=[
                         main_charge._meta.app_label,
                         main_charge._meta.model_name,
