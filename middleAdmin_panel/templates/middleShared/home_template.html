@@ -93,7 +93,7 @@ let swalText = '';
 {% if sub_status == 'trial' %}
     swalText = 'اشتراک رایگان شما به زودی منقضی می‌شود.';
 {% elif sub_status == 'paid' %}
-    swalText = 'اشتراک پولی شما به زودی منقضی می‌شود.';
+    swalText = 'اشتراک  شما به زودی منقضی می‌شود.';
 {% elif sub_status == 'inactive' %}
     swalText = ' در حال حاضر اشتراک فعالی ندارید. لطفا نسبت به خرید اشتراک اقدام نمایید';
 {% endif %}
@@ -229,7 +229,7 @@ window.location.href = "{% url 'buy_subscription' %}";
     </div>
 
                     {% else %}
-                    <div class="text-center">
+                    <div class="text-center mt-4">
                         <img src="/static/img/vecteezy_pie-chart-icon-design_53006962.jpg" width="250" alt="نمودار موجود نیست">
                      <p class="text-muted text-small">نموداری ثبت نشده است</p>
                         </div>
@@ -303,7 +303,7 @@ window.location.href = "{% url 'buy_subscription' %}";
                             </div>
                         </div>
                       {% else %}
-                    <div class="text-center">
+                    <div class="text-center mt-4">
                         <img src="/static/img/vecteezy_pie-chart-icon-design_53007028.jpg" width="250" alt="نمودار موجود نیست">
                      <p class="text-muted text-small">نموداری ثبت نشده است</p>
                         </div>

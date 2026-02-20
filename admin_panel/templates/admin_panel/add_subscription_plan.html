@@ -68,8 +68,8 @@
                             <th>#</th>
                             <th>نوع اشتراک</th>
                             <th>مبلغ هر واحد </th>
-                            <th>تاریخ شروع </th>
-                            <th>تاریخ پایان</th>
+{#                            <th>تاریخ شروع </th>#}
+{#                            <th>تاریخ پایان</th>#}
                             <th>فعال/غیرفعال</th>
                             <th>دستورات</th>
                         </tr>
@@ -81,8 +81,8 @@
                                 <td>{{ forloop.counter }}</td>
                                 <td>{{plan.duration }}ماهه</td>
                                 <td>{{ plan.price_per_unit|three_digit_currency }}</td>
-                                <td>{{ plan.start_date|show_jalali }}</td>
-                                <td>{{ plan.end_date|show_jalali }}</td>
+{#                                <td>{{ plan.start_date|show_jalali }}</td>#}
+{#                                <td>{{ plan.end_date|show_jalali }}</td>#}
                                <td>
                                    {% if plan.is_active == True %}
                                     <button class="btn btn-primary bg-gradient-success p-1">فعال</button>

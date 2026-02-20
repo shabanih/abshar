@@ -1117,6 +1117,17 @@ class SubscriptionPlan(models.Model):
 class Subscription(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     house = models.ForeignKey(MyHouse, on_delete=models.CASCADE, null=True, blank=True)
+    STATUS_CHOICES = (
+        ('active', 'فعال'),
+        ('expired', 'منقضی شده'),
+        ('cancelled', 'لغو شده'),
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='active'
+    )
 
     units_count = models.PositiveIntegerField(verbose_name="تعداد واحد")
     plan = models.ForeignKey(
@@ -1137,6 +1148,7 @@ class Subscription(models.Model):
     end_date = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
+
 
     def start_trial(self):
         self.is_trial = True
@@ -1171,6 +1183,23 @@ class Subscription(models.Model):
             delta = self.end_date.date() - timezone.now().date()
             return max(delta.days, 0)
         return 0
+
+    @property
+    def is_active(self):
+        if self.status != "active":
+            return False
+
+        if not self.end_date:
+            return False
+
+        return timezone.now() <= self.end_date
+
+    def expire_if_needed(self):
+        if self.end_date and timezone.now() > self.end_date:
+            if self.status == "active":
+                self.status = "expired"
+                self.is_trial = False
+                self.save(update_fields=["status", "is_trial"])
 
 
 

@@ -53,11 +53,92 @@ def admin_required(view_func):
     return user_passes_test(lambda u: u.is_superuser, login_url=settings.LOGIN_URL_ADMIN)(view_func)
 
 
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def admin_dashboard(request):
+    announcements = Announcement.objects.filter(is_active=True).order_by('-created_at')[:4]
+    tickets = AdminTicket.objects.filter(user__manager=request.user).order_by('-created_at')[:5]
+    house_count = MyHouse.objects.all().count()
+    user_counts = User.objects.all().count()
+    tickets_count = AdminTicket.objects.all().count()
+
+    user_type_stats = (
+        MyHouse.objects
+        .values('user_type')
+        .annotate(total=Count('id'))
+        .order_by()
+    )
+
+    city_stats = (
+        MyHouse.objects
+        .values('city')
+        .annotate(total=Count('id'))
+        .order_by()
+    )
+
+    units = Unit.objects.filter(
+        is_active=True
+    ).distinct()
+
+    renter_units = units.filter(renters__renter_is_active=True).distinct()
+    owner_units = units.exclude(id__in=renter_units.values_list('id', flat=True))
+
+    owner_renter_stats = {
+        'owner': owner_units.count(),
+        'renter': renter_units.count(),
+    }
+
+    context = {
+        'announcements': announcements,
+        'tickets': tickets,
+        'house_count': house_count,
+        'tickets_count': tickets_count,
+        'user_counts': user_counts,
+        'user_type_stats': list(user_type_stats),
+        'city_stats': list(city_stats),
+        'owner_renter_stats': owner_renter_stats
+    }
+    return render(request, 'shared/home_template.html', context)
+
+
+def admin_login_view(request):
+    if request.method == 'POST':
+        mobile = request.POST.get('mobile')
+        password = request.POST.get('password1')
+
+        user = authenticate(request, mobile=mobile, password=password)
+        if user is not None:
+            if user.is_superuser:
+                login(request, user)
+                sweetify.success(request, f"{user.username} عزیز، با موفقیت وارد بخش ادمین شدید!")
+                return redirect(reverse('admin_dashboard'))
+            else:
+                logout(request)  # Log out any non-superuser who authenticated successfully
+                messages.error(request, 'شما مجوز دسترسی به بخش ادمین را ندارید!')
+                return redirect(reverse('login_admin'))
+        else:
+            messages.error(request, 'نام کاربری و یا رمز عبور اشتباه است!')
+            return redirect(reverse('login_admin'))
+
+    return render(request, 'shared/login.html')
+
+
+def logout_admin(request):
+    logout(request)
+    return redirect('login_admin')
+
+
+def site_header_component(request):
+    context = {
+        'user': request.user,
+    }
+    return render(request, 'shared/notification_template.html', context)
+
+
 @method_decorator(admin_required, name='dispatch')
 class AddSubscriptionPlan(CreateView):
     model = SubscriptionPlan
     form_class = SubscriptionPlanForm
-    template_name = 'admin_panel/add_plan.html'
+    template_name = 'admin_panel/add_subscription_plan.html'
     success_url = reverse_lazy('subscription_plan')
 
     def get_context_data(self, **kwargs):
@@ -70,7 +151,7 @@ class AddSubscriptionPlan(CreateView):
 class SubscriptionPlanUpdate(UpdateView):
     model = SubscriptionPlan
     form_class = SubscriptionPlanForm
-    template_name = 'admin_panel/add_plan.html'
+    template_name = 'admin_panel/add_subscription_plan.html'
     success_url = reverse_lazy('subscription_plan')
 
     def form_valid(self, form):
@@ -108,6 +189,61 @@ def subscription_plan_delete(request, pk):
     messages.success(request, 'اشتراک با موفقیت حذف گردید')
     return redirect('subscription_plan')
 
+
+class SubscriptionListView(ListView):
+    model = Subscription
+    template_name = 'admin_panel/subscription_list.html'
+    context_object_name = 'subscriptions'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '').strip()
+        qs = Subscription.objects.all().select_related('user', 'house', 'plan')
+
+        if query:
+            if query.isdigit():
+                qs = qs.filter(
+                    Q(user_id=int(query)) |
+                    Q(house_id=int(query)) |
+                    Q(plan_id=int(query)) |
+                    Q(units_count=int(query)) |
+                    Q(total_amount=int(query))
+                )
+            else:
+                qs = qs.filter(
+                    Q(user__username__icontains=query) |
+                    Q(user__full_name__icontains=query) |
+                    Q(house__name__icontains=query) |
+                    Q(status__icontains=query)
+                )
+        return qs.order_by('-created_at')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '1')
+        return context
+
+
+def admin_cancel_subscription(request, subscription_id):
+    subscription = get_object_or_404(Subscription, id=subscription_id)
+
+    # بررسی اینکه اشتراک قبلا لغو شده است
+    if subscription.status == 'cancelled':
+        messages.error(request, 'اشتراک قبلا لغو شده است')
+        return redirect(request.META.get('HTTP_REFERER'))
+
+    # لغو اشتراک بدون تغییر تاریخ‌ها
+    subscription.status = 'cancelled'
+    subscription.save(update_fields=['status'])
+
+    messages.success(request, "اشتراک غیرفعال شد. تاریخ‌ها بدون تغییر باقی ماندند.")
+    return redirect(request.META.get('HTTP_REFERER'))
 
 @method_decorator(admin_required, name='dispatch')
 class UserManagementListView(ListView):
@@ -246,7 +382,6 @@ class MiddleAdminCreateView(CreateView):
         if charge_methods:
             self.object.charge_methods.set(charge_methods)
 
-
         # اگر Trial فعال است
         if form.cleaned_data.get('is_trial') == '1':
             Subscription.objects.create(
@@ -268,7 +403,6 @@ class MiddleAdminCreateView(CreateView):
 
         return redirect(self.success_url)
 
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['middleAdmins'] = User.objects.filter(
@@ -284,7 +418,6 @@ class MiddleAdminCreateView(CreateView):
             context['allowed_methods'] = []
 
         return context
-
 
 
 @method_decorator(admin_required, name='dispatch')
@@ -367,55 +500,6 @@ def middleAdmin_delete(request, pk):
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
     return redirect(reverse('create_middle_admin'))
-
-
-@login_required(login_url=settings.LOGIN_URL_ADMIN)
-def admin_dashboard(request):
-    announcements = Announcement.objects.filter(is_active=True).order_by('-created_at')[:4]
-    tickets = AdminTicket.objects.filter(user__manager=request.user).order_by('-created_at')[:5]
-    middle_count = User.objects.filter(is_middle_admin=True).count()
-    tickets_count = AdminTicket.objects.all().count()
-    context = {
-        'announcements': announcements,
-        'tickets': tickets,
-        'middle_count': middle_count,
-        'tickets_count': tickets_count,
-    }
-    return render(request, 'shared/home_template.html', context)
-
-
-def admin_login_view(request):
-    if request.method == 'POST':
-        mobile = request.POST.get('mobile')
-        password = request.POST.get('password1')
-
-        user = authenticate(request, mobile=mobile, password=password)
-        if user is not None:
-            if user.is_superuser:
-                login(request, user)
-                sweetify.success(request, f"{user.username} عزیز، با موفقیت وارد بخش ادمین شدید!")
-                return redirect(reverse('admin_dashboard'))
-            else:
-                logout(request)  # Log out any non-superuser who authenticated successfully
-                messages.error(request, 'شما مجوز دسترسی به بخش ادمین را ندارید!')
-                return redirect(reverse('login_admin'))
-        else:
-            messages.error(request, 'نام کاربری و یا رمز عبور اشتباه است!')
-            return redirect(reverse('login_admin'))
-
-    return render(request, 'shared/login.html')
-
-
-def logout_admin(request):
-    logout(request)
-    return redirect('login_admin')
-
-
-def site_header_component(request):
-    context = {
-        'user': request.user,
-    }
-    return render(request, 'shared/notification_template.html', context)
 
 
 # ====================== Announcement =================================

@@ -20,80 +20,130 @@
 
             {% if middle_house.id %}
 <li class="nav-item text-center mb-1">
-
-
 <div class="row py-2">
   <div class="col-12 text-center">
     <div class="card shadow-lg card-small">
-
       <div class="card-body py-1 p-3">
- <div class="d-flex align-items-center justify-content-center">
+        <div class="d-flex align-items-center justify-content-center">
 
-        <div class="subscription-circle-wrapper" style="width:80px; height:80px;">
+          <div class="subscription-circle-wrapper" style="width:80px; height:80px; position: relative;">
 
-    <svg width="80" height="80" viewBox="0 0 130 130">
-      <!-- بک گراند -->
-      <circle cx="65" cy="65" r="55"
-              stroke="#000080"
-              stroke-width="10"
-              fill="none"/>
+            <svg width="80" height="80" viewBox="0 0 130 130">
+              <!-- بک گراند دایره -->
+              <circle cx="65" cy="65" r="55"
+                      stroke="#e6e6e6"
+                      stroke-width="10"
+                      fill="none"/>
 
-      <!-- نوار پیشرفت -->
-      <circle cx="65" cy="65" r="55"
-              stroke="{% if sub_status == 'trial' %}#ffffff{% elif sub_status == 'paid' %}#ffffff{% elif sub_status == 'inactive' %}#ffffff{% else %}#ccc{% endif %}"
-              stroke-width="10"
-              fill="none"
-              stroke-dasharray="345"
-              stroke-dashoffset="{% widthratio remaining_days total_days 345 %}"
-              transform="rotate(-90 65 65)"
-              stroke-linecap="round"/>
-    </svg>
+              <!-- نوار پیشرفت -->
+              {% if total_days > 0 %}
+                  <circle cx="65" cy="65" r="55"
+                    stroke="{% if sub_status == 'trial' %}#28a745{% elif sub_status == 'paid' %}#007bff{% else %}#ccc{% endif %}"
+                    stroke-width="10"
+                    fill="none"
+                    stroke-dasharray="345"
+                    stroke-dashoffset="{{ progress_dashoffset }}"
+                    transform="rotate(-90 65 65)"
+                    stroke-linecap="round"/>
 
-    <!-- متن وسط دایره -->
-    <div class="subscription-circle-center">
-      <div class="subscription-remaining">{{ remaining_days }} </div>
-      <div class="subscription-divider"></div>
-      <div class="subscription-total">{{ total_days }}  </div>
-    </div>
+              {% endif %}
+            </svg>
 
-</div>
+            <!-- متن وسط دایره -->
+            <div class="subscription-circle-center"
+                 style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center;">
+              <div class="subscription-remaining" style="font-weight:bold; font-size:16px;">
+                {{ remaining_days }}
+              </div>
+              <div class="subscription-divider" style="font-size:10px;"></div>
+              <div class="subscription-total" style="font-size:12px;">
+                {{ total_days }}
+              </div>
+            </div>
 
-
-          <!-- ===== اطلاعات اشتراک ===== -->
-
-
-        </div>
-    <div class="mt-1">
-            {% if sub_status == "trial" %}
-              <div class="subscription-status subscription-trial">اشتراک رایگان فعال</div>
-            {% elif sub_status == "paid" %}
-              <div class="subscription-status subscription-paid">اشتراک {{ plan }} فعال</div>
-                {% elif sub_status == "inactive" %}
-{#              <div class="subscription-status subscription-inactive">اشتراک منقضی شده</div>#}
-                    <a href="{% url 'buy_subscription' %}" class="btn btn-gradient-secondary p-1">
-                      <img src="{% static 'admin_panel/icone8/icons8-plus.gif' %}" class="mx-2" width="20" alt="">
-                      خرید اشتراک
-                    </a>
-                {% else %}
-            <!-- دکمه خرید اشتراک -->
-                    <a href="{% url 'buy_subscription' %}" class="btn btn-gradient-secondary p-1">
-                      <img src="{% static 'admin_panel/icone8/icons8-plus.gif' %}" class="mx-2" width="20" alt="">
-                      خرید اشتراک
-                    </a>
-            {% endif %}
           </div>
 
+        </div>
 
-        <!-- دکمه خرید اشتراک -->
-{#        <a href="{% url 'buy_subscription' %}" class="btn btn-gradient-primary p-1">#}
-{#          <img src="{% static 'admin_panel/icone8/icons8-plus.gif' %}" class="mx-2" width="20" alt="">#}
-{#          خرید اشتراک#}
-{#        </a>#}
+        <!-- وضعیت اشتراک و دکمه خرید -->
+        <div class="mt-1">
+          {% if sub_status == "trial" %}
+            <div class="subscription-status subscription-trial">اشتراک رایگان فعال</div>
+          {% elif sub_status == "paid" %}
+            <div class="subscription-status subscription-paid">اشتراک {{ plan }} فعال</div>
+          {% elif sub_status == "inactive" %}
+            <a href="{% url 'buy_subscription' %}" class="btn btn-gradient-secondary p-1">
+              <img src="{% static 'admin_panel/icone8/icons8-plus.gif' %}" class="mx-2" width="20" alt="">
+              خرید اشتراک
+            </a>
+          {% endif %}
+        </div>
 
       </div>
     </div>
   </div>
 </div>
+
+{#<div class="row py-2">#}
+{#  <div class="col-12 text-center">#}
+{#    <div class="card shadow-lg card-small">#}
+{##}
+{#      <div class="card-body py-1 p-3">#}
+{# <div class="d-flex align-items-center justify-content-center">#}
+{##}
+{#        <div class="subscription-circle-wrapper" style="width:80px; height:80px;">#}
+{##}
+{#    <svg width="80" height="80" viewBox="0 0 130 130">#}
+{#      <!-- بک گراند -->#}
+{#      <circle cx="65" cy="65" r="55"#}
+{#              stroke="#000080"#}
+{#              stroke-width="10"#}
+{#              fill="none"/>#}
+{##}
+{#      <!-- نوار پیشرفت -->#}
+{#      <circle cx="65" cy="65" r="55"#}
+{#              stroke="{% if sub_status == 'trial' %}#ffffff{% elif sub_status == 'paid' %}#ffffff{% elif sub_status == 'inactive' %}#ffffff{% else %}#ccc{% endif %}"#}
+{#              stroke-width="10"#}
+{#              fill="none"#}
+{#              stroke-dasharray="345"#}
+{#              stroke-dashoffset="{% widthratio remaining_days total_days 345 %}"#}
+{#              transform="rotate(-90 65 65)"#}
+{#              stroke-linecap="round"/>#}
+{#    </svg>#}
+{##}
+{#    <!-- متن وسط دایره -->#}
+{#    <div class="subscription-circle-center">#}
+{#      <div class="subscription-remaining">{{ remaining_days }} </div>#}
+{#      <div class="subscription-divider"></div>#}
+{#      <div class="subscription-total">{{ total_days }}  </div>#}
+{#    </div>#}
+{##}
+{#</div>#}
+{##}
+{#        </div>#}
+{#    <div class="mt-1">#}
+{#            {% if sub_status == "trial" %}#}
+{#              <div class="subscription-status subscription-trial">اشتراک رایگان فعال</div>#}
+{#            {% elif sub_status == "paid" %}#}
+{#              <div class="subscription-status subscription-paid">اشتراک {{ plan }} فعال</div>#}
+{#                {% elif sub_status == "inactive" %}#}
+{#              <div class="subscription-status subscription-inactive">اشتراک منقضی شده</div>#}
+{#                    <a href="{% url 'buy_subscription' %}" class="btn btn-gradient-secondary p-1">#}
+{#                      <img src="{% static 'admin_panel/icone8/icons8-plus.gif' %}" class="mx-2" width="20" alt="">#}
+{#                      خرید اشتراک#}
+{#                    </a>#}
+{#                {% else %}#}
+{#            <!-- دکمه خرید اشتراک -->#}
+{#                    <a href="{% url 'buy_subscription' %}" class="btn btn-gradient-secondary p-1">#}
+{#                      <img src="{% static 'admin_panel/icone8/icons8-plus.gif' %}" class="mx-2" width="20" alt="">#}
+{#                      خرید اشتراک#}
+{#                    </a>#}
+{#            {% endif %}#}
+{#          </div>#}
+{#      </div>#}
+{#    </div>#}
+{#  </div>#}
+{#</div>#}
     <div class="row text-center">
     <div class="col-12">
                 {% if user.is_resident and user.is_unit %}
@@ -153,13 +203,6 @@
                     </ul>
                   </div>
                 </li>
-{#      <li class="nav-item border-top mt-0">#}
-{#                 {% url 'message_to_user' as address_url %}#}
-{#                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">#}
-{#                <i class="menu-title"> مدیریت پیام ها</i>#}
-{#                <i class="fas fa-bank menu-icon menu-icon"></i>#}
-{#              </a>#}
-{#            </li>#}
 
                        {% url 'message_to_user' as url_message_to_user %}
             {% url 'middle_message_management' as url_middle_message_list %}

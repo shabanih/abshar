@@ -109,6 +109,7 @@ class MessageToUserForm(forms.ModelForm):
         #     f"واحد {obj.unit} - {obj.owner_name}"
         # )
 
+
 class AdminMessageToMiddleForm(forms.ModelForm):
     title = forms.CharField(
         error_messages=error_message,
@@ -136,7 +137,6 @@ class AdminMessageToMiddleForm(forms.ModelForm):
         fields = ['title', 'message', 'is_active']
 
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
 
 
@@ -147,7 +147,7 @@ RESIDENCE_STATUS_CHOICES = {
 }
 
 BEDROOMS_COUNT_CHOICES = {
-    '': '--- انتخاب کنید ---', '1': '1', '2': '2', '3': '3', '4': '4','5': '5', '6': '6','7': '7','8': '8'
+    '': '--- انتخاب کنید ---', '1': '1', '2': '2', '3': '3', '4': '4', '5': '5', '6': '6', '7': '7', '8': '8'
 }
 
 AREA_CHOICES = {
@@ -230,11 +230,12 @@ class UserRegistrationForm(forms.ModelForm):
     is_resident = forms.ChoiceField(choices=MIDDLE_CHOICES, label='ساکن ساختمان میباشد؟', initial=0,
                                     widget=forms.Select(attrs=attr))
     is_trial = forms.ChoiceField(choices=MIDDLE_CHOICES, label='اشتراک رایگان؟', initial=0,
-                                    widget=forms.Select(attrs=attr))
+                                 widget=forms.Select(attrs=attr))
 
     class Meta:
         model = User
-        fields = ['full_name', 'mobile', 'username', 'password', 'is_active', 'charge_methods', 'is_resident', 'is_trial']
+        fields = ['full_name', 'mobile', 'username', 'password', 'is_active', 'charge_methods', 'is_resident',
+                  'is_trial']
 
     def clean_mobile(self):
         mobile = self.cleaned_data.get('mobile')
@@ -347,14 +348,6 @@ class BankForm(forms.ModelForm):
         return sheba
 
 
-USER_TYPE_CHOICES = [
-    ('', '--- انتخاب کنید ---'),
-    ('مسکونی', 'مسکونی'),
-    ('اداری', 'اداری'),
-    ('تجاری', 'تجاری'),
-    ('سایر', 'سایر'),
-]
-
 CITY_CHOICES = [
     ('', '--- انتخاب کنید ---'),
     ('تهران', 'تهران'),
@@ -377,6 +370,14 @@ CITY_CHOICES = [
     ('قزوین', 'قزوین'),
     ('ارومیه', 'ارومیه'),
     ('ساری', 'ساری'),
+]
+
+USER_TYPE_CHOICES = [
+    ('', '--- انتخاب کنید ---'),
+    ('مسکونی', 'مسکونی'),
+    ('اداری', 'اداری'),
+    ('تجاری', 'تجاری'),
+    ('سایر', 'سایر'),
 ]
 
 
@@ -1348,8 +1349,8 @@ class PayerMoneyForm(forms.ModelForm):
     )
 
     amount = forms.IntegerField(error_messages=error_message, required=True,
-                             widget=forms.NumberInput(attrs=attr),
-                             label='مبلغ')
+                                widget=forms.NumberInput(attrs=attr),
+                                label='مبلغ')
     description = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=True,
                                   label='شرح سند')
     document_date = JalaliDateField(
@@ -2049,7 +2050,7 @@ class UnifiedChargePaymentForm(forms.ModelForm):
             # label زیبا
             self.fields['bank'].label_from_instance = (
                 lambda obj: f"{obj.bank_name} - {obj.cart_number}"
-                + (" (پیش‌فرض)" if obj.is_default else "")
+                            + (" (پیش‌فرض)" if obj.is_default else "")
             )
 
     def clean_payment_date(self):

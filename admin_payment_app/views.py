@@ -324,6 +324,7 @@ def verify_subscription_pay(request):
             now = timezone.now()
 
             subscription.is_paid = True
+
             subscription.is_trial = False
             subscription.payment_date = now
             subscription.house = MyHouse.objects.filter(user=request.user).first()

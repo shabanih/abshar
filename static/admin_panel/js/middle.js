@@ -1205,7 +1205,7 @@ function confirmApprovedWithSweetAlert(event) {
     const url = event.currentTarget.href; // آدرس لینک
 
     Swal.fire({
-        title: 'آیا نسبت به تایید پیامک اطمینان دارید؟',
+        title: 'آیا نسبت به تایید اطمینان دارید؟',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'بله',
@@ -1228,7 +1228,7 @@ function confirmDisapprovedWithSweetAlert(event) {
     const url = event.currentTarget.href; // آدرس لینک
 
     Swal.fire({
-        title: 'آیا نسبت به عدم تایید پیامک اطمینان دارید؟',
+        title: 'آیا نسبت به عدم تایید اطمینان دارید؟',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'بله',

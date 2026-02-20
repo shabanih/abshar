@@ -64,6 +64,7 @@ def middle_admin_required(view_func):
 
 
 # ========================== Subscription =====================
+
 def buy_subscription(request):
     plans = SubscriptionPlan.objects.filter(is_active=True).order_by('duration')
 
@@ -73,14 +74,24 @@ def buy_subscription(request):
         is_active=True,
     ).count()
 
+    # 🔹 چک اشتراک فعال
+    active_subscription = Subscription.objects.filter(
+        house__user=request.user,
+        status='active',  # اگر فیلد status اضافه کردی
+        end_date__gt=timezone.now()
+    ).exists()
+
+    if active_subscription:
+        messages.warning(request, "شما در حال حاضر اشتراک فعال دارید.")
+        return redirect("middle_admin_dashboard")  # یا هر صفحه مناسب
+
     if request.method == "POST":
         try:
             units = int(request.POST.get("units_count"))
-        except ValueError:
-            sweetify.error(request, "تعداد واحد نامعتبر است.")
+        except (ValueError, TypeError):
+            messages.error(request, "تعداد واحد نامعتبر است.")
             return redirect("buy_subscription")
 
-        # بررسی اینکه عدد وارد شده کمتر از تعداد واقعی نباشد
         if units < unit_count:
             messages.error(
                 request,
@@ -88,24 +99,30 @@ def buy_subscription(request):
             )
             return redirect("buy_subscription")
 
-        plan_id = int(request.POST.get("plan"))
-        plan = SubscriptionPlan.objects.get(id=plan_id)
+        try:
+            plan_id = int(request.POST.get("plan"))
+            plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
+        except (ValueError, SubscriptionPlan.DoesNotExist):
+            messages.error(request, "پلن انتخابی نامعتبر است.")
+            return redirect("buy_subscription")
+
         total = units * plan.price_per_unit
 
         Subscription.objects.create(
             user=request.user,
-            house=request.user.myhouse,
+            house__user=request.user,
             units_count=units,
             plan=plan,
             total_amount=total,
-            is_paid=False
+            is_paid=False,
+            status='active'  # مهم
         )
 
         return redirect("subscription_success")
 
     return render(request, "middle_admin/middle_add_subscription.html", {
         "plans": plans,
-        "unit_count": unit_count  # برای مقدار پیش‌فرض فرم
+        "unit_count": unit_count
     })
 
 # ==============================================================
@@ -160,6 +177,14 @@ def switch_to_resident(request):
 def middle_admin_dashboard(request):
     if not request.user.is_authenticated:
         return redirect('login')  # یا هر URL ورود شما
+
+    subscription = Subscription.objects.filter(
+        house__user=request.user,
+        status="active"
+    ).first()
+
+    if subscription:
+        subscription.expire_if_needed()
 
     managed_users = request.user.managed_users.all()
     resident_unit = get_single_resident_building(request.user)
@@ -667,13 +692,18 @@ class MiddleUnitRegisterView(CreateView):
             with transaction.atomic():
                 # ---------- محدودیت بر اساس Subscription ----------
                 subscription = Subscription.objects.filter(
-                    house__user=self.request.user,
-                    is_paid=True
+                    user=self.request.user,
                 ).order_by('-created_at').first()
 
                 if not subscription:
+                    # هیچ اشتراکی وجود ندارد
                     form.add_error(None, "هیچ اشتراک فعالی برای شما وجود ندارد. ابتدا اشتراک خریداری کنید.")
                     return self.form_invalid(form)
+
+                # اگر اشتراک موجود است ولی trial و پرداخت نشده
+                # if subscription.is_trial and not subscription.is_paid:
+                #     form.add_error(None, "اشتراک رایگان شما منقضی شده یا پرداخت نشده است. ابتدا اشتراک خریداری کنید.")
+                #     return self.form_invalid(form)
 
                 current_units_count = Unit.objects.filter(myhouse__user=self.request.user).count()
                 if current_units_count >= subscription.units_count:

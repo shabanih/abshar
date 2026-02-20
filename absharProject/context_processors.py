@@ -30,17 +30,15 @@ def current_middle_house(request):
     - وضعیت اشتراک
     - هشدار تمدید اشتراک (3 روز قبل یا بعد)
     """
-
     if not request.user.is_authenticated:
         return {}
 
-    # ===== خانه فعال =====
     middle_house = MyHouse.objects.filter(
         residents=request.user,
         is_active=True
     ).order_by('-created_at').first()
 
-    # ===== مقادیر پیش‌فرض =====
+    # مقادیر پیش‌فرض
     current_subscription = None
     total_days = 0
     remaining_days = 0
@@ -49,49 +47,46 @@ def current_middle_house(request):
     subscription_warning = False
     redirect_to_buy = False
 
-    # ===== آخرین اشتراک =====
-    last_sub = Subscription.objects.filter(user=request.user).order_by('-created_at').first()
     now = timezone.now()
 
-    if last_sub and last_sub.end_date:
-        days_remaining = (last_sub.end_date.date() - last_sub.start_date.date()).days
+    # آخرین اشتراک
+    last_sub = Subscription.objects.filter(user=request.user).order_by('-created_at').first()
+
+    if last_sub:
+        # expire کردن اتوماتیک اگر تمام شده
+        last_sub.expire_if_needed()
+
         current_subscription = last_sub
+        plan = last_sub.plan
 
-        # ---- Trial فعال ----
-        if last_sub.is_trial and days_remaining >= 0:
-            total_days = 1
-            remaining_days = days_remaining
-            sub_status = "trial"
-
-        # ---- Paid فعال ----
-        elif last_sub.is_paid and days_remaining >= 0:
+        if last_sub.status == "active":
+            sub_status = "trial" if last_sub.is_trial else "paid"
             total_days = (last_sub.end_date.date() - last_sub.start_date.date()).days
-            remaining_days = days_remaining
-            sub_status = "paid"
-            plan = last_sub.plan
+            remaining_days = max((last_sub.end_date.date() - now.date()).days, 0)
 
-        # ---- منقضی شده ----
-        else:
-            total_days = 0
-            remaining_days = 0
+        elif last_sub.status in ["expired", "cancelled"]:
             sub_status = "inactive"
+            total_days = (last_sub.end_date.date() - last_sub.start_date.date()).days if last_sub.end_date else 0
+            remaining_days = 0
 
-        # هشدار 3 روزه قبل از پایان یا بعد از پایان
-        if -1 <= days_remaining <= 1:
+        # هشدار 1 روز قبل یا بعد از پایان
+        if last_sub.status == "active" and 0 <= remaining_days <= 1:
             subscription_warning = True
 
-        # هدایت مستقیم بعد از 3 روز از پایان اشتراک
-        if days_remaining < -1:
+        # هدایت مستقیم بعد از 1 روز از پایان اشتراک
+        if last_sub.status == "expired" and remaining_days <= -1:
             redirect_to_buy = True
 
-    # اگر هیچ اشتراکی وجود ندارد
     else:
-        total_days = 0
-        remaining_days = 0
+        # اگر هیچ اشتراکی وجود ندارد
         sub_status = "inactive"
-        # هشدار 3 روزه پس از عدم اشتراک
         subscription_warning = True
-        redirect_to_buy = False  # هدایت فقط بعد از 3 روز از عدم اشتراک
+        redirect_to_buy = False
+
+    if total_days > 0:
+        progress_dashoffset = int(remaining_days / total_days * 345)
+    else:
+        progress_dashoffset = 345  # پیش‌فرض وقتی اشتراک نیست
 
     return {
         "middle_house": middle_house,
@@ -102,6 +97,7 @@ def current_middle_house(request):
         "plan": plan,
         "subscription_warning": subscription_warning,
         "redirect_to_buy": redirect_to_buy,
+        "progress_dashoffset": progress_dashoffset
     }
 
 

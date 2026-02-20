@@ -25,14 +25,48 @@
                 <i class="mdi mdi-cellphone-link menu-icon"></i>
               </a>
             </li>
+          
+             {% url 'subscription_plan' as url_add_subscription %}
+            {% url 'subscription_list' as url_subscription_list %}
 
-                <li class="nav-item border-top  mt-0">
-                 {% url 'subscription_plan' as address_url %}
-                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
-                <i class="menu-title"> مدیریت اشتراک</i>
-                <i class="mdi mdi mdi-web menu-icon"></i>
+            <li class="nav-item border-top mt-0">
+              <a class="nav-link" data-bs-toggle="collapse"
+                 href="#general155"
+                 aria-expanded="true"
+                 aria-controls="general155">
+                <i class="menu-title"> مدیریت اشتراک </i>
+                <i class="menu-arrow"></i>
+                <i class="fas fa-bullhorn fa-flip-horizontal menu-icon"></i>
               </a>
+
+              <div class="collapse {% if request.path == url_add_subscription or request.path == url_subscription_list %}show{% endif %}" id="general155">
+                <ul class="nav flex-column sub-menu">
+
+                  <li class="nav-item mt-0">
+                    <a class="nav-link {% if request.path == url_add_subscription %}active{% endif %}"
+                       href="{{ url_add_subscription }}">
+                       افزودن پلن
+                    </a>
+                  </li>
+
+                  <li class="nav-item mt-0">
+                    <a class="nav-link {% if request.path == url_subscription_list %}active{% endif %}"
+                       href="{{ url_subscription_list }}">
+                       اشتراک ها
+                    </a>
+                  </li>
+
+                </ul>
+              </div>
             </li>
+
+{#                <li class="nav-item border-top  mt-0">#}
+{#                 {% url 'subscription_plan' as address_url %}#}
+{#                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">#}
+{#                <i class="menu-title"> مدیریت اشتراک</i>#}
+{#                <i class="mdi mdi mdi-web menu-icon"></i>#}
+{#              </a>#}
+{#            </li>#}
              <li class="nav-item border-top  mt-0">
                  {% url 'announcement' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">

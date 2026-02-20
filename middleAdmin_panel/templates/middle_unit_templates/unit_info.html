@@ -142,7 +142,7 @@
                 <td>{{ renter.first_charge_renter|three_digit_currency}}</td>
                 <td>{{ renter.contract_number|default:"---" }}</td>
                 <td>{{ renter.start_date|show_jalali }}</td>
-                <td>{{ renter.start_date|show_jalali }}</td>
+                <td>{{ renter.end_date|show_jalali }}</td>
                 <td>{{ renter.estate_name}}</td>
                 <td>
                     {% if renter.renter_is_active %}

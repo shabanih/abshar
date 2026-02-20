@@ -3,6 +3,8 @@
 {% block page_title %}
 داشبورد
 {% endblock page_title %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 
 {% block main_content %}
    <div class="container">
@@ -13,9 +15,9 @@
                 <div class="card bg-gradient-danger card-img-holder text-white">
                   <div class="card-body text-center justify-content-center p-2 m-0">
                     <h4 class="font-weight-normal mb-3"><i class="mdi mdi-account-circle mdi-24px float-right"></i>
-                       تعداد کل مدیران ساختمان
+                       تعداد کل ساختمان
                     </h4>
-                    <h2 class="mb-1">{{ middle_count }}</h2>
+                    <h2 class="mb-1">{{ house_count }}</h2>
                   </div>
                 </div>
               </div>
@@ -25,9 +27,9 @@
                <div class="card-body text-center justify-content-center p-2 m-0">
                     <h4 class="font-weight-normal mb-3">
                         <i class="mdi mdi-comment-text mdi-24px float-right"></i>
-                        تعداد پیامک
+                        تعداد کل کاربران
                     </h4>
-                    <h2 class="mb-1">0</h2>
+                    <h2 class="mb-1">{{ user_counts }}</h2>
                   </div>
                 </div>
                       </a>
@@ -101,18 +103,25 @@
         </div>
  
   </div>
-
-     <div class="row mt-4">
-            <div class="col-lg-6 grid-margin stretch-card">
+{# charts#}
+      <div class="row mt-4">
+          
+               <div class="col-lg-6 grid-margin stretch-card">
                 <div class="card">
-
-                      <div class="card-header bg-gradient-light">
-                        <h5 style="margin-top: 0.5rem"> تقاضاها به تفکیک آخرین وضعیت </h5>
-                          </div>
-
                   <div class="card-body">
-                    <canvas id="doughnutChart" style="width: 150px; height: 90px; margin-top: 1rem"></canvas>
+                         {% if has_charge_date %}
+                    <p class="text-muted mb-4">نمودار وضعیت شارژ</p>
+                  {{ paid_data|json_script:"paid_data_json" }}
+                  {{ unpaid_data|json_script:"unpaid_data_json" }}
+                    <canvas id="barChart" height="80" style="width: 150px; height: 70px; margin-top: 1rem"></canvas>
+                                {% else %}
+                    <div class="text-center mt-4">
+                        <img src="/static/img/vecteezy_business-chart-with-arrow_20954792.png" width="260" alt="نمودار موجود نیست">
+                     <p class="text-muted text-small">نموداری ثبت نشده است</p>
+                        </div>
+                    {% endif %}
                   </div>
+
                 </div>
               </div>
               <div class="col-lg-6 grid-margin stretch-card">
@@ -146,9 +155,230 @@
                             </div>
                         </div>
               </div>
-
-
          </div>
+{#      <div class="row">#}
+{#       <div class="col-lg-6 grid-margin stretch-card">#}
+{#                <div class="card">#}
+{#                  <div class="card-body">#}
+{#                  {% if residence_stats.occupied > 0 or residence_stats.empty > 0 %}#}
+{#                    <p class="text-muted mb-4">نمودار وضعیت سکونت </p>#}
+{#                        {{ owner_renter_stats|json_script:"owner_renter_data" }}#}
+{#                         <canvas id="ownerRenterChart" style="width: 150px; height: 60px; margin-top: 1rem"></canvas>#}
+{#                      #}
+{#                      {% else %}#}
+{#                    <div class="text-center mt-4">#}
+{#                        <img src="/static/img/vecteezy_pie-chart-icon-design_53007028.jpg" width="250" alt="نمودار موجود نیست">#}
+{#                     <p class="text-muted text-small">نموداری ثبت نشده است</p>#}
+{#                        </div>#}
+{#                    {% endif %}#}
+{##}
+{#                  </div>#}
+{#                </div>#}
+{#              </div>#}
+{##}
+{#            <div class="col-lg-6 grid-margin stretch-card">#}
+{#                        <div class="card">#}
+{#                         <div class="card-body">#}
+{#                          #}
+{#                                <p class="text-muted">نمودار آمار کلی واحدها</p>#}
+{#                               {{ user_type_stats|json_script:"user_type_data" }}#}
+{#        {{ city_stats|json_script:"city_data" }}#}
+        {#                        <canvas id="middleDoughnutChart" style="width: 150px; height: 60px; margin-top: 1rem"></canvas>#}
+{#                        <canvas id="userTypeChart"></canvas>#}
+        {#<canvas id="cityChart"></canvas>#}
+        {#       <div class="row mt-4 text-center">#}
+        {#        <div class="col-4">#}
+        {#            <p class="text-muted">#}
+        {#                   <strong>تعداد کل:</strong>#}
+        {#                 {{ unit_count }} واحد </p>#}
+        {#        </div>#}
+        {##}
+        {#        <div class="col-4">#}
+        {#            <p class="text-muted">#}
+        {#                <strong>مالک:</strong>#}
+        {#                        {% if owner_renter_stats.owner %}#}
+        {#                 {{ owner_renter_stats.owner }}#}
+        {#                    {% else %}#}
+        {#                                        ---#}
+        {#                                    {% endif %}واحد#}
+        {#            </p>#}
+        {#        </div>#}
+        {##}
+        {#        <div class="col-4">#}
+        {#            <p class="text-muted">#}
+        {#                   <strong>مستاجر:</strong>#}
+        {#                {% if owner_renter_stats.renter %}#}
+        {#                 {{ owner_renter_stats.renter }}واحد#}
+        {#                    {% else %}#}
+        {#                                        ---#}
+        {#                                    {% endif %}#}
+        {#            </p>#}
+        {#        </div>#}
+        {#    </div>#}
+{#        #}
+        {#                    {% else %}#}
+        {#                    <div class="text-center mt-4">#}
+        {#                        <img src="/static/img/vecteezy_pie-chart-icon-design_53006962.jpg" width="250" alt="نمودار موجود نیست">#}
+        {#                     <p class="text-muted text-small">نموداری ثبت نشده است</p>#}
+        {#                        </div>#}
+        {#                    {% endif %}#}
+{#                        </div>#}
+{#        #}
+{#                        </div>#}
+{#                      </div>#}
+{#           </div>#}
+   
+     <div class="row">
+         <div class="col-lg-4 grid-margin stretch-card">
+                   <div class="card">
+                         <div class="card-body">
+                          
+                                <p class="text-muted">نمودار ساختمان ها بر اساس کاربری</p>
+                               {{ user_type_stats|json_script:"user_type_data" }}
+        {{ city_stats|json_script:"city_data" }}
+        {#                        <canvas id="middleDoughnutChart" style="width: 150px; height: 60px; margin-top: 1rem"></canvas>#}
+                        <canvas id="userTypeChart" style="width: 150px; height: 60px; margin-top: 1rem"></canvas>
+        {#<canvas id="cityChart"></canvas>#}
+        {#       <div class="row mt-4 text-center">#}
+        {#        <div class="col-4">#}
+        {#            <p class="text-muted">#}
+        {#                   <strong>تعداد کل:</strong>#}
+        {#                 {{ unit_count }} واحد </p>#}
+        {#        </div>#}
+        {##}
+        {#        <div class="col-4">#}
+        {#            <p class="text-muted">#}
+        {#                <strong>مالک:</strong>#}
+        {#                        {% if owner_renter_stats.owner %}#}
+        {#                 {{ owner_renter_stats.owner }}#}
+        {#                    {% else %}#}
+        {#                                        ---#}
+        {#                                    {% endif %}واحد#}
+        {#            </p>#}
+        {#        </div>#}
+        {##}
+        {#        <div class="col-4">#}
+        {#            <p class="text-muted">#}
+        {#                   <strong>مستاجر:</strong>#}
+        {#                {% if owner_renter_stats.renter %}#}
+        {#                 {{ owner_renter_stats.renter }}واحد#}
+        {#                    {% else %}#}
+        {#                                        ---#}
+        {#                                    {% endif %}#}
+        {#            </p>#}
+        {#        </div>#}
+        {#    </div>#}
+        
+        {#                    {% else %}#}
+        {#                    <div class="text-center mt-4">#}
+        {#                        <img src="/static/img/vecteezy_pie-chart-icon-design_53006962.jpg" width="250" alt="نمودار موجود نیست">#}
+        {#                     <p class="text-muted text-small">نموداری ثبت نشده است</p>#}
+        {#                        </div>#}
+        {#                    {% endif %}#}
+                        </div>
+        
+                        </div>
+         </div>
+         <div class="col-lg-4 grid-margin stretch-card">
+                   <div class="card">
+                         <div class="card-body">
+                          
+                                <p class="text-muted">نمودار ساختمان ها بر اساس شهر</p>
+                               {{ user_type_stats|json_script:"user_type_data" }}
+        {{ city_stats|json_script:"city_data" }}
+        {#                        <canvas id="middleDoughnutChart" style="width: 150px; height: 60px; margin-top: 1rem"></canvas>#}
+{#                        <canvas id="userTypeChart"></canvas>#}
+        <canvas id="cityChart" style="width: 150px; height: 60px; margin-top: 1rem"></canvas>
+        {#       <div class="row mt-4 text-center">#}
+        {#        <div class="col-4">#}
+        {#            <p class="text-muted">#}
+        {#                   <strong>تعداد کل:</strong>#}
+        {#                 {{ unit_count }} واحد </p>#}
+        {#        </div>#}
+        {##}
+        {#        <div class="col-4">#}
+        {#            <p class="text-muted">#}
+        {#                <strong>مالک:</strong>#}
+        {#                        {% if owner_renter_stats.owner %}#}
+        {#                 {{ owner_renter_stats.owner }}#}
+        {#                    {% else %}#}
+        {#                                        ---#}
+        {#                                    {% endif %}واحد#}
+        {#            </p>#}
+        {#        </div>#}
+        {##}
+        {#        <div class="col-4">#}
+        {#            <p class="text-muted">#}
+        {#                   <strong>مستاجر:</strong>#}
+        {#                {% if owner_renter_stats.renter %}#}
+        {#                 {{ owner_renter_stats.renter }}واحد#}
+        {#                    {% else %}#}
+        {#                                        ---#}
+        {#                                    {% endif %}#}
+        {#            </p>#}
+        {#        </div>#}
+        {#    </div>#}
+        
+        {#                    {% else %}#}
+        {#                    <div class="text-center mt-4">#}
+        {#                        <img src="/static/img/vecteezy_pie-chart-icon-design_53006962.jpg" width="250" alt="نمودار موجود نیست">#}
+        {#                     <p class="text-muted text-small">نموداری ثبت نشده است</p>#}
+        {#                        </div>#}
+        {#                    {% endif %}#}
+                        </div>
+        
+                        </div>
+         </div>
+         <div class="col-lg-4 grid-margin stretch-card">
+                   <div class="card">
+                         <div class="card-body">
+                          
+                                <p class="text-muted">نمودار کاربران بر اساس مالک/مستاجر</p>
+                           {{ owner_renter_stats|json_script:"owner_renter_data" }}
+        {#                        <canvas id="middleDoughnutChart" style="width: 150px; height: 60px; margin-top: 1rem"></canvas>#}
+                      <canvas id="ownerRenterChart"></canvas>
+        {#<canvas id="cityChart"></canvas>#}
+        {#       <div class="row mt-4 text-center">#}
+        {#        <div class="col-4">#}
+        {#            <p class="text-muted">#}
+        {#                   <strong>تعداد کل:</strong>#}
+        {#                 {{ unit_count }} واحد </p>#}
+        {#        </div>#}
+        {##}
+        {#        <div class="col-4">#}
+        {#            <p class="text-muted">#}
+        {#                <strong>مالک:</strong>#}
+        {#                        {% if owner_renter_stats.owner %}#}
+        {#                 {{ owner_renter_stats.owner }}#}
+        {#                    {% else %}#}
+        {#                                        ---#}
+        {#                                    {% endif %}واحد#}
+        {#            </p>#}
+        {#        </div>#}
+        {##}
+        {#        <div class="col-4">#}
+        {#            <p class="text-muted">#}
+        {#                   <strong>مستاجر:</strong>#}
+        {#                {% if owner_renter_stats.renter %}#}
+        {#                 {{ owner_renter_stats.renter }}واحد#}
+        {#                    {% else %}#}
+        {#                                        ---#}
+        {#                                    {% endif %}#}
+        {#            </p>#}
+        {#        </div>#}
+        {#    </div>#}
+        
+        {#                    {% else %}#}
+        {#                    <div class="text-center mt-4">#}
+        {#                        <img src="/static/img/vecteezy_pie-chart-icon-design_53006962.jpg" width="250" alt="نمودار موجود نیست">#}
+        {#                     <p class="text-muted text-small">نموداری ثبت نشده است</p>#}
+        {#                        </div>#}
+        {#                    {% endif %}#}
+                        </div>
+        
+                        </div>
+         </div>
+     </div>
       {#   # last tickets#}
 
    <div class="row mt-1">
@@ -220,5 +450,52 @@
 
 
 </div>
-
+{#<script>#}
+{#    const userTypeData = JSON.parse(document.getElementById('user_type_stats').textContent);#}
+{#    const cityData = JSON.parse(document.getElementById('city_data').textContent);#}
+{#</script>#}
 {% endblock main_content %}
+{#<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>#}
+{##}
+{#<script>#}
+{#document.addEventListener("DOMContentLoaded", function () {#}
+{##}
+{#    const userTypeData = JSON.parse(document.getElementById('user_type_data').textContent);#}
+{#    const cityData = JSON.parse(document.getElementById('city_data').textContent);#}
+{##}
+{#    const userTypeLabels = userTypeData.map(item => item.user_type);#}
+{#    const userTypeCounts = userTypeData.map(item => item.total);#}
+{##}
+{#    const cityLabels = cityData.map(item => item.city);#}
+{#    const cityCounts = cityData.map(item => item.total);#}
+{##}
+{#    // چارت نوع کاربری#}
+{#    const ctx1 = document.getElementById("userTypeChart");#}
+{#    if (ctx1) {#}
+{#        new Chart(ctx1, {#}
+{#            type: 'doughnut',#}
+{#            data: {#}
+{#                labels: userTypeLabels,#}
+{#                datasets: [{#}
+{#                    data: userTypeCounts#}
+{#                }]#}
+{#            }#}
+{#        });#}
+{#    }#}
+{##}
+{#    // چارت شهر#}
+{#    const ctx2 = document.getElementById("cityChart");#}
+{#    if (ctx2) {#}
+{#        new Chart(ctx2, {#}
+{#            type: 'doughnut',#}
+{#            data: {#}
+{#                labels: cityLabels,#}
+{#                datasets: [{#}
+{#                    data: cityCounts#}
+{#                }]#}
+{#            }#}
+{#        });#}
+{#    }#}
+{##}
+{#});#}
+{#</script>#}

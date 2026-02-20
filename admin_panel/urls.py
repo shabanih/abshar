@@ -256,9 +256,13 @@ urlpatterns = [
     path('calendar/save-note/', views.save_note, name='save_note'),
     path('calendar/delete-note/', views.delete_note, name='delete_note'),
 
-    path('subscription/', views.AddSubscriptionPlan.as_view(), name='subscription_plan'),
-    path('subscription/edit/<int:pk>/"', views.SubscriptionPlanUpdate.as_view(), name='subscription_plan_edit'),
-    path('subscription/delete/<int:pk>/"', views.subscription_plan_delete, name='subscription_plan_delete'),
+    path('subscription/plan/', views.AddSubscriptionPlan.as_view(), name='subscription_plan'),
+    path('subscription/plan/edit/<int:pk>/"', views.SubscriptionPlanUpdate.as_view(), name='subscription_plan_edit'),
+    path('subscription/plan/delete/<int:pk>/"', views.subscription_plan_delete, name='subscription_plan_delete'),
+
+    path('subscription/', views.SubscriptionListView.as_view(), name='subscription_list'),
+    path('subscription-change/<int:subscription_id>/', views.admin_cancel_subscription, name='subscription_change'),
+
 
 ]
 if settings.DEBUG:

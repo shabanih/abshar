@@ -34,6 +34,9 @@ class UnitUpdateService:
             #     self._update_or_create_renter()
             #     self._handle_renter_charge()
 
+            if self.unit.is_renter and not owner_changed:
+                self._update_or_create_renter()
+
             self._handle_owner_charge()
             self._handle_renter_charge()
             self._update_people_count()
