@@ -1112,3 +1112,20 @@ div.d-flex.justify-content-between div{
         /*margin-bottom: 15px;*/
     }
 }
+/*============== calendar =================*/
+.today {
+    background: #eef6ff;
+    border: 2px solid #3f6ad8;
+    position: relative;
+}
+
+.add-note-today {
+    font-size: 10px;
+    color: #3f6ad8;
+    margin-top: 4px;
+    cursor: pointer;
+}
+
+.add-note-today:hover {
+    text-decoration: underline;
+}

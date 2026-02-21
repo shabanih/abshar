@@ -130,6 +130,8 @@ class MyHouse(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 
+    subdomain = models.CharField(max_length=50, unique=True, null=True, blank=True, verbose_name='زیردامنه')
+
     def __str__(self):
         return self.name
 

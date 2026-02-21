@@ -389,7 +389,7 @@ class MiddleAdminCreateView(CreateView):
                 units_count=5,
                 is_trial=True,
                 start_date=timezone.now(),
-                end_date=timezone.now() + timedelta(days=1)
+                end_date=timezone.now() + timedelta(days=20)
             )
             messages.success(
                 self.request,

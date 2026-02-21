@@ -416,10 +416,36 @@ window.addEventListener("DOMContentLoaded", function () {
                 td.appendChild(preview);
             }
 
-            if(d===currentDay && currentMonth===parseInt(todayParts.find(p=>p.type==='month').value)
-               && currentYear===parseInt(todayParts.find(p=>p.type==='year').value)){
-                td.classList.add("today");
-            }
+            // if(d===currentDay && currentMonth===parseInt(todayParts.find(p=>p.type==='month').value)
+            //    && currentYear===parseInt(todayParts.find(p=>p.type==='year').value)){
+            //     td.classList.add("today");
+            // }
+          if(
+              d === currentDay &&
+              currentMonth === parseInt(todayParts.find(p=>p.type==='month').value) &&
+              currentYear === parseInt(todayParts.find(p=>p.type==='year').value)
+          ){
+              td.classList.add("today");
+
+              // اگر امروز نوت نداشت، "یادداشت کن" نمایش بده
+              if(!notes[noteKey]){
+                  const addNote = document.createElement("div");
+                  addNote.classList.add("add-note-today");
+                  addNote.textContent = "یادداشت کن";
+
+                  addNote.onclick = function(e){
+                      e.stopPropagation(); // جلوگیری از اجرای onclick اصلی td
+                      selectedYear=currentYear;
+                      selectedMonth=currentMonth;
+                      selectedDay=d;
+                      selectedDayTitle.textContent=`یادداشت ${d} ${persianMonthNames[currentMonth-1]}`;
+                      noteText.value="";
+                      noteModal.style.display="flex";
+                  };
+
+                  td.appendChild(addNote);
+              }
+          }
 
             td.onclick=()=>{
                 selectedYear=currentYear;

@@ -450,52 +450,5 @@
 
 
 </div>
-{#<script>#}
-{#    const userTypeData = JSON.parse(document.getElementById('user_type_stats').textContent);#}
-{#    const cityData = JSON.parse(document.getElementById('city_data').textContent);#}
-{#</script>#}
+
 {% endblock main_content %}
-{#<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>#}
-{##}
-{#<script>#}
-{#document.addEventListener("DOMContentLoaded", function () {#}
-{##}
-{#    const userTypeData = JSON.parse(document.getElementById('user_type_data').textContent);#}
-{#    const cityData = JSON.parse(document.getElementById('city_data').textContent);#}
-{##}
-{#    const userTypeLabels = userTypeData.map(item => item.user_type);#}
-{#    const userTypeCounts = userTypeData.map(item => item.total);#}
-{##}
-{#    const cityLabels = cityData.map(item => item.city);#}
-{#    const cityCounts = cityData.map(item => item.total);#}
-{##}
-{#    // چارت نوع کاربری#}
-{#    const ctx1 = document.getElementById("userTypeChart");#}
-{#    if (ctx1) {#}
-{#        new Chart(ctx1, {#}
-{#            type: 'doughnut',#}
-{#            data: {#}
-{#                labels: userTypeLabels,#}
-{#                datasets: [{#}
-{#                    data: userTypeCounts#}
-{#                }]#}
-{#            }#}
-{#        });#}
-{#    }#}
-{##}
-{#    // چارت شهر#}
-{#    const ctx2 = document.getElementById("cityChart");#}
-{#    if (ctx2) {#}
-{#        new Chart(ctx2, {#}
-{#            type: 'doughnut',#}
-{#            data: {#}
-{#                labels: cityLabels,#}
-{#                datasets: [{#}
-{#                    data: cityCounts#}
-{#                }]#}
-{#            }#}
-{#        });#}
-{#    }#}
-{##}
-{#});#}
-{#</script>#}

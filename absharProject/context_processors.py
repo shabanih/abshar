@@ -73,9 +73,9 @@ def current_middle_house(request):
         if last_sub.status == "active" and 0 <= remaining_days <= 1:
             subscription_warning = True
 
-        # هدایت مستقیم بعد از 1 روز از پایان اشتراک
-        if last_sub.status == "expired" and remaining_days <= -1:
-            redirect_to_buy = True
+        # # هدایت مستقیم بعد از 1 روز از پایان اشتراک
+        # if last_sub.status == "expired" and remaining_days <= -5:
+        #     redirect_to_buy = True
 
     else:
         # اگر هیچ اشتراکی وجود ندارد

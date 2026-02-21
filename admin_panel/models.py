@@ -1156,20 +1156,20 @@ class Subscription(models.Model):
         self.end_date = self.start_date + timedelta(days=35)
         self.save()
 
-    def trial_active(self):
-        if self.is_trial and self.end_date:
-            if timezone.now() <= self.end_date:
-                return True
-            else:
-                # ⛔ تریال تمام شده → خاموشش کن
-                self.is_trial = False
-                self.save(update_fields=['is_trial'])
-
-                if hasattr(self.user, 'is_trial'):
-                    self.user.is_trial = False
-                    self.user.save(update_fields=['is_trial'])
-
-        return False
+    # def trial_active(self):
+    #     if self.is_trial and self.end_date:
+    #         if timezone.now() <= self.end_date:
+    #             return True
+    #         else:
+    #             # ⛔ تریال تمام شده → خاموشش کن
+    #             self.is_trial = False
+    #             self.save(update_fields=['is_trial'])
+    #
+    #             if hasattr(self.user, 'is_trial'):
+    #                 self.user.is_trial = False
+    #                 self.user.save(update_fields=['is_trial'])
+    #
+    #     return False
     @property
     def trial_days_remaining(self):
         if self.is_trial and self.end_date:

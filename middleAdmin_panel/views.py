@@ -178,13 +178,26 @@ def middle_admin_dashboard(request):
     if not request.user.is_authenticated:
         return redirect('login')  # یا هر URL ورود شما
 
+    now = timezone.now().date()
+
     subscription = Subscription.objects.filter(
-        house__user=request.user,
-        status="active"
-    ).first()
+        user=request.user
+    ).order_by('-created_at').first()
+    print(f'sub-{subscription}')
 
     if subscription:
         subscription.expire_if_needed()
+
+        if subscription.end_date:
+            days_after_expire = (now - subscription.end_date.date()).days
+
+            # اگر بیشتر از 5 روز از پایان گذشته
+            if subscription.status == "expired" and days_after_expire > 5:
+                return redirect('buy_subscription')
+
+    else:
+        # اگر اصلاً اشتراک ندارد
+        return redirect('buy_subscription')
 
     managed_users = request.user.managed_users.all()
     resident_unit = get_single_resident_building(request.user)
