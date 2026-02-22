@@ -43,14 +43,14 @@ urlpatterns = [
     path('units/export/pdf/', views.export_units_pdf, name='export_units_pdf'),
 
     # Expense_category Urls
-    path('middle_add-category-expense', views.MiddleExpenseCategoryView.as_view(), name='middle_add_category_expense'),
+    path('middle_add-category-expense', views.MiddleExpenseCategoryView.as_view(), name='middle_register_category_expense'),
     path('edit/middle/category/expense/<int:pk>/', views.MiddleExpenseCategoryUpdate.as_view(),
          name='middle_edit_category_expense'),
     path('delete/middle/category/expense/<int:pk>/', views.middle_expense_category_delete,
          name='middle_delete_category_expense'),
 
     # Expense Urls
-    path('middle-add-expense', views.MiddleExpenseView.as_view(), name='middle_add_expense'),
+    path('middle-add-expense', views.MiddleExpenseView.as_view(), name='middle_register_expense'),
     path('expense/pay/<int:expense_id>/', views.expense_pay_view, name='expense_pay'),
     path(
         'expense/cancel-pay/<int:expense_id>/',
@@ -66,14 +66,14 @@ urlpatterns = [
     path('middle/expense/export/pdf/', views.middle_export_expense_pdf, name='middle_export_expense_pdf'),
 
     # Income_category Urls
-    path('middle-add-category_income', views.MiddleIncomeCategoryView.as_view(), name='middle_add_category_income'),
+    path('middle-add-category_income', views.MiddleIncomeCategoryView.as_view(), name='middle_register_category_income'),
     path('edit/category/middle/income/<int:pk>/', views.MiddleIncomeCategoryUpdate.as_view(),
          name='middle_edit_category_income'),
     path('delete/category/middle/income/<int:pk>/', views.middle_income_category_delete,
          name='middle_delete_category_income'),
 
     # Income Urls
-    path('middle-add-income', views.MiddleIncomeView.as_view(), name='middle_add_income'),
+    path('middle-add-income', views.MiddleIncomeView.as_view(), name='middle_register_income'),
     path('income/pay/<int:income_id>/', views.income_pay_view, name='income_pay'),
     path(
         'income/cancel-pay/<int:income_id>/',
@@ -87,7 +87,7 @@ urlpatterns = [
     path('income/export/pdf/', views.export_income_pdf, name='export_income_pdf'),
 
     # ReceiveMoney Urls
-    path('middle-add-receive', views.MiddleReceiveMoneyCreateView.as_view(), name='middle_add_receive'),
+    path('middle-add-receive', views.MiddleReceiveMoneyCreateView.as_view(), name='middle_register_receive'),
     path('receive/middle/edit/<int:pk>/', views.middle_receive_edit, name='middle_receive_edit'),
     path('receive/middle/delete/<int:pk>/', views.middle_receive_delete, name='middle_receive_delete'),
     path('receive/middle/delete-document/', views.middle_delete_receive_document, name='middle_delete_delete_document'),
@@ -95,7 +95,7 @@ urlpatterns = [
     path('receive/export/pdf/', views.export_receive_pdf, name='export_receive_pdf'),
 
     # PayMoney Urls
-    path('middle-add-pay', views.MiddlePaymentMoneyCreateView.as_view(), name='middle_add_pay'),
+    path('middle-add-pay', views.MiddlePaymentMoneyCreateView.as_view(), name='middle_register_pay'),
     path('pay/middle/edit/<int:pk>/', views.middle_pay_edit, name='middle_pay_edit'),
     path('pay/middle/delete/<int:pk>/', views.middle_pay_delete, name='middle_pay_delete'),
     path('pay/middle/delete-document/', views.middle_delete_pay_document, name='middle_delete_pay_document'),
@@ -103,7 +103,7 @@ urlpatterns = [
     path('pay/export/pdf/', views.export_pay_pdf, name='export_pay_pdf'),
 
     # Property Urls
-    path('middle-add-Property', views.MiddlePropertyCreateView.as_view(), name='middle_add_property'),
+    path('middle-add-Property', views.MiddlePropertyCreateView.as_view(), name='middle_register_property'),
     path('Property/middle/edit/<int:pk>/', views.middle_property_edit, name='middle_property_edit'),
     path('Property/middle/delete/<int:pk>/', views.middle_property_delete, name='middle_property_delete'),
     path('middleProperty/delete-document/', views.middle_delete_property_document,
@@ -112,7 +112,7 @@ urlpatterns = [
     path('Property/export/pdf/', views.export_property_pdf, name='export_property_pdf'),
 
     # Maintenance Urls
-    path('middle-add-maintenance', views.MiddleMaintenanceCreateView.as_view(), name='middle_add_maintenance'),
+    path('middle-add-maintenance', views.MiddleMaintenanceCreateView.as_view(), name='middle_register_maintenance'),
     path('maintenance/middle/edit/<int:pk>/', views.middle_maintenance_edit, name='middle_maintenance_edit'),
     path('maintenance/middle/delete/<int:pk>/', views.middle_maintenance_delete, name='middle_maintenance_delete'),
     path('maintenance/middle/delete-document/', views.middle_delete_maintenance_document,

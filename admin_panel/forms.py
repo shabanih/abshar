@@ -855,7 +855,8 @@ class ExpenseForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
-        default_categories = ['هزینه آب', 'هزینه برق', 'هزینه گاز']
+        default_categories = ['هزینه آب', 'هزینه برق', 'هزینه گاز', 'بیمه ساختمان', 'نگهداری تاسیسات',
+                              'حقوق و دستمزد' , 'هزینه نظافت', 'هزینه تعمیرات اساسی', 'هزینه فضای سبز']
         if user:
             for title in default_categories:
                 ExpenseCategory.objects.get_or_create(

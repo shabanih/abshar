@@ -183,7 +183,7 @@ def middle_admin_dashboard(request):
     subscription = Subscription.objects.filter(
         user=request.user
     ).order_by('-created_at').first()
-    print(f'sub-{subscription}')
+
 
     if subscription:
         subscription.expire_if_needed()
@@ -202,12 +202,72 @@ def middle_admin_dashboard(request):
     managed_users = request.user.managed_users.all()
     resident_unit = get_single_resident_building(request.user)
     announcements = Announcement.objects.filter(is_active=True, user=request.user).order_by('-created_at')[:3]
+
     units = Unit.objects.filter(
         myhouse__user=request.user,
         is_active=True
+    )
+    unit_count = units.count()
+    # 1️⃣ خانه‌های خالی (اول جدا می‌کنیم)
+    empty_units = units.filter(status_residence='empty')
+
+    # 2️⃣ خانه‌های دارای مستاجر فعال
+    renter_units = units.filter(
+        renters__renter_is_active=True
+    ).exclude(
+        id__in=empty_units.values_list('id', flat=True)
     ).distinct()
 
-    unit_count = units.count()
+    # 3️⃣ مالک (نه خالی و نه مستاجر)
+    owner_units = units.exclude(
+        id__in=empty_units.values_list('id', flat=True)
+    ).exclude(
+        id__in=renter_units.values_list('id', flat=True)
+    )
+
+    unit_status_stats = {
+        'owner': owner_units.count(),
+        'renter': renter_units.count(),
+        'empty': empty_units.count(),
+    }
+    print(unit_status_stats)
+    has_unit_chart_data = any([
+        unit_status_stats.get('owner', 0) > 0,
+        unit_status_stats.get('renter', 0) > 0,
+        unit_status_stats.get('empty', 0) > 0,
+    ])
+
+    category_expenses = (
+        Expense.objects
+        .filter(
+            house__user=request.user,
+            is_active=True,
+            is_paid=True  # اگر فقط پرداخت شده‌ها مدنظر است
+        )
+        .values('category__title')
+        .annotate(total_amount=Sum('amount'))
+        .order_by('-total_amount')
+    )
+
+    expense_chart_data = {
+        "labels": [item['category__title'] for item in category_expenses] or [],
+        "data": [item['total_amount'] or 0 for item in category_expenses] or []
+    }
+
+    income_by_category = (
+        IncomeCategory.objects
+        .filter(user=request.user, is_active=True)
+        .annotate(total_amount=Sum(
+            'incomes__amount',
+            filter=Q(incomes__is_paid=True, incomes__is_active=True)
+        ))
+    )
+
+    income_chart_data = {
+        "labels": [cat.subject for cat in income_by_category] or [],
+        "data": [cat.total_amount or 0 for cat in income_by_category] or []
+    }
+
     tickets = SupportUser.objects.filter(Q(user=request.user) | Q(user__in=managed_users)).order_by('-created_at')[:5]
 
     funds = Fund.objects.select_related('bank', 'content_type').filter(
@@ -224,20 +284,7 @@ def middle_admin_dashboard(request):
         unit__isnull=False
     ).count()
 
-    # نمودار مالک/مستاجر
-    renter_units = units.filter(renters__renter_is_active=True).distinct()
-    owner_units = units.exclude(id__in=renter_units.values_list('id', flat=True))
 
-    owner_renter_stats = {
-        'owner': owner_units.count(),
-        'renter': renter_units.count(),
-    }
-
-    # نمودار خانه خالی/پر
-    residence_stats = {
-        'occupied': units.filter(status_residence='occupied').count(),
-        'empty': units.filter(status_residence='empty').count(),
-    }
 
     # ماه‌های شمسی
     persian_months = [
@@ -257,7 +304,7 @@ def middle_admin_dashboard(request):
         unit__in=units,
         is_paid=True
     )
-    print(f'paid-{paid_charges_qs.count()}')
+
     paid_counts = {i: 0 for i in range(1, 13)}
     for charge in paid_charges_qs:
         month = get_persian_month(charge.payment_date)
@@ -271,7 +318,6 @@ def middle_admin_dashboard(request):
         unit__in=units,
         is_paid=False
     )
-    print(unpaid_charges_qs.count())
     unpaid_counts = {i: 0 for i in range(1, 13)}
     for charge in unpaid_charges_qs:
         month = get_persian_month(charge.send_notification_date)
@@ -284,6 +330,23 @@ def middle_admin_dashboard(request):
 
     has_charge_data = any(paid_data) or any(unpaid_data)
 
+    # قبل از return render(...)
+    print("===== Debug Dashboard Data =====")
+    print("Units Count:", unit_count)
+    print("Unit Status Stats:", unit_status_stats)
+    print("Has Unit Chart Data:", has_unit_chart_data)
+
+    print("Expense Chart Data:", expense_chart_data)
+    print("Income Chart Data:", income_chart_data)
+
+    print("Paid Charges:", paid_data)
+    print("Unpaid Charges:", unpaid_data)
+    print("Has Charge Data:", has_charge_data)
+
+    print("Announcements:", list(announcements.values('title', 'created_at')))
+    print("Tickets:", list(tickets.values('subject', 'created_at', 'ticket_no')))
+    print("=================================")
+
     context = {
         'announcements': announcements,
         'unit_count': unit_count,
@@ -291,13 +354,15 @@ def middle_admin_dashboard(request):
         'tickets': tickets,
         'unit_count_unpaid_charges': unit_count_unpaid_charges,
         'resident_unit': resident_unit,
-        'owner_renter_stats': owner_renter_stats,
-        'residence_stats': residence_stats,
+        'ownerRenterStats': unit_status_stats,
+        'has_unit_chart_data': has_unit_chart_data,
+        'expense_chart_data': expense_chart_data,
+        'income_chart_data': income_chart_data,
         'months': months,
         'paid_data': paid_data,
         'unpaid_data': unpaid_data,
         'has_charge_date': has_charge_data,
-        # 'current_subscription': current_subscription,  # << اضافه شد
+
     }
 
     return render(request, 'middleShared/home_template.html', context)
@@ -1340,7 +1405,7 @@ class MiddleExpenseCategoryView(CreateView):
     model = ExpenseCategory
     template_name = 'middle_expense_templates/add_category_expense.html'
     form_class = ExpenseCategoryForm
-    success_url = reverse_lazy('middle_add_category_expense')
+    success_url = reverse_lazy('middle_register_category_expense')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -1363,7 +1428,7 @@ class MiddleExpenseCategoryUpdate(UpdateView):
     model = ExpenseCategory
     template_name = 'middle_expense_templates/add_category_expense.html'
     form_class = ExpenseCategoryForm
-    success_url = reverse_lazy('middle_add_category_expense')
+    success_url = reverse_lazy('middle_register_category_expense')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -1398,12 +1463,8 @@ class MiddleExpenseView(CreateView):
     model = Expense
     template_name = 'middle_expense_templates/expense_register.html'
     form_class = ExpenseForm
-    success_url = reverse_lazy('middle_add_expense')
+    success_url = reverse_lazy('middle_register_expense')
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        return kwargs
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -1435,6 +1496,11 @@ class MiddleExpenseView(CreateView):
         except Exception:
             messages.error(self.request, 'خطا در ثبت هزینه')
             return self.form_invalid(form)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
     def get_queryset(self):
         queryset = Expense.objects.filter(user=self.request.user).order_by('-created_at')
@@ -1585,7 +1651,7 @@ def expense_pay_view(request, expense_id):
                     ])
 
                 messages.success(request, 'پرداخت با موفقیت انجام شد')
-                return redirect('middle_add_expense')
+                return redirect('middle_register_expense')
 
             except ValidationError as e:
                 messages.error(request, e.message)
@@ -1666,22 +1732,22 @@ def middle_expense_edit(request, pk):
     # اگر پرداخت شده → ویرایش مجاز نیست
     if expense.is_paid:
         messages.warning(request, 'این هزینه پرداخت شده است و قابل ویرایش نیست.')
-        return redirect('middle_add_expense')
+        return redirect('middle_register_expense')
 
     if request.method != 'POST':
-        return redirect('middle_add_expense')
+        return redirect('middle_register_expense')
 
     form = ExpenseForm(request.POST, request.FILES, instance=expense, user=request.user)
 
     if not form.is_valid():
         messages.error(request, f'خطا در ویرایش فرم هزینه: {form.errors}')
-        return redirect('middle_add_expense')
+        return redirect('middle_register_expense')
 
     try:
         new_amount = Decimal(form.cleaned_data['amount'] or 0)
     except Exception:
         messages.error(request, "مقدار مبلغ وارد شده معتبر نیست.")
-        return redirect('middle_add_expense')
+        return redirect('middle_register_expense')
 
     with transaction.atomic():
         # 🔹 ست کردن خانه مرتبط با کاربر
@@ -1696,7 +1762,7 @@ def middle_expense_edit(request, pk):
             ExpenseDocument.objects.create(expense=expense, document=f)
 
     messages.success(request, 'هزینه با موفقیت ویرایش شد.')
-    return redirect('middle_add_expense')
+    return redirect('middle_register_expense')
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -1718,7 +1784,7 @@ def middle_expense_delete(request, pk):
     except Exception as e:
         messages.error(request, f"خطا در حذف: {str(e)}")
 
-    return redirect(reverse('middle_add_expense'))
+    return redirect(reverse('middle_register_expense'))
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -1922,7 +1988,7 @@ class MiddleIncomeCategoryView(CreateView):
     model = IncomeCategory
     template_name = 'middle_income_templates/add_category_income.html'
     form_class = IncomeCategoryForm
-    success_url = reverse_lazy('middle_add_category_income')
+    success_url = reverse_lazy('middle_register_category_income')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -1946,7 +2012,7 @@ class MiddleIncomeCategoryUpdate(UpdateView):
     model = IncomeCategory
     template_name = 'middle_income_templates/add_category_income.html'
     form_class = IncomeCategoryForm
-    success_url = reverse_lazy('middle_add_category_income')
+    success_url = reverse_lazy('middle_register_category_income')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -1973,7 +2039,7 @@ def middle_income_category_delete(request, pk):
         messages.success(request, 'موضوع درآمد با موفقیت حذف گردید!')
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
-    return redirect(reverse('middle_add_category_income'))
+    return redirect(reverse('middle_register_category_income'))
 
 
 @method_decorator(middle_admin_required, name='dispatch')
@@ -1981,7 +2047,7 @@ class MiddleIncomeView(CreateView):
     model = Income
     template_name = 'middle_income_templates/income_register.html'
     form_class = IncomeForm
-    success_url = reverse_lazy('middle_add_income')
+    success_url = reverse_lazy('middle_register_income')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -2157,7 +2223,7 @@ def income_pay_view(request, income_id):
                     ])
 
                 messages.success(request, 'دریافت با موفقیت انجام شد')
-                return redirect('middle_add_income')
+                return redirect('middle_register_income')
 
             except ValidationError as e:
                 messages.error(request, e.message)
@@ -2239,16 +2305,16 @@ def middle_income_edit(request, pk):
 
     if income.is_paid:
         messages.warning(request, 'این درآمد پرداخت شده است و قابل ویرایش نیست.')
-        return redirect('middle_add_income')
+        return redirect('middle_register_income')
 
     if request.method != 'POST':
-        return redirect('middle_add_income')
+        return redirect('middle_register_income')
 
     form = IncomeForm(request.POST, request.FILES, instance=income, user=request.user)
 
     if not form.is_valid():
         messages.error(request, 'خطا در ویرایش فرم درآمد. لطفا دوباره تلاش کنید.')
-        return redirect('middle_add_income')
+        return redirect('middle_register_income')
 
     try:
         with transaction.atomic():
@@ -2262,11 +2328,11 @@ def middle_income_edit(request, pk):
                 IncomeDocument.objects.create(income=income, document=f)
 
         messages.success(request, 'درآمد با موفقیت ویرایش شد.')
-        return redirect('middle_add_income')
+        return redirect('middle_register_income')
 
     except Exception as e:
         messages.error(request, 'خطا در ویرایش درآمد.')
-        return redirect('middle_add_income')
+        return redirect('middle_register_income')
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -2287,7 +2353,7 @@ def middle_income_delete(request, pk):
     except Exception as e:
         messages.error(request, f"خطا در حذف: {str(e)}")
 
-    return redirect(reverse('middle_add_income'))
+    return redirect(reverse('middle_register_income'))
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)

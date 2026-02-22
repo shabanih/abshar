@@ -340,20 +340,20 @@
 {#</li>#}
              <li class="nav-item border-top mt-0">
   <a class="nav-link" data-bs-toggle="collapse" href="#general23"
-     aria-expanded="{% if request.resolver_match.url_name in 'middle_add_income middle_add_expense middle_add_receive middle_add_pay middle_add_property middle_add_maintenance' %}true{% else %}false{% endif %}"
+     aria-expanded="{% if request.resolver_match.url_name in 'middle_register_income middle_register_expense middle_register_receive middle_register_pay middle_register_property middle_register_maintenance' %}true{% else %}false{% endif %}"
      aria-controls="general23">
     <i class="menu-title">عملیات</i>
     <i class="menu-arrow"></i>
     <i class="mdi mdi-desktop-mac menu-icon"></i>
   </a>
-  <div class="collapse {% if request.resolver_match.url_name in 'middle_add_income middle_add_expense middle_add_receive middle_add_pay middle_add_property middle_add_maintenance' %}show{% endif %}" id="general23">
+  <div class="collapse {% if request.resolver_match.url_name in 'middle_register_income middle_register_expense middle_register_receive middle_register_pay middle_register_property middle_register_maintenance' %}show{% endif %}" id="general23">
     <ul class="nav flex-column sub-menu">
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_add_income' %}active{% endif %}" href="{% url 'middle_add_income' %}">ثبت درآمد</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_add_expense' %}active{% endif %}" href="{% url 'middle_add_expense' %}">ثبت هزینه</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_add_receive' %}active{% endif %}" href="{% url 'middle_add_receive' %}">ثبت اسناد دریافتنی</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_add_pay' %}active{% endif %}" href="{% url 'middle_add_pay' %}">ثبت اسناد پرداختنی</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_add_property' %}active{% endif %}" href="{% url 'middle_add_property' %}">ثبت اموال ساختمان</a></li>
-      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_add_maintenance' %}active{% endif %}" href="{% url 'middle_add_maintenance' %}">ثبت تعمیر و نگهداری</a></li>
+      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_register_income' %}active{% endif %}" href="{% url 'middle_register_income' %}">ثبت درآمد</a></li>
+      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_register_expense' %}active{% endif %}" href="{% url 'middle_register_expense' %}">ثبت هزینه</a></li>
+      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_register_receive' %}active{% endif %}" href="{% url 'middle_register_receive' %}">ثبت اسناد دریافتنی</a></li>
+      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_register_pay' %}active{% endif %}" href="{% url 'middle_register_pay' %}">ثبت اسناد پرداختنی</a></li>
+      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_register_property' %}active{% endif %}" href="{% url 'middle_register_property' %}">ثبت اموال ساختمان</a></li>
+      <li class="nav-item mt-0"><a class="nav-link {% if request.resolver_match.url_name == 'middle_register_maintenance' %}active{% endif %}" href="{% url 'middle_register_maintenance' %}">ثبت تعمیر و نگهداری</a></li>
     </ul>
   </div>
 </li>

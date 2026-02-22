@@ -19,73 +19,6 @@
 
    <div class="container">
 
-{#<div class="row py-3">#}
-{#  <div class="col-12">#}
-{#    <div class="card subscription-card">#}
-{##}
-{#      <div class="d-flex justify-content-between align-items-center flex-wrap subscription-flex">#}
-{##}
-{#        <!-- ===== دایره اشتراک ===== -->#}
-{#        <div class="d-flex align-items-center">#}
-{##}
-{#          <div class="subscription-circle-wrapper">#}
-{##}
-{#            <svg width="130" height="130" viewBox="0 0 130 130">#}
-{#              <!-- بک گراند -->#}
-{#              <circle cx="65" cy="65" r="55"#}
-{#                      stroke="#e9ecef"#}
-{#                      stroke-width="10"#}
-{#                      fill="none"/>#}
-{#              <!-- نوار پیشرفت -->#}
-{#              <circle cx="65" cy="65" r="55"#}
-{#                      stroke="{% if sub_status == 'trial' %}#1cc88a{% elif sub_status == 'paid' %}#4e73df{% elif sub_status == 'inactive' %}#dc3545{% else %}#28a745{% endif %}"#}
-{#                      stroke-width="10"#}
-{#                      fill="none"#}
-{#                      stroke-dasharray="345"#}
-{#                      stroke-dashoffset="{% widthratio remaining_days total_days 345 %}"#}
-{#                      transform="rotate(-90 65 65)"#}
-{#                      stroke-linecap="round"/>#}
-{#            </svg>#}
-{##}
-{#            <!-- متن وسط دایره -->#}
-{#            <div class="subscription-circle-center">#}
-{#              <div class="subscription-remaining">{{ remaining_days }}</div>#}
-{#              <div class="subscription-divider"></div>#}
-{#              <div class="subscription-total">{{ total_days }}</div>#}
-{#            </div>#}
-{##}
-{#          </div>#}
-{##}
-{#          <!-- ===== اطلاعات اشتراک ===== -->#}
-{#          <div class="ms-3">#}
-{#            {% if sub_status == "trial" %}#}
-{#              <div class="subscription-status subscription-trial">اشتراک آزمایشی فعال</div>#}
-{#            {% elif sub_status == "paid" %}#}
-{#              <div class="subscription-status subscription-paid">اشتراک فعال</div>#}
-{#              <div class="small text-muted">مبلغ: {{ current_subscription.total_amount|three_digit_currency }} تومان</div>#}
-{#              <div class="small text-muted">پایان: {{ current_subscription.end_date }}</div>#}
-{#            {% elif sub_status == "inactive" %}#}
-{#              <div class="subscription-status subscription-inactive">اشتراک منقضی شده</div>#}
-{#            {% else %}#}
-{#              <div class="subscription-status subscription-free">اشتراک رایگان اولیه</div>#}
-{#              <div class="small text-muted">35 روز اعتبار</div>#}
-{#            {% endif %}#}
-{#          </div>#}
-{##}
-{#        </div>#}
-{##}
-{#        <!-- ===== دکمه ===== -->#}
-{#        <div class="mt-3 mt-md-0">#}
-{#          <a href="{% url 'buy_subscription' %}" class="btn btn-primary subscription-btn">#}
-{#            تغییر / خرید اشتراک#}
-{#          </a>#}
-{#        </div>#}
-{##}
-{#      </div>#}
-{##}
-{#    </div>#}
-{#  </div>#}
-{#</div>#}
 
 {% if subscription_warning %}
 <script>
@@ -194,39 +127,10 @@ window.location.href = "{% url 'buy_subscription' %}";
             <div class="col-lg-6 grid-margin stretch-card">
                 <div class="card">
                  <div class="card-body">
-                    {% if owner_renter_stats.owner  %}
+                   {% if has_unit_chart_data  %}
                         <p class="text-muted">نمودار آمار کلی واحدها</p>
-                        {{ owner_renter_stats|json_script:"owner_renter_stats" }}
-                        <canvas id="doughnutChart" style="width: 150px; height: 60px; margin-top: 1rem"></canvas>
-                 <div class="row mt-4 text-center">
-        <div class="col-4">
-            <p class="text-muted">
-                   <strong>تعداد کل:</strong>
-                 {{ unit_count }} واحد </p>
-        </div>
-
-        <div class="col-4">
-            <p class="text-muted">
-                <strong>مالک:</strong>
-                        {% if owner_renter_stats.owner %}
-                 {{ owner_renter_stats.owner }}
-                    {% else %}
-                                        ---
-                                    {% endif %}واحد
-            </p>
-        </div>
-
-        <div class="col-4">
-            <p class="text-muted">
-                   <strong>مستاجر:</strong>
-                {% if owner_renter_stats.renter %}
-                 {{ owner_renter_stats.renter }}واحد
-                    {% else %}
-                                        ---
-                                    {% endif %}
-            </p>
-        </div>
-    </div>
+                       {{ ownerRenterStats|json_script:"owner_renter_json" }}
+                        <canvas id="doughnutChart" style="width: 400px; height: 250px; margin-top: 1rem"></canvas>
 
                     {% else %}
                     <div class="text-center mt-4">
@@ -273,35 +177,31 @@ window.location.href = "{% url 'buy_subscription' %}";
 
    <div class="row">
        <div class="col-lg-6 grid-margin stretch-card">
-                <div class="card">
-                  <div class="card-body">
-                  {% if residence_stats.occupied > 0 or residence_stats.empty > 0 %}
-                    <p class="text-muted mb-4">نمودار وضعیت سکونت </p>
-                        {{ residence_stats|json_script:"residence_stats" }}
-                         <canvas id="pieChart" height="60" style="width: 150px; height: 60px; margin-top: 1rem"></canvas>
-                        <div class="row mt-4 text-center">
-                            <div class="col-6">
-                                <p class="text-muted">
-                                    <strong>ساکن:</strong>
-                                    {% if residence_stats.occupied %}
-                                        {{ residence_stats.occupied }} واحد
-                                    {% else %}
-                                        ---
-                                    {% endif %}
-                                </p>
-                            </div>
+                <div class="card p-1">
+                  <div class="card-body p-3">
+                 {% if expense_chart_data.data|length > 0 %}
+                    <p class="text-muted mb-2">نمودار هزینه  </p>
+                     {{ expense_chart_data|json_script:"expense_chart_json" }}
+                         <canvas id="expenseChart" style="width: 400px; height: 230px; margin-top: 1rem"></canvas>
 
-                            <div class="col-6">
-                                <p class="text-muted">
-                                    <strong>خالی:</strong>
-                                    {% if residence_stats.empty %}
-                                        {{ residence_stats.empty }} واحد
-                                    {% else %}
-                                        ---
-                                    {% endif %}
-                                </p>
-                            </div>
+                      {% else %}
+                    <div class="text-center mt-4">
+                        <img src="/static/img/vecteezy_pie-chart-icon-design_53007028.jpg" width="250" alt="نمودار موجود نیست">
+                     <p class="text-muted text-small">نموداری ثبت نشده است</p>
                         </div>
+                    {% endif %}
+
+                  </div>
+                </div>
+              </div>
+       <div class="col-lg-6 grid-margin stretch-card">
+                <div class="card p-2">
+                  <div class="card-body p-3">
+                   {% if income_chart_data.data %}
+                    <p class="text-muted mb-2">نمودار درآمد </p>
+                   {{ income_chart_data|json_script:"income_chart_json" }}
+                         <canvas id="incomeChart" style="width: 400px; height: 230px; margin-top: 1rem"></canvas>
+
                       {% else %}
                     <div class="text-center mt-4">
                         <img src="/static/img/vecteezy_pie-chart-icon-design_53007028.jpg" width="250" alt="نمودار موجود نیست">
@@ -313,16 +213,17 @@ window.location.href = "{% url 'buy_subscription' %}";
                 </div>
               </div>
 
-       <div class="col-lg-6 grid-margin stretch-card">
+
+   </div>
+   <div class="row">
+         <div class="col-12 col-lg-12 grid-margin stretch-card">
                 <div class="card">
-
-
                   <div class="card-body">
                          {% if has_charge_date %}
                     <p class="text-muted mb-4">نمودار وضعیت شارژ</p>
                   {{ paid_data|json_script:"paid_data_json" }}
                   {{ unpaid_data|json_script:"unpaid_data_json" }}
-                    <canvas id="barChart" height="80" style="width: 150px; height: 70px; margin-top: 1rem"></canvas>
+                    <canvas id="barChart" style="width: 10px; height: 3px; margin-top: 1rem"></canvas>
                                 {% else %}
                     <div class="text-center mt-4">
                         <img src="/static/img/vecteezy_business-chart-with-arrow_20954792.png" width="260" alt="نمودار موجود نیست">
@@ -402,69 +303,21 @@ window.location.href = "{% url 'buy_subscription' %}";
        </div>
    </div>
    </div>
-<!-- json_script امن‌ترین روش برای ارسال دیتا از Django به JS -->
-{#{{ stats|json_script:"unit_stats" }}#}
 
-{#<canvas id="doughnutChart" style="width: 150px; height: 90px; margin-top: 1rem"></canvas>#}
 
 <script>
-  // گرفتن دیتا از JSON
-  const ownerRenterStats = JSON.parse(document.getElementById('owner_renter_stats').textContent);
-  const residenceStats = JSON.parse(document.getElementById('residence_stats').textContent);
+{#const stats = JSON.parse(document.getElementById('owner_renter_json').textContent);#}
+{#let expenseData = JSON.parse(#}
+{#    document.getElementById("expense_chart_json").textContent#}
+{#);#}
+{#let incomeData = JSON.parse(#}
+{#    document.getElementById("income_chart_json").textContent#}
+{#);#}
 
-  {#var paidCharges = JSON.parse(document.getElementById('paid_charges').textContent);#}
-  {#var unpaidCharges = JSON.parse(document.getElementById('unpaid_charges').textContent);#}
+
 var paidCharges = {{ paid_data|safe }};
 var unpaidCharges = {{ unpaid_data|safe }};
 </script>
-<!-- یک <canvas> برای رسم نمودار -->
-{#<canvas id="myChart" width="400" height="200"></canvas>#}
-
-{#<script>#}
-{#    // داده‌ها را از Django دریافت می‌کنیم#}
-{#    const data = {{ chart_data_json|safe }};#}
-{##}
-{#    const config = {#}
-{#        type: 'bar', // نوع نمودار#}
-{#        data: data,#}
-{#        options: {#}
-{#            responsive: true,#}
-{#            plugins: {#}
-{#                legend: {#}
-{#                    position: 'top',#}
-{#                },#}
-{#                tooltip: {#}
-{#                    callbacks: {#}
-{#                        label: function(context) {#}
-{#                            return context.dataset.label + ': ' + context.raw;#}
-{#                        }#}
-{#                    }#}
-{#                }#}
-{#            },#}
-{#            scales: {#}
-{#                y: {#}
-{#                    beginAtZero: true,#}
-{#                    title: {#}
-{#                        display: true,#}
-{#                        text: 'تعداد شارژها'#}
-{#                    }#}
-{#                },#}
-{#                x: {#}
-{#                    title: {#}
-{#                        display: true,#}
-{#                        text: 'ماه شمسی'#}
-{#                    }#}
-{#                }#}
-{#            }#}
-{#        },#}
-{#    };#}
-{##}
-{#    // ساخت نمودار#}
-{#    const myChart = new Chart(#}
-{#        document.getElementById('myChart'),#}
-{#        config#}
-{#    );#}
-{#</script>#}
 
 
 {% endblock main_content %}
