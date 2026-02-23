@@ -103,10 +103,15 @@
                 enctype="multipart/form-data" novalidate>
               {% csrf_token %}
               <div class="row g-2">
-                  <div class="col-12">
+                  <div class="col-6">
                       {{ form.name.label_tag }}
                       {{ form.name }}
                       {{ form.name.errors }}
+                  </div>
+                    <div class="col-6">
+                      {{ form.subdomain.label_tag }}
+                      {{ form.subdomain }}
+                      {{ form.subdomain.errors }}
                   </div>
               </div>
                <div class="row g-2">

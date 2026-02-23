@@ -1283,8 +1283,74 @@ document.addEventListener("DOMContentLoaded", function () {
 }
 
 });
+// ==================
+var months = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+    "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
 
+var chartColors = {
+    red: 'rgb(255, 99, 132)',
+    blue: 'rgb(54, 162, 235)'
+};
 
+var barData = {
+    labels: months,
+    datasets: [
+        {
+            label: 'پرداخت شده',
+            backgroundColor: Chart.helpers.color(chartColors.blue).alpha(0.5).rgbString(),
+            borderColor: chartColors.blue,
+            borderWidth: 1,
+            data: paidCharges
+        },
+        {
+            label: 'پرداخت نشده',
+            backgroundColor: Chart.helpers.color(chartColors.red).alpha(0.5).rgbString(),
+            borderColor: chartColors.red,
+            borderWidth: 1,
+            data: unpaidCharges
+        }
+    ]
+};
+
+var ctx = document.getElementById("barChart").getContext("2d");
+var myNewChartB = new Chart(ctx, {
+    type: 'bar',
+    data: barData,
+    options: {
+        responsive: true,
+        maintainAspectRatio: true, // حفظ نسبت تصویر
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: {
+                    font: {family: 'Vazir', size: 14}
+                }
+            },
+            title: {
+                display: true,
+                text: 'وضعیت شارژ ماهانه2',
+                font: {family: 'Vazir', size: 25, weight: 'bold'}
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    font: {family: 'Vazir', size: 12},
+                    stepSize: 50,
+                    // برای نمایش اعداد فارسی
+                    callback: function (value) {
+                        const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
+                        return value.toString().replace(/\d/g, d => persianDigits[d]);
+                    }
+                }
+            },
+            x: {
+                ticks: {font: {family: 'Vazir', size: 12}}
+            }
+        }
+    }
+});
 
 
 

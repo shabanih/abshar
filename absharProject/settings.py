@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'middleAdmin_panel',
     'notifications',
     'admin_payment_app',
+    'home',
 
     # 'jalali_date',
 

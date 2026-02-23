@@ -63,6 +63,7 @@
         <option value="$MODULE_DIR$/payment_app/templates" />
         <option value="$MODULE_DIR$/admin_payment_app/templates" />
         <option value="$MODULE_DIR$/admin_panel/templates/report" />
+        <option value="$MODULE_DIR$/home/templates" />
       </list>
     </option>
   </component>

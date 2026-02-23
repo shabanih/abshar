@@ -384,6 +384,8 @@ USER_TYPE_CHOICES = [
 class MyHouseForm(forms.ModelForm):
     name = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
                            label='نام ساختمان')
+    subdomain = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
+                           label='نام لاتین')
     user_type = forms.ChoiceField(error_messages=error_message, choices=USER_TYPE_CHOICES, required=True,
                                   widget=forms.Select(attrs=attr3),
                                   label='نوع کاربری')
@@ -404,7 +406,7 @@ class MyHouseForm(forms.ModelForm):
 
     class Meta:
         model = MyHouse
-        fields = ['name', 'address', 'user_type', 'city', 'is_active', 'floor_counts', 'unit_counts']
+        fields = ['name', 'address', 'user_type', 'city', 'is_active', 'floor_counts', 'unit_counts', 'subdomain']
 
 
 class UnitForm(forms.ModelForm):

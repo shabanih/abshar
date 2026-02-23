@@ -125,6 +125,7 @@ def buy_subscription(request):
         "unit_count": unit_count
     })
 
+
 # ==============================================================
 def get_single_resident_building(user):
     units = Unit.objects.filter(
@@ -184,7 +185,6 @@ def middle_admin_dashboard(request):
         user=request.user
     ).order_by('-created_at').first()
 
-
     if subscription:
         subscription.expire_if_needed()
 
@@ -230,7 +230,6 @@ def middle_admin_dashboard(request):
         'renter': renter_units.count(),
         'empty': empty_units.count(),
     }
-    print(unit_status_stats)
     has_unit_chart_data = any([
         unit_status_stats.get('owner', 0) > 0,
         unit_status_stats.get('renter', 0) > 0,
@@ -284,13 +283,11 @@ def middle_admin_dashboard(request):
         unit__isnull=False
     ).count()
 
-
-
-    # ماه‌های شمسی
-    persian_months = [
-        "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
-        "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
-    ]
+    # # ماه‌های شمسی
+    # persian_months = [
+    #     "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
+    #     "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
+    # ]
 
     def get_persian_month(g_date):
         if g_date:
@@ -361,10 +358,9 @@ def middle_admin_dashboard(request):
         'months': months,
         'paid_data': paid_data,
         'unpaid_data': unpaid_data,
-        'has_charge_date': has_charge_data,
+        'has_charge_data': has_charge_data,
 
     }
-
     return render(request, 'middleShared/home_template.html', context)
 
 
@@ -1464,7 +1460,6 @@ class MiddleExpenseView(CreateView):
     template_name = 'middle_expense_templates/expense_register.html'
     form_class = ExpenseForm
     success_url = reverse_lazy('middle_register_expense')
-
 
     def form_valid(self, form):
         form.instance.user = self.request.user
