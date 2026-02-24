@@ -19,7 +19,7 @@
      {% endif %} 
                
                  </div>
-<p class="text-danger">توجه: در این نسخه تنها یه ساختمان قابل ثبت میباشد.</p>
+{#<p class="text-danger">توجه: در این نسخه تنها یه ساختمان قابل ثبت میباشد.</p>#}
                <div class="table-responsive">
                             <table class="table table-bordered">
                                 <thead class="text-center">
@@ -56,9 +56,10 @@
 
                                                <td>
                                                       <a
-                                           class="btn btn-gradient-info p-1 edit-house-btn"
+                                           class="btn btn-gradient-info p-1 edit-middle-house-btn"
                                            data-id="{{ house.id }}"
                                            data-name="{{ house.name }}"
+                                           data-subdomain="{{ house.subdomain }}"
                                            data-floor_counts="{{ house.floor_counts }}"
                                            data-unit_counts="{{ house.unit_counts }}"
                                            data-user_type="{{ house.user_type }}"
@@ -103,6 +104,10 @@
                 enctype="multipart/form-data" novalidate>
               {% csrf_token %}
               <div class="row g-2">
+                  <p class="text-danger">مهم : نام لاتین باید برگرفته از نام ساختمان و تک سیلابی باشد</p>
+
+
+                  
                   <div class="col-6">
                       {{ form.name.label_tag }}
                       {{ form.name }}

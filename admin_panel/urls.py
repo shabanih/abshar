@@ -32,7 +32,7 @@ urlpatterns = [
         views.HouseBanksDetailView.as_view(),
         name="house_banks"
     ),
-    # path('house/edit/<int:pk>/', views.MyHouseUpdateView.as_view(), name='edit_house'),
+    path('house/edit/<int:pk>/', views.MyHouseUpdateView.as_view(), name='edit_house'),
     # path('delete/house/<int:pk>/', views.house_delete, name='delete_house'),
 
     # Bank Urls

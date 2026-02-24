@@ -283,12 +283,6 @@ def middle_admin_dashboard(request):
         unit__isnull=False
     ).count()
 
-    # # ماه‌های شمسی
-    # persian_months = [
-    #     "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور",
-    #     "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"
-    # ]
-
     def get_persian_month(g_date):
         if g_date:
             return jdatetime.date.fromgregorian(date=g_date).month
@@ -326,23 +320,6 @@ def middle_admin_dashboard(request):
     unpaid_data = [unpaid_counts[m] for m in months]
 
     has_charge_data = any(paid_data) or any(unpaid_data)
-
-    # قبل از return render(...)
-    print("===== Debug Dashboard Data =====")
-    print("Units Count:", unit_count)
-    print("Unit Status Stats:", unit_status_stats)
-    print("Has Unit Chart Data:", has_unit_chart_data)
-
-    print("Expense Chart Data:", expense_chart_data)
-    print("Income Chart Data:", income_chart_data)
-
-    print("Paid Charges:", paid_data)
-    print("Unpaid Charges:", unpaid_data)
-    print("Has Charge Data:", has_charge_data)
-
-    print("Announcements:", list(announcements.values('title', 'created_at')))
-    print("Tickets:", list(tickets.values('subject', 'created_at', 'ticket_no')))
-    print("=================================")
 
     context = {
         'announcements': announcements,

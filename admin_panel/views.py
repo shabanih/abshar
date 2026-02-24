@@ -245,6 +245,7 @@ def admin_cancel_subscription(request, subscription_id):
     messages.success(request, "اشتراک غیرفعال شد. تاریخ‌ها بدون تغییر باقی ماندند.")
     return redirect(request.META.get('HTTP_REFERER'))
 
+
 @method_decorator(admin_required, name='dispatch')
 class UserManagementListView(ListView):
     model = User
@@ -635,6 +636,26 @@ class AddMyHouseView(ListView):
         context = super().get_context_data(**kwargs)
         context['query'] = self.request.GET.get('q', '')
         context['paginate'] = self.request.GET.get('paginate', '20')
+        context['form'] = MyHouseForm()
+        return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class MyHouseUpdateView(UpdateView):
+    model = MyHouse
+    form_class = MyHouseForm
+    success_url = reverse_lazy('manage_house')
+    template_name = 'admin_panel/add_my_house.html'
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        messages.success(self.request, 'اطلاعات ساختمان با موفقیت ویرایش گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['houses'] = MyHouse.objects.order_by('-created_at')
+        context['form'] = MyHouseForm()
         return context
 
 

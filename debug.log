@@ -31045,3 +31045,208 @@ Not Found: /ws/tickets/
 Not Found: /ws/tickets/admin/
 Not Found: /ws/tickets/
 Not Found: /ws/tickets/admin/
+Watching for file changes with StatReloader
+Not Found: /favicon.ico
+D:\Django_project\absharProject\admin_panel\forms.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /favicon.ico
+D:\Django_project\absharProject\middleAdmin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\forms.py changed, reloading.
+Watching for file changes with StatReloader
+Forbidden (CSRF token from POST incorrect.): /admin-panel/login-admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Internal Server Error: /admin-panel/house/edit/21/
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\utils\decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 206, in post
+    return super().post(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 150, in post
+    if form.is_valid():
+       ^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\forms\forms.py", line 206, in is_valid
+    return self.is_bound and not self.errors
+                                 ^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\forms\forms.py", line 201, in errors
+    self.full_clean()
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\forms\forms.py", line 338, in full_clean
+    self._clean_form()
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\forms\forms.py", line 354, in _clean_form
+    cleaned_data = self.clean()
+                   ^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\admin_panel\forms.py", line 415, in clean
+    if not re.match(r'^[a-z0-9-]+$', self.subdomain):
+                                     ^^^^^^^^^^^^^^
+AttributeError: 'MyHouseForm' object has no attribute 'subdomain'
+Not Found: /favicon.ico
+D:\Django_project\absharProject\admin_panel\forms.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Django_project\absharProject\admin_panel\forms.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Internal Server Error: /admin-panel/house/edit/21/
+Traceback (most recent call last):
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\utils\decorators.py", line 48, in _wrapper
+    return bound_method(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\contrib\auth\decorators.py", line 59, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\base.py", line 143, in dispatch
+    return handler(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 206, in post
+    return super().post(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 151, in post
+    return self.form_valid(form)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\admin_panel\views.py", line 653, in form_valid
+    return super().form_valid(form)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 134, in form_valid
+    return super().form_valid(form)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 63, in form_valid
+    return HttpResponseRedirect(self.get_success_url())
+                                ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\views\generic\edit.py", line 119, in get_success_url
+    if self.success_url:
+       ^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\utils\functional.py", line 187, in __wrapper__
+    result = func(*self._args, **self._kw)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\urls\base.py", line 98, in reverse
+    resolved_url = resolver._reverse_with_prefix(view, prefix, *args, **kwargs)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Django_project\absharProject\.venv\Lib\site-packages\django\urls\resolvers.py", line 831, in _reverse_with_prefix
+    raise NoReverseMatch(msg)
+django.urls.exceptions.NoReverseMatch: Reverse for 'add_my_house' not found. 'add_my_house' is not a valid view function or pattern name.
+D:\Django_project\absharProject\admin_panel\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Not Found: /ws/tickets/admin/
+Watching for file changes with StatReloader
+Not Found: /js/jquery-3.4.1.min.js
+Not Found: /images/logo.png
+Not Found: /css/responsive.css
+Not Found: /css/style.css
+Not Found: /css/font-awesome.min.css
+Not Found: /css/bootstrap.css
+Not Found: /images/slider-bg.jpg
+Not Found: /images/arrival-bg.png
+Not Found: /js/bootstrap.js
+Not Found: /js/popper.min.js
+Not Found: /images/p2.png
+Not Found: /images/p1.png
+Not Found: /images/p3.png
+Not Found: /js/custom.js
+Not Found: /images/p6.png
+Not Found: /images/p5.png
+Not Found: /images/p4.png
+Not Found: /images/p7.png
+Not Found: /images/p8.png
+Not Found: /images/p9.png
+Not Found: /images/p10.png
+Not Found: /images/p11.png
+Not Found: /images/p12.png
+Not Found: /images/client.jpg
+Not Found: /images/favicon.png
+Not Found: /images/client.jpg
+Not Found: /ws/tickets/admin/
+Watching for file changes with StatReloader
+Not Found: /.well-known/appspecific/com.chrome.devtools.json

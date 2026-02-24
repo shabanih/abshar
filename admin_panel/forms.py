@@ -1,3 +1,5 @@
+import re
+
 import jdatetime
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django import forms
@@ -407,6 +409,32 @@ class MyHouseForm(forms.ModelForm):
     class Meta:
         model = MyHouse
         fields = ['name', 'address', 'user_type', 'city', 'is_active', 'floor_counts', 'unit_counts', 'subdomain']
+
+
+    def clean_subdomain(self):
+        subdomain = self.cleaned_data.get('subdomain')
+
+        if not subdomain:
+            return subdomain
+
+        # تبدیل خودکار به lowercase
+        subdomain = subdomain.lower()
+
+        # فقط حروف کوچک انگلیسی - تک سیلابی بدون فاصله
+        if not re.match(r'^[a-z]+$', subdomain):
+            raise ValidationError(
+                "نام لاتین باید فقط شامل حروف کوچک انگلیسی و بدون فاصله باشد."
+            )
+
+        # کلمات رزرو شده
+        RESERVED = ["admin", "www", "panel", "api"]
+        if subdomain in RESERVED:
+            raise ValidationError(
+                "این نام قابل استفاده نیست."
+            )
+
+        return subdomain
+
 
 
 class UnitForm(forms.ModelForm):
