@@ -70,7 +70,7 @@ from user_app.models import User, Unit, Bank, MyHouse, CalendarNote, UserPayMone
 #         else:
 #             messages.error(request, 'ورود ناموفق: شماره موبایل یا کلمه عبور نادرست است.')
 #
-#     return render(request, 'index.html', {'form': form})
+#     return render(request, 'middle_login.html', {'form': form})
 from django.db.models import Exists, OuterRef
 
 
@@ -132,7 +132,7 @@ def switch_to_manager(request):
 #         else:
 #             messages.error(request, 'ورود ناموفق: شماره موبایل یا کلمه عبور نادرست است.')
 #
-#     return render(request, 'index.html', {'form': form})
+#     return render(request, 'middle_login.html', {'form': form})
 
 
 def mobile_login(request):
@@ -216,12 +216,12 @@ def resend_otp(request):
 
     except User.DoesNotExist:
         messages.error(request, 'User does not exist.')
-        return HttpResponseRedirect(reverse('index'))
+        return HttpResponseRedirect(reverse('home'))
 
 
 def logout_user(request):
     logout(request)
-    return redirect('index')
+    return redirect('home')
 
 
 def site_header_component(request):

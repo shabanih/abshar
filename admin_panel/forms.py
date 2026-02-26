@@ -15,6 +15,7 @@ from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, 
                                 FixPersonCharge, FixAreaCharge, ChargeFixVariable, SmsManagement, UnifiedCharge,
                                 MessageToUser, SmsCredit, AdminMessageToMiddle, AdminSmsManagement, Subscription,
                                 SubscriptionPlan)
+from home.models import SliderText
 
 from user_app.models import Unit, Bank, User, MyHouse, ChargeMethod, Renter
 
@@ -44,6 +45,32 @@ MIDDLE_CHOICES = (
     (0, 'خیر'),
 )
 
+class SliderForm(forms.ModelForm):
+    title = forms.CharField(
+        error_messages=error_message,
+        required=True,
+        widget=forms.TextInput(attrs=attr),
+        label='عنوان اصلی '
+    )
+    title2 = forms.CharField(
+        error_messages=error_message,
+        required=False,
+        widget=forms.TextInput(attrs=attr),
+        label='عنوان دوم '
+    )
+    text = forms.CharField(
+        error_messages=error_message,
+        required=True,
+        widget=forms.Textarea(attrs=attr),
+        label='متن '
+    )
+
+    is_active = forms.ChoiceField(label='فعال /غیرفعال نمودن ', required=True,
+                                  error_messages=error_message, choices=CHOICES, widget=forms.Select(attrs=attr))
+
+    class Meta:
+        model = SliderText
+        fields = ['title', 'is_active', 'text', 'title2']
 
 class announcementForm(forms.ModelForm):
     # title = forms.CharField(widget=CKEditorUploadingWidget())
@@ -384,10 +411,28 @@ USER_TYPE_CHOICES = [
 
 
 class MyHouseForm(forms.ModelForm):
+    user = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        empty_label="نام مدیر را انتخاب کنید",
+        error_messages=error_message,
+        required=True,
+        label=' نام مدیر ساختمان',
+        widget=forms.Select(
+            attrs={
+                'class': 'form-control-sm ',
+                'style': 'width:100%',
+                # 'data-placeholder': 'واحد / مالک یا مستاجر را انتخاب کنید1'
+            }
+        )
+    )
     name = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
                            label='نام ساختمان')
+    phone = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
+                           label='تلفن', max_length=11)
+    boss_mobile = forms.CharField(error_messages=error_message, max_length=11, required=True, widget=forms.TextInput(attrs=attr),
+                           label='موبایل مدیر')
     subdomain = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
-                           label='نام لاتین')
+                                label='نام لاتین')
     user_type = forms.ChoiceField(error_messages=error_message, choices=USER_TYPE_CHOICES, required=True,
                                   widget=forms.Select(attrs=attr3),
                                   label='نوع کاربری')
@@ -408,8 +453,15 @@ class MyHouseForm(forms.ModelForm):
 
     class Meta:
         model = MyHouse
-        fields = ['name', 'address', 'user_type', 'city', 'is_active', 'floor_counts', 'unit_counts', 'subdomain']
+        fields = ['name', 'address', 'user_type', 'city', 'is_active', 'floor_counts', 'unit_counts', 'subdomain',
+                  'user', 'phone', 'boss_mobile']
 
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        if user:
+            self.fields['user'].queryset = User.objects.filter(is_active=True, is_middle_admin=True).order_by('-created_time')
 
     def clean_subdomain(self):
         subdomain = self.cleaned_data.get('subdomain')
@@ -420,10 +472,10 @@ class MyHouseForm(forms.ModelForm):
         # تبدیل خودکار به lowercase
         subdomain = subdomain.lower()
 
-        # فقط حروف کوچک انگلیسی - تک سیلابی بدون فاصله
-        if not re.match(r'^[a-z]+$', subdomain):
+        # فقط حروف کوچک انگلیسی و عدد - بدون فاصله
+        if not re.match(r'^[a-z0-9]+$', subdomain):
             raise ValidationError(
-                "نام لاتین باید فقط شامل حروف کوچک انگلیسی و بدون فاصله باشد."
+                "نام لاتین فقط می‌تواند شامل حروف کوچک انگلیسی و عدد و بدون فاصله باشد."
             )
 
         # کلمات رزرو شده
@@ -434,7 +486,6 @@ class MyHouseForm(forms.ModelForm):
             )
 
         return subdomain
-
 
 
 class UnitForm(forms.ModelForm):
@@ -886,7 +937,7 @@ class ExpenseForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         default_categories = ['هزینه آب', 'هزینه برق', 'هزینه گاز', 'بیمه ساختمان', 'نگهداری تاسیسات',
-                              'حقوق و دستمزد' , 'هزینه نظافت', 'هزینه تعمیرات اساسی', 'هزینه فضای سبز']
+                              'حقوق و دستمزد', 'هزینه نظافت', 'هزینه تعمیرات اساسی', 'هزینه فضای سبز']
         if user:
             for title in default_categories:
                 ExpenseCategory.objects.get_or_create(

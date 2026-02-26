@@ -27,6 +27,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, UpdateView, DetailView, ListView
+from django.views.generic.edit import FormMixin
 from openpyxl.styles import PatternFill, Font, Alignment
 from pypdf import PdfWriter
 from weasyprint import HTML, CSS
@@ -37,13 +38,14 @@ from admin_panel.forms import announcementForm, UnitForm, ExpenseForm, ExpenseCa
     IncomeForm, IncomeCategoryForm, BankForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, \
     MaintenanceForm, FixChargeForm, PersonAreaChargeForm, AreaChargeForm, PersonChargeForm, FixAreaChargeForm, \
     FixPersonChargeForm, PersonAreaFixChargeForm, VariableFixChargeForm, UserRegistrationForm, SmsForm, MyHouseForm, \
-    ChargeCategoryForm, AdminSmsForm, SubscriptionPlanForm
+    ChargeCategoryForm, AdminSmsForm, SubscriptionPlanForm, SliderForm
 from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDocument, Income, IncomeDocument, \
     IncomeCategory, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, ChargeByPersonArea, \
     ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
     FixPersonCharge, FixAreaCharge, ChargeFixVariable, \
     SmsManagement, Fund, UnifiedCharge, AdminSmsManagement, SmsCredit, ImpersonationLog, SubscriptionPlan, Subscription
+from home.models import SliderText
 from notifications.models import AdminTicket
 from polls.templatetags.poll_extras import jalali_to_gregorian
 from user_app.models import Unit, Bank, Renter, User, MyHouse, ChargeMethod, CalendarNote, UnitResidenceHistory
@@ -134,6 +136,7 @@ def site_header_component(request):
     return render(request, 'shared/notification_template.html', context)
 
 
+# ===============================================
 @method_decorator(admin_required, name='dispatch')
 class AddSubscriptionPlan(CreateView):
     model = SubscriptionPlan
@@ -246,6 +249,7 @@ def admin_cancel_subscription(request, subscription_id):
     return redirect(request.META.get('HTTP_REFERER'))
 
 
+# ==========================================================================
 @method_decorator(admin_required, name='dispatch')
 class UserManagementListView(ListView):
     model = User
@@ -361,6 +365,7 @@ def stop_impersonation(request):
     return redirect('/admin-panel/')
 
 
+# ==========================================================================
 @method_decorator(admin_required, name='dispatch')
 class MiddleAdminCreateView(CreateView):
     model = User
@@ -503,6 +508,54 @@ def middleAdmin_delete(request, pk):
     return redirect(reverse('create_middle_admin'))
 
 
+# ====================== Slider Text  =================================
+class SliderTextCreateView(CreateView):
+    model = SliderText
+    template_name = 'admin_panel/slider_text.html'
+    form_class = SliderForm
+    success_url = reverse_lazy('create_slider_text')
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(
+            self.request,
+            'متن اسلایدر با موفقیت ثبت شد!'
+        )
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        context['texts'] = SliderText.objects.all().order_by('-created')
+        return context
+
+
+class SliderTextUpdateView(UpdateView):
+    model = SliderText
+    template_name = 'admin_panel/slider_text.html'
+    form_class = SliderForm
+    success_url = reverse_lazy('create_slider_text')
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        messages.success(self.request, 'متن اسلایدر با موفقیت ویرایش گردید!')
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['texts'] = SliderText.objects.all().order_by('created')
+        return context
+
+def delete_slider_text(request, pk):
+    text = get_object_or_404(SliderText, id=pk)
+    try:
+        text.delete()
+        messages.success(request, 'متن اسلاید با موفقیت حذف گردید!')
+        return redirect(reverse('create_slider_text'))
+    except Bank.DoesNotExist:
+        messages.info(request, 'خطا در حذف')
+        return redirect(reverse('create_slider_text'))
+
+
 # ====================== Announcement =================================
 @method_decorator(admin_required, name='dispatch')
 class AnnouncementView(ListView):
@@ -604,23 +657,23 @@ def announcement_delete(request, pk):
 
 # ========================== My House Views ========================
 @method_decorator(admin_required, name='dispatch')
-class AddMyHouseView(ListView):
+class AddMyHouseView(FormMixin, ListView):
     model = MyHouse
     template_name = 'admin_panel/add_my_house.html'
     context_object_name = 'houses'
+    form_class = MyHouseForm
+    success_url = reverse_lazy('manage_house')
 
     def get_paginate_by(self, queryset):
         paginate = self.request.GET.get('paginate')
         if paginate == '1000':
-            return None  # نمایش همه آیتم‌ها
+            return None
         return int(paginate or 20)
 
     def get_queryset(self):
         query = self.request.GET.get('q', '')
-
         queryset = MyHouse.objects.all()
 
-        # فیلتر جستجو
         if query:
             queryset = queryset.filter(
                 Q(user__full_name__icontains=query) |
@@ -636,8 +689,24 @@ class AddMyHouseView(ListView):
         context = super().get_context_data(**kwargs)
         context['query'] = self.request.GET.get('q', '')
         context['paginate'] = self.request.GET.get('paginate', '20')
-        context['form'] = MyHouseForm()
+        if 'form' not in context:
+            context['form'] = self.get_form()
         return context
+
+    def get_form(self, form_class=None):
+        if form_class is None:
+            form_class = self.get_form_class()
+        return form_class(**self.get_form_kwargs(), user=self.request.user)
+
+    def post(self, request, *args, **kwargs):
+        form = self.get_form()
+        if form.is_valid():
+            form.save()
+            return redirect(self.get_success_url())
+        else:
+            # اضافه کردن این خط برای آماده کردن object_list
+            self.object_list = self.get_queryset()
+            return self.render_to_response(self.get_context_data(form=form))
 
 
 @method_decorator(admin_required, name='dispatch')
@@ -647,15 +716,21 @@ class MyHouseUpdateView(UpdateView):
     success_url = reverse_lazy('manage_house')
     template_name = 'admin_panel/add_my_house.html'
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
-        self.object = form.save(commit=False)
+        obj = form.save(commit=False)
+        obj.updated_by = self.request.user
+        obj.save()
         messages.success(self.request, 'اطلاعات ساختمان با موفقیت ویرایش گردید!')
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['houses'] = MyHouse.objects.order_by('-created_at')
-        context['form'] = MyHouseForm()
         return context
 
 

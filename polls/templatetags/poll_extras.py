@@ -172,3 +172,15 @@ def is_charge_section(url_name):
     if not url_name:
         return False
     return any(url_name.startswith(p) for p in CHARGE_PREFIXES)
+
+
+@register.filter
+def to_persian_number(value):
+    if not value:
+        return value
+
+    persian_digits = '۰۱۲۳۴۵۶۷۸۹'
+    english_digits = '0123456789'
+
+    translation_table = str.maketrans(english_digits, persian_digits)
+    return str(value).translate(translation_table)

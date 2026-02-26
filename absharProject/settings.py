@@ -24,7 +24,7 @@ SECRET_KEY = 'django-insecure-_o*sce-7v=squt58jj0$l=ezgw^!ek$_%8c2##qd^o&7n@4v0h
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
@@ -91,6 +91,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'home.middleware.SubdomainMiddleware',
 ]
 AUTH_USER_MODEL = 'user_app.User'
 
@@ -245,7 +246,6 @@ CELERY_ENABLE_UTC = True
 CELERY_TIMEZONE = 'Asia/Tehran'
 
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
-
 
 SMS_PRICE = 219
 

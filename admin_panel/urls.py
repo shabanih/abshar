@@ -12,9 +12,17 @@ urlpatterns = [
     path("impersonate/<int:user_id>/", views.impersonate_user, name="impersonate"),
     path("stop-impersonation/", views.stop_impersonation, name="stop_impersonation"),
 
+    # middle admin urls
+
     path('create-middle-admin/', views.MiddleAdminCreateView.as_view(), name='create_middle_admin'),
     path('middle/edit/<int:pk>/', views.MiddleAdminUpdateView.as_view(), name='edit_middle_admin'),
     path('middle/delete/<int:pk>/', views.middleAdmin_delete, name='delete_middle_admin'),
+
+    # Slider urls
+
+    path('create-slider-text/', views.SliderTextCreateView.as_view(), name='create_slider_text'),
+    path('slider/text/edit/<int:pk>/', views.SliderTextUpdateView.as_view(), name='edit_slider_text'),
+    path('slider/text/delete/<int:pk>/', views.delete_slider_text, name='delete_slider_text'),
 
     # Announce urls
     path('announcement/', views.AnnouncementView.as_view(), name='announcement'),
@@ -262,7 +270,6 @@ urlpatterns = [
 
     path('subscription/', views.SubscriptionListView.as_view(), name='subscription_list'),
     path('subscription-change/<int:subscription_id>/', views.admin_cancel_subscription, name='subscription_change'),
-
 
 ]
 if settings.DEBUG:

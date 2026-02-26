@@ -9,12 +9,19 @@
 {% block main_content %}
 
 <div class="container py-5">
+
         <div class="row mb-2">
+        <div class="col-12 col-md-2">
+             	 <button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong3">
+                        <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
+                    افزودن ساختمان
+                </button>
+        </div>
         <!-- بخش جستجو -->
-        <div class="col-12 col-md-10 col-xl-10 align-self-center">
+        <div class="col-12 col-md-8 col-xl-8 align-self-center">
             <form method="get" action="" class="d-flex gap-2 align-items-center">
                 <input type="text"
-                       class="p-2 w-25 w-md-75"
+                       class="p-2 w-100"
                        name="q"
                        id="searchInput"
                        autocomplete="off"
@@ -48,8 +55,10 @@
                                 <thead class="text-center">
                                     <tr>
                                         <th>#</th>
-                                        <th>ایجاد کننده</th>
+                                        <th>مدیر ساختمان</th>
                                         <th>نام ساختمان</th>
+                                        <th>تلفن </th>
+                                        <th>موبایل مدیر</th>
                                         <th>زیردامنه</th>
                                         <th> کاربری</th>
                                         <th>شهر</th>
@@ -65,6 +74,8 @@
                                             <td>{{ forloop.counter }}</td>
                                             <td>{{ house.user.full_name }}</td>
                                             <td>{{house.name }}</td>
+                                            <td>{{house.phone }}</td>
+                                            <td>{{house.boss_mobile }}</td>
                                             <td>{{house.subdomain }}</td>
                                             <td>{{house.user_type }}</td>
                                             <td>{{house.city }}</td>
@@ -83,7 +94,10 @@
                                                       <a
                                            class="btn btn-gradient-info p-1 edit-house-btn"
                                            data-id="{{ house.id }}"
+                                           data-user="{{ house.user.id }}"
                                            data-name="{{ house.name }}"
+                                           data-phone="{{ house.phone }}"
+                                           data-boss_mobile="{{ house.boss_mobile }}"
                                            data-subdomain="{{ house.subdomain }}"
                                            data-floor_counts="{{ house.floor_counts }}"
                                            data-unit_counts="{{ house.unit_counts }}"
@@ -149,6 +163,11 @@
               {% csrf_token %}
               <div class="row g-2">
                   <p class="text-danger">مهم : نام لاتین باید برگرفته از نام ساختمان و تک سیلابی باشد</p>
+                       <div class="col-12">
+                      {{ form.user.label_tag }}
+                      {{ form.user }}
+                      {{ form.user.errors }}
+                  </div>
                   <div class="col-6">
                       {{ form.name.label_tag }}
                       {{ form.name }}
@@ -160,6 +179,18 @@
                       {{ form.subdomain.errors }}
                   </div>
               </div>
+              <div class="row g-2">
+                  <div class="col-6 ">
+                      {{ form.phone.label_tag }}
+                      {{ form.phone }}
+                      {{ form.phone.errors }}
+                  </div>
+                      <div class="col-6 ">
+                       {{ form.boss_mobile.label_tag }}
+                      {{ form.boss_mobile }}
+                      {{ form.boss_mobile.errors }}
+                  </div>
+                     </div>
                <div class="row g-2">
                   <div class="col-6 ">
                       {{ form.floor_counts.label_tag }}

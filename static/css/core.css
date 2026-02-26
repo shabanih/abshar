@@ -87,7 +87,8 @@ h1, h2, h3, h4, h5, h6 {
 	display: flex;
 	justify-content: center;
 	/*align-items: end;*/
-	min-height: 400px;
+	min-height: 300px;
+    box-shadow: 1px 4px 8px #73acf8;
 }
 
 .login_style a{
@@ -303,3 +304,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /*end marquee*/
+
+.home-style-text{
+    color: #3B4173F9;
+    font-weight: 600;
+}

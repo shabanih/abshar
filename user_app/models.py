@@ -124,6 +124,8 @@ class MyHouse(models.Model):
     name = models.CharField(max_length=100, verbose_name='نام ساختمان')
     floor_counts = models.PositiveIntegerField(default=1)
     unit_counts = models.PositiveIntegerField(default=1)
+    phone = models.CharField(max_length=11)
+    boss_mobile = models.CharField(max_length=11)
     user_type = models.CharField(max_length=100, null=True, blank=True, verbose_name='نوع کاربری')
     city = models.CharField(max_length=100, null=True, blank=True, verbose_name='شهر')
     address = models.CharField(max_length=200, verbose_name='آدرس')
@@ -131,6 +133,7 @@ class MyHouse(models.Model):
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 
     subdomain = models.CharField(max_length=50, unique=True, null=True, blank=True, verbose_name='زیردامنه')
+    enamad_code = models.TextField(null=True, blank=True, verbose_name="کد اینماد")
 
     def __str__(self):
         return self.name
