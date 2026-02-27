@@ -2,7 +2,7 @@
 {% load poll_extras %}
 
 {% block page_title %}
-مدیریت شارژ واحد {{ unit.unit }}
+مدیریت شارژ واحد {{ unit.unit|to_persian_number }}
 {% endblock page_title %}
 
 {% block main_content %}
@@ -34,9 +34,9 @@
                         {% for charge in charges %}
                         <tbody class="text-center">
                            <tr>
-                            <td>{{ charge.charge_name }}</td>
+                            <td>{{ charge.charge_name|to_persian_number }}</td>
                             <td>{{ charge.total_charge_month|three_digit_currency }} </td>
-                            <td class="col-3">{{ charge.details }} </td>
+                            <td class="col-3">{{ charge.details|to_persian_number }} </td>
                             <td>{{ charge.send_notification_date|show_jalali }}</td>
                             <td>{{ charge.payment_deadline_date|show_jalali }}</td>
                             <td>
@@ -77,9 +77,9 @@
                             </div>
                           <hr class="m-0"/>
                             <div class="modal-body text-end">
-                                <p><strong>عنوان:</strong> {{ charge.charge_name }}</p>
-                                <p><strong>تعداد نفرات:</strong> {{ charge.unit.people_count}}</p>
-                                <p><strong>متراژ واحد:</strong> {{ charge.unit.area}}</p>
+                                <p><strong>عنوان:</strong> {{ charge.charge_name|to_persian_number }}</p>
+                                <p><strong>تعداد نفرات:</strong> {{ charge.unit.people_count|to_persian_number}}</p>
+                                <p><strong>متراژ واحد:</strong> {{ charge.unit.area|to_persian_number}}</p>
                                 <p class="text-dark shadow_style text-center"><strong>مبلغ شارژ ماهانه:</strong> {{ charge.amount|three_digit_currency }} تومان</p>
                             <hr/>
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil_charge|three_digit_currency }} تومان</p>
@@ -96,7 +96,7 @@
                                 </p>
                                 <p><strong>تاریخ ارسال اطلاعیه:</strong> {{ charge.send_notification_date|show_jalali_date_only }}</p>
                                 <p><strong>تاریخ پرداخت:</strong> {{ charge.payment_date|show_jalali_date_only }}</p>
-                                <p><strong> کد پیگیری:</strong> {{ charge.transaction_reference }}</p>
+                                <p><strong> کد پیگیری:</strong> {{ charge.transaction_reference|to_persian_number }}</p>
                                     <p><strong>وضعیت:</strong> 
                                     {% if charge.is_paid %}
                                     	<span class="badge bg-success">پرداخت شده</span>

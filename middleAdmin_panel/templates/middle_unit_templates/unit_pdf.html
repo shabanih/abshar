@@ -1,3 +1,4 @@
+{% load poll_extras %}
 <!DOCTYPE html >
 <html lang="fa">
 <head>
@@ -66,7 +67,7 @@ h1{
     <table class="table table-bordered">
         <thead>
                   <tr>
-                            <th>#</th>
+                      
                             <th> واحد</th>
                             <th>نام مالک</th>
                             <th>موبایل مالک</th>
@@ -82,12 +83,12 @@ h1{
                {% for unit in units %}
                         <tbody class="text-center">
                             <tr>
-                                <td>{{ forloop.counter }}</td>
-                                <td>{{unit.unit }}</td>
+                          
+                                <td>{{unit.unit|to_persian_number }}</td>
                                 <td>{{unit.owner_name }}</td>
-                                <td>{{unit.owner_mobile }}</td>
-                                <td>{{unit.area }}</td>
-                                <td>{{unit.bedrooms_count }}</td>
+                                <td>{{unit.owner_mobile|to_persian_number }}</td>
+                                <td>{{unit.area|to_persian_number }}</td>
+                                <td>{{unit.bedrooms_count|to_persian_number }}</td>
                                  {% if unit.renter_name %}
                             	<td>{{unit.renter_name }}</td>
                                 {% else %}
@@ -95,13 +96,13 @@ h1{
                             {% endif %} 
                             
                              {% if unit.renter_mobile %}
-                            	<td>{{unit.renter_mobile }}</td>
+                            	<td>{{unit.renter_mobile|to_persian_number }}</td>
                                 {% else %}
                                 <td>---</td>
                             {% endif %}
                             
                               {% if unit.people_count %}
-                            	<td>{{unit.people_count }}</td>
+                            	<td>{{unit.people_count|to_persian_number }}</td>
                                 {% else %}
                                 <td>---</td>
                             {% endif %}

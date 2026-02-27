@@ -4,6 +4,12 @@ $('#myForm').on('submit', function (e) {
 });
 
 // ====================
+function toPersianNumber(num) {
+    const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
+    return num.toString().replace(/[0-9]/g, function (w) {
+        return persianDigits[+w];
+    });
+}
 function toJalaali(gy, gm, gd) {
     var g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
     var gy2 = (gm > 2) ? (gy + 1) : gy;
@@ -35,7 +41,11 @@ function updateClockAndDate() {
     let hours = now.getHours().toString().padStart(2, '0');
     let minutes = now.getMinutes().toString().padStart(2, '0');
     let seconds = now.getSeconds().toString().padStart(2, '0');
-    document.getElementById("time").innerHTML = "ساعت " + hours + ":" + minutes + ":" + seconds;
+    document.getElementById("time").innerHTML =
+    "ساعت " +
+    toPersianNumber(hours) + ":" +
+    toPersianNumber(minutes) + ":" +
+    toPersianNumber(seconds);
 
     // تاریخ شمسی دقیق
     let jDate = toJalaali(now.getFullYear(), now.getMonth() + 1, now.getDate());
@@ -46,7 +56,10 @@ function updateClockAndDate() {
         "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"];
 
     document.getElementById("date").innerHTML =
-        "امروز: " + todayName + " " + jDate.jd + " " + jMonths[jDate.jm - 1] + " " + jDate.jy;
+    "امروز: " + todayName + " " +
+    toPersianNumber(jDate.jd) + " " +
+    jMonths[jDate.jm - 1] + " " +
+    toPersianNumber(jDate.jy);
 }
 
 setInterval(updateClockAndDate, 1000);

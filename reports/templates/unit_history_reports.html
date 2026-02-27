@@ -78,7 +78,7 @@
     {% if unit_histories %}
         {% for h in unit_histories %}
             <tr>
-                 <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
+                 <td>{{ forloop.counter0|add:page_obj.start_index|add:"0"|to_persian_number }}</td>
                 <td>
                     {% if h.resident_type == 'owner' %}
                         <span class="badge bg-primary">مالک</span>
@@ -86,9 +86,9 @@
                         <span class="badge bg-warning text-dark">مستاجر</span>
                     {% endif %}
                 </td>
-                <td>{{ h.name }}</td>
-                <td>{{ h.mobile }}</td>
-                <td>{{ h.people_count }}</td>
+                <td>{{ h.name|to_persian_number }}</td>
+                <td>{{ h.mobile|to_persian_number }}</td>
+                <td>{{ h.people_count|to_persian_number }}</td>
                 <td>{{ h.from_date|show_jalali }}</td>
                 <td>
                     {% if h.to_date %}

@@ -42,8 +42,8 @@
                            {% for charge in charges %}
                                     <tbody class="text-center">
                                         <tr>
-                                            <td>{{ forloop.counter }}</td>
-                                            <td>{{charge.name }}</td>
+                                            <td>{{ forloop.counter|to_persian_number }}</td>
+                                            <td>{{charge.name|to_persian_number }}</td>
                                             <td>{{charge.unit_power_amount|three_digit_currency }}</td>
                                             <td>{{charge.unit_water_amount|three_digit_currency }}</td>
                                             <td>{{charge.unit_gas_amount|three_digit_currency }}</td>

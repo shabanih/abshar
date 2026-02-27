@@ -3,7 +3,7 @@
 {% load poll_extras %}
 
 {% block page_title %}
-  اعلام شارژ({{ charge.name }}  )
+  اعلام شارژ({{ charge.name|to_persian_number }}  )
 {% endblock page_title %}
 
 {% block main_content %}
@@ -98,7 +98,7 @@
                        type="checkbox"
                        name="units"
                        value="{{ unit.id }}">
-                واحد شماره {{ unit.unit }}
+                واحد شماره {{ unit.unit|to_persian_number }}
             </p>
         {% if item.send_sms %}
         	       <p class="me-2"><i class="fa fa-envelope text-info"></i></p>

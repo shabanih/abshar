@@ -8,8 +8,8 @@
     <hr>
 <div class="container py-4">
 
-    <h4>دریافت درآمد سند {{ income.doc_number }}</h4>
-    <p>شرح: {{ income.description }}</p>
+    <h4>دریافت درآمد سند {{ income.doc_numberto_persian_number }}</h4>
+    <p>شرح: {{ income.descriptionto_persian_number }}</p>
     <p>مبلغ: {{ income.amount|three_digit_currency }}تومان</p>
 
     <form method="post" action="">

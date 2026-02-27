@@ -25,10 +25,10 @@
     <div class="card mb-4">
         <div class="card-header">مشخصات کاربر</div>
         <div class="card-body">
-            <p><strong>نام:</strong> {{ user_obj.full_name }}</p>
+            <p><strong>نام:</strong> {{ user_obj.full_name|to_persian_number  }}</p>
             <p><strong>ایمیل:</strong> ثبت نشده است</p>
-            <p><strong>شماره موبایل:</strong> {{ user_obj.mobile }}</p>
-            <p><strong>نام کاربری:</strong> {{ user_obj.username }}</p>
+            <p><strong>شماره موبایل:</strong> {{ user_obj.mobile|to_persian_number  }}</p>
+            <p><strong>نام کاربری:</strong> {{ user_obj.username|to_persian_number  }}</p>
             <p><strong>آخرین ورود:</strong> {{ user_obj.last_login|show_jalali_date_time }}</p>
               <img src="/static/img/user_profile.jpg" class="profile-image-user" alt="">
 

@@ -971,7 +971,7 @@ def admin_send_message(request, pk):
     return redirect('message_admin_to_middle')
 
 
-@method_decorator(middle_admin_required, name='dispatch')
+@method_decorator(admin_required, name='dispatch')
 class AdminMessageToMiddleListView(ListView):
     model = AdminMessageToMiddle
     template_name = 'admin_message_management.html'

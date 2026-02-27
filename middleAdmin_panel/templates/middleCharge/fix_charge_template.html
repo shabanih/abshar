@@ -58,10 +58,10 @@
                            {% for charge in charges %}
                                     <tbody class="text-center p-0">
                                         <tr>
-                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{ forloop.counter|to_persian_number }}</td>
 
-                                            <td class="p-0">{{charge.name }}</td>
-                                            <td>{{unit_count }}</td>
+                                            <td class="p-0">{{charge.name|to_persian_number }}</td>
+                                            <td>{{unit_count|to_persian_number }}</td>
                                             <td class="bg-gradient-light p-0"><strong>{{charge.fix_amount|three_digit_currency }}</strong></td>
                                                  <td>
                                                  {% if charge.details %}
@@ -73,7 +73,7 @@
                                           </td>
                                             	  <td>
                                                    {% if charge.payment_penalty_amount %}
-                                                      % {{charge.payment_penalty_amount }}
+                                                      % {{charge.payment_penalty_amount|to_persian_number }}
                                                 {% else %}
                                                 ثبت نشده است
                                             {% endif %}
@@ -87,7 +87,7 @@
 
                                              </td>
                                           <td class="bg-gradient-light">
-                                                <span>{{ charge.notified_count }} از {{ unit_count }} واحد</span>
+                                                <span>{{ charge.notified_count|to_persian_number }} از {{ unit_count|to_persian_number }} واحد</span>
                                                 </td>
 
 
@@ -113,7 +113,7 @@
                                            onclick="return confirmDeleteWithSweetAlert(event)">
                                                   <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                 </a>
-                                      <a href="{% url 'middle_fix_charge_notify' charge.id %}"
+                                      <a href="{% url 'middle_add_fix_charge_notify' charge.id %}"
                                                         class="btn btn-gradient-success px-3 py-1" 
                                           data-bs-toggle="tooltip"  title="اعلان شارژ">
                                          <i class="fas fa-bullhorn fa-flip-horizontal"></i>
@@ -128,7 +128,7 @@
                             </div>
                           <hr/>
                             <div class="modal-body text-end">
-                                <p><strong>عنوان:</strong> {{ charge.name }}</p>
+                                <p><strong>عنوان:</strong> {{ charge.name|to_persian_number }}</p>
                                  <p><strong>مبلغ شارژ هر واحد:</strong> {{ charge.fix_amount|three_digit_currency }} تومان</p>
                                 <p><strong>شارژ عمرانی:</strong> {{ charge.civil|three_digit_currency }} تومان</p>
                                 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost_amount|three_digit_currency }} تومان</p>

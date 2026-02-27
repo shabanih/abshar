@@ -2,7 +2,7 @@
 {% load static %}
 {% load poll_extras %}
 {% block page_title %}
-مدیریت هزینه ها( تعداد ثبت شده:{{ total_expense }} )
+مدیریت هزینه ها( تعداد ثبت شده:{{ total_expense|to_persian_number }} )
 {% endblock page_title %}
 
 {% block main_content %}
@@ -129,11 +129,11 @@
                {% for expense in page_obj %}
                         <tbody class="text-center">
                             <tr>
-                                <td>{{ forloop.counter }}</td>
-                                <td>{{expense.category }}</td>
-                                <td>{{expense.description }}</td>
+                                <td>{{ forloop.counter|to_persian_number }}</td>
+                                <td>{{expense.category|to_persian_number }}</td>
+                                <td>{{expense.description|to_persian_number }}</td>
                                 <td>{{expense.amount|three_digit_currency }}</td>
-                                <td>{{expense.doc_no }}</td>
+                                <td>{{expense.doc_no|to_persian_number }}</td>
                                  <td>{{expense.date|show_jalali_date_only }}</td>
                                <td>
                                    {% if expense.details %}
@@ -153,9 +153,9 @@
                                 </td>
                             <td>
                                 {% if expense.is_paid %}
-                                	<span class="text-success fw-bold">پرداخت شده</span>
+                                	<span class="badge badge-success fw-bold">پرداخت شده</span>
                                     {% else %}
-                                	<span class="text-danger fw-bold">پرداخت نشده</span>
+                                	<span class="badge badge-danger fw-bold">پرداخت نشده</span>
                                 {% endif %} 
                               
                             </td>
@@ -208,14 +208,14 @@
                             </div>
                           <hr/>
                             <div class="modal-body text-end">
-                                <p><strong>موضوع هزینه:</strong> {{ expense.category }}</p>
+                                <p><strong>موضوع هزینه:</strong> {{ expense.category|to_persian_number }}</p>
                                  <p><strong>شرح هزینه:</strong> {{ expense.description }} تومان</p>
                                 <p><strong>مبلغ:</strong> {{ expense.amount|three_digit_currency }} تومان</p>
-                                <p><strong>شماره سند:</strong> {{ expense.doc_no }} </p>
+                                <p><strong>شماره سند:</strong> {{ expense.doc_no|to_persian_number }} </p>
                                 <p><strong>تاریخ سند :</strong> {{ expense.date|show_jalali_date_only}} </p>
                                 <p><strong>توضیحات:</strong>
                                     {% if expense.details %}
-                                        <span class="badge bg-warning">{{ expense.details }} </span>
+                                        <span class="badge bg-warning">{{ expense.details|to_persian_number }} </span>
                                         {% else %}
                                         توضیحات ثبت نشده است
                                     {% endif %}
@@ -224,13 +224,13 @@
                                 <hr>
                              {% if expense.transaction_reference %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ expense.payment_date|show_jalali_date_only }}</p>
-                                <p><strong> کد پیگیری:</strong> {{ expense.transaction_reference }}</p>
-                                <p><strong> بانک:</strong> {{ expense.bank }}</p>
+                                <p><strong> کد پیگیری:</strong> {{ expense.transaction_reference|to_persian_number }}</p>
+                                <p><strong> بانک:</strong> {{ expense.bank|to_persian_number }}</p>
                                 <p><strong> دریافت کننده:</strong> 
                                  {% if expense.receiver_name  %}
-                                 	 {{ expense.receiver_name }}
+                                 	 {{ expense.receiver_name|to_persian_number }}
                                      {% elif expense.unit %}
-                                      {{ expense.unit }}
+                                      {{ expense.unit|to_persian_number }}
                                  {% endif %}   
                                 </p>
                             {% endif %}

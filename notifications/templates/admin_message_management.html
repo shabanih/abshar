@@ -61,10 +61,10 @@
                         {% for message in all_messages %}
                         <tbody class="text-center">
                             <tr>
-                                <td>{{ forloop.counter }}</td>
+                                <td>{{ forloop.counter|to_persian_number }}</td>
 {#                                <td>{{sms.user.full_name }}</td>#}
-                                <td>{{ message.title }}</td>
-                                <td>{{ message.message }}</td>
+                                <td>{{ message.title|to_persian_number }}</td>
+                                <td>{{ message.message|to_persian_number }}</td>
 
                                 <td>{{ message.created_at|show_jalali}}</td>
 {#                                  <td>#}
@@ -116,10 +116,10 @@
 
                 {% for status in message.read_statuses.all %}
                     
-                    {{ status.user.full_name }} 
+                    {{ status.user.full_name|to_persian_number }} 
                     
                     {% if status.user.mobile %}
-                        ({{ status.user.mobile }})
+                        ({{ status.user.mobile|to_persian_number }})
                     {% endif %}
                     -
 

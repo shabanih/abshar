@@ -84,9 +84,9 @@
                         {% for sms in all_sms %}
                         <tbody class="text-center">
                             <tr>
-                                <td>{{ forloop.counter }}</td>
-                                <td>{{ sms.subject }}</td>
-                                <td class="col-4">{{ sms.message }}</td>
+                                <td>{{ forloop.counter|to_persian_number  }}</td>
+                                <td>{{ sms.subject|to_persian_number  }}</td>
+                                <td class="col-4">{{ sms.message|to_persian_number  }}</td>
 
                                 <td>{{ sms.created_at|show_jalali}}</td>
                                   <td class="p-0">

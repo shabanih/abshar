@@ -3,7 +3,7 @@
 {% load poll_extras %}
 
 {% block page_title %}
-  اعلام شارژ ({{ charge.name }}  )  
+  اعلام شارژ ({{ charge.name|to_persian_number }}  )  
 {% endblock page_title %}
 
 {% block main_content %}
@@ -98,14 +98,14 @@
                            type="checkbox" name="units" 
                            value="{{ unit.id }}" id="unit{{ unit.id }}">
                              <span class="chargeCircleParking">P</span>
-                    واحد شماره {{ unit.unit }}
+                    واحد شماره {{ unit.unit|to_persian_number }}
                      {% else %}
                        	    <input class="form-check-input unit-checkbox mx-3 " 
                            type="checkbox" name="units" 
                            value="{{ unit.id }}" id="unit{{ unit.id }}">
 
                   
-                    واحد شماره {{ unit.unit }}
+                    واحد شماره {{ unit.unit|to_persian_number }}
                  {% endif %} 
             </p>
         {% if item.send_sms %}

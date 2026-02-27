@@ -53,7 +53,7 @@
                             <th>تاریخ ایجاد</th>
                             <th>وضعیت</th>
                             <th>تاریخ ارسال</th>
-                            <th>تعداد پیام ارسالی</th>
+                            <th> پیام ارسالی</th>
                             <th>دستورات</th>
                         </tr>
                     </thead>
@@ -61,10 +61,10 @@
                         {% for message in all_messages %}
                         <tbody class="text-center">
                             <tr>
-                                <td>{{ forloop.counter }}</td>
+                                <td>{{ forloop.counter|to_persian_number  }}</td>
 {#                                <td>{{sms.user.full_name }}</td>#}
-                                <td>{{ message.title }}</td>
-                                <td>{{ message.message }}</td>
+                                <td>{{ message.title|to_persian_number  }}</td>
+                                <td class="col-lg-4">{{ message.message|to_persian_number  }}</td>
 
                                 <td>{{ message.created_at|show_jalali}}</td>
 {#                                  <td>#}
@@ -88,7 +88,7 @@
                             -
                         {% endif %}
                     </td>
-                           <td>{{ message.sent_users_count  }}</td>
+                           <td>{{ message.sent_users_count|to_persian_number }}</td>
                                        <td>
                                               <a href="{% url 'delete_message_to_user_list' message.id %}" class="btn btn-gradient-danger p-1"
                                         onclick="return confirmDeleteWithSweetAlert(event)">
@@ -109,7 +109,7 @@
             <div class="modal-body text-end">
                 <p><strong>لیست واحدهای ارسالی:</strong></p>
               {% for status in message.read_statuses.all %}
-    {{ status.unit.get_label }} -
+    {{ status.unit.get_label|to_persian_number }} -
     {% if status.is_read %}
         خوانده شده
     {% else %}

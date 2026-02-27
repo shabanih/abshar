@@ -86,8 +86,8 @@
         <tbody>
             {% for unit in units_with_debt %}
             <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ unit.label }}</td>
+                <td>{{ forloop.counter|to_persian_number }}</td>
+                <td>{{ unit.label|to_persian_number }}</td>
                 <td>{{ unit.total_debt|three_digit_currency }}</td>
             <td>
                                <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ unit.id }}"
@@ -105,7 +105,7 @@
 
       <div class="modal-header">
         <h5 class="modal-title">
-            سوابق بدهی {{ unit.label }}
+            سوابق بدهی {{ unit.label|to_persian_number }}
         </h5>
       </div>
 
@@ -127,10 +127,10 @@
         {% for charge in unit.charges %}
         <div class="row g-0 text-center">
           <div class="col-1 border">
-              {{ forloop.counter }}
+              {{ forloop.counter|to_persian_number }}
           </div>
           <div class="col-3 border">
-              {{ charge.title }}
+              {{ charge.title|to_persian_number }}
           </div>
           <div class="col-2 border">
               {{ charge.total_charge_month|three_digit_currency }}

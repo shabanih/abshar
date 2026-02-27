@@ -129,7 +129,7 @@
                             <th> واریز کننده</th>
                             <th>وضعیت پرداخت</th>
                                   <th>مبلغ</th>
-                                  <th>دستورات</th>
+                                  <th>مشاهده</th>
                         </tr>
                     </thead>
                       <thead>
@@ -146,11 +146,11 @@
                {% for income in page_obj %}
                         <tbody class="text-center">
                             <tr>
-                            <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
-                                <td>{{income.category.subject }}</td>
-                                <td>{{income.description }}</td>
+                            <td>{{ forloop.counter0|add:page_obj.start_index|add:"0"|to_persian_number }}</td>
+                                <td>{{income.category.subject|to_persian_number }}</td>
+                                <td>{{income.description|to_persian_number }}</td>
                                 
-                                <td>{{income.doc_number }}</td>
+                                <td>{{income.doc_number|to_persian_number }}</td>
                                  <td>{{income.doc_date|show_jalali }}</td>
                                <td>
                                    {% if income.details  %}
@@ -171,7 +171,7 @@
                                 </td>
                                         <td>
                                      {% if income.is_paid %}
-                                 {{income.payer_name }}
+                                 {{income.payer_name|to_persian_number }}
                                          {% else %}
                                 ---
                                      {% endif %} 
@@ -200,14 +200,14 @@
                             </div>
                           <hr/>
                             <div class="modal-body text-end">
-                                <p><strong>موضوع درآمد:</strong> {{ income.category }}</p>
-                                 <p><strong>شرح درآمد:</strong> {{ income.description }} تومان</p>
+                                <p><strong>موضوع درآمد:</strong> {{ income.category|to_persian_number }}</p>
+                                 <p><strong>شرح درآمد:</strong> {{ income.description|to_persian_number }}</p>
                                 <p><strong>مبلغ:</strong> {{ income.amount|three_digit_currency }} تومان</p>
-                                <p><strong>شماره سند:</strong> {{ income.doc_number }} </p>
+                                <p><strong>شماره سند:</strong> {{ income.doc_number|to_persian_number }} </p>
                                 <p><strong>تاریخ سند :</strong> {{ income.doc_date|show_jalali_date_only}} </p>
                                 <p><strong>توضیحات:</strong>
                                     {% if income.details %}
-                                        <span class="badge bg-warning">{{ income.details }} </span>
+                                        <span class="badge bg-warning">{{ income.details|to_persian_number }} </span>
                                         {% else %}
                                         توضیحات ثبت نشده است
                                     {% endif %}
@@ -216,13 +216,13 @@
                                 <hr>
                              {% if income.transaction_reference %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ income.payment_date|show_jalali_date_only }}</p>
-                                <p><strong> کد پیگیری:</strong> {{ income.transaction_reference }}</p>
-                                <p><strong> بانک:</strong> {{ income.bank }}</p>
+                                <p><strong> کد پیگیری:</strong> {{ income.transaction_reference|to_persian_number }}</p>
+                                <p><strong> بانک:</strong> {{ income.bank|to_persian_number }}</p>
                                 <p><strong> پرداخت کننده:</strong> 
                                  {% if income.payer_name  %}
-                                 	 {{ income.payer_name }}
+                                 	 {{ income.payer_name|to_persian_number }}
                                      {% elif income.unit %}
-                                      {{ income.unit }}
+                                      {{ income.unit|to_persian_number }}
                                  {% endif %}   
                                 </p>
                             {% endif %}

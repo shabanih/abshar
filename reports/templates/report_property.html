@@ -2,7 +2,7 @@
 {% load static %}
 {% load poll_extras %}
 {% block page_title %}
-    گزارش اموال (تعداد ثبت شده:{{ total_properties }})
+    گزارش اموال (تعداد ثبت شده:{{ total_properties|to_persian_number }})
 {% endblock page_title %}
 
 {% block main_content %}
@@ -106,14 +106,14 @@
                {% for property in page_obj %}
                         <tbody class="text-center">
                             <tr>
-                           <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
-                              <td>{{property.property_name }}</td>
-                                 <td>{{property.property_unit }}</td>
-                                <td>{{property.property_code }}</td>
-                                <td>{{property.property_location }}</td>
+                           <td>{{ forloop.counter0|add:page_obj.start_index|add:"0"|to_persian_number }}</td>
+                              <td>{{property.property_name|to_persian_number }}</td>
+                                 <td>{{property.property_unit|to_persian_number }}</td>
+                                <td>{{property.property_code|to_persian_number }}</td>
+                                <td>{{property.property_location|to_persian_number }}</td>
                            
                                  <td>{{property.property_purchase_date|show_jalali }}</td>
-                               <td>{{property.details }}</td>
+                               <td>{{property.details|to_persian_number }}</td>
                                 <td class="d-flex justify-content-center align-self-center">
                                   {% for doc in property.documents.all %}
                                         <a href="{{ doc.document.url }}" target="_blank" 

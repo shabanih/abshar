@@ -83,9 +83,9 @@
             {% for charge in page_obj %}
                 <tbody>
                 <tr>
-                   <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
-                 <td>{{ charge.charge_name}}</td>
-                 <td>{{ charge.unit.get_label }}</td>
+                   <td>{{ forloop.counter0|add:page_obj.start_index|add:"0"|to_persian_number }}</td>
+                 <td>{{ charge.charge_name|to_persian_number}}</td>
+                 <td>{{ charge.unit.get_label |to_persian_number}}</td>
                     <td>{{ charge.base_charge|three_digit_currency }} </td>
                     <td>
                              {% if charge.details %}

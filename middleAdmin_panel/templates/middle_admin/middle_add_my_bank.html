@@ -40,13 +40,13 @@
                            {% for bank in banks %}
                                     <tbody class="text-center">
                                         <tr>
-                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{ forloop.counter|to_persian_number }}</td>
 {#                                            <td>{{ bank.user.full_name }}</td>#}
 {#                                            <td>{{bank.house }}</td>#}
-                                            <td>{{bank.bank_name }}</td>
-                                            <td>{{bank.account_holder_name }}</td>
-                                            <td>{{bank.account_no }}</td>
-                                            <td>{{bank.sheba_number }}</td>
+                                            <td>{{bank.bank_name|to_persian_number  }}</td>
+                                            <td>{{bank.account_holder_name|to_persian_number }}</td>
+                                            <td>{{bank.account_no|to_persian_number }}</td>
+                                            <td>{{bank.sheba_number|to_persian_number }}</td>
                                             <td>{{bank.cart_number|four_digit_cart }}</td>
                                             <td>{{bank.initial_fund|three_digit_currency }}</td>
                                               <td>

@@ -2,7 +2,7 @@
 {% load static %}
 {% load poll_extras %}
 {% block page_title %}
-گزارش دریافت ها و پرداخت ها
+گزارش دریافت و پرداخت ها
 {% endblock page_title %}
 
 {% block main_content %}
@@ -142,18 +142,18 @@
                            {% for fund in page_obj %}
                                     <tbody class="text-center">
                                         <tr>
-                                     <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
-                                            <td>{{ fund.bank }}</td>
+                                     <td>{{ forloop.counter0|add:page_obj.start_index|add:"0"|to_persian_number }}</td>
+                                            <td>{{ fund.bank|to_persian_number }}</td>
                                                <td>{{fund.payment_date|show_jalali }}</td>
-                                            <td>{{fund.payment_description }}</td>
-                                             <td>{{fund.doc_number}}</td>
+                                            <td>{{fund.payment_description|to_persian_number }}</td>
+                                             <td>{{fund.doc_number|to_persian_number}}</td>
 
                                             <td>
                                                 
                                                     {% if fund.payer_name %}
-                                                    {{fund.payer_name }}
+                                                    {{fund.payer_name|to_persian_number }}
                                                     {% else %}
-                                                    {{fund.receiver_name}}
+                                                    {{fund.receiver_name|to_persian_number}}
                                                 {% endif %} 
                                             </td>
                                             <td class="text-success">{{fund.debtor_amount|three_digit_currency}}</td>
@@ -172,6 +172,25 @@
                                 {% endif %}
                             </table>
                </div>
+   <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
         </div>
 <script type="text/javascript" src="https://unpkg.com/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
 

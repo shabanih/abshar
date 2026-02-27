@@ -48,15 +48,15 @@
       <tbody>
    
       <tr onclick="window.location.href='{% url 'admin_ticket_detail' ticket.id %}'" style="cursor: pointer;">
-          <td>{{ forloop.counter }}</td>
-          <td>{{ ticket.user.full_name }}</td>
+          <td>{{ forloop.counter|to_persian_number }}</td>
+          <td>{{ ticket.user.full_name|to_persian_number }}</td>
            <td>{{ ticket.created_at|show_jalali_date_only }}</td>
-          <td>{{ ticket.subject|safe }}</td>
-          <td>#{{ ticket.ticket_no}}</td>
+          <td>{{ ticket.subject|safe|to_persian_number }}</td>
+          <td>#{{ ticket.ticket_no|to_persian_number}}</td>
      
       	<td>
                {% if ticket.is_call %}
-            <button class="btn btn-gradient-info p-1">{{ ticket.user.mobile}}</button>
+            <button class="btn btn-gradient-info p-1">{{ ticket.user.mobile|to_persian_number}}</button>
                  {% else %}
                    <span>ثبت نشده است</span>
         {% endif %}

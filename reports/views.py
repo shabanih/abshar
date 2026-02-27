@@ -1036,9 +1036,22 @@ def charge_units_report_pdf(request, charge_id):
         'font_url': request.build_absolute_uri('/static/fonts/Vazir.ttf')
     })
 
-    pdf = HTML(string=html_string).write_pdf()
+    font_url = request.build_absolute_uri(static('fonts/Vazir.ttf'))
+    css = CSS(string=f"""
+          @page {{ size: A5 portrait; margin: 1cm; }}
+          @font-face {{
+              font-family: 'Vazir';
+              src: url('{font_url}');
+          }}
+          body {{
+              font-family: 'Vazir', sans-serif;
+          }}
+      """)
+
+    pdf = HTML(string=html_string).write_pdf(stylesheets=[css])
+
     response = HttpResponse(pdf, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="charge_{charge.id}_units.pdf"'
+    response['Content-Disposition'] = 'attachment; filename="charge_units_report.pdf"'
     return response
 
 
@@ -2693,9 +2706,9 @@ def house_balance_view(request):
         'amount__sum']
     total_pay_money = PayMoney.objects.filter(user=request.user, **payment_filter,).aggregate(Sum('amount'))[
         'amount__sum']
-    total_receive_money = ReceiveMoney.objects.filter(is_paid=True, user=request.user, **payment_filter,).aggregate(Sum('amount'))[
+    total_receive_money = ReceiveMoney.objects.filter(user=request.user, **payment_filter,).aggregate(Sum('amount'))[
         'amount__sum']
-    total_expenses = Expense.objects.filter(is_paid=True, user=request.user, **payment_filter,).aggregate(Sum('amount'))[
+    total_expenses = Expense.objects.filter(user=request.user, **payment_filter,).aggregate(Sum('amount'))[
         'amount__sum']
 
     total_assets = (total_incomes or 0) + (total_receive_money or 0)

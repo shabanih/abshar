@@ -88,6 +88,7 @@ urlpatterns = [
 
     # ReceiveMoney Urls
     path('middle-add-receive', views.MiddleReceiveMoneyCreateView.as_view(), name='middle_register_receive'),
+    path('receive/<int:pk>/delete_fund/', views.delete_fund_record, name='delete_fund_record'),
     path('receive/middle/edit/<int:pk>/', views.middle_receive_edit, name='middle_receive_edit'),
     path('receive/middle/delete/<int:pk>/', views.middle_receive_delete, name='middle_receive_delete'),
     path('receive/middle/delete-document/', views.middle_delete_receive_document, name='middle_delete_delete_document'),
@@ -96,6 +97,7 @@ urlpatterns = [
 
     # PayMoney Urls
     path('middle-add-pay', views.MiddlePaymentMoneyCreateView.as_view(), name='middle_register_pay'),
+    path('pay/<int:pk>/delete_fund/', views.delete_pay_fund_record, name='delete_pay_fund_record'),
     path('pay/middle/edit/<int:pk>/', views.middle_pay_edit, name='middle_pay_edit'),
     path('pay/middle/delete/<int:pk>/', views.middle_pay_delete, name='middle_pay_delete'),
     path('pay/middle/delete-document/', views.middle_delete_pay_document, name='middle_delete_pay_document'),
@@ -158,7 +160,7 @@ urlpatterns = [
     path('charge/middle/edit/<int:pk>/', views.middle_fix_charge_edit, name='middle_charge_edit'),
     path('charge/middle/delete/<int:pk>/', views.middle_fix_charge_delete, name='middle_fix_charge_delete'),
     path('fix-charge/<int:pk>/notify/', views.middle_fix_charge_notification_view,
-         name='middle_fix_charge_notify'),
+         name='middle_add_fix_charge_notify'),
     path('charge/middle/notify/remove/<int:pk>/', views.middle_remove_send_notification_fix,
          name='middle_remove_send_notification_ajax'),
 
@@ -167,7 +169,7 @@ urlpatterns = [
     path('area/middle/charge/edit/<int:pk>/', views.middle_area_charge_edit, name='middle_charge_area_edit'),
     path('area/middle/charge/delete/<int:pk>/', views.middle_area_charge_delete, name='middle_charge-area_delete'),
     path('charge/middle/area/notify/<int:pk>/', views.middle_area_charge_notification_view,
-         name='middle_show_notification_area_charge_form'),
+         name='middle_add_show_notification_area_charge_form'),
     path('middle-remove-send-notification-area/<int:pk>/', views.middle_remove_send_notification_area,
          name='middle_remove_send_notification_area'),
 
@@ -177,7 +179,7 @@ urlpatterns = [
     path('person/middle/charge/delete/<int:pk>/', views.middle_person_charge_delete,
          name='middle_charge-person_delete'),
     path('charge/middle/person/notify/<int:pk>/', views.middle_person_charge_notification_view,
-         name='middle_show_notification_person_charge_form'),
+         name='middle_add_show_notification_person_charge_form'),
     path('middle-remove-send-notification-person/<int:pk>/', views.middle_remove_send_notification_person,
          name='middle_remove_send_notification_person'),
 
@@ -189,7 +191,7 @@ urlpatterns = [
     path('fix/area/middle/charge/delete/<int:pk>/', views.middle_fix_area_charge_delete,
          name='middle_charge-fix_area_delete'),
     path('fix/area/middle/charge/notify/<int:pk>/', views.middle_show_fix_area_charge_notification_form,
-         name='middle_show_notification_fix_area_charge_form'),
+         name='middle_add_show_notification_fix_area_charge_form'),
     path('middle-remove-send-notification-fix-area/<int:pk>/', views.middle_remove_send_notification_fix_area,
          name='middle_remove_send_notification_fix_area'),
 
@@ -201,7 +203,7 @@ urlpatterns = [
     path('fix/person/middle/charge/delete/<int:pk>/', views.middle_fix_person_charge_delete,
          name='middle_charge_fix_person_delete'),
     path('charge/middle/fix/person/notify/<int:pk>/', views.middle_show_fix_person_charge_notification_form,
-         name='middle_show_notification_fix_person_charge_form'),
+         name='middle_add_show_notification_fix_person_charge_form'),
     path('middle-remove-send-notification-fix-person/<int:pk>/', views.middle_remove_send_notification_fix_person,
          name='middle_remove_send_notification_fix_person'),
 
@@ -213,7 +215,7 @@ urlpatterns = [
     path('area/person/middle/charge/delete/<int:pk>/', views.middle_person_area_charge_delete,
          name='middle_charge_area_person_delete'),
     path('area/person/middle/notify/<int:pk>/', views.middle_show_person_area_charge_notification_form,
-         name='middle_show_notification_person_area_charge_form'),
+         name='middle_add_show_notification_person_area_charge_form'),
     path('middle-remove-send-notification-person-area/<int:pk>/', views.middle_remove_send_notification_person_area,
          name='middle_remove_send_notification_person_area'),
 
@@ -225,7 +227,7 @@ urlpatterns = [
     path('fix/area/person/charge/delete/<int:pk>/', views.middle_person_area_fix_delete,
          name='middle_charge_area_person_fix_delete'),
     path('charge/middle/fix/person/area/notify/<int:pk>/', views.middle_show_fix_person_area_charge_notification_form,
-         name='middle_show_notification_fix_person_area_charge_form'),
+         name='middle_add_show_notification_fix_person_area_charge_form'),
     path('middle-remove-send-notification-fix-person-area/<int:pk>/',
          views.middle_remove_send_notification_fix_person_area,
          name='middle_remove_send_notification_fix_person_area'),
@@ -238,7 +240,7 @@ urlpatterns = [
     path('variable/fix/middle/charge/delete/<int:pk>/', views.middle_variable_fix_charge_delete,
          name='middle_charge_variable_fix_delete'),
     path('charge/fix/variable/middle/charge/notify/<int:pk>/', views.middle_show_fix_variable_notification_form,
-         name='middle_show_notification_fix_variable_charge_form'),
+         name='middle_add_show_notification_fix_variable_charge_form'),
     path('middle-remove-send-notification-fix-variable-charge/<int:pk>/',
          views.middle_remove_send_notification_fix_variable,
          name='middle_remove_send_notification_fix_variable_charge'),

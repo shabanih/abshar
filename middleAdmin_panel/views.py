@@ -4,7 +4,7 @@ import logging
 import os
 import time
 from datetime import timezone, datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from itertools import chain
 from django.apps import apps
 from django.conf.urls.static import static
@@ -341,7 +341,7 @@ def middle_admin_dashboard(request):
     return render(request, 'middleShared/home_template.html', context)
 
 
-@login_required(login_url=settings.LOGIN_URL_ADMIN)
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_admin_login_view(request):
     if request.method == 'POST':
         mobile = request.POST.get('mobile')
@@ -364,13 +364,13 @@ def middle_admin_login_view(request):
     return render(request, 'middleShared/middle_login.html')
 
 
-@login_required(login_url=settings.LOGIN_URL_ADMIN)
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def logout__middle_admin(request):
     logout(request)
-    return redirect('index')
+    return redirect('login_middle')
 
 
-@login_required(login_url=settings.LOGIN_URL_ADMIN)
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def site_header_component(request):
     context = {
         'user': request.user,
@@ -379,7 +379,7 @@ def site_header_component(request):
 
 
 # =====================================Middle Profile ============================
-@login_required(login_url=settings.LOGIN_URL_ADMIN)
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_profile(request):
     user = request.user
 
@@ -449,7 +449,7 @@ class MiddleMyHouseUpdateView(UpdateView):
         return context
 
 
-@login_required(login_url=settings.LOGIN_URL_ADMIN)
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_house_delete(request, pk):
     house = get_object_or_404(MyHouse, id=pk)
     try:
@@ -1428,7 +1428,7 @@ def middle_expense_category_delete(request, pk):
         messages.success(request, 'موضوع هزینه با موفقیت حذف گردید!')
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
-    return redirect(reverse('middle_add_category_expense'))
+    return redirect(reverse('middle_register_category_expense'))
 
 
 @method_decorator(middle_admin_required, name='dispatch')
@@ -2524,7 +2524,7 @@ class MiddleReceiveMoneyCreateView(CreateView):
     model = ReceiveMoney
     form_class = ReceiveMoneyForm
     template_name = 'MiddleReceiveMoney/add_receive_money.html'
-    success_url = reverse_lazy('middle_add_receive')
+    success_url = reverse_lazy('middle_register_receive')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -2643,6 +2643,30 @@ class MiddleReceiveMoneyCreateView(CreateView):
         context['banks'] = Bank.objects.filter(user=self.request.user)
         return context
 
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def delete_fund_record(request, pk):
+    # اطمینان از اینکه فقط کاربر صاحب سند می‌تواند حذف کند
+    receive = get_object_or_404(ReceiveMoney, pk=pk, user=request.user)
+
+    try:
+        content_type = ContentType.objects.get_for_model(receive)
+        fund = Fund.objects.filter(content_type=content_type, object_id=receive.id).first()
+        if fund:
+            fund.delete()
+            receive.is_paid = False
+            receive.is_received_money = False
+            receive.payment_date = None
+            receive.transaction_reference = None
+            receive.payer_name = ''
+            receive.save()
+            messages.success(request, 'رکورد پرداخت با موفقیت حذف شد.')
+        else:
+            messages.warning(request, 'رکورد پرداختی پیدا نشد.')
+    except Exception as e:
+        messages.error(request, f'خطا در حذف رکورد پرداخت: {e}')
+
+    return redirect('middle_register_receive')  # یا هر URL صفحه لیست شما
+
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_receive_edit(request, pk):
@@ -2653,7 +2677,7 @@ def middle_receive_edit(request, pk):
     )
     if receive.is_paid:
         messages.warning(request, 'این سند بدلیل ثبت رکورد پرداخت قابل ویرایش نیست')
-        return redirect('middle_add_receive')
+        return redirect('middle_register_receive')
 
     if request.method == 'POST':
         form = ReceiveMoneyForm(
@@ -2677,29 +2701,35 @@ def middle_receive_edit(request, pk):
                         str(receive.unit) if receive.unit else receive.payer_name
                     )
 
+                    # پیدا کردن Fund مربوط به receive
                     content_type = ContentType.objects.get_for_model(receive)
+                    fund = Fund.objects.filter(content_type=content_type, object_id=receive.id).first()
 
-                    fund, created = Fund.objects.get_or_create(
-                        content_type=content_type,
-                        object_id=receive.id,
-                        defaults={
-                            'user': request.user,
-                        }
-                    )
+                    # اگر Fund وجود ندارد، ایجاد می‌کنیم
+                    if not fund:
+                        fund = Fund(
+                            user=request.user,
+                            content_type=content_type,
+                            object_id=receive.id
+                        )
 
+                    # مقداردهی ایمن فیلدهای Decimal و NOT NULL
+                    try:
+                        amount = Decimal(receive.amount)
+                    except (TypeError, ValueError, InvalidOperation):
+                        amount = Decimal('0.00')
+
+                    fund.amount = amount
+                    fund.debtor_amount = amount
+                    fund.creditor_amount = Decimal('0.00')
                     fund.bank = receive.bank
                     fund.unit = receive.unit
-                    fund.amount = receive.amount or 0
-                    fund.debtor_amount = receive.amount or 0
-                    fund.creditor_amount = 0
-                    fund.payment_date = receive.payment_date
-                    fund.transaction_no = receive.transaction_reference
-                    fund.doc_number = receive.doc_number
+                    fund.payment_date = receive.payment_date or None
+                    fund.transaction_no = receive.transaction_reference or ''
+                    fund.doc_number = receive.doc_number or ''
                     fund.payment_gateway = 'پرداخت الکترونیک'
-                    fund.payer_name = payer_name_for_fund
-                    fund.payment_description = (
-                        f"حسابهای دریافتنی: {(receive.description or '')[:50]}"
-                    )
+                    fund.payer_name = str(receive.unit) if receive.unit else receive.payer_name
+                    fund.payment_description = f"حسابهای دریافتنی: {(receive.description or '')[:50]}"
                     fund.is_paid = True
                     fund.is_received_money = True
                     fund.save()
@@ -2715,7 +2745,7 @@ def middle_receive_edit(request, pk):
                         )
 
                 messages.success(request, 'سند با موفقیت ویرایش گردید.')
-                return redirect('middle_add_receive')
+                return redirect('middle_register_receive')
 
             except Exception as e:
                 messages.error(request, f'خطا در ذخیره اطلاعات: {e}')
@@ -2732,6 +2762,7 @@ def middle_receive_edit(request, pk):
         {
             'form': form,
             'receive': receive,
+            'open_modal': True,  # ← پرچم برای JS که modal را باز کند
         }
     )
 
@@ -2750,7 +2781,7 @@ def middle_receive_delete(request, pk):
             messages.success(request, ' سند با موفقیت حذف گردید!')
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
-    return redirect(reverse('middle_add_receive'))
+    return redirect(reverse('middle_register_receive'))
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -2787,6 +2818,7 @@ def middle_delete_receive_document(request):
             return JsonResponse({'status': 'error', 'message': f'خطا در حذف تصویر: {str(e)}'})
 
     return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
+
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -2959,7 +2991,7 @@ class MiddlePaymentMoneyCreateView(CreateView):
     model = PayMoney
     form_class = PayerMoneyForm
     template_name = 'MiddlePayMoney/add_pay_money.html'
-    success_url = reverse_lazy('middle_add_pay')
+    success_url = reverse_lazy('middle_register_pay')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -3105,13 +3137,38 @@ class MiddlePaymentMoneyCreateView(CreateView):
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def delete_pay_fund_record(request, pk):
+    # اطمینان از اینکه فقط کاربر صاحب سند می‌تواند حذف کند
+    payment = get_object_or_404(PayMoney, pk=pk, user=request.user)
+
+    try:
+        content_type = ContentType.objects.get_for_model(payment)
+        fund = Fund.objects.filter(content_type=content_type, object_id=payment.id).first()
+        if fund:
+            fund.delete()
+            payment.is_paid = False
+            payment.is_received_money = False
+            payment.payment_date = None
+            payment.transaction_reference = None
+            payment.receiver_name = ''
+            payment.save()
+            messages.success(request, 'رکورد پرداخت با موفقیت حذف شد.')
+        else:
+            messages.warning(request, 'رکورد پرداختی پیدا نشد.')
+    except Exception as e:
+        messages.error(request, f'خطا در حذف رکورد پرداخت: {e}')
+
+    return redirect('middle_register_pay')  # یا هر URL صفحه لیست شما
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_pay_edit(request, pk):
     # گرفتن رکورد پرداخت موجود
     payment = get_object_or_404(PayMoney, pk=pk)
 
     if payment.is_paid:
         messages.warning(request, 'این سند بدلیل ثبت رکورد پرداخت قابل ویرایش نیست')
-        return redirect('middle_add_pay')
+        return redirect('middle_register_pay')
 
     if request.method == 'POST':
         # فرم با instance برای ویرایش
@@ -3176,14 +3233,22 @@ def middle_pay_edit(request, pk):
                 PayDocument.objects.create(payment=payment, document=f)
 
             messages.success(request, 'سند با موفقیت ویرایش گردید.')
-            return redirect(reverse('middle_add_pay'))  # Adjust redirect as necessary
+            return redirect(reverse('middle_register_pay'))  # Adjust redirect as necessary
 
         else:
             messages.error(request, 'خطا در ویرایش فرم . لطفا دوباره تلاش کنید.')
-            return render(request, 'MiddlePayMoney/add_pay_money.html', {'form': form, 'payment': payment})
+            return render(request, 'MiddlePayMoney/add_pay_money.html', {
+                'form': form,
+                'payment': payment,
+                'open_modal': True,
+            })
     else:
         form = PayerMoneyForm(instance=payment, user=request.user)
-        return render(request, 'MiddlePayMoney/add_pay_money.html', {'form': form, 'payment': payment})
+        return render(request, 'MiddlePayMoney/add_pay_money.html',
+                      {'form': form,
+                       'payment': payment,
+                       'open_modal': True,
+                       })
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -3200,7 +3265,7 @@ def middle_pay_delete(request, pk):
         messages.success(request, ' سند با موفقیت حذف گردید!')
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
-    return redirect(reverse('middle_add_pay'))
+    return redirect(reverse('middle_register_pay'))
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
@@ -3410,7 +3475,7 @@ class MiddlePropertyCreateView(CreateView):
     model = Property
     template_name = 'middleProperty/manage_property.html'
     form_class = PropertyForm
-    success_url = reverse_lazy('middle_add_property')
+    success_url = reverse_lazy('middle_register_property')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -3503,14 +3568,14 @@ def middle_property_edit(request, pk):
                     PropertyDocument.objects.create(property_d=property_d, document=f)
 
             messages.success(request, 'اموال با موفقیت ویرایش شد.')
-            return redirect('middle_add_property')  # Adjust redirect as necessary
+            return redirect('middle_register_property')  # Adjust redirect as necessary
 
         else:
             messages.error(request, 'خطا در ویرایش فرم درآمد. لطفا دوباره تلاش کنید.')
-            return redirect('middle_add_property')
+            return redirect('middle_register_property')
     else:
         # If the request is not POST, redirect to the appropriate page
-        return redirect('middle_add_property')
+        return redirect('middle_register_property')
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -3521,7 +3586,7 @@ def middle_property_delete(request, pk):
         messages.success(request, ' اموال با موفقیت حذف گردید!')
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
-    return redirect(reverse('middle_add_property'))
+    return redirect(reverse('middle_register_property'))
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
@@ -3716,7 +3781,7 @@ class MiddleMaintenanceCreateView(CreateView):
     model = Maintenance
     template_name = 'middleMaintenance/add_maintenance.html'
     form_class = MaintenanceForm
-    success_url = reverse_lazy('middle_add_maintenance')
+    success_url = reverse_lazy('middle_register_maintenance')
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -3808,14 +3873,14 @@ def middle_maintenance_edit(request, pk):
                     MaintenanceDocument.objects.create(maintenance=maintenance, document=f)
 
             messages.success(request, 'سند با موفقیت ویرایش شد.')
-            return redirect('middle_add_maintenance')  # Adjust redirect as necessary
+            return redirect('middle_register_maintenance')  # Adjust redirect as necessary
 
         else:
             messages.error(request, 'خطا در ویرایش فرم درآمد. لطفا دوباره تلاش کنید.')
-            return redirect('middle_add_maintenance')
+            return redirect('middle_register_maintenance')
     else:
         # If the request is not POST, redirect to the appropriate page
-        return redirect('middle_add_maintenance')
+        return redirect('middle_register_maintenance')
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
@@ -3826,7 +3891,7 @@ def middle_maintenance_delete(request, pk):
         messages.success(request, ' سند با موفقیت حذف گردید!')
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
-    return redirect(reverse('middle_add_maintenance'))
+    return redirect(reverse('middle_register_maintenance'))
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
@@ -4046,12 +4111,28 @@ class MiddleFixChargeCreateView(CreateView):
             unit__is_active=True
         ).values('unit').distinct().count()
         form.instance.unit_count = unit_count
+        print(f'unit-{unit_count}')
 
         units = Unit.objects.filter(
             is_active=True
         ).filter(
             Q(user=self.request.user) | Q(user__in=managed_users)
         ).distinct()
+        print(units.count())
+
+        all_units = Unit.objects.filter(is_active=True)
+        filtered_units = all_units.filter(
+            Q(user=self.request.user) | Q(user__in=managed_users)
+        )
+
+        print("All active:", all_units.count())
+        print("After filter:", filtered_units.count())
+
+        excluded = all_units.exclude(
+            Q(user=self.request.user) | Q(user__in=managed_users)
+        )
+
+        print("Excluded:", excluded)
 
         if not units.exists():
             messages.error(
@@ -4400,10 +4481,17 @@ def middle_fix_charge_notification_view(request, pk):
 
     uc_dict = {uc.unit_id: uc for uc in uc_map}
 
-    # page_units → Page object اصلی از Paginator
     for i, unit in enumerate(page_units):
         uc = uc_dict.get(unit.id)
         renter = unit.renters.filter(renter_is_active=True).first()
+
+        current_charge = uc.total_charge_month if uc else 0
+
+        # جمع عددی بدهی‌های معوقه
+        previous_debt_total = sum(uc.get_previous_debt_by_type().values()) if uc else 0
+
+        total_payable = current_charge + previous_debt_total
+
         page_units.object_list[i] = {
             'unit': unit,
             'renter': renter,
@@ -4411,8 +4499,24 @@ def middle_fix_charge_notification_view(request, pk):
             'is_notified': uc.send_notification if uc else False,
             'send_sms': uc.send_sms if uc else False,
             'sms_date': uc.send_sms_date if uc else None,
-            'total_charge': uc.total_charge_month if uc else 0,
+            'current_charge': current_charge,
+            'previous_debt': previous_debt_total,  # عددی
+            'total_payable': total_payable,
         }
+
+    # page_units → Page object اصلی از Paginator
+    # for i, unit in enumerate(page_units):
+    #     uc = uc_dict.get(unit.id)
+    #     renter = unit.renters.filter(renter_is_active=True).first()
+    #     page_units.object_list[i] = {
+    #         'unit': unit,
+    #         'renter': renter,
+    #         'is_paid': uc.is_paid if uc else False,
+    #         'is_notified': uc.send_notification if uc else False,
+    #         'send_sms': uc.send_sms if uc else False,
+    #         'sms_date': uc.send_sms_date if uc else None,
+    #         'total_charge': uc.total_charge_month if uc else 0,
+    #     }
 
     return render(request, 'middleCharge/notify_fix_charge_template.html', {
         'charge': charge,
@@ -4868,19 +4972,29 @@ def middle_area_charge_notification_view(request, pk):
         return redirect(request.path)
 
     # ------------------ آماده‌سازی template ------------------
+    unit_ids = [unit.id for unit in page_units.object_list]
+
     uc_map = {
         uc.unit_id: uc
         for uc in UnifiedCharge.objects.filter(
             content_type=content_type,
             object_id=charge.id,
-            unit__in=page_units
-        )
+            unit_id__in=unit_ids
+        ).select_related('unit', 'unit__user')
     }
 
-    # دیگه نیازی به uc_dict نیست
+    # حالا uc_map همان uc_dict است
     for i, unit in enumerate(page_units):
-        uc = uc_map.get(unit.id)  # ← همینجا درست شد
+        uc = uc_map.get(unit.id)
         renter = unit.renters.filter(renter_is_active=True).first()
+
+        current_charge = uc.total_charge_month if uc else 0
+
+        # جمع عددی بدهی‌های معوقه
+        previous_debt_total = sum(uc.get_previous_debt_by_type().values()) if uc else 0
+
+        total_payable = current_charge + previous_debt_total
+
         page_units.object_list[i] = {
             'unit': unit,
             'renter': renter,
@@ -4888,7 +5002,9 @@ def middle_area_charge_notification_view(request, pk):
             'is_notified': uc.send_notification if uc else False,
             'send_sms': uc.send_sms if uc else False,
             'sms_date': uc.send_sms_date if uc else None,
-            'total_charge': uc.total_charge_month if uc else 0,
+            'current_charge': current_charge,
+            'previous_debt': previous_debt_total,  # عددی
+            'total_payable': total_payable,
         }
 
     return render(request, 'middleCharge/notify_area_charge_template.html', {

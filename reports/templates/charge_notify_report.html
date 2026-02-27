@@ -85,9 +85,9 @@
             {% for charge in page_obj %}
                 <tbody>
                 <tr>
-                      <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
-                 <td>{{ charge.title}}</td>
-                 <td>{{ charge.unit.get_label }}</td>
+                      <td>{{ forloop.counter0|add:page_obj.start_index|add:"0"|to_persian_number }}</td>
+                 <td>{{ charge.title|to_persian_number}}</td>
+                 <td>{{ charge.unit.get_label|to_persian_number }}</td>
                     <td>{{ charge.base_charge|three_digit_currency }} </td>
                     <td>
                              {% if charge.details %}
@@ -144,25 +144,25 @@
                      <div class="d-flex gap-3 mb-3 ">
                         <span>
                             <strong>عنوان:</strong>
-                            {{ charge.title }}
+                            {{ charge.title|to_persian_number }}
                         </span>
                        
                     </div>
                                   <div class="d-flex gap-3 mb-3 ">
                                      <span>
                             <strong>نام مالک/مستاجر:</strong>
-                            {{ charge.unit.get_label }} 
+                            {{ charge.unit.get_label|to_persian_number }} 
                         </span>
                                     
                                    </div>
                                <div class="d-flex gap-4 mb-3 ">
                        <span>
                             <strong>تعداد نفرات:</strong>
-                            {{ charge.unit.people_count|default:"—" }} نفر
+                            {{ charge.unit.people_count|default:"—"|to_persian_number }} نفر
                         </span>
                              <span>
                             <strong>متراژ واحد:</strong>
-                            {{ charge.unit.area|default:"—" }} متر
+                            {{ charge.unit.area|default:"—"|to_persian_number }} متر
                         </span>
                        
                     </div>
@@ -201,7 +201,7 @@
                               <hr>
                                 <p class="bg-warning"><strong>توضیحات:</strong> 
                                     {% if charge.details %}
-                                        {{ charge.details }}
+                                        {{ charge.details|to_persian_number }}
                                         {% else %}
                                          ثبت نشده است
                                     {% endif %} 
@@ -212,7 +212,7 @@
                             
                            {% if charge.transaction_reference %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ charge.payment_date|show_jalali_date_only }}</p>
-                                <p><strong> کد پیگیری:</strong> {{ charge.transaction_reference }}</p>
+                                <p><strong> کد پیگیری:</strong> {{ charge.transaction_reference|to_persian_number }}</p>
                             {% endif %}
                                     <p><strong>وضعیت:</strong> 
                                     {% if charge.is_paid %}

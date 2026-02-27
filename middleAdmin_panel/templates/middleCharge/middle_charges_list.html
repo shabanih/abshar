@@ -76,12 +76,12 @@
                            {% for charge in charges %}
                                     <tbody class="text-center">
                                         <tr>
-                                         <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
-                                            <td>{{charge.name }}</td>
+                                         <td>{{ forloop.counter0|add:page_obj.start_index|add:"0"|to_persian_number }}</td>
+                                            <td>{{charge.name|to_persian_number }}</td>
                                             <td>{{charge.created_at|show_jalali }}</td>
                                               	  <td>
                                                    {% if charge.payment_penalty_amount %}
-                                                      % {{charge.payment_penalty_amount }}
+                                                      % {{charge.payment_penalty_amount|to_persian_number }}
                                                 {% else %}
                                                ----
                                             {% endif %} 
@@ -94,7 +94,7 @@
                                             {% endif %} 
 
                                              </td>
-                                                 <td> {% if charge.details %}
+                                                 <td> {% if charge.details|to_persian_number %}
                                             	   دارد
                                                 {% else %}
                                                 ندارد
@@ -102,19 +102,25 @@
                                              
                                             </td>
                                               <td class="bg-gradient-light">
-                                                <span>{{ charge.notified_count  }} از {{ charge.unit_count }} واحد</span>
+                                                <span>{{ charge.notified_count|to_persian_number  }} از {{ charge.unit_count|to_persian_number }} واحد</span>
                                                 </td>
                                            <td>
-                                                <span>{{ charge.paid_count  }} از {{ charge.notified_count }} واحد</span>
+                                                <span>{{ charge.paid_count|to_persian_number  }} از {{ charge.notified_count|to_persian_number }} واحد</span>
                                                 </td>
 
                                                <td class="p-0">
                                                          <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ charge.id }}" title="نمایش جزئیات"
                                                         class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
                                                 </button>
-
-                                      <a href="{% url 'middle_main_charges_units_list' charge.app_label charge.model_name charge.id %}"
+                                                   {% if charge.notified_count > 0 %}
+                                                   	     <a href="{% url 'middle_main_charges_units_list' charge.app_label charge.model_name charge.id %}"
                                          class="btn btn-gradient-primary px-3 py-2">  صورتحساب واحدها </a>
+                                                       {% else %}
+                                                           <a  class="btn btn-secondary px-3 py-2" disabled>  صورتحساب واحدها </a>
+                                                          
+                                                   {% endif %} 
+
+                                  
                                                    
                                         </td>
 
@@ -137,7 +143,7 @@
                             </div>
                           <hr/>
                             <div class="modal-body text-end">
-                                <p><strong>عنوان:</strong> {{ charge.name }}</p>
+                                <p><strong>عنوان:</strong> {{ charge.name|to_persian_number }}</p>
                                 {% for key, value in charge.items %}
                                     {% if key not in 'id name charge_type created_at unit_count app_label model_name civil other_cost_amount payment_deadline payment_penalty_amount details notified_count' %}
                                         {% if value %}
@@ -173,14 +179,14 @@
                                </p>
                                 <p><strong>جریمه دیرکرد:</strong>
                                              {% if charge.payment_penalty_amount %}
-                                                      % {{charge.payment_penalty_amount }}
+                                                      % {{charge.payment_penalty_amount|to_persian_number }}
                                                 {% else %}
                                                 ثبت نشده است
                                             {% endif %} 
                                 </p>
                                 <p><strong>توضیحات:</strong> 
                                     {% if charge.details %}
-                                        <span class="bg-warning text-wrap">{{ charge.details }} </span>
+                                        <span class="bg-warning text-wrap">{{ charge.details|to_persian_number }} </span>
                                         {% else %}
                                         ندارد
                                     {% endif %} 

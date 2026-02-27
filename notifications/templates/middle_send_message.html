@@ -29,13 +29,13 @@
                                     {% for item in units_with_details %}
                                         {% with unit=item.unit active_renter=item.active_renter %}
                                         <option value="{{ unit.id }}">
-                                            واحد {{ unit.unit }} -
+                                            واحد {{ unit.unit|to_persian_number  }} -
                                             {% if unit.is_renter %}
-                                                مستاجر: {% if active_renter %}{{ active_renter.renter_name }}{% else %}ندارد{% endif %}
-                                                {% if active_renter and active_renter.renter_mobile %} ({{ active_renter.renter_mobile }}){% endif %}
+                                                مستاجر: {% if active_renter %}{{ active_renter.renter_name|to_persian_number  }}{% else %}ندارد{% endif %}
+                                                {% if active_renter and active_renter.renter_mobile|to_persian_number  %} ({{ active_renter.renter_mobile|to_persian_number  }}){% endif %}
                                             {% else %}
                                                 مالک: {{ unit.owner_name }}
-                                                {% if unit.user and unit.user.mobile %} ({{ unit.user.mobile }}){% endif %}
+                                                {% if unit.user and unit.user.mobile %} ({{ unit.user.mobile|to_persian_number  }}){% endif %}
                                             {% endif %}
                                         </option>
                                         {% endwith %}

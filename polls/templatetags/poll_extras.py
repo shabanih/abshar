@@ -36,8 +36,12 @@ def show_jalali_date_time(value):
     month = MONTHS[jalali_datetime.month - 1]
 
     # فرمت تاریخ و زمان
-    formatted = f'{jalali_datetime.hour:02d}:{jalali_datetime.minute:02d} - {jalali_datetime.day}/ {jalali_datetime.month}/ {jalali_datetime.year} '
-    return formatted
+    formatted_date = f'{jalali_datetime.hour:02d}:{jalali_datetime.minute:02d} - {jalali_datetime.day}/ {jalali_datetime.month}/ {jalali_datetime.year} '
+    persian_digits = '۰۱۲۳۴۵۶۷۸۹'
+    english_digits = '0123456789'
+    translation_table = str.maketrans(english_digits, persian_digits)
+
+    return formatted_date.translate(translation_table)
 
 
 @register.filter(name='show_jalali_date_only')
@@ -53,53 +57,103 @@ def show_jalali_date(value):
 
     # Format the date manually using Persian names without time
     formatted_date = f'{weekday} {jalali_datetime.day} {month} {jalali_datetime.year}'
-    return formatted_date
+    persian_digits = '۰۱۲۳۴۵۶۷۸۹'
+    english_digits = '0123456789'
+    translation_table = str.maketrans(english_digits, persian_digits)
+
+    return formatted_date.translate(translation_table)
 
 
 @register.filter(name='show_jalali')
 def show_jalali(value):
     if not value:
         return ''
+
+    # اگر datetime باشه، به تایم‌زون محلی تبدیل کن
     if isinstance(value, datetime.datetime):
+        if timezone.is_aware(value):
+            value = timezone.localtime(value)
         jalali = jdatetime.datetime.fromgregorian(datetime=value)
     elif isinstance(value, datetime.date):
         jalali = jdatetime.date.fromgregorian(date=value)
     else:
         return ''
-    return f'{jalali.year}-{jalali.month:02d}-{jalali.day:02d}'
+
+    # قالب سال-ماه-روز
+    formatted_date = f'{jalali.year:04d}-{jalali.month:02d}-{jalali.day:02d}'
+
+    # تبدیل اعداد به فارسی
+    persian_digits = '۰۱۲۳۴۵۶۷۸۹'
+    english_digits = '0123456789'
+    translation_table = str.maketrans(english_digits, persian_digits)
+
+    return formatted_date.translate(translation_table)
 
 @register.filter(name='show_jalali_admin')
 def show_jalali(value):
     if not value:
         return ''
+
     if isinstance(value, datetime.datetime):
         jalali = jdatetime.datetime.fromgregorian(datetime=value)
     elif isinstance(value, datetime.date):
         jalali = jdatetime.date.fromgregorian(date=value)
     else:
         return ''
-    return f'{jalali.day:02d}-{jalali.month:02d}-{jalali.year}'
+
+    formatted_date = f'{jalali.day:02d}-{jalali.month:02d}-{jalali.year}'
+
+    # تبدیل اعداد به فارسی
+    persian_digits = '۰۱۲۳۴۵۶۷۸۹'
+    english_digits = '0123456789'
+    translation_table = str.maketrans(english_digits, persian_digits)
+
+    return formatted_date.translate(translation_table)
+
+# @register.filter(name='three_digit_currency')
+# def three_digit_currency(value):
+#     try:
+#         return '{:,}'.format(int(value))
+#     except (ValueError, TypeError):
+#         return '0'
 
 @register.filter(name='three_digit_currency')
 def three_digit_currency(value):
+    if value is None:
+        return ""
+
     try:
-        return '{:,}'.format(int(value))
+        value = int(value)
     except (ValueError, TypeError):
-        return '0'
+        return "۰"
+
+    formatted = f"{value:,}"
+
+    persian_digits = '۰۱۲۳۴۵۶۷۸۹'
+    english_digits = '0123456789'
+    translation_table = str.maketrans(english_digits, persian_digits)
+
+    return formatted.translate(translation_table)
 
 
 @register.filter(name='four_digit_cart')
 def four_digit_cart(value):
     try:
-        # Convert the value to a string
+        # تبدیل مقدار به رشته عددی
         value_str = str(int(value))
     except (ValueError, TypeError):
-        return value  # Return the original value if conversion fails
+        return value  # اگر تبدیل نشد، همون مقدار اصلی برگرده
 
-        # Group digits in chunks of 4
+    # تبدیل اعداد به فارسی
+    persian_digits = '۰۱۲۳۴۵۶۷۸۹'
+    english_digits = '0123456789'
+    translation_table = str.maketrans(english_digits, persian_digits)
+    value_str = value_str.translate(translation_table)
+
+    # جدا کردن هر ۴ رقم با فاصله
     grouped = ' '.join([value_str[i:i + 4] for i in range(0, len(value_str), 4)])
 
-    # Prepend Left-to-Right Mark to ensure correct display in RTL contexts
+    # اضافه کردن Left-to-Right Mark برای نمایش درست در متون راست‌به‌چپ
     return '\u200E' + grouped
 
 @register.filter

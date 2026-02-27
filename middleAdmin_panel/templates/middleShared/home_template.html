@@ -51,7 +51,8 @@ window.location.href = "{% url 'buy_subscription' %}";
                     <h4 class="font-weight-normal mb-3"><i class="mdi mdi-city mdi-24px float-right"></i>
                        تعداد کل واحدها
                     </h4>
-                    <h3 class="mb-1 text-white">{{ unit_count }} </h3>
+                    <h3 class="mb-1 text-white">{{ unit_count|to_persian_number }} </h3>
+{#                    <h3 class="mb-1 text-white">105 </h3>#}
                   </div>
                 </div>
                   </a>
@@ -89,7 +90,7 @@ window.location.href = "{% url 'buy_subscription' %}";
                         <i class="mdi mdi-account-minus mdi-24px float-right"></i>
                          شارژ پرداخت نشده
                     </h4>
-                    <h3 class="mb-1 text-white">{{ unit_count_unpaid_charges }}</h3>
+                    <h3 class="mb-1 text-white">{{ unit_count_unpaid_charges|to_persian_number }}</h3>
                   </div>
                 </div>
                   </a>

@@ -2,7 +2,7 @@
 {% load static %}
 {% load poll_extras %}
 {% block page_title %}
-مدیریت اسناد دریافتی( تعداد کل ثبت شده:{{ total_receives }} )
+مدیریت اسناد دریافتی( تعداد ثبت شده:{{ total_receives|to_persian_number }} )
 {% endblock page_title %}
 
 {% block main_content %}
@@ -113,7 +113,6 @@
                             <th>تاریخ سند</th>
                              <th>توضیحات </th>
                             <th>تصویر سند</th>
-                            <th>بانک</th>
                              <th>در وجه</th>
                             <th>وضعیت پرداخت</th>
                             <th>دستورات</th>
@@ -123,38 +122,33 @@
                {% for receive in page_obj %}
                         <tbody class="text-center">
                             <tr>
-                                <td>{{ forloop.counter }}</td>
-                                <td>{{receive.description }}</td>
+                                <td>{{ forloop.counter|to_persian_number }}</td>
+                                <td>{{receive.description|to_persian_number }}</td>
                                 <td>{{receive.amount|three_digit_currency }}</td>
-                                <td>{{receive.doc_number }}</td>
+                                <td>{{receive.doc_number|to_persian_number }}</td>
                                  <td>{{receive.doc_date|show_jalali }}</td>
-                               <td>{% if receive.details  %}
+                               <td>{% if receive.details|to_persian_number  %}
                                    دارد
                                	{% else %}
                                    ندارد
                                {% endif %}
                                </td>
+                     {% for doc in receive.documents.all %}
                                 <td class="d-flex justify-content-center align-self-center">
-                                  {% for doc in receive.documents.all %}
+                                
                                         <a href="{{ doc.document.url }}" target="_blank" 
                                            > 
                                             <i class="fas fa-image fa-2x me-2"></i></a>
-                                    {% empty %}
-                                     !No File
-                                    {% endfor %}
+                                    
                                 </td>
-                             <td>
-                                 {% if receive.is_paid %}
-                                 	 {{ receive.bank.bank_name }}
-                                     {% else %}
-                                     ---
-                                 {% endif %} 
-                                
-                             </td>
+                                      {% empty %}
+                                      <td>No file!</td>
+                                    {% endfor %}
+                     
                           
                                  <td>
                                      {% if receive.is_paid %}
-                                     {{receive.payer_name }}
+                                     {{receive.payer_name|to_persian_number }}
                                          {% else %}
                                           ---
                                      {% endif %} 
@@ -167,7 +161,7 @@
                                         <span class="badge bg-danger">پرداخت نشده</span>
                                     {% endif %} 
                             </td>
-                                   <td class="col-lg-1 col-xl-1 p-0">
+                                   <td>
                                       <a
                                            class="btn btn-gradient-warning p-1 edit-Mreceive-btn"
                                            data-id="{{ receive.id }}"
@@ -194,6 +188,13 @@
                                                <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ receive.id }}" title="نمایش جزئیات"
                                                         class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
                                                 </button>
+                                       {% if receive.is_paid %}
+                                        <a href="{% url 'delete_fund_record' receive.id %}" 
+                                           class="btn btn-danger px-2 py-1"
+                                           onclick="return confirmDisapprovedWithSweetAlert(event)">
+                                           لغو دریافت
+                                        </a>
+                                        {% endif %}
 
                             </td>
                                     <div class="modal fade"  id="exampleModalLong2{{ receive.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ receive.id }}" aria-hidden="true">
@@ -204,13 +205,13 @@
                             </div>
                           <hr/>
                             <div class="modal-body text-end">
-                                 <p><strong>شرح سند:</strong> {{ receive.description }}</p>
+                                 <p><strong>شرح سند:</strong> {{ receive.description|to_persian_number }}</p>
                                 <p><strong>مبلغ:</strong> {{ receive.amount|three_digit_currency }} تومان</p>
-                                <p><strong>شماره سند:</strong> {{ receive.doc_number }} </p>
+                                <p><strong>شماره سند:</strong> {{ receive.doc_number|to_persian_number }} </p>
                                 <p><strong>تاریخ سند :</strong> {{ receive.doc_date|show_jalali_date_only}} </p>
                                 <p><strong>توضیحات:</strong>
                                     {% if receive.details %}
-                                        <span class="badge bg-warning">{{ receive.details }} </span>
+                                        <span class="badge bg-warning">{{ receive.details|to_persian_number }} </span>
                                         {% else %}
                                          ثبت نشده است
                                     {% endif %}
@@ -223,9 +224,9 @@
                                 <p><strong> بانک:</strong> {{ receive.bank }}</p>
                                 <p><strong> پرداخت کننده:</strong> 
                                  {% if receive.payer_name  %}
-                                 	 {{ receive.payer_name }}
+                                 	 {{ receive.payer_name|to_persian_number }}
                                      {% elif receive.unit %}
-                                      {{ receive.get_unit }}
+                                      {{ receive.get_unit|to_persian_number }}
                                  {% endif %}   
                                 </p>
                             {% endif %}
@@ -289,6 +290,7 @@
       </div>
       <hr>
       <div class="modal-body">
+          {{ form.non_field_errors }}
         <form id="receiveForm" action="" method="POST" enctype="multipart/form-data" novalidate>
           {% csrf_token %}
                  <!-- شرح سند -->
@@ -394,7 +396,15 @@
   </div>
 </div>
     
-
+{% if open_modal %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var myModal = new bootstrap.Modal(document.getElementById('exampleModalLong'));
+        myModal.show();
+    });
+</script>
+{% endif %}
+    
 {% endblock %}
 
 

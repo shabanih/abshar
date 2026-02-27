@@ -17,43 +17,50 @@
     <div class="card-body m-0">
       <div class="row text-end">
           <div class="col-6 col-lg-3 col-xl-3">
-            <p class="renterInfoModal"><i class="fas fa-home px-1"></i>طبقه:<strong class="me-2">{{ unit.floor_number }}</strong></p>
+            <p class="renterInfoModal"><i class="fas fa-home px-1"></i>طبقه:<strong class="me-2">{{ unit.floor_number|to_persian_number }}</strong></p>
           </div>
            <div class="col-6 col-lg-3 col-xl-3">
-           <p class="renterInfoModal">متراژ:<strong class="me-2">{{ unit.area }}متر</strong></p>
+           <p class="renterInfoModal">متراژ:<strong class="me-2">{{ unit.area|to_persian_number  }}متر</strong></p>
 
           </div>
          <div class="col-6 col-lg-3 col-xl-3">
-          <p class="renterInfoModal"> تعداد خواب:<strong class="me-2">{{ unit.bedrooms_count }}</strong></p>
+          <p class="renterInfoModal"> تعداد خواب:<strong class="me-2">{{ unit.bedrooms_count|to_persian_number  }}</strong></p>
           </div>
         <div class="col-6 col-lg-3 col-xl-3">
-                  <p class="renterInfoModal">تلفن واحد<strong class="me-2">{{ unit.unit_phone }}</strong></p>
+                  <p class="renterInfoModal">تلفن واحد:<strong class="me-2">{{ unit.unit_phone|default:"---"|to_persian_number   }}</strong></p>
            </div>
 
       </div>
       <div class="row">
        <div class="col-6 col-lg-3 col-xl-3">
-            <p class="renterInfoModal">تعداد پارکینگ:<strong class="me-2">{{ unit.parking_count }}</strong></p>
+            <p class="renterInfoModal">تعداد پارکینگ:<strong class="me-2">{{ unit.parking_count|to_persian_number  }}</strong></p>
         </div>
       <div class="col-6 col-lg-3 col-xl-3">
-             <p class="renterInfoModal">موقعیت پارکینگ:<strong class="me-2">{{ unit.parking_place }}</strong></p>
+             <p class="renterInfoModal">موقعیت پارکینگ:<strong class="me-2">{{ unit.parking_place|default:"---"|to_persian_number  }}</strong></p>
         </div>
          <div class="col-6 col-lg-3 col-xl-3">
-             <p class="renterInfoModal">شماره پارکینگ:<strong class="me-2">{{ unit.parking_number }}</strong></p>
+             <p class="renterInfoModal">شماره پارکینگ:<strong class="me-2">{{ unit.parking_number|default:"---"|to_persian_number   }}</strong></p>
         </div>
          <div class="col-6 col-lg-3 col-xl-3">
-              <p class="renterInfoModal">وضعیت سکونت:<strong class="me-2">{{ unit.status_residence }}</strong></p>
+              <p class="renterInfoModal">وضعیت سکونت:<strong class="me-2">
+                  {% if unit.status_residence == 0 %}
+                      خالی
+                      {% else %}
+                  پر
+                  {% endif %} 
+                
+              </strong></p>
         </div>
             <div class="col-6 col-lg-3 col-xl-3">
-             <p class="renterInfoModal"> پارکینگ اضافه اول:<strong class="me-2">{{ unit.extra_parking_first }}</strong></p>
+             <p class="renterInfoModal"> پارکینگ اضافه اول:<strong class="me-2">{{ unit.extra_parking_first|default:"---"|to_persian_number  }}</strong></p>
         </div>
          <div class="col-6 col-lg-3 col-xl-3">
-              <p class="renterInfoModal"> پارکینگ اضافه دوم:<strong class="me-2">{{ unit.extra_parking_second }}</strong></p>
+              <p class="renterInfoModal"> پارکینگ اضافه دوم:<strong class="me-2">{{ unit.extra_parking_second|default:"---"|to_persian_number   }}</strong></p>
         </div>
     </div>
       <div class="row">
        <div class="col">
-                <p> توضیحات:<strong class="me-2 text-danger">{{ unit.unit_details }}</strong></p>
+                <p> توضیحات:<strong class="me-2 text-danger">{{ unit.unit_details|default:"---"|to_persian_number  }}</strong></p>
            </div>
     </div>
        <hr>
@@ -62,10 +69,10 @@
              <p class="renterInfoModal"><i class="fas fa-user-tie px-1"></i>نام مالک:<strong class="me-2">{{ unit.owner_name }}</strong></p>
         </div>
       <div class="col-6 col-lg-3 col-xl-3 p-0">
-               <p class="renterInfoModal">شماره همراه:<strong class="me-2">{{ unit.owner_mobile }}</strong></p>
+               <p class="renterInfoModal">شماره همراه:<strong class="me-2">{{ unit.owner_mobile|to_persian_number  }}</strong></p>
         </div>
          <div class="col-6 col-lg-3 col-xl-3">
-               <p class="renterInfoModal">کدملی مالک:<strong class="me-2">{{ unit.owner_national_code }}</strong></p>
+               <p class="renterInfoModal">کدملی مالک:<strong class="me-2">{{ unit.owner_national_code|to_persian_number  }}</strong></p>
         </div>
          <div class="col-6 col-lg-3 col-xl-3 p-0">
                <p class="renterInfoModal"  style="font-size: 13px">تاریخ خرید:<strong class="me-2 t">{{ unit.purchase_date|show_jalali_date_only }}</strong></p>
@@ -74,7 +81,7 @@
     </div>
       <div class="row">
            <div class="col-6 col-lg-3 col-xl-3">
-               <p class="renterInfoModal">تعداد نفرات:<strong class="me-2">{{ unit.owner_people_count }}</strong></p>
+               <p class="renterInfoModal">تعداد نفرات:<strong class="me-2">{{ unit.owner_people_count|to_persian_number  }}</strong></p>
             </div>
 {#             <div class="col-6 col-lg-3 col-xl-3 p-0">#}
 {#               <p class="renterInfoModal bg-warning">نام کاربری:<strong class="me-2">{{ unit.user.username }}</strong></p>#}
@@ -92,7 +99,7 @@
            <div class="col-6 col-lg-6 col-xl-6">
                <p class="renterInfoModal">توضیحات:<strong class="me-2">
                     {% if unit.owner_details %}
-                   {{ unit.owner_details }}
+                   {{ unit.owner_details|to_persian_number  }}
                         {% else %}
                        ثبت نشده است
                    {% endif %} 
@@ -135,12 +142,12 @@
         {% for renter in renters %}
             <tr>
                 <td>{{ forloop.counter }}</td>
-                <td>{{ renter.renter_name|default:"---" }}</td>
-                <td>{{ renter.renter_mobile|default:"---" }}</td>
-                <td>{{ renter.renter_national_code|default:"---" }}</td>
-                <td>{{ renter.renter_people_count|default:"---" }}</td>
+                <td>{{ renter.renter_name|default:"---"|to_persian_number  }}</td>
+               <td>{{ renter.renter_mobile|default:"---"|to_persian_number }}</td>
+                <td>{{ renter.renter_national_code|default:"---"|to_persian_number  }}</td>
+                <td>{{ renter.renter_people_count|default:"---"|to_persian_number  }}</td>
                 <td>{{ renter.first_charge_renter|three_digit_currency}}</td>
-                <td>{{ renter.contract_number|default:"---" }}</td>
+                <td>{{ renter.contract_number|default:"---"|to_persian_number  }}</td>
                 <td>{{ renter.start_date|show_jalali }}</td>
                 <td>{{ renter.end_date|show_jalali }}</td>
                 <td>{{ renter.estate_name}}</td>

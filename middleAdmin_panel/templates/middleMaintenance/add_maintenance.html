@@ -2,7 +2,7 @@
 {% load static %}
 {% load poll_extras %}
 {% block page_title %}
-مدیریت تعمیر و نگهداری( تعداد کل سندهای ثبت شده:{{ total_maintenances }} )
+مدیریت تعمیر و نگهداری( تعداد ثبت شده:{{ total_maintenances|to_persian_number }} )
 {% endblock page_title %}
 
 {% block main_content %}
@@ -102,14 +102,14 @@
                {% for maintenance in maintenances %}
                         <tbody class="text-center">
                             <tr>
-                                <td>{{ forloop.counter }}</td>
-                               <td>{{maintenance.maintenance_description }}</td>
+                                <td>{{ forloop.counter|to_persian_number }}</td>
+                               <td>{{maintenance.maintenance_description|to_persian_number }}</td>
                              <td class="col-12 col-lg-1 col-xl-1">{{maintenance.maintenance_start_date|show_jalali }}</td>
                                  <td class="col-12 col-lg-1 col-xl-1">{{maintenance.maintenance_end_date|show_jalali }}</td>
                               <td>{{maintenance.maintenance_price|three_digit_currency }}</td>
-                                <td>{{maintenance.service_company }}</td>
-                                <td>{{maintenance.maintenance_document_no }}</td>
-                               <td>{{maintenance.details }}</td>
+                                <td>{{maintenance.service_company|to_persian_number }}</td>
+                                <td>{{maintenance.maintenance_document_no|to_persian_number }}</td>
+                               <td>{{maintenance.details|to_persian_number }}</td>
                             <td class="col-12 col-lg-1 col-xl-1 p-0">
                                 {% if maintenance.maintenance_status == 'در حال انجام' %}
                                 	<button class="btn btn-gradient-warning px-1 py-2">درحال انجام</button>

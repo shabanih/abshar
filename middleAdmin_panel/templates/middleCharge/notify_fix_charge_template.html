@@ -3,7 +3,7 @@
 {% load poll_extras %}
 
 {% block page_title %}
- اعلام شارژ ({{ charge.name }}  )
+ اعلام شارژ ({{ charge.name|to_persian_number }}  )
 {% endblock page_title %}
 
 {% block main_content %}
@@ -92,13 +92,20 @@
                     مالک: {{ unit.owner_name }}
                 {% endif %}
                 <br>
-                مبلغ شارژ: {{ item.total_charge|three_digit_currency }} تومان
+{#                مبلغ شارژ: {{ item.total_charge|three_digit_currency }} تومان#}
+شارژ این ماه: {{ item.current_charge|three_digit_currency }}
+{% if item.previous_debt > 0 %}
+<br>
+<span style='color:#dc3545;'>بدهی معوقه: {{ item.previous_debt|three_digit_currency }}</span>
+{% endif %}
+<br>
+<b>جمع کل قابل پرداخت: {{ item.total_payable|three_digit_currency }}</b>
                 ">
                 <input class="form-check-input unit-checkbox mx-3"
                        type="checkbox"
                        name="units"
                        value="{{ unit.id }}">
-                واحد شماره {{ unit.unit }}
+                واحد شماره {{ unit.unit|to_persian_number }}
             </p>
         {% if item.send_sms %}
         	       <p class="me-2"><i class="fa fa-envelope text-info"></i></p>

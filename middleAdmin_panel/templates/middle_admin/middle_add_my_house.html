@@ -38,9 +38,9 @@
                            {% for house in houses %}
                                     <tbody class="text-center">
                                         <tr>
-                                            <td>{{ forloop.counter }}</td>
+                                            <td>{{ forloop.counter|to_persian_number  }}</td>
 {#                                            <td>{{ house.user.full_name }}</td>#}
-                                            <td>{{house.name }}</td>
+                                            <td>{{house.name|to_persian_number  }}</td>
                                             <td>{{house.user_type }}</td>
                                             <td>{{house.city }}</td>
                                             <td>{{house.address }}</td>

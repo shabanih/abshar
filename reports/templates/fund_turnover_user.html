@@ -86,14 +86,14 @@
                            {% for fund in funds %}
                                     <tbody class="text-center">
                                         <tr>
-                                               <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
+                                               <td>{{ forloop.counter0|add:page_obj.start_index|add:"0"|to_persian_number }}</td>
 {#                                            <td>{{ fund.doc_number }}</td>#}
                                                <td>{{fund.payment_date|show_jalali }}</td>
-                                            <td>بابت {{fund.payment_description }}</td>
+                                            <td>بابت {{fund.payment_description|to_persian_number }}</td>
 {#                                            <td>{{fund.debtor_amount|three_digit_currency}}</td>#}
 {#                                            <td>{{fund.creditor_amount|three_digit_currency }}</td>#}
-                                        <td>{{ fund.payment_gateway }}</td>
-                                        <td>{{fund.transaction_no }}</td>
+                                        <td>{{ fund.payment_gateway|to_persian_number }}</td>
+                                        <td>{{fund.transaction_no|to_persian_number }}</td>
                                          <td class="btn-gradient-light">{{fund.amount|three_digit_currency }}</td>
 
 

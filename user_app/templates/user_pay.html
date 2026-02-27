@@ -2,7 +2,7 @@
 {% load static %}
 {% load poll_extras %}
 {% block page_title %}
-مدیریت پرداخت ها ( تعداد کل ثبت شده:{{ total_user_pays }} )
+مدیریت پرداخت ها ( تعداد ثبت شده:{{ total_user_pays|to_persian_number }} )
 {% endblock page_title %}
 
 {% block main_content %}
@@ -113,9 +113,9 @@
                {% for pay in page_obj %}
                         <tbody class="text-center">
                             <tr>
-                                <td>{{ forloop.counter }}</td>
-                                <td>{{ pay.bank.bank_name }}</td>
-                                <td>{{pay.description }}</td>
+                                <td>{{ forloop.counter|to_persian_number }}</td>
+                                <td>{{ pay.bank.bank_name|to_persian_number }}</td>
+                                <td>{{pay.description|to_persian_number }}</td>
                                 <td>{{pay.amount|three_digit_currency }}</td>
                                  <td>{{pay.register_date|show_jalali }}</td>
                                <td>
@@ -191,12 +191,12 @@
                             </div>
                           <hr/>
                             <div class="modal-body text-end">
-                                 <p><strong>شرح درآمد:</strong> {{ pay.description }}</p>
+                                 <p><strong>شرح درآمد:</strong> {{ pay.description|to_persian_number }}</p>
                                 <p><strong>مبلغ:</strong> {{ pay.amount|three_digit_currency }} تومان</p>
                                 <p><strong>تاریخ ثبت :</strong> {{ pay.register_date|show_jalali_date_only}} </p>
                                 <p><strong>توضیحات:</strong>
                                     {% if pay.details %}
-                                        <span class="badge bg-warning">{{ pay.details }} </span>
+                                        <span class="badge bg-warning">{{ pay.details|to_persian_number }} </span>
                                         {% else %}
                                          ثبت نشده است
                                     {% endif %}
@@ -205,9 +205,9 @@
                                 <hr>
                              {% if pay.transaction_reference %} 
                                 <p><strong>تاریخ پرداخت:</strong> {{ pay.payment_date|show_jalali_date_only }}</p>
-                                <p><strong> کد پیگیری:</strong> {{ pay.transaction_reference }}</p>
-                                <p><strong> بانک واریز کننده:</strong> {{ pay.bank.bank_name }}</p>
-                                  <p><strong> روش پرداخت:</strong> {{ pay.payment_gateway }}</p>
+                                <p><strong> کد پیگیری:</strong> {{ pay.transaction_reference|to_persian_number }}</p>
+                                <p><strong> بانک واریز کننده:</strong> {{ pay.bank.bank_name|to_persian_number }}</p>
+                                  <p><strong> روش پرداخت:</strong> {{ pay.payment_gateway|to_persian_number }}</p>
                             {% endif %}
                             
                                     <p><strong>وضعیت:</strong> 

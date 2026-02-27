@@ -1,5 +1,6 @@
 import json
 import math
+from collections import defaultdict
 from decimal import Decimal
 
 from ckeditor_uploader.fields import RichTextUploadingField
@@ -833,6 +834,76 @@ class UnifiedCharge(models.Model):
             return self.unit.owner_mobile
 
         return None
+
+    from django.db.models import Sum, Q
+
+    # def get_previous_debt(self):
+    #     """
+    #     محاسبه مجموع بدهی‌های پرداخت‌نشده قبلی همان واحد
+    #     """
+    #     if not self.unit:
+    #         return 0
+    #
+    #     # به‌روزرسانی جریمه همه بدهی‌های قبلی قبل از محاسبه
+    #     previous_charges = UnifiedCharge.objects.filter(
+    #         unit=self.unit,
+    #         is_paid=False,
+    #         created_at__lt=self.created_at
+    #     )
+    #
+    #     total = 0
+    #     for charge in previous_charges:
+    #         charge.update_penalty(save=False)
+    #         total += charge.total_charge_month or 0
+    #
+    #     return total
+    #
+    # @property
+    # def total_payable_with_previous(self):
+    #     previous = self.get_previous_debt()
+    #     current = self.total_charge_month or self.amount or 0
+    #     return previous + current
+
+
+    def get_previous_debt_by_type(self):
+        """
+        محاسبه بدهی‌های پرداخت‌نشده قبلی همان واحد، تفکیک شده بر اساس نوع شارژ
+        """
+        if not self.unit:
+            return {}
+
+        today = timezone.now().date()
+
+        # همه بدهی‌های قبلی که پرداخت نشده و قبل از این شارژ ایجاد شده‌اند
+        previous_charges = UnifiedCharge.objects.filter(
+            unit=self.unit,
+            is_paid=False,
+            send_notification=True,
+            payment_deadline_date__lt=self.created_at
+        )
+
+        result = defaultdict(int)
+        for charge in previous_charges:
+            charge.update_penalty(save=False)
+            result[charge.charge_type] += charge.total_charge_month or 0
+
+        return dict(result)
+
+    @property
+    def total_previous_debt(self):
+        """
+        جمع عددی تمام بدهی‌های معوقه قبلی (فرقی نمی‌کند نوع شارژ)
+        """
+        debts_by_type = self.get_previous_debt_by_type()
+        return sum(debts_by_type.values())
+
+    @property
+    def total_payable_with_previous(self):
+        """
+        جمع کل قابل پرداخت = شارژ این ماه + بدهی معوقه
+        """
+        current = self.total_charge_month or self.amount or 0
+        return current + self.total_previous_debt
 
 
 class Fund(models.Model):

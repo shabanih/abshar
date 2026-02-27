@@ -1,3 +1,4 @@
+import datetime
 import re
 
 import jdatetime
@@ -936,7 +937,7 @@ class ExpenseForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
-        default_categories = ['هزینه آب', 'هزینه برق', 'هزینه گاز', 'بیمه ساختمان', 'نگهداری تاسیسات',
+        default_categories = ['هزینه آب', 'هزینه برق', 'هزینه گاز', 'بیمه', 'نگهداری تاسیسات',
                               'حقوق و دستمزد', 'هزینه نظافت', 'هزینه تعمیرات اساسی', 'هزینه فضای سبز']
         if user:
             for title in default_categories:
@@ -1054,6 +1055,15 @@ class ExpensePayForm(forms.ModelForm):
             raise forms.ValidationError("لطفا یا واحد را انتخاب کنید یا نام دریافت کننده را وارد نمایید.")
 
         return cleaned_data
+
+    def clean_payment_date(self):
+        date = self.cleaned_data.get('payment_date')
+        if date:
+            # تاریخ امروز به شمسی
+            today = jdatetime.date.today()
+            if date > today:
+                raise ValidationError("تاریخ پرداخت نمی‌تواند بعد از امروز باشد.")
+        return date
 
 
 class ExpenseCategoryForm(forms.ModelForm):
@@ -1259,6 +1269,15 @@ class IncomePayForm(forms.ModelForm):
 
         return cleaned_data
 
+    def clean_payment_date(self):
+        date = self.cleaned_data.get('payment_date')
+        if date:
+            # تاریخ امروز به شمسی
+            today = jdatetime.date.today()
+            if date > today:
+                raise ValidationError("تاریخ پرداخت نمی‌تواند بعد از امروز باشد.")
+        return date
+
 
 class IncomeCategoryForm(forms.ModelForm):
     subject = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=True,
@@ -1402,16 +1421,39 @@ class ReceiveMoneyForm(forms.ModelForm):
 
             self.fields['unit'].label_from_instance = get_unit_label
 
+    def clean_payment_date(self):
+        payment_date = self.cleaned_data.get('payment_date')
+        doc_date = self.cleaned_data.get('doc_date')  # تاریخ ثبت سند
+
+        if payment_date:
+            today = jdatetime.date.today()
+
+            # نباید بعد از امروز باشد
+            if payment_date > today:
+                raise ValidationError("تاریخ پرداخت نمی‌تواند بعد از امروز باشد.")
+
+            # نباید قبل از تاریخ ثبت سند باشد
+            if doc_date and payment_date < doc_date:
+                raise ValidationError("تاریخ پرداخت نمی‌تواند قبل از تاریخ ثبت سند باشد.")
+
+        return payment_date
+
 
 # =========================================================
 class PayerMoneyForm(forms.ModelForm):
     bank = forms.ModelChoiceField(
         queryset=Bank.objects.none(),
-        widget=forms.Select(attrs=attr),
         empty_label="شماره حساب انتخاب کنید",
         error_messages=error_message,
         required=True,
-        label='شماره حساب بانکی'
+        label='شماره حساب بانکی',
+        widget=forms.Select(
+            attrs={
+                'class': 'form-control-sm ',
+                'style': 'width:100%',
+                # 'data-placeholder': 'واحد / مالک یا مستاجر را انتخاب کنید1'
+            }
+        )
     )
     unit = forms.ModelChoiceField(
         queryset=Unit.objects.none(),  # خالی → ajax پرش می‌کنه
@@ -1507,6 +1549,23 @@ class PayerMoneyForm(forms.ModelForm):
     #         raise forms.ValidationError("لطفا یا واحد را انتخاب کنید یا نام دریافت کننده را وارد نمایید.")
     #
     #     return cleaned_data
+
+    def clean_payment_date(self):
+        payment_date = self.cleaned_data.get('payment_date')
+        document_date = self.cleaned_data.get('document_date')  # تاریخ ثبت سند
+
+        if payment_date:
+            today = jdatetime.date.today()
+
+            # نباید بعد از امروز باشد
+            if payment_date > today:
+                raise ValidationError("تاریخ پرداخت نمی‌تواند بعد از امروز باشد.")
+
+            # نباید قبل از تاریخ ثبت سند باشد
+            if document_date and payment_date < document_date:
+                raise ValidationError("تاریخ پرداخت نمی‌تواند قبل از تاریخ ثبت سند باشد.")
+
+        return payment_date
 
 
 PROPERTY_CHOICES = {

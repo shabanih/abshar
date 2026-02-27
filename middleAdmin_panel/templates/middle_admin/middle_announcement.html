@@ -61,11 +61,11 @@
                     {% for announcement in announcements %}
                         <tbody class="text-center">
                             <tr>
-                                <td>{{ forloop.counter }}</td>
+                                <td>{{ forloop.counter|to_persian_number  }}</td>
                                 <td class="p-0">
-                                   {{ announcement.title|safe }}
+                                   {{ announcement.title|safe|to_persian_number  }}
                                 </td>
-                                <td>{{ announcement.created_at|show_jalali }}</td>
+                                <td>{{ announcement.created_at|show_jalali_date_only }}</td>
                                 <td>
                                          {% if announcement.is_active == True %}
                                                 <button class="btn btn-primary bg-gradient-success p-1">فعال</button>

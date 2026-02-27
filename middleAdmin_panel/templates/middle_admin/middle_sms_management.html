@@ -63,10 +63,10 @@
                         {% for sms in all_sms %}
                         <tbody class="text-center">
                             <tr>
-                                <td>{{ forloop.counter }}</td>
+                                <td>{{ forloop.counter|to_persian_number  }}</td>
 {#                                <td>{{sms.user.full_name }}</td>#}
-                                <td>{{ sms.subject }}</td>
-                                <td>{{ sms.message }}</td>
+                                <td>{{ sms.subject|to_persian_number  }}</td>
+                                <td>{{ sms.message|to_persian_number  }}</td>
 
                                 <td>{{ sms.created_at|show_jalali}}</td>
                                 <td>{{ sms.approved_at|show_jalali}}</td>
@@ -91,7 +91,7 @@
                             -
                         {% endif %}
                     </td>
-                           <td>{{ sms.notified_units_count }}</td>
+                           <td>{{ sms.notified_units_count|to_persian_number  }}</td>
                                        <td>
               <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ sms.id }}" title="نمایش جزئیات"
         class="btn btn-gradient-info text-dark px-2 py-1">
@@ -108,7 +108,7 @@
             <div class="modal-body text-end">
                 <p><strong>لیست واحدهای ارسالی:</strong></p>
        {% for unit in sms.notified_units.all %}
-                    {{ unit.get_label }}<br/>
+                    {{ unit.get_label|to_persian_number  }}<br/>
                 {% empty %}
                     هیچ واحدی ارسال نشده است.
                 {% endfor %}

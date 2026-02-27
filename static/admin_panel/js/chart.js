@@ -326,6 +326,12 @@
 // });
 
 // ============================================================
+function toPersianNumber(num) {
+    const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
+    return num.toString().replace(/[0-9]/g, function (w) {
+        return persianDigits[+w];
+    });
+}
 window.addEventListener("DOMContentLoaded", function () {
 
     const persianMonthNames = [
@@ -377,9 +383,9 @@ window.addEventListener("DOMContentLoaded", function () {
     persianMonthNames.forEach((name, i) => {
         monthSelect.appendChild(new Option(name, i + 1));
     });
-    for (let y = currentYear - 5; y <= currentYear + 5; y++) {
-        yearSelect.appendChild(new Option(y, y));
-    }
+   for (let y = currentYear - 5; y <= currentYear + 5; y++) {
+    yearSelect.appendChild(new Option(toPersianNumber(y), y));
+     }
     monthSelect.value = currentMonth;
     yearSelect.value = currentYear;
 
@@ -414,7 +420,7 @@ window.addEventListener("DOMContentLoaded", function () {
             }
 
             const td = document.createElement("td");
-            td.textContent = d;
+            td.textContent = toPersianNumber(d);
 
             const noteKey = String(d);
 
@@ -451,7 +457,7 @@ window.addEventListener("DOMContentLoaded", function () {
                         selectedYear = currentYear;
                         selectedMonth = currentMonth;
                         selectedDay = d;
-                        selectedDayTitle.textContent = `یادداشت ${d} ${persianMonthNames[currentMonth - 1]}`;
+                        selectedDayTitle.textContent =`یادداشت ${toPersianNumber(d)} ${persianMonthNames[currentMonth - 1]}`;
                         noteText.value = "";
                         noteModal.style.display = "flex";
                     };
@@ -678,4 +684,70 @@ document.addEventListener("DOMContentLoaded", function () {
 }
 });
 
+});
+
+ // ===========================admin to middle message =======================
+
+document.addEventListener("DOMContentLoaded", function() {
+    const available = document.getElementById("availableManagers");
+    const selected = document.getElementById("selectedManagers");
+    const addBtn = document.getElementById("addMiddleBtn");
+    const removeBtn = document.getElementById("removeMiddleBtn");
+    const addAllBtn = document.getElementById("addAllMiddleBtn");
+    const removeAllBtn = document.getElementById("removeAllMiddleBtn");
+    const searchAvailable = document.getElementById("searchMiddleAvailable");
+    const searchSelected = document.getElementById("searchMiddleSelected");
+    const form = document.querySelector("form");
+
+    // انتقال گزینه‌ها
+    addBtn.onclick = () => moveOptions(available, selected);
+    removeBtn.onclick = () => moveOptions(selected, available);
+    addAllBtn.onclick = () => moveAllOptions(available, selected);
+    removeAllBtn.onclick = () => moveAllOptions(selected, available);
+
+    function moveOptions(from, to) {
+        [...from.selectedOptions].forEach(opt => {
+            to.add(opt);
+            opt.selected = true; // ✅ اینجا اضافه شد
+        });
+    }
+
+    function moveAllOptions(from, to) {
+        [...from.options].forEach(opt => {
+            to.add(opt);
+            opt.selected = true; // ✅ اینجا اضافه شد
+        });
+    }
+    // جستجو
+    searchAvailable.addEventListener("keyup", function() {
+        const filter = this.value.toLowerCase();
+        [...available.options].forEach(opt => {
+            opt.style.display = opt.text.toLowerCase().includes(filter) ? "" : "none";
+        });
+    });
+
+    searchSelected.addEventListener("keyup", function() {
+        const filter = this.value.toLowerCase();
+        [...selected.options].forEach(opt => {
+            opt.style.display = opt.text.toLowerCase().includes(filter) ? "" : "none";
+        });
+    });
+
+    // SweetAlert تأیید ارسال
+    form.addEventListener("submit", function(e) {
+        e.preventDefault();
+        Swal.fire({
+            title: 'ارسال پیامک؟',
+            text: "آیا از ارسال پیامک برای واحدهای انتخاب‌شده اطمینان دارید؟",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'بله، ارسال شود',
+            cancelButtonText: 'خیر',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                [...selected.options].forEach(opt => opt.selected = true);
+                form.submit();
+            }
+        });
+    });
 });

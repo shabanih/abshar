@@ -53,11 +53,11 @@
             <div class="subscription-circle-center"
                  style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); text-align:center;">
               <div class="subscription-remaining" style="font-weight:bold; font-size:16px;">
-                {{ remaining_days }}
+                {{ remaining_days|to_persian_number }}
               </div>
               <div class="subscription-divider" style="font-size:10px;"></div>
               <div class="subscription-total" style="font-size:12px;">
-                {{ total_days }}
+                {{ total_days|to_persian_number }}
               </div>
             </div>
 

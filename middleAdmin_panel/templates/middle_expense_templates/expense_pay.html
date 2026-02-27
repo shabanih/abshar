@@ -8,8 +8,8 @@
     <hr>
 <div class="container py-4">
 
-    <h4>پرداخت هزینه سند {{ expense.doc_no }}</h4>
-    <p>شرح: {{ expense.description }}</p>
+    <h4>پرداخت هزینه سند {{ expense.doc_noto_persian_number }}</h4>
+    <p>شرح: {{ expense.description|to_persian_number }}</p>
     <p>مبلغ: {{ expense.amount|three_digit_currency }}تومان</p>
 
     <form method="post" action="">

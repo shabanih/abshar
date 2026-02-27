@@ -97,16 +97,16 @@
                            {% for fund in funds %}
                                     <tbody class="text-center">
                                         <tr>
-                                                   <td>{{ forloop.counter0|add:page_obj.start_index|add:"0" }}</td>
-                                            <td>{{ fund.bank }}</td>
+                                           <td>{{ forloop.counter0|add:page_obj.start_index|add:"0"|to_persian_number }}</td>
+                                            <td>{{ fund.bank|to_persian_number }}</td>
                                                <td>{{fund.payment_date|show_jalali }}</td>
-                                            <td>{{fund.payment_description }}</td>
+                                            <td>{{fund.payment_description|to_persian_number }}</td>
                                             <td>
                                                 
                                                     {% if fund.payer_name %}
-                                                    {{fund.payer_name }}
+                                                    {{fund.payer_name|to_persian_number }}
                                                     {% else %}
-                                                    {{fund.receiver_name}}
+                                                    {{fund.receiver_name|to_persian_number}}
                                                 {% endif %} 
                                             </td>
                                             <td>{{fund.payment_gateway}}</td>
