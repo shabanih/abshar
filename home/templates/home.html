@@ -1,107 +1,9 @@
-{% load static %}
-<!DOCTYPE html>
-<html>
-   <head>
-      <!-- Basic -->
-      <meta charset="utf-8" />
-      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-      <!-- Mobile Metas -->
-      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-      <!-- Site Metas -->
-      <meta name="keywords" content="" />
-      <meta name="description" content="" />
-      <meta name="author" content="" />
-      <link rel="shortcut icon" href="/static/home/images/favicon.png" type="">
-      <title>سامانه مدیریت مجتمع خانه من</title>
-      <!-- bootstrap core css -->
-      <link rel="stylesheet" type="text/css" href="/static/home/css/bootstrap.css" />
-      <!-- font awesome style -->
-      <link href="/static/home/css/font-awesome.min.css" rel="stylesheet" />
-      <!-- Custom styles for this template -->
-{#      <link href="/static/home/css/style.css" rel="stylesheet" />#}
-      <!-- responsive style -->
-      <link href="/static/home/css/responsive.css" rel="stylesheet" />
-      <link href="/static/home/css/custom.css" rel="stylesheet" />
-       
-   </head>
-   <body>
-      <div class="hero_area">
-         <!-- header section strats -->
-         <header class="header_section" dir="rtl">
-            <div class="container">
-               <nav class="navbar navbar-expand-lg custom_nav-container ">
-                  <a class="navbar-brand" href="middle_login.html"><img width="250" src="/static/img/logo_core.png" alt="#" /></a>
-                  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                  <span class=""> </span>
-                  </button>
-                  <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                     <ul class="navbar-nav">
-                        <li class="nav-item active">
-                           <a class="nav-link" href="middle_login.html">خانه <span class="sr-only">(current)</span></a>
-                        </li>
-                        <li class="nav-item">
-                           <a class="nav-link" href="blog_list.html">تصاویر</a>
-                        </li>
-                        <li class="nav-item">
-                           <a class="nav-link" href="contact.html">مقالات</a>
-                        </li>
-                        <li class="nav-item">
-                           <a class="nav-link" href="product.html">تماس با ما</a>
-                        </li>
-                             <li class="nav-item">
-                           <a class="nav-link" href="product.html">درباره ما</a>
-                        </li>
-{#                         <li class="text-start">#}
-{#                             <a href="" class="btn btn-outline-primary">ورود مدیران مجتمع</a>#}
-{#                         </li>#}
-                
-                     </ul>
-                  </div>
-                     <a href="{% url 'login_middle' %}" class="btn btn-dark">ورود مدیران مجتمع</a>
-               </nav>
-            </div>
-             
-         </header>
-         <!-- end header section -->
-         <!-- slider section -->
-         <section class="slider_section ">
-            <div class="slider_bg_box">
-               <img src="/static/home/images/slider-bg.jpg" alt="">
-            </div>
-            <div id="customCarousel1" class="carousel slide" data-ride="carousel">
-               <div class="carousel-inner">
-   {% for slide in sliders %}
-   <div class="carousel-item {% if forloop.first %}active{% endif %}">
-      <div class="container">
-         <div class="row">
-            <div class="col-md-7 col-lg-6">
-               <div class="detail-box">
-                  <h1>
-                     <span>{{ slide.title }}</span>
-                  </h1>
-                  <p>{{ slide.text }}</p>
-               </div>
-            </div>
-         </div>
-      </div>
-   </div>
-   {% endfor %}
-</div>
-               <div class="container">
-                  <ol class="carousel-indicators">
-                   {% for slide in sliders %}
-                   <li data-target="#customCarousel1"
-                       data-slide-to="{{ forloop.counter0 }}"
-                       class="{% if forloop.first %}active{% endif %}">
-                   </li>
-                   {% endfor %}
-                </ol>
-               </div>
-            </div>
-         </section>
-         <!-- end slider section -->
-      </div>
-      <!-- why section -->
+{% extends 'renter_partials/base.html' %}
+
+{% block title %}سامانه مدیریت مجتمع خانه من{% endblock %}
+{% block content %}
+
+   <!-- why section -->
    <section class="why_section layout_padding">
   <div class="container">
     <div class="heading_container heading_center">
@@ -162,16 +64,16 @@
     </div>
   </div>
 </section>
-      <!-- end why section -->
+  
       
-      <!-- arrival section -->
-      <section class="arrival_section" dir="rtl">
+      <!-- about section -->
+      <section class="arrival_section bg-light py-5" dir="rtl">
     <div class="container">
         <div class="row align-items-center">
                <!-- متن -->
             <div class="col-md-6 text-right">
                 
-                <div class="heading_container mb-3 text-center">
+                <div class="heading_container mb-3 mt-3 text-center">
                     <h2>سامانه مدیریت مجتمع</h2>
                 </div>
 
@@ -181,10 +83,12 @@
                     <li>ثبت شارژ با روش های متنوع و متناسب با مجتمع شما</li>
                     <li> اعلان شارژ به‌صورت سیستمی و پیامکی</li>
                     <li>ثبت درآمد و هزینه همراه با گزارش‌گیری دقیق</li>
+                    <li>خروجی گزارش ها در قالب فایل پی دی اف و اکسل</li>
                     <li>ارسال پیام و پیامک به‌صورت فردی یا گروهی</li>
                     <li>ثبت و مدیریت اموال ساختمان</li>
+                    <li>ثبت و مدیریت تعمیر و نگهداری</li>
                     <li>سیستم تیکت برای ثبت و پیگیری درخواست‌ها</li>
-                    <li>درگاه پرداخت بانکی بنام مجتمع</li>
+                    <li>ایجاد درگاه پرداخت بانکی بنام مجتمع</li>
                 </ul>
 
             </div>
@@ -200,282 +104,392 @@
         </div>
     </div>
 </section>
-      <!-- end arrival section -->
-      
-      <!-- product section -->
-      <section class="product_section layout_padding">
-         <div class="container">
-            <div class="heading_container heading_center">
-               <h2>
-                 مجتمع هایی که به ما اعتماد کردند
-               </h2>
+    
+       <!-- about section -->
+       <div class="container-fluid py-2">
+            <div class="container pt-5">
+                <div class="row g-5">
+                    <div class="col-lg-6 col-md-6 col-sm-12 wow fadeIn" data-wow-delay=".3s">
+                        <div class="h-100 position-relative">
+                            <img src="/static/home/images/img/about-1.png" class="img-fluid w-75 rounded" alt="" style="margin-bottom: 25%;">
+                            <div class="position-absolute w-75" style="top: 25%; left: 25%;">
+                                <img src="/static/home/images/img/about-2.png" class="img-fluid w-100 rounded" alt="">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-6 col-sm-12 wow fadeIn first_about mb-4" data-wow-delay=".5s">
+                        <h5 class="mb-4">شارژیار!</h5>
+                        <h2 class="mb-4 ">یک تجربه خوب در مدیریت ساختمان </h2>
+                        <p>لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ، و با استفاده از طراحان گرافیک است، چاپگرها و متون بلکه روزنامه و مجله در ستون و سطرآنچنان که لازم است، و برای شرایط فعلی تکنولوژی مورد نیاز، و کاربردهای متنوع با هدف بهبود ابزارهای کاربردی می باشد، کتابهای زیادی در شصت و سه درصد گذشته حال و آینده، شناخت فراوان جامعه و متخصصان را می طلبد، تا با نرم افزارها شناخت بیشتری را برای طراحان رایانه ای علی الخصوص طراحان خلاقی، و فرهنگ پیشرو در زورد استفاده قرار گیرد.</p>
+                        <p class="mb-4">اگر شما یک طراح هستین و یا با طراحی های گرافیکی سروکار دارید به متن های برخورده اید که با نام لورم ایپسوم شناخته می‌شوند. لورم ایپسوم یا طرح‌نما (به انگلیسی: Lorem ipsum) متنی ساختگی و بدون معنی است که برای امتحان فونت و یا پر کردن فضا در یک طراحی گرافیکی و یا صنعت چاپ استفاده میشود. طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند.</p>
+                        <a href="" class="btn-other-info">اطلاعات بیشتر</a>
+                    </div>
+                </div>
             </div>
-            <div class="row">
-               <div class="col-sm-6 col-md-4 col-lg-4">
-                  <div class="box">
-                     <div class="option_container">
-                        <div class="options">
-                           <a href="" class="option1">
-                           ساختمان ارکیده
-                           </a>
-                       
-                        </div>
-                     </div>
-                     <div class="img-box">
-                        <img src="/static/home/images/house1.jpeg" alt="">
-                     </div>
-           
-                  </div>
-               </div>
-               <div class="col-sm-6 col-md-4 col-lg-4">
-                  <div class="box">
-                     <div class="option_container">
-                        <div class="options">
-                           <a href="" class="option1">
-                           مجتمع نیکان مهر
-                           </a>
-                   
-                        </div>
-                     </div>
-                     <div class="img-box">
-                        <img src="/static/home/images/house2.jpg" alt="">
-                     </div>
-                
-                  </div>
-               </div>
-               <div class="col-sm-6 col-md-4 col-lg-4">
-                  <div class="box">
-                     <div class="option_container">
-                        <div class="options">
-                           <a href="" class="option1">
-                           مجتمع یاس
-                           </a>
-                       
-                        </div>
-                     </div>
-                     <div class="img-box">
-                        <img src="/static/home/images/house3.jpg" alt="">
-                     </div>
-                  
-                  </div>
-               </div>
-       
-            </div>
-{#            <div class="btn-box">#}
-{#               <a href="">#}
-{#               View All products#}
-{#               </a>#}
-{#            </div>#}
-         </div>
-      </section>
-      <!-- end product section -->
-
+        </div>
+    
+    
       <!-- subscribe section -->
       <section class="subscribe_section">
-         <div class="container-fuild">
+         <div class="container-fluid">
             <div class="box">
                <div class="row">
                   <div class="col-md-6 offset-md-3">
                      <div class="subscribe_form ">
-                        <div class="heading_container heading_center">
-                           <h3>Subscribe To Get Discount Offers</h3>
+                        <div class="heading_container heading_center mb-3">
+                           <h2> مشاوره رایگان</h2>
                         </div>
-                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor</p>
-                        <form action="">
-                           <input type="email" placeholder="Enter your email">
-                           <button>
-                           subscribe
+                        <p dir="rtl">در صورت درخواست مشاوره رایگان اطلاعات خودتان رو ثبت کنید تا با شما تماس بگیریم.</p>
+                     {{ form.non_field_errors }}
+                        <form action="" method="post" novalidate>
+                            {% csrf_token %}
+                         <div class="row mt-3">
+                                     <div class="col-6">
+                                 {{ form.mobile }}
+                                 {{ form.mobile.errors }}
+{#                              <input type="text" name="name" class="text-center" placeholder="نام و نام خانوادگی را وارد نمایید">#}
+                             </div>
+                              <div class="col-6">
+                                  {{ form.name }}
+                                             {{ form.name.errors }}
+{#                                   <input type="text" name="mobile" class="text-center" placeholder="شماره همراه را وارد نمایید">#}
+                             </div>
+                     
+                            
+                         </div>
+                    
+                           <button class="btn btn-secondary">
+                           درخواست مشاوره
                            </button>
                         </form>
+                    
+             
                      </div>
                   </div>
                </div>
             </div>
          </div>
       </section>
-      <!-- end subscribe section -->
-      <!-- client section -->
-{#      <section class="client_section layout_padding">#}
-{#         <div class="container">#}
-{#            <div class="heading_container heading_center">#}
-{#               <h2>#}
-{#                  Customer's Testimonial#}
-{#               </h2>#}
-{#            </div>#}
-{#            <div id="carouselExample3Controls" class="carousel slide" data-ride="carousel">#}
-{#               <div class="carousel-inner">#}
-{#                  <div class="carousel-item active">#}
-{#                     <div class="box col-lg-10 mx-auto">#}
-{#                        <div class="img_container">#}
-{#                           <div class="img-box">#}
-{#                              <div class="img_box-inner">#}
-{#                                 <img src="/static/home/images/client.jpg" alt="">#}
-{#                              </div>#}
-{#                           </div>#}
-{#                        </div>#}
-{#                        <div class="detail-box">#}
-{#                           <h5>#}
-{#                              Anna Trevor#}
-{#                           </h5>#}
-{#                           <h6>#}
-{#                              Customer#}
-{#                           </h6>#}
-{#                           <p>#}
-{#                              Dignissimos reprehenderit repellendus nobis error quibusdam? Atque animi sint unde quis reprehenderit, et, perspiciatis, debitis totam est deserunt eius officiis ipsum ducimus ad labore modi voluptatibus accusantium sapiente nam! Quaerat.#}
-{#                           </p>#}
-{#                        </div>#}
-{#                     </div>#}
-{#                  </div>#}
-{#                  <div class="carousel-item">#}
-{#                     <div class="box col-lg-10 mx-auto">#}
-{#                        <div class="img_container">#}
-{#                           <div class="img-box">#}
-{#                              <div class="img_box-inner">#}
-{#                                 <img src="/static/home/images/client.jpg" alt="">#}
-{#                              </div>#}
-{#                           </div>#}
-{#                        </div>#}
-{#                        <div class="detail-box">#}
-{#                           <h5>#}
-{#                              Anna Trevor#}
-{#                           </h5>#}
-{#                           <h6>#}
-{#                              Customer#}
-{#                           </h6>#}
-{#                           <p>#}
-{#                              Dignissimos reprehenderit repellendus nobis error quibusdam? Atque animi sint unde quis reprehenderit, et, perspiciatis, debitis totam est deserunt eius officiis ipsum ducimus ad labore modi voluptatibus accusantium sapiente nam! Quaerat.#}
-{#                           </p>#}
-{#                        </div>#}
-{#                     </div>#}
-{#                  </div>#}
-{#                  <div class="carousel-item">#}
-{#                     <div class="box col-lg-10 mx-auto">#}
-{#                        <div class="img_container">#}
-{#                           <div class="img-box">#}
-{#                              <div class="img_box-inner">#}
-{#                                 <img src="/static/home/images/client.jpg" alt="">#}
-{#                              </div>#}
-{#                           </div>#}
-{#                        </div>#}
-{#                        <div class="detail-box">#}
-{#                           <h5>#}
-{#                              Anna Trevor#}
-{#                           </h5>#}
-{#                           <h6>#}
-{#                              Customer#}
-{#                           </h6>#}
-{#                           <p>#}
-{#                              Dignissimos reprehenderit repellendus nobis error quibusdam? Atque animi sint unde quis reprehenderit, et, perspiciatis, debitis totam est deserunt eius officiis ipsum ducimus ad labore modi voluptatibus accusantium sapiente nam! Quaerat.#}
-{#                           </p>#}
-{#                        </div>#}
-{#                     </div>#}
-{#                  </div>#}
-{#               </div>#}
-{#               <div class="carousel_btn_box">#}
-{#                  <a class="carousel-control-prev" href="#carouselExample3Controls" role="button" data-slide="prev">#}
-{#                  <i class="fa fa-long-arrow-left" aria-hidden="true"></i>#}
-{#                  <span class="sr-only">Previous</span>#}
-{#                  </a>#}
-{#                  <a class="carousel-control-next" href="#carouselExample3Controls" role="button" data-slide="next">#}
-{#                  <i class="fa fa-long-arrow-right" aria-hidden="true"></i>#}
-{#                  <span class="sr-only">Next</span>#}
-{#                  </a>#}
-{#               </div>#}
-{#            </div>#}
-{#         </div>#}
-{#      </section>#}
-      <!-- end client section -->
-      <!-- footer start -->
-      <footer>
-         <div class="container" >
+    
+      <!-- about section -->
+       <div class="service">
+         <div class="container py-4">
             <div class="row">
-                 <div class="col-md-2">
-                   <div class="full">
-                      <div class="logo_footer">
-                        <a href="#"><img width="100" src="/static/img/Enamad.png" alt="#" /></a>
-                        <a href="#"><img width="150" src="/static/img/BehPardakht-faraboom.png" alt="#" /></a>
-                      </div>
-{#                      <div class="information_f">#}
-{#                        <p><strong>تلفن:</strong> 0996 63 63 905</p>#}
-{#                        <p><strong>ایمیل:</strong> yourmain@gmail.com</p>#}
-{#                      </div>#}
-                   </div>
-               </div>
-               <div class="col-md-2">
-                   <div class="full">
-                      <div class="logo_footer">
-                        <a href="#"><img width="100" src="/static/img/Enamad.png" alt="#" /></a>
-                        <a href="#"><img width="150" src="/static/img/BehPardakht-faraboom.png" alt="#" /></a>
-                      </div>
-{#                      <div class="information_f">#}
-{#                        <p><strong>تلفن:</strong> 0996 63 63 905</p>#}
-{#                        <p><strong>ایمیل:</strong> yourmain@gmail.com</p>#}
-{#                      </div>#}
-                   </div>
-               </div>
-               <div class="col-md-8 ">
-                  <div class="row">
-                  <div class="col-md-7">
-                     <div class="row">
-                        <div class="col-md-6">
-                     <div class="widget_menu text-center">
-                        <h3>دسترسی سریع</h3>
-                        <ul>
-                           <li><a href="#">خانه</a></li>
-                           <li><a href="#">درباره ما</a></li>
-                           <li><a href="#">معرفی</a></li>
-                           <li><a href="#">مقالات</a></li>
-                           <li><a href="#">تماس با ما</a></li>
-                        </ul>
-                     </div>
+               <div class="col-md-8 offset-md-2">
+                      <div class="heading_container heading_center py-4">
+                           <h2 > مشاوره رایگان</h2>
+                       
+                     <span>Easy and effective way to get your device repaired.</span>
                   </div>
-{#                         <div class="col-md-6">#}
-{#                     <div class="widget_menu">#}
-{#                        <h3>مقالات</h3>#}
-{#                        <ul>#}
-{#                           <li><a href="#">Account</a></li>#}
-{#                           <li><a href="#">Checkout</a></li>#}
-{#                           <li><a href="#">Login</a></li>#}
-{#                           <li><a href="#">Register</a></li>#}
-{#                           <li><a href="#">Shopping</a></li>#}
-{#                           <li><a href="#">Widget</a></li>#}
-{#                        </ul>#}
-{#                     </div>#}
-{#                  </div>#}
-                   
-                     </div>
-                  </div>     
-                   <div class="col-md-4">
-                   <div class="full">
-                      <div class="logo_footer">
-                        <a href="#"><img width="210" src="/static/home/images/logo.png" alt="#" /></a>
-                      </div>
-                      <div class="information_f">
-                        <p><strong>تلفن:</strong> 0996 63 63 905</p>
-                        <p><strong>ایمیل:</strong> yourmain@gmail.com</p>
-                      </div>
-                   </div>
                </div>
+            </div>
+            <div class="row">
+               <div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
+                  <div class="service-box">
+                     <i><img src="/static/home/images/intro/service1.png"></i>
+                     <h3 class="py-3">خدمات سریع</h3>
+                     <p>طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند </p>
+                  </div>
+               </div>
+               <div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
+                  <div class="service-box">
+                     <i><img src="/static/home/images/intro/service2.png"></i>
+                     <h3 class="py-3">پرداخت ایمن</h3>
+                     <p>طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند </p>
+                  </div>
+               </div>
+               <div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
+                  <div class="service-box">
+                     <i><img src="/static/home/images/intro/service3.png"></i>
+                     <h3 class="py-3">تیم حرفه ای</h3>
+                     <p>طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند </p>
+                  </div>
+               </div>
+               <div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
+                  <div class="service-box">
+                     <i><img src="/static/home/images/intro/service4.png"></i>
+                     <h3 class="py-3">دقیق و موثر</h3>
+                     <p>طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند </p>
+                  </div>
+               </div>
+               <div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
+                  <div class="service-box">
+                     <i><img src="/static/home/images/intro/service5.png"></i>
+                     <h3 class="py-3">ضمانت برگشت وجه</h3>
+                     <p>طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند </p>
+                  </div>
+               </div>
+               <div class="col-xl-4 col-lg-4 col-md-4 col-sm-12">
+                  <div class="service-box">
+                     <i><img src="/static/home/images/intro/service6.png"></i>
+                     <h3 class="py-3">مطمئن و تایید شده</h3>
+                     <p>طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند </p>
                   </div>
                </div>
             </div>
          </div>
-      </footer>
-      <!-- footer end -->
-      <div class="cpy_">
-         <p class="mx-auto">© 2021 All Rights Reserved By <a href="https://html.design/">Free Html Templates</a><br>
-         
-            Distributed By <a href="https://themewagon.com/" target="_blank">ThemeWagon</a>
-         
-         </p>
       </div>
-      <!-- jQery -->
-      <script src="/static/home/js/jquery-3.4.1.min.js"></script>
-      <!-- popper js -->
-      <script src="/static/home/js/popper.min.js"></script>
-      <!-- bootstrap js -->
-      <script src="/static/home/js/bootstrap.js"></script>
-      <!-- custom js -->
-      <script src="/static/home/js/custom.js"></script>
-   </body>
-</html>
+    
+          <!-- articles section -->
+      <section class="product_section layout_padding bg-light ">
+         <div class="container">
+            <div class="heading_container heading_center" dir="rtl">
+               <h2>
+                  آنچه در مورد مدیریت ساختمان باید بدانید! 
+               </h2>
+            </div>
+            <div class="row">
+                {% for article in articles %}
+                <div class="col-sm-6 col-md-3 col-lg-4">
+                  <div class="box">
+                     <div class="option_container">
+                        <div class="options">
+                           <a href="{% url 'article_details' article.id %}" class="option1">
+                           مشاهده مقاله
+                           </a>
+                    
+                        </div>
+                     </div>
+                     <div class="img-box">
+                        <img src="{{ article.image.url }}" alt="">
+                     </div>
+                     <div class="detail-box">
+                        <h5>
+                          {{ article.title }}
+                        </h5>
+                     </div>
+                      
+                  </div>
+               </div>
+                {% endfor %}
+                
+          
+            </div>
+            <div class="btn-box">
+               <a href="{% url 'articles' %}">
+              مشاهده همه مقالات
+               </a>
+            </div>
+         </div>
+      </section>
+    
+      <section class="arrival_section py-3" dir="rtl">
+         <div class="container">
+            <div class="box">
+               <div class="arrival_bg_box">
+                  <img src="/static/home/images/arrival-bg.png" alt="">
+               </div>
+               <div class="row">
+                  <div class="col-md-6 ml-auto text-justify">
+                     <div class="heading_container remove_line_bt">
+                        <h2>
+                           شارژیار
+                        </h2>
+                     </div>
+                     <p style="margin-top: 20px;margin-bottom: 30px;">
+                        طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند. طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند. طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند. طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند
+                     </p>
+                     <a href="">
+                     همین الان شروع کنید
+                     </a>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </section>
+    
+      <!-- faq section -->
+    <section id="faq" class="faq section bg-light py-5">
+
+      <!-- Section Title -->
+  <div class="heading_container heading_center">
+               <h2>
+                   سوالات رایج
+               </h2>
+            </div>
+
+      <div class="container">
+
+        <div class="row justify-content-center">
+
+          <div class="col-lg-10" dir="rtl" data-aos="fade-up" data-aos-delay="100">
+
+            <div class="faq-container">
+
+              <div class="faq-item faq-active">
+                <h3>لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ?</h3>
+                <div class="faq-content text-justify">
+                  <p>
+                      اگر شما یک طراح هستین و یا با طراحی های گرافیکی سروکار دارید به متن های برخورده اید که با نام لورم ایپسوم شناخته می‌شوند. لورم ایپسوم یا طرح‌نما (به انگلیسی: Lorem ipsum) متنی ساختگی و بدون معنی است که برای امتحان فونت و یا پر کردن فضا در یک طراحی گرافیکی و یا صنعت چاپ استفاده میشود.  صفحه و ارائه شکل کلی طرح استفاده می‌کنند.
+                  </p>
+                </div>
+                <i class="faq-toggle bi bi-chevron-right"></i>
+              </div><!-- End Faq item-->
+
+              <div class="faq-item">
+                <h3>لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ?</h3>
+                <div class="faq-content text-justify">
+                  <p>طراحان سایت هنگام طراحی قالب سایت معمولا با این موضوع رو برو هستند که محتوای اصلی صفحات آماده نیست. .</p>
+                </div>
+                <i class="faq-toggle bi bi-chevron-right"></i>
+              </div><!-- End Faq item-->
+
+              <div class="faq-item ">
+                <h3>لورم ایپسوم متن ساختگی ن ساختگی  با تولید سادگی نامفهوم از صنعت چاپ?</h3>
+                <div class="faq-content text-justify">
+                  <p>طراحان سایت هنگام طراحی قالب سایت معمولا با این موضوع رو برو هستند که محتوای اصلی صفحات آماده نیست طراحان سایت هنگام طراحی قالب سایت معمولا با این موضوع رو برو هستند. </p>
+                </div>
+                <i class="faq-toggle bi bi-chevron-right"></i>
+              </div><!-- End Faq item-->
+
+              <div class="faq-item text-justify">
+                <h3>لورم ایپسوم متن ساختگی لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ?</h3>
+                <div class="faq-content">
+                  <p>از آنجا که لورم ایپسوم، شباهت زیادی به متن های واقعی دارد، طراحان معمولا از لورم ایپسوم استفاده میکنند.</p>
+                </div>
+                <i class="faq-toggle bi bi-chevron-right"></i>
+              </div><!-- End Faq item-->
+
+              <div class="faq-item">
+                <h3>لورم ایپسوم تن ساختگی با تولید سادگی نامفهوم از متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ?</h3>
+                <div class="faq-content text-justify">
+                  <p>به همین دلیل اغلب اوقات ما با وبسایتهایی مواجه می‌شویم که در گوشه و کنار صفحات آنها متن لورم ایپسوم هنوز وجود دارد و حذف نشده است که این نشان دهنده بی توجهی طراحان است.</p>
+                </div>
+                <i class="faq-toggle bi bi-chevron-right"></i>
+              </div><!-- End Faq item-->
+
+              <div class="faq-item">
+                <h3>لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم  سادگی نامفهواز صنعت چاپ?</h3>
+                <div class="faq-content text-justify">
+                  <p> نکته بعدی در مورد متن ساختگی لورم ایپسوم این است </p>
+                </div>
+                <i class="faq-toggle bi bi-chevron-right"></i>
+              </div><!-- End Faq item-->
+
+            </div>
+
+          </div><!-- End Faq Column-->
+
+        </div>
+
+      </div>
+
+    </section>
+    
+      <!-- client section -->
+      <section class="client_section layout_padding">
+         <div class="container">
+            <div class="heading_container heading_center">
+               <h2>
+                   نظرات شما راجع به شارژ یار
+               </h2>
+            </div>
+            <div id="carouselExample3Controls" class="carousel slide" data-ride="carousel">
+               <div class="carousel-inner">
+                  <div class="carousel-item active">
+                     <div class="box col-lg-10 mx-auto">
+                        <div class="img_container">
+                           <div class="img-box">
+                              <div class="img_box-inner">
+                                 <img src="/static/home/images/client.jpg" alt="">
+                              </div>
+                           </div>
+                        </div>
+                        <div class="detail-box">
+                           <h5>
+                             علیرضا شمسایی
+                           </h5>
+                           <h6>
+                              تهران
+                           </h6>
+                           <p>
+                               بسیار کاربردی و روش های شارژ متنوع و امکانات خوبی داره  
+                           </p>
+                        </div>
+                     </div>
+                  </div>
+                  <div class="carousel-item">
+                     <div class="box col-lg-10 mx-auto">
+                        <div class="img_container">
+                           <div class="img-box">
+                              <div class="img_box-inner">
+                                 <img src="/static/home/images/client.jpg" alt="">
+                              </div>
+                           </div>
+                        </div>
+                        <div class="detail-box">
+                           <h5>
+                              رویا سمایی فر
+                           </h5>
+                           <h6>
+                              شیراز
+                           </h6>
+                           <p>
+                               پشتبانی شارژیار عالیه و یه نرم افزار کامله
+                           </p>
+                        </div>
+                     </div>
+                  </div>
+                  <div class="carousel-item">
+                     <div class="box col-lg-10 mx-auto">
+                        <div class="img_container">
+                           <div class="img-box">
+                              <div class="img_box-inner">
+                                 <img src="/static/home/images/client.jpg" alt="">
+                              </div>
+                           </div>
+                        </div>
+                        <div class="detail-box">
+                           <h5>
+                              آرین مرادخانی
+                           </h5>
+                           <h6>
+                              رشت
+                           </h6>
+                           <p>
+                               فکر نمیکردم اینفدر آپشن هاش کامل باشه و تمام نیازهای مجتمع رو برآورده کرده 
+                           </p>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               <div class="carousel_btn_box">
+                  <a class="carousel-control-prev" href="#carouselExample3Controls" role="button" data-slide="prev">
+                  <i class="fa fa-long-arrow-left" aria-hidden="true"></i>
+                  <span class="sr-only">Previous</span>
+                  </a>
+                  <a class="carousel-control-next" href="#carouselExample3Controls" role="button" data-slide="next">
+                  <i class="fa fa-long-arrow-right" aria-hidden="true"></i>
+                  <span class="sr-only">Next</span>
+                  </a>
+               </div>
+            </div>
+         </div>
+      </section>
+
+    <script>
+  document.querySelectorAll('.faq-item h3, .faq-item .faq-toggle').forEach((faqItem) => {
+    faqItem.addEventListener('click', () => {
+      faqItem.parentNode.classList.toggle('faq-active');
+    });
+  });
+
+</script>
+
+{% endblock %}
+{#  <script>                                                                            #}
+{#  document.addEventListener('DOMContentLoaded', function () {#}
+{#    {% if messages %}#}
+{#      {% for message in messages %}#}
+{#        Swal.fire({#}
+{#          icon: '{% if message.tags == "success" %}success{% elif message.tags == "error" %}error{% else %}info{% endif %}',#}
+{#          text: '{{ message }}',#}
+{#          timer: 4000,#}
+{#          showConfirmButton: true,#}
+{#          confirmButtonText:'باشه',#}
+{#          timerProgressBar: true#}
+{#        });#}
+{#      {% endfor %}#}
+{#    {% endif %}#}
+{#  });#}
+{#</script> #}

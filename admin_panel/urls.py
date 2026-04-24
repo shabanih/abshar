@@ -12,11 +12,25 @@ urlpatterns = [
     path("impersonate/<int:user_id>/", views.impersonate_user, name="impersonate"),
     path("stop-impersonation/", views.stop_impersonation, name="stop_impersonation"),
 
+    path('add-articles/', views.ArticleCreateView.as_view(), name='add_articles'),
+    path('manage-articles/', views.manage_articles, name='manage_articles'),
+    path('edit-article/<int:pk>/', views.ArticleUpdateView.as_view(), name='edit_article'),
+    path('delete-article/<int:pk>/', views.article_delete, name='delete_article'),
+
     # middle admin urls
 
     path('create-middle-admin/', views.MiddleAdminCreateView.as_view(), name='create_middle_admin'),
     path('middle/edit/<int:pk>/', views.MiddleAdminUpdateView.as_view(), name='edit_middle_admin'),
     path('middle/delete/<int:pk>/', views.middleAdmin_delete, name='delete_middle_admin'),
+
+    path('conatct/management/', views.ContactUsManagement.as_view(), name='contact_management'),
+    path('comment/approved/<str:comment_code>/', views.approved_comment, name='comment_approved'),
+    path('comment/disapproved/<str:comment_code>/', views.disapproved_comment,
+         name='comment_disapproved'),
+
+    path('consultant/management/', views.FreeRequestManagement.as_view(), name='consultant_management'),
+    path('consultant/approved/<str:cons_code>/', views.approved_request_management, name='consultant_approved'),
+    path('consultant/disapproved/<str:cons_code>/', views.disapproved_request_management, name='consultant_disapproved'),
 
     # Slider urls
 

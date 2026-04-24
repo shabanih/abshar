@@ -18,7 +18,7 @@
                         <i class="mdi mdi-checkbox-multiple-marked-outline mdi-24px float-right"></i>
                         تعداد شارژ ها
                     </h4>
-                    <h2 class="mb-1">{{ total_charge }}</h2>
+                    <h2 class="mb-1">{{ total_charge|to_persian_number }}</h2>
                   </div>
                 </div>
                    </a>
@@ -31,7 +31,7 @@
                         <i class="mdi mdi-comment-text mdi-24px float-right"></i>
                         تعداد تیکت ها
                     </h4>
-                    <h2 class="mb-1">{{ ticket }}</h2>
+                    <h2 class="mb-1">{{ ticket|to_persian_number }}</h2>
                   </div>
                 </div>
                       </a>
@@ -64,7 +64,7 @@
                         <i class="mdi mdi-checkbox-multiple-marked mdi-24px float-right"></i>
                         تعداد شارژ پرداخت نشده
                     </h4>
-                    <h2 class="mb-1">{{ total_charge_unpaid }}</h2>
+                    <h2 class="mb-1">{{ total_charge_unpaid |to_persian_number}}</h2>
                   </div>
                 </div>
                   </a>
@@ -78,7 +78,7 @@
         <div class="row align-items-center border-bottom py-3">
           <div class="col-12 d-flex align-items-start">
             <i class="fas fa-bell ms-2" style="color: rgba(98,112,204,0.98); font-size: 1.3rem;"></i>
-            <p class="info-text mb-0 ">{{ announcement.title|safe }}</p>
+            <p class="info-text mb-0 ">{{ announcement.title|safe|to_persian_number }}</p>
           </div>
         </div>
       {% endfor %}
@@ -112,7 +112,7 @@
                 <tbody class="text-center">
                 {% for charge in last_charges %}
                     <tr>
-                        <td class="p-2">{{ charge.title }}</td>
+                        <td class="p-2">{{ charge.title|to_persian_number }}</td>
                         <td class="p-2">{{ charge.total_charge_month|three_digit_currency }}</td>
                         <td class="p-2">{{ charge.send_notification_date|show_jalali }}</td>
                               <td class="p-2">
@@ -225,11 +225,11 @@
           <td>{{ forloop.counter }}</td>
  
            <td>{{ ticket.created_at|show_jalali_date_only }}</td>
-          <td>{{ ticket.subject|safe }}</td>
-          <td>#{{ ticket.ticket_no}}</td>
+          <td>{{ ticket.subject|safe|to_persian_number }}</td>
+          <td>#{{ ticket.ticket_no|to_persian_number}}</td>
         	<td>
                {% if ticket.is_call %}
-            <button class="btn btn-gradient-info p-1">{{ ticket.user.mobile}}</button>
+            <button class="btn btn-gradient-info p-1">{{ ticket.user.mobile|to_persian_number}}</button>
                  {% else %}
                    <span>ثبت نشده است</span>
         {% endif %}

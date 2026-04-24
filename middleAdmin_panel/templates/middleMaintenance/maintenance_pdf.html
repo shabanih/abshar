@@ -76,8 +76,9 @@ h1{
                               <th>شرکت خدماتی</th>
                             <th>شماره فاکتور</th>
                              <th>توضیحات </th>
-                             <th>آخرین وضعیت</th>
+{#                             <th>آخرین وضعیت</th>#}
                             <th>تصویر سند</th>
+                            <th>وضعیت پرداخت</th>
                         </tr>
                     </thead>
                  {% if maintenances %}
@@ -91,7 +92,7 @@ h1{
                               <td>{{maintenance.maintenance_price|three_digit_currency }}</td>
                                 <td>{{maintenance.service_company }}</td>
                                 <td>{{maintenance.maintenance_document_no }}</td>
-                               <td>{{maintenance.details }}</td>
+{#                               <td>{{maintenance.details }}</td>#}
                                <td>
                                 {% if maintenance.maintenance_status == 'در حال انجام' %}
                                 	<p class="btn btn-gradient-warning px-2 py-2">درحال انجام</p>
@@ -109,6 +110,13 @@ h1{
                                 {% else %}
                                     <span class="text-danger"> ندارد</span>
                                 {% endif %}
+                            </td>
+                                  <td>
+                                    {% if maintenance.is_paid %}
+                                    	<span class="badge bg-success">پرداخت شده</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span>
+                                    {% endif %} 
                             </td>
                             </tr>
                         {% endfor %}

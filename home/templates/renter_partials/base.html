@@ -1,0 +1,56 @@
+{% load static %}
+{% load render_partial %}
+<!DOCTYPE html>
+<html lang="fa">
+   <head>
+      <!-- Basic -->
+      <meta charset="utf-8" />
+      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+      <!-- Mobile Metas -->
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+      <!-- Site Metas -->
+      <meta name="keywords" content="" />
+      <meta name="description" content="" />
+      <meta name="author" content="" />
+      <link rel="shortcut icon" href="/static/home/images/favicon.png" type="">
+{#      <title>سامانه مدیریت مجتمع خانه من</title>  #}
+       <title>{% block title %}{% endblock %}</title>
+    {% include 'renter_partials/header_references.html' %}
+       
+   </head>
+   <body>
+   {% render_partial 'home.views.site_header_component' %}
+        {% block content %}
+        {% endblock %}
+               <div class="container py-2">
+                    {% if messages %}
+                      <div class="col-8">
+                        {% for message in messages %}
+                          <div class="alert {% if 'error' in message.tags %}alert-danger{% else %}alert-{{ message.tags }}{% endif %} alert-dismissible fade show" role="alert">
+
+                            <div class="me-5 text-white ">
+                              {{ message }}
+                            </div>
+
+                            <button type="button" class="btn-close bg-white bordered text-white" data-bs-dismiss="alert" aria-label="Close"></button>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    {% endif %}
+                    </div>
+        {% render_partial 'home.views.site_footer_component' %}
+        {% include 'renter_partials/footer_references.html' %}
+   </body>
+</html>
+  <script>
+  // صبر می‌کنه 3 ثانیه بعد، پیام‌ها رو محو می‌کنه
+  setTimeout(function() {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+      // استفاده از کلاس Bootstrap fade و remove
+      alert.classList.remove('show');
+      alert.classList.add('hide'); // fade out
+      setTimeout(() => alert.remove(), 500); // بعد از fade حذف می‌کنه
+    });
+  }, 3000); // 3000 میلی‌ثانیه = 3 ثانیه
+</script>

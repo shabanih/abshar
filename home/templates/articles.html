@@ -1,0 +1,62 @@
+{% extends 'renter_partials/base.html' %}
+{% load static %}
+{% block title %}شارژیار | مقالات{% endblock %}
+{% block content %}
+ <!-- inner page section -->
+      <section class="inner_page_head">
+         <div class="container_fuild">
+            <div class="row">
+               <div class="col-md-12">
+                  <div class="full">
+                     <h4> Articles | مقالات </h4>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </section>
+      <!-- end inner page section -->
+      <!-- product section -->
+      <section class="product_section layout_padding">
+         <div class="container">
+            <div class="heading_container heading_center" dir="rtl">
+               <h2>
+                  آنچه در مورد مدیریت ساختمان باید بدانید! 
+               </h2>
+            </div>
+            <div class="row">
+                {% for article in articles %}
+                <div class="col-sm-6 col-md-3 col-lg-4">
+                  <div class="box">
+                     <div class="option_container">
+                        <div class="options">
+                           <a href="{% url 'article_details' article.id %}" class="option1">
+                           مشاهده مقاله
+                           </a>
+                    
+                        </div>
+                     </div>
+                     <div class="img-box">
+                        <img src="{{ article.image.url }}" alt="">
+                     </div>
+                     <div class="detail-box">
+                        <h5>
+                          {{ article.title }}
+                        </h5>
+                     </div>
+                      
+                  </div>
+               </div>
+                {% endfor %}
+                
+          
+            </div>
+{#            <div class="btn-box">#}
+{#               <a href="">#}
+{#              مشاهده همه مقالات#}
+{#               </a>#}
+{#            </div>#}
+         </div>
+      </section>
+      <!-- end product section -->
+   
+{% endblock %}

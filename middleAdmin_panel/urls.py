@@ -43,7 +43,8 @@ urlpatterns = [
     path('units/export/pdf/', views.export_units_pdf, name='export_units_pdf'),
 
     # Expense_category Urls
-    path('middle_add-category-expense', views.MiddleExpenseCategoryView.as_view(), name='middle_register_category_expense'),
+    path('middle_add-category-expense', views.MiddleExpenseCategoryView.as_view(),
+         name='middle_register_category_expense'),
     path('edit/middle/category/expense/<int:pk>/', views.MiddleExpenseCategoryUpdate.as_view(),
          name='middle_edit_category_expense'),
     path('delete/middle/category/expense/<int:pk>/', views.middle_expense_category_delete,
@@ -66,7 +67,8 @@ urlpatterns = [
     path('middle/expense/export/pdf/', views.middle_export_expense_pdf, name='middle_export_expense_pdf'),
 
     # Income_category Urls
-    path('middle-add-category_income', views.MiddleIncomeCategoryView.as_view(), name='middle_register_category_income'),
+    path('middle-add-category_income', views.MiddleIncomeCategoryView.as_view(),
+         name='middle_register_category_income'),
     path('edit/category/middle/income/<int:pk>/', views.MiddleIncomeCategoryUpdate.as_view(),
          name='middle_edit_category_income'),
     path('delete/category/middle/income/<int:pk>/', views.middle_income_category_delete,
@@ -110,8 +112,10 @@ urlpatterns = [
     path('Property/middle/delete/<int:pk>/', views.middle_property_delete, name='middle_property_delete'),
     path('middleProperty/delete-document/', views.middle_delete_property_document,
          name='middle_delete_property_document'),
-    path('Property/export/excel/', views.export_property_excel, name='export_property_excel'),
-    path('Property/export/pdf/', views.export_property_pdf, name='export_property_pdf'),
+    # path('Property/export/excel/', views.export_property_excel, name='export_property_excel'),
+    # path('Property/export/pdf/', views.export_property_pdf, name='export_property_pdf'),
+    path('property/<int:pk>/delete_fund/', views.delete_property_fund_record,
+         name='delete_property_fund_record'),
 
     # Maintenance Urls
     path('middle-add-maintenance', views.MiddleMaintenanceCreateView.as_view(), name='middle_register_maintenance'),
@@ -119,8 +123,12 @@ urlpatterns = [
     path('maintenance/middle/delete/<int:pk>/', views.middle_maintenance_delete, name='middle_maintenance_delete'),
     path('maintenance/middle/delete-document/', views.middle_delete_maintenance_document,
          name='middle_delete_maintenance_document'),
-    path('maintenance/export/excel/', views.export_maintenance_excel, name='export_maintenance_excel'),
-    path('maintenance/export/pdf/', views.export_maintenance_pdf, name='export_maintenance_pdf'),
+    # path('maintenance/export/excel/', views.export_maintenance_excel, name='export_maintenance_excel'),
+    # path('maintenance/export/pdf/', views.export_maintenance_pdf, name='export_maintenance_pdf'),
+    path('maintenance/<int:pk>/delete_fund/', views.delete_maintenance_fund_record,
+         name='delete_maintenance_fund_record'),
+
+    path('middle-add-sewage/', views.middle_sewage_view, name='middle_register_sewage'),
 
     # Charge Urls
     path('middle-add-charge', views.middle_charge_view, name='middle_add_charge'),
@@ -154,6 +162,7 @@ urlpatterns = [
         views.restore_penalty_bulk,
         name='restore_penalty'
     ),
+    path('civil_charge/', views.civil_charge_manage, name='civil_charge_manage'),
 
     # Fix Charge
     path('middle-add-fixed-Charge', views.MiddleFixChargeCreateView.as_view(), name='middle_add_fixed_charge'),

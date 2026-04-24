@@ -43,7 +43,7 @@
         <div class="col-12 col-md-4 col-xl-3 d-flex gap-1">
             {% if selected_unit %}
                 <a href="{% url 'export_units_report_excel' %}?unit={{ selected_unit.id }}"
-                   class="btn btn-gradient-success w-50">
+                   class="btn btn-facebook text-white w-50">
                     Excel
                 </a>
                 <a href="{% url 'export_units_report_pdf' %}?unit={{ selected_unit.id }}"
@@ -51,7 +51,7 @@
                     PDF
                 </a>
             {% else %}
-                <button class="btn btn-secondary w-50" disabled>Excel</button>
+                <button class="btn btn-facebook text-white w-50" disabled>Excel</button>
                 <button class="btn btn-secondary w-50" disabled>PDF</button>
             {% endif %}
         </div>
@@ -62,7 +62,7 @@
 <table class="table table-bordered  text-center" id="unitTable">
        <thead>
             <tr class="fw-bold sticky-summary">
-                <th class="bg-body text-dark" colspan="4">جمع کل/مانده</th>
+                <th class="bg-body text-dark" colspan="5">جمع کل/مانده</th>
                   <th class="{% if balance < 0 %}bg-danger{% else %}bg-success{% endif %}">
                     {{ balance|three_digit_currency }}
                 </th>
@@ -121,7 +121,7 @@
     {% else %}
        <tbody>
         <tr>
-            <td colspan="7" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
+            <td colspan="8" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
         </tr>
     </tbody>
 {% endif %} 

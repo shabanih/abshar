@@ -1,0 +1,176 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+
+{% block page_title %}
+مدیریت مقالات
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container mt-3">
+ <div class="col-12 mb-2">
+     
+                 </div>
+                <div class="table-responsive">
+                <table class="table table-bordered " id="incomeTable">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th>عنوان</th>
+                            <th>تصویر</th>
+{#                              <th>template name</th>#}
+                            <th>تاریخ ایجاد</th>
+                            <th>فعال/غیرفعال </th>
+                            <th>دستورات</th>
+                        </tr>
+                    </thead>
+                {% if page_obj %}
+               {% for article in page_obj %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                           
+                                <td>{{article.title }}</td>
+                              <td>
+                              {% if article.image %}
+                                <img src="{{ article.image.url }}" alt="آیکون">
+                              {% else %}
+                                <span class="text-muted">ندارد</span>
+                              {% endif %}
+                            </td>
+{#                            <td>{{article.template_name }}</td>#}
+                            <td>
+                                {{ article.created_at|show_jalali }}
+                            </td>
+                                <td>
+                                               {% if article.is_active == True %}
+                                                <button class="btn btn-primary bg-gradient-success p-1">فعال</button>
+                                                   {% else %}
+                                                   <button class="btn btn-gradient-danger p-1">غیر فعال</button>
+
+                                               {% endif %}
+                                            </td>
+
+
+
+                                   <td class="col-lg-1 col-xl-1 p-0">
+                               <a href="{% url 'edit_article' article.id %}" class="btn btn-primary p-1">
+                                   
+                                    <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
+                                </a>
+
+                                                   <a href="{% url 'delete_article' article.id %}" class="btn btn-danger p-1"
+                                       onclick="return confirmDeleteWithSweetAlert(event)">
+                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                            </a>
+
+                            </td>
+                            </tr>
+                        {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
+                            </tr>
+                     <tbody>
+                    {% endif %}
+                </table>
+                   <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+       </div>
+    <hr>
+
+{#<div class="modal fade" id="exampleModalLong3" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle3" aria-hidden="true">#}
+{#  <div class="modal-dialog" role="document">#}
+{#    <div class="modal-content">#}
+{#      <div class="modal-header" id="exampleModalLongTitle3">#}
+{#        <h5 class="modal-title">افزودن مقاله جدید</h5>#}
+{#      </div>#}
+{#         <hr>#}
+{#      <div class="modal-body" >#}
+{#         {{ form.non_field_errors }}#}
+{#          <form id="articleForm" action="" method="POST" novalidate#}
+{#                enctype="multipart/form-data" >#}
+{#              {% csrf_token %}#}
+{#                 <div class="row g-2">#}
+{#                       <div class="col-12">#}
+{#                      {{ form.service_category.label_tag }}#}
+{#                      {{ form.service_category }}#}
+{#                      {{ form.service_category.errors }}#}
+{#                  </div>#}
+{#                  <div class="col-12">#}
+{#                      {{ form.first_title.label_tag }}#}
+{#                      {{ form.first_title }}#}
+{#                      {{ form.first_title.errors }}#}
+{#                  </div>#}
+{#                     <div class="col-12">#}
+{#                      {{ form.short_description.label_tag }}#}
+{#                      {{ form.short_description }}#}
+{#                      {{ form.short_description.errors }}#}
+{#                  </div>#}
+{#                      <div class="col-12">#}
+{#                      {{ form.first_image.label_tag }}#}
+{#                      {{ form.first_image }}#}
+{#                      {{ form.first_image.errors }}#}
+{#                  </div>#}
+{#                             <div class="col-12 d-flex gap-2 flex-wrap">#}
+{#                              {% if form.instance.first_image %}#}
+{#                                <div class="mb-2">#}
+{#                                  <img src="{{ form.instance.first_image.url }}" id="icon1_preview" style="max-width: 120px;" alt="icon preview 1">#}
+{#                                </div>#}
+{#                              {% else %}#}
+{#                                <img id="icon1_preview" style="display: none; max-width: 120px;" alt="icon preview 1">#}
+{#                              {% endif %}#}
+{#                             </div>#}
+{#                      <div class="col-12">#}
+{#                      {{ form.template_name.label_tag }}#}
+{#                      {{ form.template_name }}#}
+{#                      {{ form.template_name.errors }}#}
+{#                  </div>#}
+{#                         <div class="form-group col-12">#}
+{#                   {{ form.is_active.label_tag }}#}
+{#                      {{ form.is_active }}#}
+{#                      {{ form.is_active.errors }}#}
+{#                  </div>#}
+{#                 </div>#}
+{##}
+{##}
+{#                   <hr class="mt-2" style="color: #0f1531">#}
+{#                <div class="d-flex justify-content-between">#}
+{#                        <button type="submit" id="btn-submit-doctor" class="btn btn-gradient-success px-4 py-2">ثبت مقاله </button>#}
+{#                           <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>#}
+{#                     </div>#}
+{##}
+{##}
+{#          </form>#}
+{#      </div>#}
+{##}
+{#    </div>#}
+{#  </div>#}
+{#</div>#}
+ 
+
+    
+    
+{% endblock %}
+
+

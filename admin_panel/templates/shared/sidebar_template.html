@@ -26,6 +26,54 @@
               </a>
             </li>
           
+               <li class="nav-item border-top mt-0">
+                 {% url 'consultant_management' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title"> مدیریت مشاوره رایگان</i>
+                <i class="mdi mdi mdi-phone-in-talk menu-icon"></i>
+              </a>
+            </li>
+             <li class="nav-item mt-0">
+                 {% url 'contact_management' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title"> مدیریت ارتباط با ما</i>
+                <i class="mdi mdi mdi-contact-phone menu-icon"></i>
+              </a>
+            </li>
+                   {% url 'add_articles' as url_add_articles %}
+            {% url 'manage_articles' as url_articles_list %}
+
+            <li class="nav-item mt-0">
+              <a class="nav-link" data-bs-toggle="collapse"
+                 href="#general105"
+                 aria-expanded="true"
+                 aria-controls="general105">
+                <i class="menu-title"> مدیریت مقالات </i>
+                <i class="menu-arrow"></i>
+                <i class="fas fa-newspaper-o fa-flip-horizontal menu-icon"></i>
+              </a>
+
+              <div class="collapse {% if request.path == url_add_articles or request.path == url_articles_list %}show{% endif %}" id="general105">
+                <ul class="nav flex-column sub-menu">
+
+                  <li class="nav-item mt-0">
+                    <a class="nav-link {% if request.path == url_add_articles %}active{% endif %}"
+                       href="{{ url_add_articles }}">
+                       افزودن مقاله
+                    </a>
+                  </li>
+
+                  <li class="nav-item mt-0">
+                    <a class="nav-link {% if request.path == url_articles_list %}active{% endif %}"
+                       href="{{ url_articles_list }}">
+                       مقاله ها
+                    </a>
+                  </li>
+
+                </ul>
+              </div>
+            </li>
+          
            <li class="nav-item border-top  mt-0">
                  {% url 'create_slider_text' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
@@ -44,7 +92,7 @@
                  aria-controls="general155">
                 <i class="menu-title"> مدیریت اشتراک </i>
                 <i class="menu-arrow"></i>
-                <i class="fas fa-bullhorn fa-flip-horizontal menu-icon"></i>
+                <i class="fas fa-share fa-flip-horizontal menu-icon"></i>
               </a>
 
               <div class="collapse {% if request.path == url_add_subscription or request.path == url_subscription_list %}show{% endif %}" id="general155">

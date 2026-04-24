@@ -226,7 +226,7 @@
                           <hr/>
                             <div class="modal-body text-end">
                                 <p><strong>موضوع درآمد:</strong> {{ income.category|to_persian_number }}</p>
-                                 <p><strong>شرح درآمد:</strong> {{ income.description|to_persian_number }} تومان</p>
+                                 <p><strong>شرح درآمد:</strong> {{ income.description|to_persian_number }} </p>
                                 <p><strong>مبلغ:</strong> {{ income.amount|three_digit_currency }} تومان</p>
                                 <p><strong>شماره سند:</strong> {{ income.doc_number|to_persian_number }} </p>
                                 <p><strong>تاریخ سند :</strong> {{ income.doc_date|show_jalali_date_only}} </p>
@@ -279,7 +279,8 @@
           ⚠️ با لغو دریافت درآمد، سند صندوق اصلاح می‌شود. ادامه می‌دهید؟
         </div>
         <div class="modal-footer">
-          <button type="submit" class="btn btn-danger">لغو دریافت</button>
+          <button type="submit" class="btn btn-primary">بله</button>
+          <a href="{% url 'middle_register_income' %}" class="btn btn-danger">خیر</a>
         </div>
       </form>
     </div>

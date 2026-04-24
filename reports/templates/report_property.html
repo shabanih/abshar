@@ -17,15 +17,17 @@
         <div class=" col-12 col-md-4 col-xl-4 text-center text-md-start align-self-center">
             <button onclick="openQuery()" class="btn btn-gradient-info px-2 py-2">جستجوی پیشرفته</button>
             {% if page_obj %}
-            <a href="{% url 'export_property_report_excel' %}?{{ request.GET.urlencode }}"
-                class="btn btn-gradient-success px-2 py-2">خروجی Excel</a>
-            <a href="{% url 'export_property_report_pdf' %}?{{ request.GET.urlencode }}"
-                   class="btn btn-gradient-danger px-2 py-2">
+                  <a href="{% url 'export_property_report_pdf' %}?{{ request.GET.urlencode }}"
+                   class="btn btn-gradient-danger px-3 py-2">
                    خروجی PDF
                 </a>
+            <a href="{% url 'export_property_report_excel' %}?{{ request.GET.urlencode }}"
+                class="btn btn-facebook text-white px-3 py-2">خروجی Excel</a>
+          
                    {% else %}
-                    <button class="btn btn-facebook text-white px-2 py-2" disabled>خروجی Excel</button>
-                    <button class="btn btn-gradient-danger px-2 py-2" disabled>خروجی PDF</button>
+                 
+                    <button class="btn btn-gradient-danger px-3 py-2" disabled>خروجی PDF</button>
+                   <button class="btn btn-facebook text-white px-3 py-2" disabled>خروجی Excel</button>
                 {% endif %}
             </div>
           </div>
@@ -82,15 +84,14 @@
                         <tr>
                             <th>#</th>
                             <th>نام اموال</th>
+                            <th>تعداد</th>
                             <th>واحد</th>
-                             <th>کد </th>
                              <th>موقعیت</th>
-                     
                               <th>تایخ خرید</th>
-                             <th>توضیحات </th>
                             <th>تصویر </th>
-                                   <th>ارزش(ریال)</th>
-{#                            <th>دستورات</th>#}
+                            <th>ارزش(ریال)</th>
+                            <th>وضعیت پرداخت</th>
+                            <th>مشاهده</th>
                         </tr>
                     </thead>
                          <thead>
@@ -99,6 +100,7 @@
                                           <th class="bg-light text-dark fw-bold">
                                             {{ total_amount|three_digit_currency }}
                                         </th>
+                                        <th></th>
                                       
                                     </tr>
                             </thead>
@@ -108,12 +110,12 @@
                             <tr>
                            <td>{{ forloop.counter0|add:page_obj.start_index|add:"0"|to_persian_number }}</td>
                               <td>{{property.property_name|to_persian_number }}</td>
+                              <td>{{property.count|to_persian_number }}</td>
                                  <td>{{property.property_unit|to_persian_number }}</td>
-                                <td>{{property.property_code|to_persian_number }}</td>
+{#                                <td>{{property.property_code|to_persian_number }}</td>#}
                                 <td>{{property.property_location|to_persian_number }}</td>
-                           
                                  <td>{{property.property_purchase_date|show_jalali }}</td>
-                               <td>{{property.details|to_persian_number }}</td>
+{#                               <td>{{property.details|to_persian_number }}</td>#}
                                 <td class="d-flex justify-content-center align-self-center">
                                   {% for doc in property.documents.all %}
                                         <a href="{{ doc.document.url }}" target="_blank" 
@@ -123,7 +125,68 @@
                                      !No File
                                     {% endfor %}
                                 </td>
+                                    <td>
+                                    {% if property.is_paid %}
+                                    	<span class="badge bg-success">پرداخت شده</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span>
+                                    {% endif %} 
+                            </td>
                                  <td>{{property.property_price|three_digit_currency }}</td>
+                            <td>
+                                            <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ property.id }}" title="نمایش جزئیات"
+                                                        class="btn btn-gradient-info text-dark px-1 py-1" ><i class="mdi mdi-eye"></i>
+                                                </button>
+                            </td>
+                                           <div class="modal fade"  id="exampleModalLong2{{ property.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ property.id }}" aria-hidden="true">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalLabel{{ property.id }}">مشاهده جزئیات </h5>
+                            </div>
+                          <hr/>
+                            <div class="modal-body text-end">
+                                 <p><strong>نام اموال:</strong> {{ property.property_name|to_persian_number }}</p>
+                                <p><strong>تعداد/واحد : </strong>{{ property.count|to_persian_number }} {{ property.property_unit|to_persian_number}} </p>
+                                <p><strong>ارزش :</strong> {{ property.property_price|three_digit_currency}} تومان </p>
+                                <p><strong>نام فروشنده:</strong> {{ property.receiver_name}} </p>
+                                <p><strong>تاریخ خرید:</strong> {{ property.property_purchase_date|show_jalali_date_only }} </p>
+                                <p><strong>شماره فاکتور:</strong> {{ property.document_number|to_persian_number }} </p>
+                                <p><strong>شماره اموال:</strong> {{ property.property_code|to_persian_number }} </p>
+                                <p><strong>موقعیت اموال:</strong> {{ property.property_location|to_persian_number }} </p>
+                              
+                                <p><strong>توضیحات:</strong>
+                                    {% if property.details %}
+                                        <span class="badge bg-warning">{{ property.details|to_persian_number }} </span>
+                                        {% else %}
+                                         ثبت نشده است
+                                    {% endif %}
+
+                                </p>
+                                <hr>
+                             {% if property.payment_date %} 
+                                <p><strong>تاریخ پرداخت:</strong> {{ property.payment_date|show_jalali_date_only }}</p>
+                                <p><strong> کد پیگیری:</strong> {{ property.transaction_reference|to_persian_number }}</p>
+                                <p><strong> بانک:</strong> {{ property.bank|to_persian_number }}</p>
+                               
+                                
+                            {% endif %}
+                                    <p><strong>وضعیت:</strong> 
+                                    {% if property.is_paid %}
+                                    	<span class="badge bg-success">پرداخت شده</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span></p>
+                                    {% endif %} 
+
+                            </div>
+                            <hr/>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                             </tr>
                         {% endfor %}
                             {% else %}

@@ -218,7 +218,8 @@ def is_report_section(url_name):
 CHARGE_PREFIXES = [
     "middle_add",          # همه لینک‌های افزودن شارژ
     "middle_main_charges", # صفحه شارژهای من
-]
+    "civil_charge_manage",
+    ]
 
 @register.simple_tag
 def is_charge_section(url_name):

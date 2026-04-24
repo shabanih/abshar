@@ -608,13 +608,22 @@ document.addEventListener("DOMContentLoaded", function () {
             datasets: [{
                 data: expenseData.data,
                 backgroundColor: [
-                    '#2196F3',
-                    '#FF9800',
-                    '#9C27B0',
+                    '#ff006a',
                     '#00BCD4',
+                    '#fff200',
+                    '#9C27B0',
+                    '#e36161',
                     '#8BC34A',
                     '#F44336',
                     '#4CAF50',
+                    '#9b9797',
+                    '#73acf8',
+                    '#b989c0',
+                    '#ffb700',
+
+                    '#075e79',
+                    '#f39884',
+                    '#b570e5',
                 ],
                 borderWidth: 1
             }]

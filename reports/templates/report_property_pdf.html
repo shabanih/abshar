@@ -84,13 +84,15 @@
                         <tr>
                             <th>#</th>
                             <th>نام اموال</th>
+                            <th>تعداد</th>
                             <th>واحد</th>
                              <th>کد </th>
                              <th>موقعیت</th>
                             <th>ارزش(ریال)</th>
                               <th>تاریخ خرید</th>
                              <th>توضیحات </th>
-                            <th>تصویر </th>
+{#                            <th>تصویر </th>#}
+                            <th>وضعیت پرداخت </th>
                         </tr>
                     </thead>
                  {% if properties %}
@@ -99,18 +101,26 @@
                             <tr>
                                   <td>{{ forloop.counter }}</td>
                               <td>{{property.property_name }}</td>
+                              <td>{{property.count }}</td>
                                  <td>{{property.property_unit }}</td>
                                 <td>{{property.property_code }}</td>
                                 <td>{{property.property_location }}</td>
                                 <td>{{property.property_price|three_digit_currency }}</td>
                                  <td>{{property.property_purchase_date|show_jalali }}</td>
                                <td>{{property.details }}</td>
-                                  <td class="d-flex justify-content-center align-self-center">
-                                {% if payment.documents.exists %}
-                                   <span class="text-danger"> دارد</span>
-                                {% else %}
-                                    <span class="text-danger"> ندارد</span>
-                                {% endif %}
+{#                                  <td class="d-flex justify-content-center align-self-center">#}
+{#                                {% if property.documents.exists %}#}
+{#                                   <span class="text-danger"> دارد</span>#}
+{#                                {% else %}#}
+{#                                    <span class="text-danger"> ندارد</span>#}
+{#                                {% endif %}#}
+{#                            </td>#}
+                                     <td>
+                                    {% if property.is_paid %}
+                                    	<span class="badge bg-success">پرداخت شده</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span>
+                                    {% endif %} 
                             </td>
                             </tr>
                         {% endfor %}

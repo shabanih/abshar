@@ -344,7 +344,17 @@ class PayMoney(models.Model):
 
     @property
     def get_receiver_display(self):
-        return str(self.unit) if self.unit else self.receiver_name
+        if self.unit:
+            renter = self.unit.get_active_renter()
+            if renter and getattr(renter, 'renter_name', None):
+                return f"واحد {self.unit.unit} - {renter.renter_name}"  # نام مستاجر
+            elif self.unit.owner_name:
+                return f"واحد {self.unit.unit} - {self.unit.owner_name}"  # نام مالک
+            else:
+                return f"واحد {self.unit.unit}"  # fallback امن
+        else:
+            return self.receiver_name
+
 
     def get_document_urls_json(self):
         # Use the correct attribute to access the file URL in the related `ExpenseDocument` model
@@ -365,6 +375,7 @@ class PayDocument(models.Model):
 # =========================== middleProperty Views ====================
 class Property(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
     house = models.ForeignKey(
         MyHouse,
         on_delete=models.SET_NULL,
@@ -373,6 +384,9 @@ class Property(models.Model):
         related_name='house_property',
         verbose_name='ساختمان مرتبط'
     )
+    receiver_name = models.CharField(max_length=200, verbose_name='دریافت کننده')
+    document_number = models.IntegerField(verbose_name='شماره سند')
+    count = models.IntegerField(verbose_name='تعداد')
     property_name = models.CharField(max_length=400, verbose_name='نام')
     property_unit = models.CharField(max_length=3000, verbose_name='واحد')
     property_location = models.CharField(max_length=400, verbose_name='آدرس')
@@ -380,6 +394,13 @@ class Property(models.Model):
     property_price = models.IntegerField(verbose_name='ارزش')
     details = models.CharField(max_length=4000, verbose_name='توضیحات', null=True, blank=True)
     property_purchase_date = models.DateField(verbose_name='تاریخ خرید', null=True, blank=True)
+    is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده/ نشده')
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True, default=0)
+    payment_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="تاریخ پرداخت"
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد', null=True, blank=True)
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 
@@ -405,6 +426,7 @@ class PropertyDocument(models.Model):
 # ======================== Maintenance =============================
 class Maintenance(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
     house = models.ForeignKey(
         MyHouse,
         on_delete=models.SET_NULL,
@@ -421,6 +443,14 @@ class Maintenance(models.Model):
     service_company = models.CharField(max_length=200, verbose_name='')
     maintenance_document_no = models.CharField(max_length=100, verbose_name='', null=True, blank=True)
     details = models.CharField(max_length=4000, verbose_name='', null=True, blank=True)
+    is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده/ نشده')
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True, default=0)
+    payment_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="تاریخ پرداخت"
+    )
+    receiver_name = models.CharField(max_length=200, verbose_name='دریافت کننده')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
 

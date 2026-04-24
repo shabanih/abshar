@@ -29,9 +29,9 @@ from admin_panel.models import Fund, Expense, Income, Property, ExpenseCategory,
     UnifiedCharge, PersonCharge, FixPersonCharge, FixAreaCharge, AreaCharge, \
     FixCharge, ChargeByPersonArea, ChargeFixVariable, ChargeByFixPersonArea, PayMoney, ReceiveMoney, AdminFund
 from middleAdmin_panel.views import middle_admin_required
-from polls.templatetags.poll_extras import show_jalali, jalali_to_gregorian
+from polls.templatetags.poll_extras import show_jalali, jalali_to_gregorian, show_jalali_date_time, show_jalali_date
 from user_app.forms import UnitReportForm
-from user_app.models import Unit, MyHouse, UnitResidenceHistory, Bank, User
+from user_app.models import Unit, MyHouse, UnitResidenceHistory, Bank, User, UserPayMoney
 from openpyxl.styles import PatternFill, Font, Alignment
 from pypdf import PdfWriter
 from weasyprint import HTML, CSS
@@ -1723,7 +1723,7 @@ def export_expense_report_excel(request):
         ws.cell(row=row_num, column=5, value=expense.amount)
         ws.cell(row=row_num, column=6, value=show_jalali(expense.date))
         ws.cell(row=row_num, column=7, value=expense.receiver_name)
-        ws.cell(row=row_num, column=8, value=expense.bank.bank_name)
+        ws.cell(row=row_num, column=8, value=expense.bank)
         ws.cell(row=row_num, column=9, value=show_jalali(expense.payment_date))
         ws.cell(row=row_num, column=10, value=expense.details)
 
@@ -2172,7 +2172,11 @@ def export_property_report_excel(request):
     header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")  # Gold
     header_font = Font(bold=True, color="000000")  # Black bold text
 
-    headers = ['#', 'نام اموال', 'واحد', ' شماره اموال', ' موقعیت ', 'ارزش', 'تاریخ خرید', 'توضیحات']
+    headers = ['#', 'نام اموال', 'تعداد', 'واحد', ' شماره اموال', ' موقعیت ', 'ارزش', 'تاریخ خرید',
+               'توضیحات', 'وضعیت پرداخت', 'تاریخ پرداخت']
+
+    bank = Bank.objects.filter(user=request.user)
+
 
     # ✅ Write header (row 2)
     for col_num, column_title in enumerate(headers, 1):
@@ -2184,13 +2188,16 @@ def export_property_report_excel(request):
     for row_num, property in enumerate(properties, start=3):
         ws.cell(row=row_num, column=1, value=row_num - 2)  # index starts from 1
         ws.cell(row=row_num, column=2, value=property.property_name)
-        ws.cell(row=row_num, column=3, value=property.property_unit)
-        ws.cell(row=row_num, column=4, value=property.property_code)
-        ws.cell(row=row_num, column=5, value=property.property_location)
-        ws.cell(row=row_num, column=6, value=property.property_price)
+        ws.cell(row=row_num, column=3, value=property.count)
+        ws.cell(row=row_num, column=4, value=property.property_unit)
+        ws.cell(row=row_num, column=5, value=property.property_code)
+        ws.cell(row=row_num, column=6, value=property.property_location)
+        ws.cell(row=row_num, column=7, value=property.property_price)
         jalali_date = jdatetime.date.fromgregorian(date=property.property_purchase_date).strftime('%Y/%m/%d')
-        ws.cell(row=row_num, column=7, value=jalali_date)
-        ws.cell(row=row_num, column=8, value=property.details)
+        ws.cell(row=row_num, column=8, value=jalali_date)
+        ws.cell(row=row_num, column=9, value=property.details)
+        ws.cell(row=row_num, column=10, value='پرداخت شده' if property.is_paid == '1' else 'پرداخت نشده')
+        ws.cell(row=row_num, column=11, value=show_jalali_date(property.payment_date))
 
     # ✅ Return file
     response = HttpResponse(
@@ -2389,7 +2396,7 @@ def export_maintenance_report_excel(request):
     header_font = Font(bold=True, color="000000")  # Black bold text
 
     headers = ['#', 'شرح کار', 'تاریخ شروع', ' تاریخ پایان', ' اجرت/دستمزد ', 'شرکت خدماتی', 'شماره فاکتور',
-               'توضیحات', 'آخرین وضعیت']
+               'توضیحات', 'آخرین وضعیت', 'وضعیت پرداخت', 'تاریخ پرداخت']
 
     # ✅ Write header (row 2)
     for col_num, column_title in enumerate(headers, 1):
@@ -2410,6 +2417,8 @@ def export_maintenance_report_excel(request):
         ws.cell(row=row_num, column=7, value=maintenance.maintenance_document_no)
         ws.cell(row=row_num, column=8, value=maintenance.details)
         ws.cell(row=row_num, column=9, value=maintenance.maintenance_status)
+        ws.cell(row=row_num, column=10, value='پرداخت نشده' if maintenance.is_paid == 'True' else 'پرداخت شده')
+        ws.cell(row=row_num, column=9, value=maintenance.payment_date)
 
     # ✅ Return file
     response = HttpResponse(
@@ -2689,6 +2698,28 @@ def house_balance_view(request):
     if end_date:
         doc_expense_filter['date__lte'] = end_date
 
+    # ================================= part 1 =========================
+
+    funds = (
+        Fund.objects
+        .select_related('bank', 'content_type')
+        .filter(Q(user=request.user) | Q(user__manager=request.user), **payment_filter)
+        .order_by('-payment_date')
+    )
+
+    totals = funds.aggregate(
+        total_income=Sum('debtor_amount'),
+        total_expense=Sum('creditor_amount'),
+    )
+    # موجودی صندوق
+    balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
+
+    total_charge_unpaid = \
+        UnifiedCharge.objects.filter(is_paid=False, user=request.user, **payment_filter).aggregate(Sum('total_charge_month'))[
+            'total_charge_month__sum']
+
+    # =================================== part 2 =====================
+
     total_incomes_exclude_unpaid = Income.objects.filter(is_paid=False,
                                                          user=request.user,
                                                          **doc_income_filter
@@ -2702,37 +2733,45 @@ def house_balance_view(request):
     ).aggregate(Sum('amount'))[
         'amount__sum']
 
-    total_incomes = Income.objects.filter(user=request.user, **payment_filter,).aggregate(Sum('amount'))[
-        'amount__sum']
-    total_pay_money = PayMoney.objects.filter(user=request.user, **payment_filter,).aggregate(Sum('amount'))[
-        'amount__sum']
-    total_receive_money = ReceiveMoney.objects.filter(user=request.user, **payment_filter,).aggregate(Sum('amount'))[
-        'amount__sum']
-    total_expenses = Expense.objects.filter(user=request.user, **payment_filter,).aggregate(Sum('amount'))[
+    # ================================ part 3 ==========================
+    total_incomes = Income.objects.filter(user=request.user, **payment_filter, is_paid=True).aggregate(Sum('amount'))[
         'amount__sum']
 
-    total_assets = (total_incomes or 0) + (total_receive_money or 0)
-    total_debts = (total_pay_money or 0) + (total_expenses or 0)
+    total_receive_money = ReceiveMoney.objects.filter(user=request.user, **payment_filter).aggregate(Sum('amount'))[
+        'amount__sum']
+
+    total_unit_pay = UserPayMoney.objects.filter(
+        Q(user=request.user) | Q(user__manager=request.user), **payment_filter).aggregate(Sum('amount'))[
+        'amount__sum']
+
+    total_charges = \
+        UnifiedCharge.objects.filter(user=request.user,  **payment_filter).exclude().aggregate(Sum('total_charge_month'))[
+            'total_charge_month__sum']
+
+    total_civil = UnifiedCharge.objects.filter(is_paid=True, user=request.user, **payment_filter).aggregate(Sum('civil'))[
+            'civil__sum']
+
+    total_assets = ((total_incomes or 0) + (total_receive_money or 0) + (total_unit_pay or 0)
+                    + (total_charges or 0) + (total_civil or 0))
+
+    # ----------------------------------------- part 4 -----------------------
+
+    total_expenses = Expense.objects.filter(user=request.user, **payment_filter, is_paid=True).aggregate(Sum('amount'))[
+        'amount__sum']
+    total_pay_money = PayMoney.objects.filter(user=request.user, **payment_filter, ).aggregate(Sum('amount'))[
+        'amount__sum']
+    total_maintenances = Maintenance.objects.filter(user=request.user, **payment_filter, is_paid=True).aggregate(Sum('maintenance_price'))[
+        'maintenance_price__sum']
+    total_properties = Property.objects.filter(user=request.user, **payment_filter, is_paid=True).aggregate(Sum('property_price'))[
+        'property_price__sum']
+    # total_gas_expenses = (Expense.objects.filter(user=request.user, **payment_filter, is_paid=True).
+    #                       aggregate(Sum('gas_expenses')))
+
+    total_debts = (total_pay_money or 0) + (total_expenses or 0) + (total_maintenances or 0) + (total_properties or 0)
+
+    # ----------------------------------------- part 5 --------------------------
 
     total_amount_assets_debts = (total_assets or 0) - (total_debts or 0)
-
-    funds = (
-        Fund.objects
-        .select_related('bank', 'content_type')
-        .filter(Q(user=request.user) | Q(user__manager=request.user), **payment_filter)
-        .order_by('-payment_date')
-    )
-
-    totals = funds.aggregate(
-        total_income=Sum('debtor_amount'),
-        total_expense=Sum('creditor_amount'),
-    )
-
-    balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
-
-    total_charge_unpaid = \
-        UnifiedCharge.objects.filter(is_paid=False, user=request.user).aggregate(Sum('total_charge_month'))[
-            'total_charge_month__sum']
 
     context = {
         'house': house,
@@ -2745,15 +2784,18 @@ def house_balance_view(request):
         'balance': balance,
         'total_charge_unpaid': total_charge_unpaid,
         'total_amount_assets_debts': total_amount_assets_debts,
-        # 'start_date': start_date,
-        # 'end_date': end_date,
-        'start_date': start_date_j,  # همینو به input میدیم
+        'start_date': start_date_j,
         'end_date': end_date_j,
         'bank_id': bank_id,
         'banks': Bank.objects.filter(user=request.user),
         'total_incomes_exclude_unpaid': total_incomes_exclude_unpaid,
         'total_expenses_exclude_unpaid': total_expenses_exclude_unpaid,
-        'today': timezone.now()
+        'today': timezone.now(),
+        'total_unit_pay': total_unit_pay,
+        'total_charges': total_charges,
+        'total_civil': total_civil,
+        'total_maintenances': total_maintenances,
+        'total_properties': total_properties
     }
     return render(request, 'house_balance.html', context)
 

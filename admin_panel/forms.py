@@ -937,8 +937,8 @@ class ExpenseForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
-        default_categories = ['هزینه آب', 'هزینه برق', 'هزینه گاز', 'بیمه', 'نگهداری تاسیسات',
-                              'حقوق و دستمزد', 'هزینه نظافت', 'هزینه تعمیرات اساسی', 'هزینه فضای سبز']
+        default_categories = ['هزینه آب', 'هزینه برق', 'هزینه گاز', 'بیمه',
+                              'حقوق و دستمزد', 'هزینه نظافت', 'هزینه فضای سبز']
         if user:
             for title in default_categories:
                 ExpenseCategory.objects.get_or_create(
@@ -1574,6 +1574,13 @@ PROPERTY_CHOICES = {
 
 
 class PropertyForm(forms.ModelForm):
+    bank = forms.ModelChoiceField(
+        queryset=Bank.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control form-control-sm'}),
+        empty_label="شماره حساب را انتخاب کنید",
+        required=True,
+        label='حساب بانکی'
+    )
     property_name = forms.CharField(
         max_length=200, required=True, label='نام اموال', widget=forms.TextInput(attrs={'class': 'form-control'})
     )
@@ -1581,14 +1588,23 @@ class PropertyForm(forms.ModelForm):
     property_unit = forms.ChoiceField(error_messages=error_message, required=True, choices=PROPERTY_CHOICES,
                                       widget=forms.Select(attrs=attr3),
                                       label='واحد')
-    property_location = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=True,
+    document_number = forms.CharField(error_messages=error_message, max_length=10, widget=forms.TextInput(attrs=attr),
+                                      required=True,
+                                      label='شماره فاکتور')
+    count = forms.CharField(error_messages=error_message, max_length=10, widget=forms.NumberInput(attrs=attr),
+                                      required=True,
+                                      label='تعداد')
+    property_location = forms.CharField(error_messages=error_message,
+                                        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+                                        required=True,
                                         label='موقعیت')
     property_purchase_date = JalaliDateField(
         label='تاریخ خرید',
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
         error_messages=error_message, required=True
     )
-    property_code = forms.CharField(error_messages=error_message, max_length=10, widget=forms.TextInput(attrs=attr),
+    property_code = forms.CharField(error_messages=error_message, max_length=500,
+                                    widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                                     required=True,
                                     label='کد اموال')
     property_price = forms.IntegerField(error_messages=error_message, widget=forms.NumberInput(attrs=attr),
@@ -1603,19 +1619,57 @@ class PropertyForm(forms.ModelForm):
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
+    receiver_name = forms.CharField(
+        max_length=200, required=False, label=' نام فروشنده',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    payment_date = JalaliDateField(
+        label='تاریخ پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        required=False
+    )
+
+    transaction_reference = forms.IntegerField(
+        required=False, min_value=0, initial=0,
+        label='شماره پیگیری',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
 
     class Meta:
         model = Property
         fields = ['property_name', 'property_code', 'property_unit', 'property_price', 'property_location',
-                  'property_purchase_date', 'details', 'document']
+                  'property_purchase_date', 'details', 'document', 'receiver_name', 'payment_date',
+                  'transaction_reference', 'bank', 'document_number', 'count']
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        if user:
+            # بانک‌ها
+            banks = Bank.objects.filter(is_active=True, user=user)
+            self.fields['bank'].queryset = banks
+            # default_bank = banks.filter(is_default=True).first()
+            # if default_bank:
+            #     self.fields['bank'].initial = default_bank
+
+
+
 
 
 MAINTENANCE_CHOICES = {
-    ' ': '--- انتخاب کنید ---', 'تکمیل شده': 'تکمیل شده', 'در حال انجام': 'در حال انجام', 'تکمیل ناقص': 'تکمیل ناقص'
+    ' ': '--- انتخاب کنید ---', 'تکمیل شده': 'تکمیل شده', 'در حال انجام': 'در حال انجام',
 }
 
 
 class MaintenanceForm(forms.ModelForm):
+    bank = forms.ModelChoiceField(
+        queryset=Bank.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control form-control-sm'}),
+        empty_label="شماره حساب را انتخاب کنید",
+        required=True,
+        label='حساب بانکی'
+    )
     maintenance_description = forms.CharField(
         max_length=200, required=True, label='شرح کار', widget=forms.TextInput(attrs={'class': 'form-control'})
     )
@@ -1654,11 +1708,39 @@ class MaintenanceForm(forms.ModelForm):
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
+    payment_date = JalaliDateField(
+        label='تاریخ پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        required=False
+    )
+
+    transaction_reference = forms.IntegerField(
+        required=False, min_value=0, initial=0,
+        label='شماره پیگیری',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    receiver_name = forms.CharField(
+        max_length=200, required=False, label=' نام کارشناس',
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
 
     class Meta:
         model = Maintenance
         fields = ['maintenance_description', 'maintenance_start_date', 'maintenance_end_date', 'maintenance_price',
-                  'maintenance_status', 'service_company', 'details', 'document', 'maintenance_document_no']
+                  'maintenance_status', 'service_company', 'details', 'document', 'maintenance_document_no',
+                  'receiver_name', 'payment_date', 'transaction_reference', 'bank']
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        if user:
+            # بانک‌ها
+            banks = Bank.objects.filter(is_active=True, user=user)
+            self.fields['bank'].queryset = banks
+            # default_bank = banks.filter(is_default=True).first()
+            # if default_bank:
+            #     self.fields['bank'].initial = default_bank
 
 
 # ============================== Charge Forms ===================================
@@ -1674,7 +1756,7 @@ class FixChargeForm(forms.ModelForm):
     civil = forms.IntegerField(error_messages=error_message,
                                widget=forms.TextInput(attrs=attr),
                                required=False, initial=0,
-                               label='شارژ عمرانی')
+                               label='شارژ عمرانی', disabled=True)
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
@@ -1722,7 +1804,7 @@ class AreaChargeForm(forms.ModelForm):
     civil = forms.IntegerField(error_messages=error_message,
                                widget=forms.TextInput(attrs=attr),
                                required=False, initial=0,
-                               label='شارژ عمرانی')
+                               label='شارژ عمرانی', disabled=True)
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
@@ -1775,7 +1857,7 @@ class PersonChargeForm(forms.ModelForm):
     civil = forms.IntegerField(error_messages=error_message,
                                widget=forms.TextInput(attrs=attr),
                                required=False, initial=0,
-                               label='شارژ عمرانی')
+                               label='شارژ عمرانی', disabled=True)
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
@@ -1826,7 +1908,7 @@ class FixAreaChargeForm(forms.ModelForm):
     civil = forms.IntegerField(error_messages=error_message,
                                widget=forms.TextInput(attrs=attr),
                                required=False, initial=0,
-                               label='شارژ عمرانی')
+                               label='شارژ عمرانی', disabled=True)
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
@@ -1878,7 +1960,7 @@ class FixPersonChargeForm(forms.ModelForm):
     civil = forms.IntegerField(error_messages=error_message,
                                widget=forms.TextInput(attrs=attr),
                                required=False, initial=0,
-                               label='شارژ عمرانی')
+                               label='شارژ عمرانی', disabled=True)
     details = forms.CharField(error_messages=error_message, required=False,
                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
                               label='توضیحات ')
@@ -1933,7 +2015,7 @@ class PersonAreaChargeForm(forms.ModelForm):
     civil = forms.IntegerField(error_messages=error_message,
                                widget=forms.TextInput(attrs=attr),
                                required=False, initial=0,
-                               label='شارژ عمرانی(تومان)')
+                               label='شارژ عمرانی(تومان)', disabled=True)
     payment_penalty_amount = forms.IntegerField(error_messages=error_message,
                                                 widget=forms.TextInput(attrs=attr),
                                                 required=False, initial=0,
@@ -1988,7 +2070,7 @@ class PersonAreaFixChargeForm(forms.ModelForm):
     civil = forms.IntegerField(error_messages=error_message,
                                widget=forms.TextInput(attrs=attr),
                                required=False, initial=0,
-                               label='شارژ عمرانی')
+                               label='شارژ عمرانی', disabled=True)
     payment_penalty_amount = forms.IntegerField(error_messages=error_message,
                                                 widget=forms.TextInput(attrs=attr),
                                                 required=False, initial=0,
@@ -2049,12 +2131,12 @@ class VariableFixChargeForm(forms.ModelForm):
     civil = forms.IntegerField(error_messages=error_message,
                                widget=forms.TextInput(attrs=attr),
                                required=False, initial=0,
-                               label='سایر هزینه ها')
+                               label='شارژ عمرانی', disabled=True)
 
     other_cost_amount = forms.IntegerField(error_messages=error_message,
                                            widget=forms.TextInput(attrs=attr),
                                            required=False, initial=0,
-                                           label='شارژ عمرانی')
+                                           label='سایر هزینه ها')
     payment_penalty_amount = forms.IntegerField(error_messages=error_message,
                                                 widget=forms.TextInput(attrs=attr),
                                                 required=False, initial=0,

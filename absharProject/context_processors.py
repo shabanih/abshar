@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from admin_panel.models import UnifiedCharge, Announcement, MessageToUser, MessageReadStatus, SmsCredit, \
     MiddleMessageReadStatus, SmsManagement, Subscription
+from home.models import FreeRequest, ContactUs
 from user_app.models import MyHouse, Unit
 
 # def current_middle_house(request):
@@ -219,14 +220,30 @@ def middle_header_notifications(request):
 
 def admin_header_notifications(request):
     if not request.user.is_authenticated or not request.user.is_superuser:
-        return {'admin_new_messages_count': 0}
+        return {
+            'admin_new_messages_count': 0,
+            'admin_new_consultant': 0,
+            'admin_new_comment': 0
+        }
 
     admin_new_messages_count = SmsManagement.objects.filter(
         is_approved=False,
         is_active=True
     ).count()
 
-    return {'admin_new_messages_count': admin_new_messages_count}
+    admin_new_consultant = FreeRequest.objects.filter(
+        is_call=False
+    ).count()
+
+    admin_new_comment = ContactUs.objects.filter(
+        is_read=False
+    ).count()
+
+    return {
+        'admin_new_messages_count': admin_new_messages_count,
+        'admin_new_consultant': admin_new_consultant,
+        'admin_new_comment': admin_new_comment
+            }
 
 
 def impersonation_banner(request):

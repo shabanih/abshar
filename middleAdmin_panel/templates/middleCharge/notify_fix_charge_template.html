@@ -78,7 +78,19 @@
             {% else %}
                 style="background-color: #fff3cd;"
             {% endif %}
-        {% endif %}>
+        {% endif %}
+   
+{#         {% if item.renter %}#}
+{#         #}
+{#   	       style="border: 1px solid #202548F9;"#}
+{#            {% else %}#}
+{#                style="border: 2px solid deeppink;"#}
+{#       #}
+{#        {% endif %}#}
+   >
+   
+  
+
         <div class="card-body text-center d-flex px-1 py-1 mt-3">
              <p class="card-charge-title shadow_style"
                 data-bs-toggle="popover"
@@ -101,7 +113,7 @@
 <br>
 <b>جمع کل قابل پرداخت: {{ item.total_payable|three_digit_currency }}</b>
                 ">
-                <input class="form-check-input unit-checkbox mx-3"
+                <input class="form-check-input unit-checkbox mx-2"
                        type="checkbox"
                        name="units"
                        value="{{ unit.id }}">

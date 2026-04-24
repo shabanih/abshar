@@ -86,14 +86,14 @@
                             <th>شرح کار</th>
                              <th>تاریخ شروع</th>
                              <th>تاریخ پایان</th>
-                           
                               <th>شرکت خدماتی</th>
                             <th>شماره فاکتور</th>
                              <th>توضیحات </th>
                              <th>آخرین وضعیت</th>
                             <th>تصویر سند</th>
                              <th>اجرت/دستمزد</th>
-{#                            <th>دستورات</th>#}
+                            <th>وضعیت پرداخت</th>
+                            <th>تاریخ پرداخت</th>
                         </tr>
                     </thead>
                     <thead>
@@ -102,6 +102,8 @@
                                           <th class="bg-light text-dark fw-bold">
                                             {{ total_amount|three_digit_currency }}
                                         </th>
+                                    <th></th>
+                                        <th></th>
                                       
                                     </tr>
                             </thead>
@@ -111,18 +113,18 @@
                             <tr>
                                 <td>{{ forloop.counter }}</td>
                                <td>{{maintenance.maintenance_description }}</td>
-                             <td class="col-12 col-lg-1 col-xl-1">{{maintenance.maintenance_start_date|show_jalali }}</td>
-                                 <td class="col-12 col-lg-1 col-xl-1">{{maintenance.maintenance_end_date|show_jalali }}</td>
+                             <td>{{maintenance.maintenance_start_date|show_jalali }}</td>
+                                 <td>{{maintenance.maintenance_end_date|show_jalali }}</td>
                                 <td>{{maintenance.service_company }}</td>
                                 <td>{{maintenance.maintenance_document_no }}</td>
                                <td>{{maintenance.details }}</td>
-                            <td class="col-12 col-lg-1 col-xl-1 p-0">
+                            <td>
                                 {% if maintenance.maintenance_status == 'در حال انجام' %}
-                                	<button class="btn btn-gradient-warning px-1 py-2">درحال انجام</button>
+                                	<span>درحال انجام</span>
                                     {% elif maintenance.maintenance_status == 'تکمیل شده' %}
-                                    <button class="btn btn-gradient-success px-1 py-2">تکمیل شده</button>
+                                    <span>تکمیل شده</span>
                                     {% else %}
-                                    <button class="btn btn-gradient-danger px-1 py-2">تکمیل نشده</button>
+                                    <span>تکمیل نشده</span>
                                 {% endif %} 
                               
                             </td>
@@ -138,7 +140,14 @@
                                     {% endfor %}
                                 </td>
                             <td>{{maintenance.maintenance_price|three_digit_currency }}</td>
-
+           <td>
+                                    {% if maintenance.is_paid %}
+                                    	<span class="badge bg-success">پرداخت شده</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span>
+                                    {% endif %} 
+                            </td>
+                            <td>{{ maintenance.payment_date|show_jalali }}</td>
                             </tr>
                         {% endfor %}
                             {% else %}

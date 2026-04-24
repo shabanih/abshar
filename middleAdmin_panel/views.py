@@ -122,7 +122,7 @@ def buy_subscription(request):
 
     return render(request, "middle_admin/middle_add_subscription.html", {
         "plans": plans,
-        "unit_count": unit_count
+        "unit_count": unit_count,
     })
 
 
@@ -989,8 +989,9 @@ def add_renter_to_unit(request, unit_id):
                     renter_transaction_no=form.cleaned_data.get('renter_transaction_no'),
                 )
                 owner_user = unit.user
-                owner_user.is_active = False
-                owner_user.save(update_fields=['is_active'])
+                # owner_user.is_active = False
+                owner_user.save()
+                # owner_user.save(update_fields=['is_active'])
 
                 # -------------------------
                 # بروزرسانی واحد
@@ -1600,7 +1601,7 @@ def expense_pay_view(request, expense_id):
                         payment_date=payment_date,
                         transaction_no=reference,
                         payment_gateway='پرداخت الکترونیک',
-                        payment_description=f' هزینه: پرداخت سند {expense.doc_no}',
+                        payment_description=f' هزینه:  {expense.category.title}',
                         is_paid=True,
 
                     )
@@ -2172,7 +2173,7 @@ def income_pay_view(request, income_id):
                         payment_date=payment_date,
                         transaction_no=reference,
                         payment_gateway='پرداخت الکترونیک',
-                        payment_description=f' درآمد:پرداخت سند {income.doc_number}',
+                        payment_description=f' درآمد: {income.category.subject}',
                         is_paid=True,
 
                     )
@@ -2540,7 +2541,7 @@ class MiddleReceiveMoneyCreateView(CreateView):
             form.save_m2m()
 
             content_type = ContentType.objects.get_for_model(self.object)
-            payer_name_for_fund = self.object.payer_name if not self.object.unit else f"{self.object.unit}"
+            payer_name_for_fund = self.object.payer_name if self.object.get_payer_display else f"{self.object.unit}"
 
             # 🔹 ذخیره سند در Fund با خانه
             Fund.objects.create(
@@ -2642,6 +2643,7 @@ class MiddleReceiveMoneyCreateView(CreateView):
         context['receives'] = ReceiveMoney.objects.filter(user=self.request.user)
         context['banks'] = Bank.objects.filter(user=self.request.user)
         return context
+
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def delete_fund_record(request, pk):
@@ -2818,7 +2820,6 @@ def middle_delete_receive_document(request):
             return JsonResponse({'status': 'error', 'message': f'خطا در حذف تصویر: {str(e)}'})
 
     return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
-
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -3481,17 +3482,93 @@ class MiddlePropertyCreateView(CreateView):
         form.instance.user = self.request.user
         house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
         form.instance.house = house
-        try:
-            self.object = form.save()
-            files = self.request.FILES.getlist('document')
 
+        with transaction.atomic():
+
+            self.object = form.save(commit=False)
+
+            bank = self.object.bank
+            property_price = self.object.property_price
+
+            bank_funds = Fund.objects.filter(
+                user=self.request.user,
+                bank=bank
+            )
+
+            total_debit = bank_funds.aggregate(
+                Sum('debtor_amount')
+            )['debtor_amount__sum'] or 0
+            print(f"d-{total_debit}")
+
+            total_credit = bank_funds.aggregate(
+                Sum('creditor_amount')
+            )['creditor_amount__sum'] or 0
+            print(f"c-{total_credit}")
+
+            current_final = Decimal(total_debit) - Decimal(total_credit)
+            print(f"current:{current_final}")
+
+            if current_final < property_price:
+                messages.error(self.request, 'موجودی صندوق کافی نیست')
+                return self.form_invalid(form)
+
+            # self.object.receiver_name = self.object.get_receiver_display
+            if self.object.payment_date:
+                self.object.is_paid = True
+            self.object.save()
+            form.save_m2m()
+
+            content_type = ContentType.objects.get_for_model(self.object)
+
+            Fund.objects.create(
+                user=self.request.user,
+                content_type=content_type,
+                object_id=self.object.id,
+                bank=bank,
+                house=house,
+                unit=None,
+                amount=self.object.property_price,
+                debtor_amount=0,
+                receiver_name=self.object.receiver_name,
+                creditor_amount=self.object.property_price,
+                payment_gateway='پرداخت الکترونیک',
+                payment_date=self.object.payment_date,
+                doc_number=self.object.document_number,
+                payment_description=f"خرید اموال: {self.object.property_name[:50]}",
+                is_paid=True,
+
+            )
+
+            files = self.request.FILES.getlist('document')
             for f in files:
                 PropertyDocument.objects.create(property=self.object, document=f)
-            messages.success(self.request, 'سند پرداخت با موفقیت ثبت گردید!')
+
+            messages.success(self.request, 'سند با موفقیت ثبت گردید!')
             return super().form_valid(form)
-        except:
-            messages.error(self.request, 'خطا در ثبت!')
-            return self.form_invalid(form)
+
+        # except Exception as e:
+        #     messages.error(self.request, f'خطا در ثبت: {e}')
+        #     return self.form_invalid(form)
+
+    # def form_valid(self, form):
+    #     form.instance.user = self.request.user
+    #     house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
+    #     form.instance.house = house
+    #     try:
+    #         self.object = form.save()
+    #         files = self.request.FILES.getlist('document')
+    #
+    #         for f in files:
+    #             PropertyDocument.objects.create(property=self.object, document=f)
+    #         messages.success(self.request, 'سند پرداخت با موفقیت ثبت گردید!')
+    #         return super().form_valid(form)
+    #     except:
+    #         messages.error(self.request, 'خطا در ثبت!')
+    #         return self.form_invalid(form)
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
     def get_queryset(self):
         queryset = Property.objects.filter(user=self.request.user)
@@ -3552,30 +3629,133 @@ class MiddlePropertyCreateView(CreateView):
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def delete_property_fund_record(request, pk):
+    # اطمینان از اینکه فقط کاربر صاحب سند می‌تواند حذف کند
+    property_d = get_object_or_404(Property, pk=pk, user=request.user)
+
+    try:
+        content_type = ContentType.objects.get_for_model(property_d)
+        fund = Fund.objects.filter(content_type=content_type, object_id=property_d.id).first()
+        if fund:
+            fund.delete()
+            property_d.is_paid = False
+            property_d.payment_date = None
+            property_d.transaction_reference = None
+            property_d.save()
+            messages.success(request, 'رکورد پرداخت با موفقیت حذف شد.')
+        else:
+            messages.warning(request, 'رکورد پرداختی پیدا نشد.')
+    except Exception as e:
+        messages.error(request, f'خطا در حذف رکورد پرداخت: {e}')
+
+    return redirect('middle_register_property')  # یا هر URL صفحه لیست شما
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_property_edit(request, pk):
     property_d = get_object_or_404(Property, pk=pk)
 
+    if property_d.is_paid:
+        messages.warning(request, 'این سند بدلیل ثبت رکورد پرداخت قابل ویرایش نیست')
+        return redirect('middle_register_property')
+
     if request.method == 'POST':
-        form = PropertyForm(request.POST, request.FILES, instance=property_d)
+        # فرم با instance برای ویرایش
+        form = PropertyForm(request.POST, request.FILES, instance=property_d, user=request.user)
 
         if form.is_valid():
-            property_d = form.save()  # Save the form (updates or creates expense)
+            property_d = form.save(commit=False)
+            property_d.receiver_name = property_d.receiver_name
 
-            # Handle multiple file uploads
+            if property_d.payment_date:
+                property_d.is_paid = True
+            property_d.save()
+            form.save_m2m()
+
+            content_type = ContentType.objects.get_for_model(Property)
+            fund = Fund.objects.filter(content_type=content_type, object_id=property_d.id).first()
+
+            if fund:
+                # بروزرسانی رکورد موجود
+                fund.bank = property_d.bank
+                fund.unit = None
+                fund.debtor_amount = 0
+                fund.amount = property_d.property_price or 0
+                fund.creditor_amount = property_d.property_price or 0
+                fund.payment_date = property_d.payment_date
+                fund.doc_number = property_d.document_number
+                fund.receiver_name = property_d.receiver_name
+                fund.payment_gateway = 'پرداخت الکترونیک'
+                fund.payment_description = f"خرید اموال: {(property_d.property_name or '')[:50]}"
+                fund.is_paid = True
+                fund.save()  # موجودی بانک بروزرسانی می‌شود
+                Fund.recalc_final_amounts_from(fund)
+
+
+            else:
+                # ایجاد فقط اگر رکورد موجود نبود
+                Fund.objects.create(
+                    content_type=content_type,
+                    object_id=property_d.id,
+                    bank=property_d.bank,
+                    unit=None,
+                    debtor_amount=0,
+                    amount=property_d.property_price or 0,
+                    creditor_amount=property_d.property_price or 0,
+                    user=request.user,
+                    receiver_name=property_d.receiver_name,
+                    payment_date=property_d.payment_date,
+                    doc_number=property_d.document_number,
+                    payment_gateway='پرداخت الکترونیک',
+                    payment_description=f"خرید اموال: {(property_d.property_name or '')[:50]}",
+                    is_paid=True,
+                    is_paid_money=True
+                )
+
+            # ثبت فایل‌های پیوست جدید
             files = request.FILES.getlist('document')
-            if files:
-                for f in files:
-                    PropertyDocument.objects.create(property_d=property_d, document=f)
+            for f in files:
+                PropertyDocument.objects.create(property=property_d, document=f)
 
-            messages.success(request, 'اموال با موفقیت ویرایش شد.')
-            return redirect('middle_register_property')  # Adjust redirect as necessary
+            messages.success(request, 'سند با موفقیت ویرایش گردید.')
+            return redirect(reverse('middle_register_property'))  # Adjust redirect as necessary
 
         else:
-            messages.error(request, 'خطا در ویرایش فرم درآمد. لطفا دوباره تلاش کنید.')
-            return redirect('middle_register_property')
+            messages.error(request, 'خطا در ویرایش فرم . لطفا دوباره تلاش کنید.')
+            return render(request, 'middleProperty/manage_property.html', {
+                'form': form,
+                'property_d': property_d,
+                'open_modal': True,
+            })
     else:
-        # If the request is not POST, redirect to the appropriate page
-        return redirect('middle_register_property')
+        form = PropertyForm(instance=property_d, user=request.user)
+        return render(request, 'middleProperty/manage_property.html',
+                      {'form': form,
+                       'property_d': property_d,
+                       'open_modal': True,
+                       })
+
+    # if request.method == 'POST':
+    #     form = PropertyForm(request.POST, request.FILES, instance=property_d)
+    #
+    #     if form.is_valid():
+    #         property_d = form.save()  # Save the form (updates or creates expense)
+    #
+    #         # Handle multiple file uploads
+    #         files = request.FILES.getlist('document')
+    #         if files:
+    #             for f in files:
+    #                 PropertyDocument.objects.create(property=property_d, document=f)
+    #
+    #         messages.success(request, 'سند با موفقیت ویرایش شد.')
+    #         return redirect('middle_register_property')  # Adjust redirect as necessary
+    #
+    #     else:
+    #         messages.error(request, 'خطا در ویرایش فرم . لطفا دوباره تلاش کنید.')
+    #         return redirect('middle_register_property')
+    # else:
+    #     # If the request is not POST, redirect to the appropriate page
+    #     return redirect('middle_register_property')
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -3627,154 +3807,6 @@ def middle_delete_property_document(request):
     return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
 
 
-@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-def export_property_pdf(request):
-    properties = Property.objects.all()
-
-    filter_fields = {
-        'property_name': 'property_name__icontains',
-        'property_unit': 'property_unit__icontains',
-        'property_location': 'property_location__icontains',
-        'property_code': 'property_code__icontains',
-        'property_price': 'property_price__icontains',
-        'details': 'details__icontains',
-
-    }
-
-    for field, lookup in filter_fields.items():
-        value = request.GET.get(field)
-        if value:
-            filter_expression = {lookup: value}
-            properties = properties.filter(**filter_expression)
-
-    # فیلتر تاریخ
-    from_date_str = request.GET.get('from_date')
-    to_date_str = request.GET.get('to_date')
-    try:
-        if from_date_str:
-            from_date = jdatetime.datetime.strptime(from_date_str, '%Y/%m/%d').togregorian().date()
-            properties = properties.filter(property_purchase_date__gte=from_date)
-        if to_date_str:
-            to_date = jdatetime.datetime.strptime(to_date_str, '%Y/%m/%d').togregorian().date()
-            properties = properties.filter(property_purchase_date__lte=to_date)
-    except ValueError:
-        properties = Property.objects.none()
-
-    # مسیر فونت
-    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
-    css = CSS(string=f"""
-            @page {{ size: A4 landscape; margin: 1cm; }}
-            body {{
-                font-family: 'BYekan', sans-serif;
-            }}
-            @font-face {{
-                font-family: 'BYekan';
-                src: url('{font_url}');
-            }}
-        """)
-
-    # رندر قالب HTML
-    template = get_template("property/property_pdf.html")
-    context = {
-        'properties': properties,
-        'font_path': font_url,
-    }
-
-    html = template.render(context)
-    page_pdf = io.BytesIO()
-    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(page_pdf, stylesheets=[css])
-
-    page_pdf.seek(0)
-
-    # تولید پاسخ PDF
-    pdf_merger = PdfWriter()
-    pdf_merger.append(page_pdf)
-    response = HttpResponse(content_type='application/pdf')
-
-    response['Content-Disposition'] = f'attachment; filename="properties.pdf"'
-
-    pdf_merger.write(response)
-    return response
-
-
-@login_required(login_url=settings.LOGIN_URL_ADMIN)
-def export_property_excel(request):
-    properties = Property.objects.all()
-
-    filter_fields = {
-        'property_name': 'property_name__icontains',
-        'property_unit': 'property_unit__icontains',
-        'property_location': 'property_location__icontains',
-        'property_code': 'property_code__icontains',
-        'property_price': 'property_price__icontains',
-        'details': 'details__icontains',
-
-    }
-
-    # Apply filters based on query parameters
-    for field, lookup in filter_fields.items():
-        value = request.GET.get(field)
-        if value:
-            filter_expression = {lookup: value}
-            properties = properties.filter(**filter_expression)
-
-    # Date range filtering
-    from_date_str = request.GET.get('from_date')
-    to_date_str = request.GET.get('to_date')
-    try:
-        if from_date_str:
-            from_date = jdatetime.datetime.strptime(from_date_str, '%Y/%m/%d').togregorian().date()
-            properties = properties.filter(property_purchase_date__gte=from_date)
-        if to_date_str:
-            to_date = jdatetime.datetime.strptime(to_date_str, '%Y/%m/%d').togregorian().date()
-            properties = properties.filter(property_purchase_date__lte=to_date)
-    except ValueError:
-        properties = Property.objects.none()
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "properties"
-    ws.sheet_view.rightToLeft = True
-
-    # ✅ Add title
-    title_cell = ws.cell(row=1, column=1, value="لیست اموال ساختمان")
-    title_cell.font = Font(bold=True, size=18)
-    title_cell.alignment = Alignment(horizontal="center", vertical="center")
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=8)
-
-    # ✅ Style setup
-    header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")  # Gold
-    header_font = Font(bold=True, color="000000")  # Black bold text
-
-    headers = ['#', 'نام اموال', 'واحد', ' شماره اموال', ' موقعیت ', 'ارزش', 'تاریخ خرید', 'توضیحات']
-
-    # ✅ Write header (row 2)
-    for col_num, column_title in enumerate(headers, 1):
-        cell = ws.cell(row=2, column=col_num, value=column_title)
-        cell.fill = header_fill
-        cell.font = header_font
-
-    # ✅ Write data (start from row 3)
-    for row_num, property in enumerate(properties, start=3):
-        ws.cell(row=row_num, column=1, value=row_num - 2)  # index starts from 1
-        ws.cell(row=row_num, column=2, value=property.property_name)
-        ws.cell(row=row_num, column=3, value=property.property_unit)
-        ws.cell(row=row_num, column=4, value=property.property_code)
-        ws.cell(row=row_num, column=5, value=property.property_location)
-        ws.cell(row=row_num, column=6, value=property.property_price)
-        jalali_date = jdatetime.date.fromgregorian(date=property.property_purchase_date).strftime('%Y/%m/%d')
-        ws.cell(row=row_num, column=7, value=jalali_date)
-        ws.cell(row=row_num, column=8, value=property.details)
-
-    # ✅ Return file
-    response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-    response['Content-Disposition'] = 'attachment; filename=properties.xlsx'
-    wb.save(response)
-    return response
-
-
 # ============================ MaintenanceView ==========================
 @method_decorator(middle_admin_required, name='dispatch')
 class MiddleMaintenanceCreateView(CreateView):
@@ -3787,17 +3819,89 @@ class MiddleMaintenanceCreateView(CreateView):
         form.instance.user = self.request.user
         house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
         form.instance.house = house
-        try:
-            self.object = form.save()
-            files = self.request.FILES.getlist('document')
 
+        with transaction.atomic():
+
+            self.object = form.save(commit=False)
+
+            bank = self.object.bank
+            maintenance_price = self.object.maintenance_price
+
+            bank_funds = Fund.objects.filter(
+                user=self.request.user,
+                bank=bank
+            )
+
+            total_debit = bank_funds.aggregate(
+                Sum('debtor_amount')
+            )['debtor_amount__sum'] or 0
+            print(f"d-{total_debit}")
+
+            total_credit = bank_funds.aggregate(
+                Sum('creditor_amount')
+            )['creditor_amount__sum'] or 0
+            print(f"c-{total_credit}")
+
+            current_final = Decimal(total_debit) - Decimal(total_credit)
+            print(f"current:{current_final}")
+
+            if current_final < maintenance_price:
+                messages.error(self.request, 'موجودی صندوق کافی نیست')
+                return self.form_invalid(form)
+
+            # self.object.receiver_name = self.object.get_receiver_display
+            if self.object.payment_date:
+                self.object.is_paid = True
+            self.object.save()
+            form.save_m2m()
+
+            content_type = ContentType.objects.get_for_model(self.object)
+
+            Fund.objects.create(
+                user=self.request.user,
+                content_type=content_type,
+                object_id=self.object.id,
+                bank=bank,
+                house=house,
+                unit=None,
+                amount=self.object.maintenance_price,
+                debtor_amount=0,
+                receiver_name=self.object.receiver_name,
+                creditor_amount=self.object.maintenance_price,
+                payment_gateway='پرداخت الکترونیک',
+                payment_date=self.object.payment_date,
+                doc_number=self.object.maintenance_document_no,
+                payment_description=f"تعیمر و نگهداری: {self.object.maintenance_description[:50]}",
+                is_paid=True,
+
+            )
+
+            files = self.request.FILES.getlist('document')
             for f in files:
                 MaintenanceDocument.objects.create(maintenance=self.object, document=f)
+
             messages.success(self.request, 'سند با موفقیت ثبت گردید!')
             return super().form_valid(form)
-        except:
-            messages.error(self.request, 'خطا در ثبت!')
-            return self.form_invalid(form)
+
+        # except Exception as e:
+        #     messages.error(self.request, f'خطا در ثبت: {e}')
+        #     return self.form_invalid(form)
+
+    # def form_valid(self, form):
+    #     form.instance.user = self.request.user
+    #     house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
+    #     form.instance.house = house
+    #     try:
+    #         self.object = form.save()
+    #         files = self.request.FILES.getlist('document')
+    #
+    #         for f in files:
+    #             MaintenanceDocument.objects.create(maintenance=self.object, document=f)
+    #         messages.success(self.request, 'سند با موفقیت ثبت گردید!')
+    #         return super().form_valid(form)
+    #     except:
+    #         messages.error(self.request, 'خطا در ثبت!')
+    #         return self.form_invalid(form)
 
     def get_queryset(self):
         queryset = Maintenance.objects.filter(user=self.request.user)
@@ -3843,6 +3947,11 @@ class MiddleMaintenanceCreateView(CreateView):
 
         return queryset
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         maintenances = self.get_queryset()
@@ -3853,41 +3962,129 @@ class MiddleMaintenanceCreateView(CreateView):
         context['page_obj'] = page_obj
         context['total_maintenances'] = maintenances.filter(user=self.request.user).count()
         context['maintenances'] = page_obj.object_list
+        context['banks'] = Bank.objects.filter(user=self.request.user)
         return context
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def delete_maintenance_fund_record(request, pk):
+    # اطمینان از اینکه فقط کاربر صاحب سند می‌تواند حذف کند
+    maintenance = get_object_or_404(Maintenance, pk=pk, user=request.user)
+
+    try:
+        content_type = ContentType.objects.get_for_model(maintenance)
+        fund = Fund.objects.filter(content_type=content_type, object_id=maintenance.id).first()
+        if fund:
+            fund.delete()
+            maintenance.is_paid = False
+            maintenance.payment_date = None
+            maintenance.transaction_reference = None
+            maintenance.receiver_name = ''
+            maintenance.save()
+            messages.success(request, 'رکورد پرداخت با موفقیت حذف شد.')
+        else:
+            messages.warning(request, 'رکورد پرداختی پیدا نشد.')
+    except Exception as e:
+        messages.error(request, f'خطا در حذف رکورد پرداخت: {e}')
+
+    return redirect('middle_register_maintenance')  # یا هر URL صفحه لیست شما
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def middle_maintenance_edit(request, pk):
     maintenance = get_object_or_404(Maintenance, pk=pk)
 
+    if maintenance.is_paid:
+        messages.warning(request, 'این سند بدلیل ثبت رکورد پرداخت قابل ویرایش نیست')
+        return redirect('middle_register_maintenance')
+
     if request.method == 'POST':
-        form = MaintenanceForm(request.POST, request.FILES, instance=maintenance)
+        # فرم با instance برای ویرایش
+        form = MaintenanceForm(request.POST, request.FILES, instance=maintenance, user=request.user)
 
         if form.is_valid():
-            maintenance = form.save()  # Save the form (updates or creates expense)
+            maintenance = form.save(commit=False)
+            maintenance.receiver_name = maintenance.receiver_name
+            if maintenance.payment_date:
+                maintenance.is_paid = True
+            maintenance.save()
+            form.save_m2m()
 
-            # Handle multiple file uploads
+            content_type = ContentType.objects.get_for_model(Maintenance)
+            fund = Fund.objects.filter(content_type=content_type, object_id=maintenance.id).first()
+
+            if fund:
+                # بروزرسانی رکورد موجود
+                fund.bank = maintenance.bank
+                fund.unit = None
+                fund.debtor_amount = 0
+                fund.amount = maintenance.maintenance_price or 0
+                fund.creditor_amount = maintenance.maintenance_price or 0
+                fund.payment_date = maintenance.payment_date
+                fund.doc_number = maintenance.maintenance_document_no
+                fund.receiver_name = maintenance.receiver_name
+                fund.payment_gateway = 'پرداخت الکترونیک'
+                fund.payment_description = f"تعمیر و نگهداری: {(maintenance.maintenance_description or '')[:50]}"
+                fund.is_paid = True
+                fund.save()  # موجودی بانک بروزرسانی می‌شود
+                Fund.recalc_final_amounts_from(fund)
+
+
+            else:
+                # ایجاد فقط اگر رکورد موجود نبود
+                Fund.objects.create(
+                    content_type=content_type,
+                    object_id=maintenance.id,
+                    bank=maintenance.bank,
+                    unit=None,
+                    debtor_amount=0,
+                    amount=maintenance.maintenance_price or 0,
+                    creditor_amount=maintenance.maintenance_price or 0,
+                    user=request.user,
+                    receiver_name=maintenance.receiver_name,
+                    payment_date=maintenance.payment_date,
+                    doc_number=maintenance.maintenance_document_no,
+                    payment_gateway='پرداخت الکترونیک',
+                    payment_description=f"تعمیر و نگهداری: {(maintenance.maintenance_description or '')[:50]}",
+                    is_paid=True,
+                    is_paid_money=True
+                )
+
+            # ثبت فایل‌های پیوست جدید
             files = request.FILES.getlist('document')
-            if files:
-                for f in files:
-                    MaintenanceDocument.objects.create(maintenance=maintenance, document=f)
+            for f in files:
+                MaintenanceDocument.objects.create(maintenance=maintenance, document=f)
 
-            messages.success(request, 'سند با موفقیت ویرایش شد.')
-            return redirect('middle_register_maintenance')  # Adjust redirect as necessary
+            messages.success(request, 'سند با موفقیت ویرایش گردید.')
+            return redirect(reverse('middle_register_maintenance'))  # Adjust redirect as necessary
 
         else:
-            messages.error(request, 'خطا در ویرایش فرم درآمد. لطفا دوباره تلاش کنید.')
-            return redirect('middle_register_maintenance')
+            messages.error(request, 'خطا در ویرایش فرم . لطفا دوباره تلاش کنید.')
+            return render(request, 'middleMaintenance/add_maintenance.html', {
+                'form': form,
+                'maintenance': maintenance,
+                'open_modal': True,
+            })
     else:
-        # If the request is not POST, redirect to the appropriate page
-        return redirect('middle_register_maintenance')
+        form = PayerMoneyForm(instance=maintenance, user=request.user)
+        return render(request, 'middleMaintenance/add_maintenance.html',
+                      {'form': form,
+                       'maintenance': maintenance,
+                       'open_modal': True,
+                       })
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def middle_maintenance_delete(request, pk):
     maintenance = get_object_or_404(Maintenance, id=pk)
     try:
-        maintenance.delete()
+        with transaction.atomic():
+            # حذف Fund مربوطه
+            payment_ct = ContentType.objects.get_for_model(Maintenance)
+            Fund.objects.filter(content_type=payment_ct, object_id=maintenance.id).delete()
+
+            # حذف خود Expense
+            maintenance.delete()
         messages.success(request, ' سند با موفقیت حذف گردید!')
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
@@ -3932,146 +4129,15 @@ def middle_delete_maintenance_document(request):
     return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
 
 
-@login_required(login_url=settings.LOGIN_URL_ADMIN)
-def parse_jalali_to_gregorian(date_str):
-    try:
-        return jdatetime.date.fromisoformat(date_str.strip()).togregorian()
-    except Exception:
-        return None
+# @login_required(login_url=settings.LOGIN_URL_ADMIN)
+# def parse_jalali_to_gregorian(date_str):
+#     try:
+#         return jdatetime.date.fromisoformat(date_str.strip()).togregorian()
+#     except Exception:
+#         return None
 
-
-@login_required(login_url=settings.LOGIN_URL_ADMIN)
-def export_maintenance_pdf(request):
-    maintenances = Maintenance.objects.all()
-
-    filter_fields = {
-        'maintenance_description': 'maintenance_description__icontains',
-        'maintenance_start_date': 'maintenance_start_date__gte',
-        'maintenance_end_date': 'maintenance_end_date__lte',
-        'maintenance_price': 'maintenance_price__icontains',
-        'maintenance_status': 'maintenance_status__icontains',
-        'service_company': 'service_company__icontains',
-        'maintenance_document_no': 'maintenance_document_no__icontains',
-        'details': 'details__icontains',
-    }
-
-    for field, lookup in filter_fields.items():
-        value = request.GET.get(field)
-        if value:
-            if field in ['maintenance_start_date', 'maintenance_end_date']:
-                gregorian_date = parse_jalali_to_gregorian(value)
-                if gregorian_date:
-                    maintenances = maintenances.filter(**{lookup: gregorian_date})
-            else:
-                maintenances = maintenances.filter(**{lookup: value.strip()})
-
-    # مسیر فونت
-    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
-    css = CSS(string=f"""
-            @page {{ size: A4 landscape; margin: 1cm; }}
-            body {{
-                font-family: 'BYekan', sans-serif;
-            }}
-            @font-face {{
-                font-family: 'BYekan';
-                src: url('{font_url}');
-            }}
-        """)
-
-    # رندر قالب HTML
-    template = get_template("maintenance/maintenance_pdf.html")
-    context = {
-        'maintenances': maintenances,
-        'font_path': font_url,
-    }
-
-    html = template.render(context)
-    page_pdf = io.BytesIO()
-    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(page_pdf, stylesheets=[css])
-
-    page_pdf.seek(0)
-
-    # تولید پاسخ PDF
-    pdf_merger = PdfWriter()
-    pdf_merger.append(page_pdf)
-    response = HttpResponse(content_type='application/pdf')
-
-    response['Content-Disposition'] = f'attachment; filename="maintenances.pdf"'
-
-    pdf_merger.write(response)
-    return response
-
-
-@login_required(login_url=settings.LOGIN_URL_ADMIN)
-def export_maintenance_excel(request):
-    maintenances = Maintenance.objects.all()
-
-    filter_fields = {
-        'maintenance_description': 'maintenance_description__icontains',
-        'maintenance_start_date': 'maintenance_start_date__gte',
-        'maintenance_end_date': 'maintenance_end_date__lte',
-        'maintenance_price': 'maintenance_price__icontains',
-        'maintenance_status': 'maintenance_status__icontains',
-        'service_company': 'service_company__icontains',
-        'maintenance_document_no': 'maintenance_document_no__icontains',
-        'details': 'details__icontains',
-    }
-
-    for field, lookup in filter_fields.items():
-        value = request.GET.get(field)
-        if value:
-            if field in ['maintenance_start_date', 'maintenance_end_date']:
-                gregorian_date = parse_jalali_to_gregorian(value)
-                if gregorian_date:
-                    maintenances = maintenances.filter(**{lookup: gregorian_date})
-            else:
-                maintenances = maintenances.filter(**{lookup: value.strip()})
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "maintenances"
-    ws.sheet_view.rightToLeft = True
-
-    # ✅ Add title
-    title_cell = ws.cell(row=1, column=1, value="لیست هزینه های تعمیرات و نگهداری")
-    title_cell.font = Font(bold=True, size=18)
-    title_cell.alignment = Alignment(horizontal="center", vertical="center")
-    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=9)
-
-    # ✅ Style setup
-    header_fill = PatternFill(start_color="FFD700", end_color="FFD700", fill_type="solid")  # Gold
-    header_font = Font(bold=True, color="000000")  # Black bold text
-
-    headers = ['#', 'شرح کار', 'تاریخ شروع', ' تاریخ پایان', ' اجرت/دستمزد ', 'شرکت خدماتی', 'شماره فاکتور',
-               'توضیحات', 'آخرین وضعیت']
-
-    # ✅ Write header (row 2)
-    for col_num, column_title in enumerate(headers, 1):
-        cell = ws.cell(row=2, column=col_num, value=column_title)
-        cell.fill = header_fill
-        cell.font = header_font
-
-    # ✅ Write data (start from row 3)
-    for row_num, maintenance in enumerate(maintenances, start=3):
-        ws.cell(row=row_num, column=1, value=row_num - 2)  # index starts from 1
-        ws.cell(row=row_num, column=2, value=maintenance.maintenance_description)
-        jalali_date = jdatetime.date.fromgregorian(date=maintenance.maintenance_start_date).strftime('%Y/%m/%d')
-        ws.cell(row=row_num, column=3, value=jalali_date)
-        jalali_date = jdatetime.date.fromgregorian(date=maintenance.maintenance_end_date).strftime('%Y/%m/%d')
-        ws.cell(row=row_num, column=4, value=jalali_date)
-        ws.cell(row=row_num, column=5, value=maintenance.maintenance_price)
-        ws.cell(row=row_num, column=6, value=maintenance.service_company)
-        ws.cell(row=row_num, column=7, value=maintenance.maintenance_document_no)
-        ws.cell(row=row_num, column=8, value=maintenance.details)
-        ws.cell(row=row_num, column=9, value=maintenance.maintenance_status)
-
-    # ✅ Return file
-    response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    )
-    response['Content-Disposition'] = 'attachment; filename=maintenances.xlsx'
-    wb.save(response)
-    return response
+def middle_sewage_view(request):
+    return render(request, 'middelSewage/sewage_register.html')
 
 
 # ======================== Charge Views ======================================
@@ -4091,6 +4157,10 @@ def middle_charge_view(request):
         "middleCharge/add_charge.html",
         context
     )
+
+
+def civil_charge_manage(request):
+    return render(request, 'middleCharge/civil_charge_manage.html')
 
 
 @method_decorator(middle_admin_required, name='dispatch')

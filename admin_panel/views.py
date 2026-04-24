@@ -19,7 +19,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError, Q, Sum, Count, Prefetch, CharField, F
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpRequest
 from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import get_template
 from django.urls import reverse_lazy, reverse
@@ -45,7 +45,8 @@ from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDo
     ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
     FixPersonCharge, FixAreaCharge, ChargeFixVariable, \
     SmsManagement, Fund, UnifiedCharge, AdminSmsManagement, SmsCredit, ImpersonationLog, SubscriptionPlan, Subscription
-from home.models import SliderText
+from home.forms import ArticleForm
+from home.models import SliderText, ContactUs, FreeRequest, Articles
 from notifications.models import AdminTicket
 from polls.templatetags.poll_extras import jalali_to_gregorian
 from user_app.models import Unit, Bank, Renter, User, MyHouse, ChargeMethod, CalendarNote, UnitResidenceHistory
@@ -544,6 +545,7 @@ class SliderTextUpdateView(UpdateView):
         context = super().get_context_data(**kwargs)
         context['texts'] = SliderText.objects.all().order_by('created')
         return context
+
 
 def delete_slider_text(request, pk):
     text = get_object_or_404(SliderText, id=pk)
@@ -5512,3 +5514,168 @@ def admin_house_balance(request, house_id):
     }
 
     return render(request, 'report/house_balance_detail.html', context)
+
+
+# def contact_management(request):
+#     comments = ContactUs.objects.all()
+#     return render(request, 'admin_panel/conatct_us_management.html', {'comments': comments})
+
+class ContactUsManagement(ListView):
+    model = ContactUs
+    template_name = 'admin_panel/conatct_us_management.html'
+    context_object_name = 'comments'
+    ordering = ['-created_at']
+    paginate_by = 50
+
+
+def approved_comment(request: HttpRequest, comment_code: str):
+    comment = get_object_or_404(ContactUs, id=comment_code)
+    if comment.is_read:
+        messages.warning(request, 'قبلا ثبت شده است!.')
+    else:
+        comment.is_read = True
+        comment.read_at = timezone.now()
+        comment.save()
+        messages.success(request, 'مشاوره با موفقیت انجام گردید.')
+
+    return redirect(reverse('contact_management'))
+
+
+def disapproved_comment(request: HttpRequest, comment_code: str):
+    comment = get_object_or_404(ContactUs, id=comment_code)
+    if not comment.is_read:
+        messages.warning(request, 'قبلا ثبت شده است!.')
+    else:
+        comment.is_read = False
+        comment.read_at = None
+        comment.save()
+        messages.success(request, 'عدم تایید انجام گردید.')
+
+    return redirect(reverse('contact_management'))
+
+
+# def free_request_management(request):
+#     consultants = FreeRequest.objects.all()
+#     return render(request, 'admin_panel/consultants_management.html', {'consultants': consultants})
+
+class FreeRequestManagement(ListView):
+    model = FreeRequest
+    template_name = 'admin_panel/consultants_management.html'
+    context_object_name = 'consultants'
+    ordering = ['-created']
+    paginate_by = 50
+
+
+def approved_request_management(request: HttpRequest, cons_code: str):
+    consultant = get_object_or_404(FreeRequest, id=cons_code)
+    if consultant.is_call:
+        messages.warning(request, 'قبلا ثبت شده است!.')
+    else:
+        consultant.is_call = True
+        consultant.consultant_date = timezone.now()
+        consultant.save()
+        messages.success(request, 'مشاوره با موفقیت انجام گردید.')
+
+    return redirect(reverse('consultant_management'))
+
+
+def disapproved_request_management(request: HttpRequest, cons_code: str):
+    consultant = get_object_or_404(FreeRequest, id=cons_code)
+    if not consultant.is_call:
+        messages.warning(request, 'قبلا ثبت شده است!.')
+    else:
+        consultant.is_call = False
+        consultant.consultant_date = None
+        consultant.save()
+        messages.success(request, 'عدم تایید انجام گردید.')
+
+    return redirect(reverse('consultant_management'))
+
+
+class ArticleCreateView(CreateView):
+    model = Articles
+    template_name = 'admin_panel/add_articles.html'
+    form_class = ArticleForm
+    success_url = reverse_lazy('manage_articles')
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+
+        try:
+            self.object = form.save()
+            messages.success(self.request, 'مقاله با موفقیت ثبت گردید!')
+            return super().form_valid(form)
+        except:
+            messages.error(self.request, 'خطا در ثبت!')
+            return self.form_invalid(form)
+
+    # def get_context_data(self, **kwargs):
+    #     context = super().get_context_data(**kwargs)
+    #     articles = self.get_queryset()
+    #     paginator = Paginator(articles, 50)
+    #     page_number = self.request.GET.get('page')
+    #     page_obj = paginator.get_page(page_number)
+    #
+    #     context['page_obj'] = page_obj
+    #     context['total_articles'] = articles.count()
+    #     context['articles'] = page_obj.object_list
+    #     return context
+
+
+def manage_articles(request):
+    articles = Articles.objects.all()
+    paginator = Paginator(articles, 50)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    page_obj = page_obj
+    articles = page_obj.object_list
+    return render(request, 'admin_panel/manage_articles.html', {'articles': articles, 'page_obj': page_obj})
+
+
+class ArticleUpdateView(UpdateView):
+    model = Articles
+    form_class = ArticleForm
+    template_name = 'admin_panel/edit_articles.html'  # مسیر template
+    context_object_name = 'article'
+
+    def form_valid(self, form):
+        messages.success(self.request, "مقاله با موفقیت به‌روزرسانی شد.")
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, "خطایی در به‌روزرسانی مقاله رخ داده است. لطفاً فرم را بررسی کنید.")
+        return super().form_invalid(form)
+
+    def get_success_url(self):
+        # بعد از ذخیره، کاربر به جزئیات مقاله برگردد
+        return reverse_lazy('manage_articles')
+
+
+# def articles_edit(request, pk):
+#     article = get_object_or_404(Articles, pk=pk)
+#
+#     if request.method == 'POST':
+#         form = ArticleForm(request.POST, request.FILES, instance=article)
+#
+#         if form.is_valid():
+#             form.save()
+#             messages.success(request, 'مقاله با موفقیت ویرایش شد.')
+#             return redirect('manage_articles')  # Adjust redirect as necessary
+#
+#         else:
+#             messages.error(request, 'خطا در ویرایش فرم . لطفا دوباره تلاش کنید.')
+#             return redirect('manage_articles')
+#     else:
+#         # If the request is not POST, redirect to the appropriate page
+#         return redirect('manage_articles')
+
+
+def article_delete(request, pk):
+    article = get_object_or_404(Articles, id=pk)
+    try:
+        article.delete()
+        messages.success(request, ' مقاله با موفقیت حذف گردید!')
+    except ProtectedError:
+        messages.error(request, " امکان حذف وجود ندارد! ")
+    return redirect(reverse('manage_articles'))

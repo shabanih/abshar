@@ -1,0 +1,74 @@
+{% extends 'renter_partials/base.html' %}
+{% load static %}
+{% load poll_extras %}
+{% block title %}شارژیار | مقالات{% endblock %}
+{% block content %}
+ <!-- inner page section -->
+      <section class="inner_page_head">
+         <div class="container_fuild">
+            <div class="row">
+               <div class="col-md-12">
+                  <div class="full">
+                     <h4> Articles | مقالات </h4>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </section>
+      <!-- end inner page section -->
+ <div class="row d-flex justify-content-center py-5 m-2">
+<div class="col-lg-7 col-md-12 col-sm-12 col-xs-12">
+				<div class="single-post">
+                    <div class="post-header mb-5 text-center">
+                        <h4 class="post-title mt-2 shadow_style">
+                            {{ article.title }}
+                        </h4>
+
+                        <div class="post-meta">
+
+                            <span class="article-date mt-4">تاریخ انتشار: {{ article.created_at|show_jalali_date_only }}</span>
+                        </div>
+                    </div>
+                    <div class="post-body">
+                        <div class="entry-content">
+                            <p>{{ article.description|safe }} </p>
+                        </div>
+                    </div>
+                </div>
+                <hr/>
+    <div class="d-flex justify-content-end bg-light">
+        
+            <p class="m-3 text-center">کلمات کلیدی : <strong>{{ article.keywords }}</strong></p>
+      
+    </div>
+                  
+
+			</div>
+  <div class="col-12 col-md-2">
+   <div class="sidebar-widget mb-2 text-center card p-1 mt-4">
+{#                            <h3 class="text-center widget-title line">آخرین مقالات</h3>#}
+       <div class="heading_container heading_center mt-4">
+      <h2>
+       آخرین مقالات
+      </h2>
+    </div>
+                            {% for article in similar_articles %}
+                            	<div class="sidebar-post-item-big py-3">
+                                <a class="text-dark" href="{% url 'article_details' article.id %}">
+                                    <img src="{{ article.image.url }}" width="200" alt="" class="img-fluid">
+                                <div class="mt-2 justify-content-center">
+                                    <p class="shadow_style">{{ article.title }}</p>
+{#                                  <p class="article-date mt-0 ">{{ article.created_at|show_jalali_date_only }}</p>#}
+                                </div>
+                                    </a>
+                            </div>
+
+                            {% endfor %}
+
+
+
+                        </div>
+  </div>
+ </div>
+   
+{% endblock %}

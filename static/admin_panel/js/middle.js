@@ -737,7 +737,7 @@ $(document).on('click', '.edit-middleProperty-btn', function () {
 
     $('#id_property_name').val($(this).data('property_name'));
     $('#id_property_unit').val($(this).data('property_unit'));
-
+    $('#id_bank').val($(this).data('bank')).trigger('change');
     // Ensure date is in YYYY-MM-DD format before setting it
     var propertyDate = $(this).data('property_purchase_date');
     // If the date is in a format other than YYYY-MM-DD, convert it here
@@ -748,6 +748,11 @@ $(document).on('click', '.edit-middleProperty-btn', function () {
     $('#id_property_price').val($(this).data('property_price'));
     $('#id_property_code').val($(this).data('property_code'));
     $('#id_details').val($(this).data('details'));
+    $('#id_count').val($(this).data('count'));
+    $('#id_receiver_name').val($(this).data('receiver_name'));
+    $('#id_document_number').val($(this).data('document_number'));
+    $('#id_transaction_reference').val($(this).data('transaction_reference'));
+    $('#id_payment_date').val($(this).data('payment_date'));
 
     // Update the modal title and submit button text for editing
     $('#exampleModalLongTitle').text('ویرایش اموال');
@@ -859,8 +864,11 @@ $(document).on('click', '.edit-maintenance-btn', function () {
     // You can use moment.js or another library for conversion if necessary
     $('#id_maintenance_start_date').val(maintenanceStartDate);
     $('#id_maintenance_end_date').val(maintenanceEndDate);
-
+    $('#id_bank').val($(this).data('bank')).trigger('change');
+    $('#id_receiver_name').val($(this).data('receiver_name'));
     $('#id_maintenance_price').val($(this).data('maintenance_price'));
+    $('#id_transaction_reference').val($(this).data('transaction_reference'));
+    $('#id_payment_date').val($(this).data('payment_date'));
     $('#id_maintenance_status').val($(this).data('maintenance_status'));
     $('#id_service_company').val($(this).data('service_company'));
     $('#id_maintenance_document_no').val($(this).data('maintenance_document_no'));

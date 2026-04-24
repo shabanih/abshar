@@ -85,20 +85,23 @@
                              <th>تاریخ پایان</th>
                            
                               <th>شرکت خدماتی</th>
-                            <th>شماره فاکتور</th>
-                             <th>توضیحات </th>
+{#                            <th>شماره فاکتور</th>#}
+                            
                              <th>آخرین وضعیت</th>
                             <th>تصویر سند</th>
+                             <th>وضعیت پرداخت </th>
                              <th>اجرت/دستمزد</th>
-{#                            <th>دستورات</th>#}
+                            
+                            <th>مشاهده</th>
                         </tr>
                     </thead>
                     <thead>
                                     <tr class="fw-bold sticky-summary">
-                                        <th class="bg-body text-dark fw-bold" colspan="9">جمع کل</th>
+                                        <th class="bg-body text-dark fw-bold" colspan="8">جمع کل</th>
                                           <th class="bg-light text-dark fw-bold">
                                             {{ total_amount|three_digit_currency }}
                                         </th>
+                                         <th></th>
                                       
                                     </tr>
                             </thead>
@@ -111,8 +114,8 @@
                              <td class="col-12 col-lg-1 col-xl-1">{{maintenance.maintenance_start_date|show_jalali }}</td>
                                  <td class="col-12 col-lg-1 col-xl-1">{{maintenance.maintenance_end_date|show_jalali }}</td>
                                 <td>{{maintenance.service_company|to_persian_number }}</td>
-                                <td>{{maintenance.maintenance_document_no|to_persian_number }}</td>
-                               <td>{{maintenance.details|to_persian_number }}</td>
+{#                                <td>{{maintenance.maintenance_document_no|to_persian_number }}</td>#}
+{#                               <td>{{maintenance.details|to_persian_number }}</td>#}
                             <td class="col-12 col-lg-1 col-xl-1 p-0">
                                 {% if maintenance.maintenance_status == 'در حال انجام' %}
                                 	<button class="btn btn-gradient-warning px-1 py-2">درحال انجام</button>
@@ -134,7 +137,68 @@
                                      !No File
                                     {% endfor %}
                                 </td>
+                                          <td>
+                                    {% if maintenance.is_paid %}
+                                    	<span class="badge bg-success">پرداخت شده</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span>
+                                    {% endif %} 
+                            </td>
                             <td>{{maintenance.maintenance_price|three_digit_currency }}</td>
+                          
+                            <td>
+                                 <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ maintenance.id }}" title="نمایش جزئیات"
+                                                        class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
+                                                </button>
+                            </td>
+                                                          <div class="modal fade"  id="exampleModalLong2{{ maintenance.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ maintenance.id }}" aria-hidden="true">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalLabel{{ maintenance.id }}">مشاهده جزئیات </h5>
+                            </div>
+                          <hr/>
+                            <div class="modal-body text-end">
+                                 <p><strong>شرح سند:</strong> {{ maintenance.maintenance_description|to_persian_number }}</p>
+                                <p><strong>تاریخ شروع :</strong> {{ maintenance.maintenance_start_date|show_jalali_date_only}} </p>
+                                <p><strong>تاریخ پایان :</strong> {{ maintenance.maintenance_end_date|show_jalali_date_only}} </p>
+                                <p><strong>شرکت خدماتی:</strong> {{ maintenance.service_company}} </p>
+                                <p><strong>نام کارشناس:</strong> {{ maintenance.receiver_name }} </p>
+                                <p><strong>مبلغ:</strong> {{ maintenance.maintenance_price|three_digit_currency }} تومان</p>
+                                <p><strong>شماره فاکتور:</strong> {{ maintenance.maintenance_document_no|to_persian_number }} </p>
+                                <p><strong>آخرین وضعیت:</strong> {{ maintenance.maintenance_status|to_persian_number }} </p>
+                              
+                                <p><strong>توضیحات:</strong>
+                                    {% if maintenance.details %}
+                                        <span class="badge bg-warning">{{ maintenance.details|to_persian_number }} </span>
+                                        {% else %}
+                                         ثبت نشده است
+                                    {% endif %}
+
+                                </p>
+                                <hr>
+                             {% if maintenance.payment_date %} 
+                                <p><strong>تاریخ پرداخت:</strong> {{ maintenance.payment_date|show_jalali_date_only }}</p>
+                                <p><strong> کد پیگیری:</strong> {{ maintenance.transaction_reference|to_persian_number }}</p>
+                                <p><strong> بانک:</strong> {{ maintenance.bank|to_persian_number }}</p>
+                               
+                                
+                            {% endif %}
+                                    <p><strong>وضعیت:</strong> 
+                                    {% if maintenance.is_paid %}
+                                    	<span class="badge bg-success">پرداخت شده</span>
+                                        {% else %}
+                                        <span class="badge bg-danger">پرداخت نشده</span></p>
+                                    {% endif %} 
+
+                            </div>
+                            <hr/>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                             </tr>
                         {% endfor %}
