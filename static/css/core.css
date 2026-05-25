@@ -79,7 +79,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .logo-style{
-  width: 300px;
+  width: 220px;
+    margin: 20px;
 
 }
 
@@ -133,6 +134,22 @@ h1, h2, h3, h4, h5, h6 {
 .site-text{
   display: flex;
     align-items: center;
+}
+
+.btn-login {
+      display: inline-block;
+  padding: 10px 25px;
+  background-color: #00ACC1;
+  border: 1px solid #00ACC1;
+  color: #ffffff;
+  border-radius: 25px;
+  -webkit-transition: all 0.3s;
+  transition: all 0.3s;
+  text-transform: uppercase;
+  margin-top: 20px;
+  font-weight: 600;
+  width: 100%;
+  max-width: 150px;
 }
 /*===============================================*/
 .counter-badge {

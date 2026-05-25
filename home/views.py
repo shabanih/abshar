@@ -24,21 +24,27 @@ def house_required(view_func):
 
 def index(request):
     articles = Articles.objects.filter(is_active=True).order_by('-created_at')[:3]
+    sliders = SliderText.objects.all().order_by('-id')
     form = FreeRequestForm()
     if request.method == 'POST':
         form = FreeRequestForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, 'ثبت با موفقیت انجام شد')
+            messages.success(request, 'درخواست شما با موفقیت ثبت گردید. پس از بررسی با شما تماس خواهیم گرفت')
             return redirect('home')
         else:
             messages.error(request, 'oxg')
             return redirect('home')
 
-    return render(request, 'home.html', {'form': form, 'articles': articles})
+    return render(request, 'home.html', {
+        'form': form,
+        'articles': articles,
+        'sliders': sliders
+    })
 
 
 def house_home(request):
+
     form = LoginForm(request.POST or None)
 
     if request.method == 'POST' and form.is_valid():
@@ -82,19 +88,13 @@ def house_home(request):
     context = {
         'form': form,
         "house": request.house,
-
     }
-
     return render(request, 'building_page.html', context)
 
 
 def site_header_component(request):
-    sliders = SliderText.objects.all().order_by('-id')
 
-    context = {
-        'sliders': sliders
-    }
-    return render(request, 'renter_partials/site_header.html', context)
+    return render(request, 'renter_partials/site_header.html')
 
 
 def site_footer_component(request):
@@ -159,13 +159,8 @@ def middle_login(request):
 def contact_us_view(request):
     form = ContactUsForm(request.POST or None)
     if request.method == 'POST':
-        # name = request.POST['name']
-        # subject = request.POST['subject']
-        # message = request.POST['message']
-        # mobile = request.POST['mobile']
 
         if form.is_valid():
-            # comment = ContactUs.objects.create(name=name, subject=subject, message=message, mobile=mobile)
             form.save()
             messages.success(request,
                              'پیام شما با موفقیت ارسال گردید. پس از بررسی در صورت ثبت شماره تماس و یا ایمیل با شما ارتباط  خواهیم گرفت.')

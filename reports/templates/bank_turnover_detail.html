@@ -4,7 +4,7 @@
 {% load jalali_tags %}
 
 {% block page_title %}
-حساب بانکی: {{ bank.bank_name }} - موجودی: {{ balance|three_digit_currency }} تومان
+ بانک  {{ bank.bank_name }} - موجودی: {{ bank.current_balance|three_digit_currency }} تومان
 {% endblock page_title %}
 
 {% block main_content %}
@@ -22,17 +22,31 @@
             <th>شرح</th>
             <th>بدهکار</th>
             <th>بستانکار</th>
-            <th>موجودی</th>
+            <th>مانده</th>
         </tr>
     </thead>
     <tbody>
-        {% for t in transactions %}
+        {% for t in bank_funds %}
         <tr>
-            <td>{{ t.date|show_jalali }}</td>
-            <td>{{ t.description|to_persian_number }}</td>
-            <td>{{ t.debit|default:0|three_digit_currency }}</td>
-            <td>{{ t.credit|default:0|three_digit_currency }}</td>
-            <td>{{ t.balance|three_digit_currency }}</td>
+            <td>{{ t.payment_date|show_jalali }}</td>
+            <td>{{ t.payment_description|to_persian_number }}</td>
+            <td>
+              {% if t.transaction_type == "deposit" %}
+                {{ t.amount|default:0|three_digit_currency }}
+                   {% else %}
+                    -
+                 {% endif %}
+            </td>
+            <td class="text-danger">
+                {% if t.transaction_type == "withdraw" %}
+                {{ t.amount|default:0|three_digit_currency }}
+                    {% else %}
+                    -
+                 {% endif %}
+            </td>
+            <td>
+                {{ t.balance_after|three_digit_currency }}
+            </td>
         </tr>
         {% empty %}
         <tr>

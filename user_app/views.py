@@ -15,8 +15,8 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.contenttypes.models import ContentType
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q, Sum, ProtectedError
-from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
+from django.db.models import Q, Sum, ProtectedError, Count, Case, When, IntegerField, F
+from django.http import HttpResponseRedirect, HttpResponse, JsonResponse, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import get_template
 from django.urls import reverse, reverse_lazy
@@ -33,8 +33,10 @@ from admin_panel.forms import UnifiedChargePaymentForm
 from middleAdmin_panel.views import middle_admin_required
 from notifications.models import Notification, SupportUser
 from polls.templatetags.poll_extras import show_jalali
+from polls_app.models import Poll, Vote
 from user_app import helper
-from admin_panel.models import Announcement, UnifiedCharge, MessageToUser, MessageReadStatus, Expense, Fund
+from admin_panel.models import Announcement, UnifiedCharge, MessageToUser, MessageReadStatus, Expense, Fund, \
+    CivilManage, CivilInstallment, SewageManage, SewageInstallment
 from user_app.forms import LoginForm, MobileLoginForm, UserPayForm, UserPayMoneyForm
 from user_app.models import User, Unit, Bank, MyHouse, CalendarNote, UserPayMoney, UserPayMoneyDocument
 
@@ -90,51 +92,6 @@ def switch_to_manager(request):
     return redirect('middle_admin_dashboard')
 
 
-# def index(request):
-#     form = LoginForm(request.POST or None)
-#
-#     if request.method == 'POST' and form.is_valid():
-#         mobile = form.cleaned_data['mobile']
-#         password = form.cleaned_data['password']
-#
-#         user = authenticate(request, username=mobile, password=password)
-#
-#         if user:
-#             if user.is_superuser:
-#                 messages.error(request, 'شما مجوز ورود از این صفحه را ندارید.')
-#
-#             elif not user.is_active:
-#                 messages.error(request, 'حساب کاربری شما غیرفعال است.')
-#
-#             # ⛔ مالک با مستاجر فعال
-#             elif Unit.objects.filter(
-#                     user=user,
-#                     renters__renter_is_active=True
-#             ).exists():
-#                 messages.error(
-#                     request,
-#                     'برای واحد شما مستاجر فعال ثبت شده است و امکان ورود مالک وجود ندارد.'
-#                 )
-#
-#             else:
-#                 login(request, user)
-#
-#                 if user.is_middle_admin:
-#                     has_house = MyHouse.objects.filter(user=user).exists()
-#                     if has_house:
-#                         return redirect('middle_admin_dashboard')
-#                     else:
-#                         return redirect('middle_manage_house')
-#
-#                 return redirect('user_panel')
-#
-#
-#         else:
-#             messages.error(request, 'ورود ناموفق: شماره موبایل یا کلمه عبور نادرست است.')
-#
-#     return render(request, 'middle_login.html', {'form': form})
-
-
 def mobile_login(request):
     form = MobileLoginForm(request.POST or None)
     if request.method == 'POST':
@@ -181,8 +138,12 @@ def verify_otp(request):
                 return redirect('verify_otp')
             else:
                 login(request, user)
-                # messages.success(request, "ورود موفق")
-                return redirect('user_panel')
+                if user.is_middle_admin:
+                    # هدایت به داشبورد مدیر ساختمان
+                    return redirect('middle_admin_dashboard')
+                else:
+                    # هدایت به پنل کاربری عادی
+                    return redirect('user_panel')
 
         return render(
             request,
@@ -231,7 +192,7 @@ def site_header_component(request):
     return render(request, 'partials/notification_template.html', context)
 
 
-# @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def user_panel(request):
     user = request.user
     # اگر سوپریوزر در حال impersonate است، اجازه ورود بده
@@ -259,7 +220,6 @@ def user_panel(request):
     ).select_related('unit')
 
     paid_unified_qs = unified_qs.filter(is_paid=True)
-    print(paid_unified_qs.count())
     unpaid_unified_qs = unified_qs.filter(is_paid=False)
 
     # Update penalty ONLY for unpaid charges
@@ -350,17 +310,634 @@ def user_panel(request):
     return render(request, 'partials/home_template.html', context)
 
 
-# def core_announce(request):
-#     user = request.user
-#     announcements = Announcement.objects.filter(
-#             user=user,
-#             is_active=True
-#         )
-#     return render(request, 'partials/core_template.html', {'announcements': announcements})
+# ================ civil charge =====================
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def unit_civil_charge_list(request):
+    house = MyHouse.objects.filter(
+        Q(units__user=request.user) |
+        Q(units__renters__user=request.user, units__renters__renter_is_active=True)
+    ).distinct().order_by('-created_at').first()
+
+    unit = Unit.objects.filter(
+        Q(user=request.user) |
+        Q(renters__user=request.user, renters__renter_is_active=True),
+        myhouse=house
+    ).distinct().first()
+
+    charges = CivilManage.objects.filter(
+        house=house
+    ).annotate(
+        sent_units_count=Count(
+            'installments__unit',
+            filter=Q(installments__send_notification=True),
+            distinct=True
+        ),
+        paid_installments_count=Count(
+            'installments',
+            filter=Q(installments__is_paid=True),
+            distinct=True
+        ),
+        total_installments=Case(
+            When(prepayment__gt=0, then=F('installment_count') + 1),
+            default=F('installment_count'),
+            output_field=IntegerField()
+        )
+    ).filter(
+        sent_units_count__gt=0
+    ).order_by('id')
+
+    search = request.GET.get('q', '').strip()
+
+    if search:
+        q_obj = Q(name__icontains=search) | Q(details__icontains=search)
+
+        if search.isdigit():
+            q_obj = (
+                    Q(amount__icontains=search) |
+                    Q(prepayment__icontains=search) |
+                    Q(installment_count__icontains=search)
+            )
+
+        charges = charges.filter(q_obj)
+
+    # 📄 pagination
+    paginate = request.GET.get('paginate', '20')
+    if str(paginate).lower() == 'all':
+        paginate = charges.count() or 1
+    else:
+        try:
+            paginate = int(paginate)
+        except ValueError:
+            paginate = 20
+
+    paginator = Paginator(charges, paginate)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'user_civil_charge_list.html', {
+        'page_obj': page_obj,
+        'query': search,
+        'paginate': paginate,
+        'house': house,
+        'unit': unit,
+    })
 
 
-# ==================================
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def export_charge_civil_pdf(request):
+    house = MyHouse.objects.filter(
+        Q(units__user=request.user) |
+        Q(units__renters__user=request.user, units__renters__renter_is_active=True)
+    ).distinct().order_by('-created_at').first()
+
+    unit = Unit.objects.filter(
+        Q(user=request.user) |
+        Q(renters__user=request.user, renters__renter_is_active=True),
+        myhouse=house
+    ).distinct().first()
+
+    civil_charges = CivilManage.objects.filter(
+        house=house
+    ).annotate(
+        sent_units_count=Count(
+            'installments__unit',
+            filter=Q(installments__send_notification=True),
+            distinct=True
+        ),
+        paid_installments_count=Count(
+            'installments',
+            filter=Q(installments__is_paid=True),
+            distinct=True
+        ),
+        total_installments=Case(
+            When(prepayment__gt=0, then=F('installment_count') + 1),
+            default=F('installment_count'),
+            output_field=IntegerField()
+        )
+    ).filter(
+        sent_units_count__gt=0
+    ).order_by('id')
+
+    search = request.GET.get('q', '').strip()
+
+    if search:
+        q_obj = Q(name__icontains=search) | Q(details__icontains=search)
+
+        if search.isdigit():
+            q_obj = (
+                    Q(amount__icontains=search) |
+                    Q(prepayment__icontains=search) |
+                    Q(installment_count__icontains=search)
+            )
+
+        civil_charges = civil_charges.filter(q_obj)
+
+    house = None
+    bank = None
+
+    # 2️⃣ بانک پیش‌فرض مربوط به همان خانه
+    if house:
+        bank = Bank.objects.filter(house=house, is_default=True, is_active=True).first()
+
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+                 @page {{ size: A4 landscape; margin: 1cm; }}
+                 body {{
+                     font-family: 'BYekan', sans-serif;
+                 }}
+                 @font-face {{
+                     font-family: 'BYekan';
+                     src: url('{font_url}');
+                 }}
+             """)
+
+    # Render HTML template
+    template = get_template("user_civil_charge_pdf.html")
+    context = {
+        'font_path': font_url,
+        'civil_charges': civil_charges,
+        'bank': bank,
+        'unit': unit,
+        'house': house,
+        'today': datetime.now(),
+    }
+    html = template.render(context)
+
+    # Generate PDF
+    page_pdf = io.BytesIO()
+    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(page_pdf, stylesheets=[css])
+
+    page_pdf.seek(0)
+
+    # Generate the final PDF response
+    pdf_merger = PdfWriter()
+    pdf_merger.append(page_pdf)
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="civil_charge_report.pdf"'
+    pdf_merger.write(response)
+    return response
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def unit_installments_civil_list(request, civil_id, unit_id):
+    civil = get_object_or_404(
+        CivilManage.objects.filter(
+            Q(house__units__user=request.user) |
+            Q(
+                house__units__renters__user=request.user,
+                house__units__renters__renter_is_active=True
+            )
+        ).distinct(),
+        id=civil_id
+    )
+
+    unit = get_object_or_404(
+        Unit.objects.filter(
+            myhouse=civil.house
+        ),
+        Q(user=request.user) |
+        Q(renters__user=request.user, renters__renter_is_active=True),
+        id=unit_id
+    )
+
+    installments = (
+        CivilInstallment.objects.filter(
+            civil_manage=civil,
+            unit=unit
+        )
+        .select_related("unit", "civil_manage")
+        .order_by("installment_number")
+    )
+
+    paginate = request.GET.get('paginate', '20')
+    if str(paginate).lower() == 'all':
+        paginate = installments.count() or 1
+    else:
+        try:
+            paginate = int(paginate)
+        except ValueError:
+            paginate = 20
+
+    paginator = Paginator(installments, paginate)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    first_unpaid_index = -1
+    for index, inst in enumerate(installments):
+        if not inst.is_paid:  # فرض بر اینکه فیلد پرداخت شما is_paid نام دارد
+            first_unpaid_index = index
+            break
+
+    # افزودن ویژگی به آبجکت‌ها برای استفاده در تمپلیت
+    for index, inst in enumerate(installments):
+        # فقط اگر این قسط، اولین قسطِ پرداخت نشده باشد، فعال است
+        inst.can_pay = (index == first_unpaid_index)
+
+    return render(
+        request,
+        "unit_installments.html",
+        {
+            "civil": civil,
+            "unit": unit,
+            # "installments": installments,
+            "unit_id": unit_id,
+            "civil_id": civil_id,
+            'page_obj': page_obj
+        },
+    )
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def export_installments_civil_pdf(request, civil_id, unit_id):
+    civil = get_object_or_404(
+        CivilManage.objects.filter(
+            Q(house__units__user=request.user) |
+            Q(
+                house__units__renters__user=request.user,
+                house__units__renters__renter_is_active=True
+            )
+        ).distinct(),
+        id=civil_id
+    )
+
+    unit = get_object_or_404(
+        Unit.objects.filter(
+            myhouse=civil.house
+        ),
+        Q(user=request.user) |
+        Q(renters__user=request.user, renters__renter_is_active=True),
+        id=unit_id
+    )
+
+    installments = (
+        CivilInstallment.objects.filter(
+            civil_manage=civil,
+            unit=unit
+        )
+        .select_related("unit", "civil_manage")
+        .order_by("installment_number")
+    )
+
+    house = None
+    bank = None
+
+    # 2️⃣ بانک پیش‌فرض مربوط به همان خانه
+    if house:
+        bank = Bank.objects.filter(house=house, is_default=True, is_active=True).first()
+
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+                 @page {{ size: A4 landscape; margin: 1cm; }}
+                 body {{
+                     font-family: 'BYekan', sans-serif;
+                 }}
+                 @font-face {{
+                     font-family: 'BYekan';
+                     src: url('{font_url}');
+                 }}
+             """)
+
+    # Render HTML template
+    template = get_template("user_installment_civil_charge_pdf.html")
+    context = {
+        'font_path': font_url,
+        'installments': installments,
+        'bank': bank,
+        'civil': civil,
+        'unit': unit,
+        'house': house,
+        'today': datetime.now(),
+    }
+    html = template.render(context)
+
+    # Generate PDF
+    page_pdf = io.BytesIO()
+    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(page_pdf, stylesheets=[css])
+
+    page_pdf.seek(0)
+
+    # Generate the final PDF response
+    pdf_merger = PdfWriter()
+    pdf_merger.append(page_pdf)
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="installments_civil_charge_report.pdf"'
+    pdf_merger.write(response)
+    return response
+
+
+# ================ Sewage View =====================
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def unit_sewage_list(request):
+    house = MyHouse.objects.filter(
+        Q(units__user=request.user) |
+        Q(units__renters__user=request.user, units__renters__renter_is_active=True)
+    ).distinct().order_by('-created_at').first()
+
+    unit = Unit.objects.filter(
+        Q(user=request.user) |
+        Q(renters__user=request.user, renters__renter_is_active=True),
+        myhouse=house
+    ).distinct().first()
+
+    sewages = SewageManage.objects.filter(
+        house=house
+    ).annotate(
+        sent_units_count=Count(
+            'sewage_installments__unit',
+            filter=Q(sewage_installments__send_notification=True),
+            distinct=True
+        ),
+        paid_installments_count=Count(
+            'sewage_installments',
+            filter=Q(sewage_installments__is_paid=True),
+            distinct=True
+        ),
+        total_installments=Case(
+            When(prepayment__gt=0, then=F('installment_count') + 1),
+            default=F('installment_count'),
+            output_field=IntegerField()
+        )
+    ).filter(
+        sent_units_count__gt=0
+    ).order_by('id')
+
+    search = request.GET.get('q', '').strip()
+
+    if search:
+        q_obj = Q(name__icontains=search) | Q(details__icontains=search)
+
+        if search.isdigit():
+            q_obj = (
+                    Q(amount__icontains=search) |
+                    Q(prepayment__icontains=search) |
+                    Q(installment_count__icontains=search)
+            )
+
+        sewages = sewages.filter(q_obj)
+
+    # 📄 pagination
+    paginate = request.GET.get('paginate', '20')
+    if str(paginate).lower() == 'all':
+        paginate = sewages.count() or 1
+    else:
+        try:
+            paginate = int(paginate)
+        except ValueError:
+            paginate = 20
+
+    paginator = Paginator(sewages, paginate)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'user_sewage_list.html', {
+        'page_obj': page_obj,
+        'query': search,
+        'paginate': paginate,
+        'house': house,
+        'unit': unit,
+    })
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def export_sewage_pdf(request):
+    house = MyHouse.objects.filter(
+        Q(units__user=request.user) |
+        Q(units__renters__user=request.user, units__renters__renter_is_active=True)
+    ).distinct().order_by('-created_at').first()
+
+    unit = Unit.objects.filter(
+        Q(user=request.user) |
+        Q(renters__user=request.user, renters__renter_is_active=True),
+        myhouse=house
+    ).distinct().first()
+
+    sewages = SewageManage.objects.filter(
+        house=house
+    ).annotate(
+        sent_units_count=Count(
+            'sewage_installments__unit',
+            filter=Q(sewage_installments__send_notification=True),
+            distinct=True
+        ),
+        paid_installments_count=Count(
+            'sewage_installments',
+            filter=Q(sewage_installments__is_paid=True),
+            distinct=True
+        ),
+        total_installments=Case(
+            When(prepayment__gt=0, then=F('installment_count') + 1),
+            default=F('installment_count'),
+            output_field=IntegerField()
+        )
+    ).filter(
+        sent_units_count__gt=0
+    ).order_by('id')
+
+    search = request.GET.get('q', '').strip()
+
+    if search:
+        q_obj = Q(name__icontains=search) | Q(details__icontains=search)
+
+        if search.isdigit():
+            q_obj = (
+                    Q(amount__icontains=search) |
+                    Q(prepayment__icontains=search) |
+                    Q(installment_count__icontains=search)
+            )
+
+        sewages = sewages.filter(q_obj)
+
+    house = None
+    bank = None
+
+    # 2️⃣ بانک پیش‌فرض مربوط به همان خانه
+    if house:
+        bank = Bank.objects.filter(house=house, is_default=True, is_active=True).first()
+
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+                 @page {{ size: A4 landscape; margin: 1cm; }}
+                 body {{
+                     font-family: 'BYekan', sans-serif;
+                 }}
+                 @font-face {{
+                     font-family: 'BYekan';
+                     src: url('{font_url}');
+                 }}
+             """)
+
+    # Render HTML template
+    template = get_template("user_sewage_pdf.html")
+    context = {
+        'font_path': font_url,
+        'sewages': sewages,
+        'bank': bank,
+        'unit': unit,
+        'house': house,
+        'today': datetime.now(),
+    }
+    html = template.render(context)
+
+    # Generate PDF
+    page_pdf = io.BytesIO()
+    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(page_pdf, stylesheets=[css])
+
+    page_pdf.seek(0)
+
+    # Generate the final PDF response
+    pdf_merger = PdfWriter()
+    pdf_merger.append(page_pdf)
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="sewage_report.pdf"'
+    pdf_merger.write(response)
+    return response
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def unit_installments_sewage_list(request, sewage_id, unit_id):
+    sewage = get_object_or_404(
+        SewageManage.objects.filter(
+            Q(house__units__user=request.user) |
+            Q(
+                house__units__renters__user=request.user,
+                house__units__renters__renter_is_active=True
+            )
+        ).distinct(),
+        id=sewage_id
+    )
+
+    unit = get_object_or_404(
+        Unit.objects.filter(
+            myhouse=sewage.house
+        ),
+        Q(user=request.user) |
+        Q(renters__user=request.user, renters__renter_is_active=True),
+        id=unit_id
+    )
+
+    installments = (
+        SewageInstallment.objects.filter(
+            sewage_manage=sewage,
+            unit=unit
+        )
+        .select_related("unit", "sewage_manage")
+        .order_by("installment_number")
+    )
+
+    paginate = request.GET.get('paginate', '20')
+    if str(paginate).lower() == 'all':
+        paginate = installments.count() or 1
+    else:
+        try:
+            paginate = int(paginate)
+        except ValueError:
+            paginate = 20
+
+    paginator = Paginator(installments, paginate)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    first_unpaid_index = -1
+    for index, inst in enumerate(installments):
+        if not inst.is_paid:  # فرض بر اینکه فیلد پرداخت شما is_paid نام دارد
+            first_unpaid_index = index
+            break
+
+    # افزودن ویژگی به آبجکت‌ها برای استفاده در تمپلیت
+    for index, inst in enumerate(installments):
+        # فقط اگر این قسط، اولین قسطِ پرداخت نشده باشد، فعال است
+        inst.can_pay = (index == first_unpaid_index)
+
+    return render(
+        request,
+        "unit_sewage_installments.html",
+        {
+            "sewage": sewage,
+            "unit": unit,
+            # "installments": installments,
+            "unit_id": unit_id,
+            "sewage_id": sewage_id,
+            'page_obj': page_obj
+        },
+    )
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def export_installments_sewage_pdf(request, sewage_id, unit_id):
+    sewage = get_object_or_404(
+        SewageManage.objects.filter(
+            Q(house__units__user=request.user) |
+            Q(
+                house__units__renters__user=request.user,
+                house__units__renters__renter_is_active=True
+            )
+        ).distinct(),
+        id=sewage_id
+    )
+
+    unit = get_object_or_404(
+        Unit.objects.filter(
+            myhouse=sewage.house
+        ),
+        Q(user=request.user) |
+        Q(renters__user=request.user, renters__renter_is_active=True),
+        id=unit_id
+    )
+
+    installments = (
+        SewageInstallment.objects.filter(
+            sewage_manage=sewage,
+            unit=unit
+        )
+        .select_related("unit", "sewage_manage")
+        .order_by("installment_number")
+    )
+
+    house = None
+    bank = None
+
+    # 2️⃣ بانک پیش‌فرض مربوط به همان خانه
+    if house:
+        bank = Bank.objects.filter(house=house, is_default=True, is_active=True).first()
+
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+                 @page {{ size: A4 landscape; margin: 1cm; }}
+                 body {{
+                     font-family: 'BYekan', sans-serif;
+                 }}
+                 @font-face {{
+                     font-family: 'BYekan';
+                     src: url('{font_url}');
+                 }}
+             """)
+
+    # Render HTML template
+    template = get_template("user_installment_sewage_pdf.html")
+    context = {
+        'font_path': font_url,
+        'installments': installments,
+        'bank': bank,
+        'sewage': sewage,
+        'unit': unit,
+        'house': house,
+        'today': datetime.now(),
+    }
+    html = template.render(context)
+
+    # Generate PDF
+    page_pdf = io.BytesIO()
+    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(page_pdf, stylesheets=[css])
+
+    page_pdf.seek(0)
+
+    # Generate the final PDF response
+    pdf_merger = PdfWriter()
+    pdf_merger.append(page_pdf)
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="installments_sewage_report.pdf"'
+    pdf_merger.write(response)
+    return response
+
+
 # ======================== Charges ===================
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def fetch_user_charges(request):
     user = request.user
     query = request.GET.get('q', '').strip()
@@ -592,6 +1169,13 @@ class UserPayMoneyViewCreateView(CreateView):
 
     def form_valid(self, form):
         form.instance.user = self.request.user
+
+        files = self.request.FILES.getlist('document')
+        if len(files) > 2:
+            messages.error(self.request,
+                           "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+            return redirect('user_pay_money')
+
 
         unit = Unit.objects.filter(
             Q(user=self.request.user) |  # مالک
@@ -913,3 +1497,70 @@ def export_user_pay_money_excel(request):
     response['Content-Disposition'] = f'attachment; filename=userpaymoney_report.xlsx'
     wb.save(response)
     return response
+
+
+# ======================================================================
+
+def unit_polls(request):
+    house = MyHouse.objects.filter(
+        Q(units__user=request.user) |
+        Q(units__renters__user=request.user, units__renters__renter_is_active=True)
+    ).distinct().order_by('-created_at').first()
+
+    # unit = Unit.objects.filter(
+    #     Q(user=request.user) |
+    #     Q(renters__user=request.user, renters__renter_is_active=True),
+    #     myhouse=house
+    # ).distinct().first()
+    polls = Poll.objects.filter(house=house).order_by("-id")
+    context = {
+        'polls': polls
+    }
+    return render(request, 'unit_poll.html', context)
+
+
+def resident_poll_vote(request, poll_id):
+    # ساکن جاری
+    house = MyHouse.objects.filter(
+        Q(units__user=request.user) |
+        Q(units__renters__user=request.user, units__renters__renter_is_active=True)
+    ).distinct().order_by('-created_at').first()
+
+    unit = Unit.objects.filter(
+        Q(user=request.user) |
+        Q(renters__user=request.user, renters__renter_is_active=True),
+        myhouse=house
+    ).distinct().first()
+
+    # نظرسنجی متعلق به همین ساختمان
+    poll = get_object_or_404(
+        Poll.objects.prefetch_related("questions__choices"),
+        pk=poll_id,
+        house=house,
+    )
+    # چک تکرار رأی
+    already_voted = Vote.objects.filter(user=request.user, question__poll=poll).exists()
+
+    # ثبت رأی
+    if request.method == "POST" and not already_voted:
+
+        for question in poll.questions.all():
+            choice_id = request.POST.get(f"question_{question.id}")
+
+            if choice_id:
+                Vote.objects.create(
+                    unit=unit,
+                    question=question,
+                    choice_id=choice_id,
+                    poll=poll,
+                    user=request.user
+                )
+
+        messages.success(request, "رأی شما با موفقیت ثبت شد")
+        return redirect("resident_poll_vote", poll_id=poll.id)
+
+    return render(request, "poll_vote.html", {
+        "poll": poll,
+        "already_voted": already_voted,
+        "house": house
+    })

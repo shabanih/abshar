@@ -17,6 +17,9 @@ urlpatterns = [
     path('edit-article/<int:pk>/', views.ArticleUpdateView.as_view(), name='edit_article'),
     path('delete-article/<int:pk>/', views.article_delete, name='delete_article'),
 
+    path('admin/finance/by/house/', views.AdminFinanceByHouse.as_view(), name='admin_finance_by_house'),
+    path('admin-finance/<int:house_id>/', views.AdminFinanceList.as_view(), name='admin_finance_list'),
+
     # middle admin urls
 
     path('create-middle-admin/', views.MiddleAdminCreateView.as_view(), name='create_middle_admin'),
@@ -30,7 +33,8 @@ urlpatterns = [
 
     path('consultant/management/', views.FreeRequestManagement.as_view(), name='consultant_management'),
     path('consultant/approved/<str:cons_code>/', views.approved_request_management, name='consultant_approved'),
-    path('consultant/disapproved/<str:cons_code>/', views.disapproved_request_management, name='consultant_disapproved'),
+    path('consultant/disapproved/<str:cons_code>/', views.disapproved_request_management,
+         name='consultant_disapproved'),
 
     # Slider urls
 
@@ -265,7 +269,7 @@ urlpatterns = [
         "admin/report/maintenance/<int:house_id>/", views.AdminMaintenanceDetailView.as_view(),
         name="admin_maintenance_report_list"),
 
-    # billan Report
+    # Billan Report
     path('admin/billan/report/', views.AdminBillanReport.as_view(), name='admin_house_balance_report'),
     path(
         'admin/billan/<int:house_id>/',
@@ -278,12 +282,15 @@ urlpatterns = [
     path('calendar/save-note/', views.save_note, name='save_note'),
     path('calendar/delete-note/', views.delete_note, name='delete_note'),
 
+    #  Subscription
     path('subscription/plan/', views.AddSubscriptionPlan.as_view(), name='subscription_plan'),
     path('subscription/plan/edit/<int:pk>/"', views.SubscriptionPlanUpdate.as_view(), name='subscription_plan_edit'),
     path('subscription/plan/delete/<int:pk>/"', views.subscription_plan_delete, name='subscription_plan_delete'),
 
     path('subscription/', views.SubscriptionListView.as_view(), name='subscription_list'),
-    path('subscription-change/<int:subscription_id>/', views.admin_cancel_subscription, name='subscription_change'),
+    # path('subscription-change/<int:subscription_id>/', views.admin_cancel_subscription, name='subscription_change'),
+    path('subscriptions/edit/<int:subscription_id>/', views.admin_edit_subscription, name='admin_edit_subscription'),
+    # path('subscriptions/create/<int:user_id>/', views.admin_create_subscription, name='admin_create_subscription'),
 
 ]
 if settings.DEBUG:

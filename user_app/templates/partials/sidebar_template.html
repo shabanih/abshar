@@ -1,4 +1,5 @@
 {% load static %}
+{% load poll_extras %}
 
 <nav class="sidebar sidebar-offcanvas" id="sidebar">
 
@@ -27,54 +28,106 @@
         </li>
 
         <!-- داشبورد -->
-        <li class="nav-item">
-            <a class="nav-link {% if request.resolver_match.url_name == 'user_panel' %}active{% endif %}"
-               href="{% url 'user_panel' %}">
-                <i class="menu-title">داشبورد کاربر</i>
-                <i class="mdi mdi-home menu-icon"></i>
-            </a>
-        </li>
-
-        <!-- مدیریت شارژ -->
-        <li class="nav-item mt-0">
-            <a class="nav-link {% if request.resolver_match.url_name == 'user_charges' %}active{% endif %}"
-               href="{% url 'user_charges' %}">
-                <i class="menu-title">مدیریت شارژ</i>
-{#                <i class="mdi mdi-bell-ring-outline menu-icon"></i>#}
-                <i class="mdi mdi-cash-multiple menu-icon"></i>
-            </a>
-        </li>
+   <li class="nav-item">
+    <a class="nav-link {% if request.resolver_match.url_name == 'user_panel' %}active{% endif %}"
+       href="{% url 'user_panel' %}">
+        <i class="menu-title">
+            داشبورد 
+            <span class="text-secondary">{% if is_unit_owner %}(مالک){% else %}(مستاجر){% endif %}</span>
+        </i>
+        <i class="mdi mdi-monitor-dashboard menu-icon"></i>
+    </a>
+</li>
     
-     <li class="nav-item mt-0">
+    
+    {% with url=request.resolver_match.url_name %}
+{% is_user_charge_section url as charge_open %}
 
-            <a class="nav-link
-               {% if request.resolver_match.url_name == 'user_pay_money' or request.resolver_match.url_name == 'fund_turn_over_user' %}active{% endif %}"
-               data-bs-toggle="collapse"
-               href="#general01">
+<li class="nav-item mt-0">
 
-                <i class="menu-title">امور مالی</i>
-                <i class="menu-arrow"></i>
-                <i class="mdi mdi-clipboard-text menu-icon"></i>
-            </a>
+  <a class="nav-link"
+     data-bs-toggle="collapse"
+     href="#general3"
+     aria-expanded="{% if charge_open %}true{% else %}false{% endif %}">
 
-            <div class="collapse
-                {% if request.resolver_match.url_name == 'user_pay_money' or request.resolver_match.url_name == 'fund_turn_over_user' %}show{% endif %}"
-                id="general01">
+    <i class="menu-title">مدیریت شارژ</i>
+    <i class="menu-arrow"></i>
+    <i class="mdi mdi-clipboard-text menu-icon"></i>
+  </a>
 
-                <ul class="nav flex-column sub-menu">
+  <div class="collapse {% if charge_open %}show{% endif %}" id="general3">
+    <ul class="nav flex-column sub-menu">
 
-                    <li class="nav-item mt-0">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'user_pay_money' %}active{% endif %}"
-                           href="{% url 'user_pay_money' %}">پرداخت به ساختمان</a>
-                    </li>
-                    <li class="nav-item mt-0">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'fund_turn_over_user' %}active{% endif %}"
-                           href="{% url 'fund_turn_over_user' %}">تراکنش های من</a>
-                    </li>
+      <li class="nav-item">
+      <a class="nav-link {% if 'user_charges' in url %}active{% endif %}"
+           href="{% url 'user_charges' %}">
+           شارژ های من
+        </a>
+      </li>
 
-                </ul>
-            </div>
-        </li>
+  {% if is_unit_owner %}
+<li class="nav-item">
+    <a class="nav-link {% if 'user_civil' in url %}active{% endif %}"
+       href="{% url 'user_civil_charge_list' %}">
+       شارژ های عمرانی
+    </a>
+</li>
+{% endif %}
+    </ul>
+  </div>
+
+</li>
+
+{% endwith %}
+    
+      {% with url=request.resolver_match.url_name %}
+{% is_user_finance_section url as finance_open %}
+
+<li class="nav-item mt-0">
+
+  <a class="nav-link"
+     data-bs-toggle="collapse"
+     href="#general4"
+     aria-expanded="{% if finance_open %}true{% else %}false{% endif %}">
+
+    <i class="menu-title">امور مالی</i>
+    <i class="menu-arrow"></i>
+    <i class="mdi mdi-cash-multiple menu-icon"></i>
+  </a>
+
+  <div class="collapse {% if finance_open %}show{% endif %}" id="general4">
+    <ul class="nav flex-column sub-menu">
+
+      <li class="nav-item">
+      <a class="nav-link {% if 'user_pay_money' in url %}active{% endif %}"
+   href="{% url 'user_pay_money' %}">
+   پرداخت به ساختمان
+</a>
+      </li>
+{% if is_unit_owner %}
+      <li class="nav-item">
+       <a class="nav-link {% if 'user_sewage' in url %}active{% endif %}"
+   href="{% url 'user_sewage_list' %}">
+   هزینه های فاضلاب
+</a>
+      </li>
+    {% endif %}
+        <li class="nav-item">
+       <a class="nav-link {% if 'fund_turn_over_user' in url %}active{% endif %}"
+   href="{% url 'fund_turn_over_user' %}">
+   تراکنش های من
+</a>
+      </li>
+    </ul>
+  </div>
+
+</li>
+
+{% endwith %}
+
+    
+    
+
 
         <!-- گزارشات -->
         <li class="nav-item mt-0">
@@ -113,62 +166,96 @@
         <!-- نظرسنجی -->
         <li class="nav-item mt-0">
             <a class="nav-link"
-               href="">
+               href="{% url 'unit_poll' %}">
                 <i class="menu-title">نظرسنجی</i>
                 <i class="fas fa-send menu-icon"></i>
             </a>
         </li>
 
         <!-- پشتیبانی -->
-       <li class="nav-item mt-0">
+    
+        <li class="nav-item mt-0">
 
-                   <a class="nav-link d-flex align-items-center position-relative
-                       {% if request.resolver_match.url_name == 'user_support_ticket' or request.resolver_match.url_name == 'tickets' %}active{% endif %}"
+            <a class="nav-link
+               {% if request.resolver_match.url_name == 'user_support_ticket' or request.resolver_match.url_name == 'tickets' %}active{% endif %}"
                data-bs-toggle="collapse"
                href="#general3">
-            
-            
-                <span class="ms-2">پشتیبانی</span>
-                <span id="ticket-counter-main" class="badge bg-danger counter-badge">0</span>
-{#                       <span id="ticket-counter-main" class="badge bg-danger counter-badge"> </span>#}
-                      
-                   
-                       
+
+                <i class="menu-title">پشتیبانی</i>
+                <span id="ticket-counter-sub" class="badge bg-danger counter-badge_second">0</span>
                 <i class="menu-arrow"></i>
                 <i class="mdi mdi-headphones menu-icon"></i>
             </a>
+
             <div class="collapse
-                {% if request.resolver_match.url_name == 'user_support_ticket' or request.resolver_match.url_name == 'tickets' %}show{% endif %}"
+                {% if request.resolver_match.url_name == 'user_support_ticket' or request.resolver_match.url_name == 'tickets'  %}show{% endif %}"
                 id="general3">
-        
+
                 <ul class="nav flex-column sub-menu">
-        
+
                     <li class="nav-item mt-0">
                         <a class="nav-link {% if request.resolver_match.url_name == 'user_support_ticket' %}active{% endif %}"
                            href="{% url 'user_support_ticket' %}">ارسال تیکت</a>
                     </li>
-        
                     <li class="nav-item mt-0">
                         <a class="nav-link {% if request.resolver_match.url_name == 'tickets' %}active{% endif %}"
-                           href="{% url 'tickets' %}">تیکت‌های من
-{#                           <span id="ticket-counter-sub" class="badge bg-danger counter-badge_second">0</span>#}
-
-                        </a>
+                           href="{% url 'tickets' %}">تیکت‌های من</a>
+                       
                     </li>
-        
+                
+
                 </ul>
             </div>
         </li>
+{#       <li class="nav-item mt-0">#}
+{##}
+{#                   <a class="nav-link d-flex align-items-center position-relative#}
+{#                       {% if request.resolver_match.url_name == 'user_support_ticket' or request.resolver_match.url_name == 'tickets' %}active{% endif %}"#}
+{#               data-bs-toggle="collapse"#}
+{#               href="#general3">#}
+{#            #}
+{#            #}
+{#                <span class="ms-2">پشتیبانی</span>#}
+{#                <span id="ticket-counter-main" class="badge bg-danger counter-badge">0</span>#}
+{#                       <span id="ticket-counter-main" class="badge bg-danger counter-badge"> </span>#}
+{#                      #}
+{#                   #}
+{#                       #}
+{#                <i class="menu-arrow"></i>#}
+{#                <i class="mdi mdi-headphones menu-icon"></i>#}
+{#            </a>#}
+{#            <div class="collapse#}
+{#                {% if request.resolver_match.url_name == 'user_support_ticket' or request.resolver_match.url_name == 'tickets' %}show{% endif %}"#}
+{#                id="general3">#}
+{#        #}
+{#                <ul class="nav flex-column sub-menu">#}
+{#        #}
+{#                    <li class="nav-item mt-0">#}
+{#                        <a class="nav-link {% if request.resolver_match.url_name == 'user_support_ticket' %}active{% endif %}"#}
+{#                           href="{% url 'user_support_ticket' %}">ارسال تیکت</a>#}
+{#                    </li>#}
+{#        #}
+{#                    <li class="nav-item mt-0">#}
+{#                        <a class="nav-link {% if request.resolver_match.url_name == 'tickets' %}active{% endif %}"#}
+{#                           href="{% url 'tickets' %}">تیکت‌های من#}
+{#                           <span id="ticket-counter-sub" class="badge bg-danger counter-badge_second">0</span>#}
+{##}
+{#                        </a>#}
+{#                    </li>#}
+{#        #}
+{#                </ul>#}
+{#            </div>#}
+{#        </li>#}
 
 
     </ul>
 
 </nav>
 <style>
-    .counter-badge {
+    .counter-badge_second {
     position: relative;
     top: -8px;
-    right: -30px;
+    right: -25px;
     font-size: 12px;
     padding: 3px 6px;
     border-radius: 50%;

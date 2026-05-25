@@ -8,8 +8,8 @@
     <hr>
 <div class="container py-4">
 
-    <h4>دریافت درآمد سند {{ income.doc_numberto_persian_number }}</h4>
-    <p>شرح: {{ income.descriptionto_persian_number }}</p>
+    <h4>دریافت درآمد سند {{ income.doc_number|to_persian_number }}</h4>
+    <p>شرح: {{ income.description|to_persian_number }}</p>
     <p>مبلغ: {{ income.amount|three_digit_currency }}تومان</p>
 
     <form method="post" action="">
@@ -49,7 +49,7 @@
 
         <div class="text-start">
         <button type="submit" class="btn btn-gradient-success">تأیید دریافت</button>
-        <a href="{% url 'middle_register_expense' %}" class="btn btn-gradient-danger">انصراف</a>
+        <a href="{% url 'middle_register_income' %}" class="btn btn-gradient-danger">انصراف</a>
             </div>
     </form>
 

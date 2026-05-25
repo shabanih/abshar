@@ -255,6 +255,328 @@ $(document).on('click', '.delete-image21-btn', function () {
     });
   });
 
+  // ==========================================
+$(document).on('click', '.edit-m-civil', function (e) {
+    console.log('ok')
+    e.preventDefault();
+
+    var images = $(this).data('images');
+    var civilId = $(this).data('id');
+
+    if (typeof images === 'string') {
+        try {
+            images = JSON.parse(images);
+        } catch (error) {
+            console.error('Error parsing images JSON:', error);
+            images = [];
+        }
+    }
+
+    $('#preview').empty();
+
+    if (images.length > 0) {
+
+        images.forEach(function(fileUrl) {
+
+            let extension = fileUrl.split('.').pop().toLowerCase();
+            let content = '';
+
+            // IMAGE
+            if (['jpg','jpeg','png','gif','webp','bmp'].includes(extension)) {
+                content = `<img src="${fileUrl}"
+                            style="width:100px;height:100px;object-fit:cover;border:1px solid #ccc;">`;
+            }
+
+            // PDF
+            else if (extension === 'pdf') {
+                content = `
+                    <div style="width:100px;height:100px;display:flex;align-items:center;justify-content:center;background:#f5f5f5;border:1px solid #ccc;">
+                        <a href="${fileUrl}" target="_blank">📄 PDF</a>
+                    </div>
+                `;
+            }
+
+            // ZIP / RAR
+            else if (['zip','rar','7z'].includes(extension)) {
+                content = `
+                    <div style="width:100px;height:100px;display:flex;align-items:center;justify-content:center;background:#f5f5f5;border:1px solid #ccc;">
+                        <a href="${fileUrl}" target="_blank">🗜 ZIP</a>
+                    </div>
+                `;
+            }
+
+            // DEFAULT
+            else {
+                content = `
+                    <div style="width:100px;height:100px;display:flex;align-items:center;justify-content:center;background:#eee;border:1px solid #ccc;">
+                        <a href="${fileUrl}" target="_blank">FILE</a>
+                    </div>
+                `;
+            }
+
+            var fileWrapper = `
+                <div class="image-item m-2 position-relative" style="display:inline-block;">
+                    ${content}
+                    <button type="button" class="btn btn-sm btn-danger delete-image21-btn"
+                        data-url="${fileUrl}"
+                        data-civil-id="${civilId}"
+                        style="position:absolute;top:-5px;right:-5px;border-radius:50%;">
+                        ×
+                    </button>
+                </div>
+            `;
+
+            $('#preview').append(fileWrapper);
+
+        });
+
+    } else {
+        $('#preview').html('<p>فایلی وجود ندارد.</p>');
+    }
+});
+
+$(document).on('click', '.delete-image21-btn', function () {
+    var imageUrl = $(this).data('url');  // Image URL
+    var civilId = $(this).data('civil-id');  // Expense ID
+
+
+    if (!imageUrl || !civilId) {
+        Swal.fire('خطا', 'URL یا ID هزینه مشخص نیست', 'error');
+        return;
+    }
+
+    Swal.fire({
+        title: 'آیا مطمئنی میخوای این تصویر رو حذف کنی؟',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'بله، حذف کن!',
+        cancelButtonText: 'لغو'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Send the request to delete the image
+            $.ajax({
+                type: 'POST',
+                url: '/middle-admin-panel/civil/middle/delete-document/',  // Your delete URL
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}',  // Ensure CSRF token is included
+                    url: imageUrl,  // The URL of the image to delete
+                    civil_id: civilId  // The ID of the related expense
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        Swal.fire('حذف شد!', 'تصویر با موفقیت حذف شد.', 'success');
+                        // Optionally, remove the image from the preview
+                        $(`[data-url="${imageUrl}"]`).closest('.image-item').remove();
+                    } else {
+                        Swal.fire('خطا2', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('خطا', 'خطا در حذف تصویر', 'error');
+                }
+            });
+        }
+    });
+});
+$(document).on('click', '.edit-m-civil', function () {
+console.log('ویرایش کلیک شد');
+
+// Get the expense ID from the clicked button's data attributes
+var id = $(this).data('id');
+// Set the form action URL dynamically
+$('#civilForm').attr('action', '/middle-admin-panel/civil/middle/edit/' + id + '/');
+
+
+$('#id_name').val($(this).data('name'));
+$('#id_amount').val($(this).data('amount'));
+
+// Ensure date is in YYYY-MM-DD format before setting it
+$('#id_prepayment').val($(this).data('prepayment'));
+
+$('#id_installment_count').val($(this).data('installment_count'));
+
+var firstDate = $(this).data('first_due_date');
+$('#id_first_due_date').val(firstDate);
+
+// $('#id_first_due_date').val($(this).data('first_due_date'));
+$('#id_details').val($(this).data('details'));
+
+// Update the modal title and submit button text for editing
+$('#exampleModalLongTitle2').text('ویرایش شارژ');
+$('#btn-submit-expense').text('ویرایش شارژ');
+});
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('exampleModalLong');
+    const form = document.getElementById('personForm');
+
+    modal.addEventListener('hidden.bs.modal', function () {
+      form.reset();
+    });
+  });
+
+  // ==========================================
+$(document).on('click', '.edit-m-sewage', function (e) {
+    console.log('ok')
+    e.preventDefault();
+
+    var images = $(this).data('images');
+    var sewageId = $(this).data('id');
+
+    if (typeof images === 'string') {
+        try {
+            images = JSON.parse(images);
+        } catch (error) {
+            console.error('Error parsing images JSON:', error);
+            images = [];
+        }
+    }
+
+    $('#preview').empty();
+
+    if (images.length > 0) {
+
+        images.forEach(function(fileUrl) {
+
+            let extension = fileUrl.split('.').pop().toLowerCase();
+            let content = '';
+
+            // IMAGE
+            if (['jpg','jpeg','png','gif','webp','bmp'].includes(extension)) {
+                content = `<img src="${fileUrl}"
+                            style="width:100px;height:100px;object-fit:cover;border:1px solid #ccc;">`;
+            }
+
+            // PDF
+            else if (extension === 'pdf') {
+                content = `
+                    <div style="width:100px;height:100px;display:flex;align-items:center;justify-content:center;background:#f5f5f5;border:1px solid #ccc;">
+                        <a href="${fileUrl}" target="_blank">📄 PDF</a>
+                    </div>
+                `;
+            }
+
+            // ZIP / RAR
+            else if (['zip','rar','7z'].includes(extension)) {
+                content = `
+                    <div style="width:100px;height:100px;display:flex;align-items:center;justify-content:center;background:#f5f5f5;border:1px solid #ccc;">
+                        <a href="${fileUrl}" target="_blank">🗜 ZIP</a>
+                    </div>
+                `;
+            }
+
+            // DEFAULT
+            else {
+                content = `
+                    <div style="width:100px;height:100px;display:flex;align-items:center;justify-content:center;background:#eee;border:1px solid #ccc;">
+                        <a href="${fileUrl}" target="_blank">FILE</a>
+                    </div>
+                `;
+            }
+
+            var fileWrapper = `
+                <div class="image-item m-2 position-relative" style="display:inline-block;">
+                    ${content}
+                    <button type="button" class="btn btn-sm btn-danger delete-image21-btn"
+                        data-url="${fileUrl}"
+                        data-sewage-id="${sewageId}"
+                        style="position:absolute;top:-5px;right:-5px;border-radius:50%;">
+                        ×
+                    </button>
+                </div>
+            `;
+
+            $('#preview').append(fileWrapper);
+
+        });
+
+    } else {
+        $('#preview').html('<p>فایلی وجود ندارد.</p>');
+    }
+});
+
+$(document).on('click', '.delete-image21-btn', function () {
+    var imageUrl = $(this).data('url');  // Image URL
+    var sewageId = $(this).data('sewage-id');  // Expense ID
+
+
+    if (!imageUrl || !sewageId) {
+        Swal.fire('خطا', 'URL یا ID هزینه مشخص نیست', 'error');
+        return;
+    }
+
+    Swal.fire({
+        title: 'آیا مطمئنی میخوای این تصویر رو حذف کنی؟',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'بله، حذف کن!',
+        cancelButtonText: 'لغو'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Send the request to delete the image
+            $.ajax({
+                type: 'POST',
+                url: '/middle-admin-panel/sewage/middle/delete-document/',  // Your delete URL
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}',  // Ensure CSRF token is included
+                    url: imageUrl,  // The URL of the image to delete
+                    sewage_id: sewageId  // The ID of the related expense
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        Swal.fire('حذف شد!', 'تصویر با موفقیت حذف شد.', 'success');
+                        // Optionally, remove the image from the preview
+                        $(`[data-url="${imageUrl}"]`).closest('.image-item').remove();
+                    } else {
+                        Swal.fire('خطا2', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('خطا', 'خطا در حذف تصویر', 'error');
+                }
+            });
+        }
+    });
+});
+$(document).on('click', '.edit-m-sewage', function () {
+console.log('ویرایش کلیک شد');
+
+// Get the expense ID from the clicked button's data attributes
+var id = $(this).data('id');
+// Set the form action URL dynamically
+$('#sewageForm').attr('action', '/middle-admin-panel/sewage/middle/edit/' + id + '/');
+
+
+$('#id_name').val($(this).data('name'));
+$('#id_amount').val($(this).data('amount'));
+
+// Ensure date is in YYYY-MM-DD format before setting it
+$('#id_prepayment').val($(this).data('prepayment'));
+
+$('#id_installment_count').val($(this).data('installment_count'));
+
+var firstDate = $(this).data('first_due_date');
+$('#id_first_due_date').val(firstDate);
+
+// $('#id_first_due_date').val($(this).data('first_due_date'));
+$('#id_details').val($(this).data('details'));
+
+// Update the modal title and submit button text for editing
+$('#exampleModalLongTitle2').text('ویرایش هزینه');
+$('#btn-submit-expense').text('ویرایش هزینه');
+});
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('exampleModalLong');
+    const form = document.getElementById('sewageForm');
+
+    modal.addEventListener('hidden.bs.modal', function () {
+      form.reset();
+    });
+  });
+
 // ===============================================================
 $(document).on('click', '.edit-house-btn', function () {
     console.log('ویرایش کلیک شد2');
@@ -749,7 +1071,7 @@ $(document).on('click', '.edit-middleProperty-btn', function () {
     $('#id_property_code').val($(this).data('property_code'));
     $('#id_details').val($(this).data('details'));
     $('#id_count').val($(this).data('count'));
-    $('#id_receiver_name').val($(this).data('receiver_name'));
+    $('#id_company_name').val($(this).data('company_name'));
     $('#id_document_number').val($(this).data('document_number'));
     $('#id_transaction_reference').val($(this).data('transaction_reference'));
     $('#id_payment_date').val($(this).data('payment_date'));
@@ -865,7 +1187,7 @@ $(document).on('click', '.edit-maintenance-btn', function () {
     $('#id_maintenance_start_date').val(maintenanceStartDate);
     $('#id_maintenance_end_date').val(maintenanceEndDate);
     $('#id_bank').val($(this).data('bank')).trigger('change');
-    $('#id_receiver_name').val($(this).data('receiver_name'));
+    $('#id_expert_name').val($(this).data('expert_name'));
     $('#id_maintenance_price').val($(this).data('maintenance_price'));
     $('#id_transaction_reference').val($(this).data('transaction_reference'));
     $('#id_payment_date').val($(this).data('payment_date'));
@@ -1291,6 +1613,52 @@ function confirmDisapprovedWithSweetAlert(event) {
     return false;
 }
 
+
+function confirmCancelWithSweetAlert(event) {
+    event.preventDefault(); // جلوگیری از رفتن به لینک فوری
+
+    const url = event.currentTarget.href; // آدرس لینک
+
+    Swal.fire({
+        title: 'آیا مطمئن هستید که می‌خواهید اعلان به این واحد را لغو کنید؟',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'بله',
+        cancelButtonText: 'خیر',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // اگر کاربر تأیید کرد، به لینک هدایت شود
+            window.location.href = url;
+        }
+        // اگر لغو کرد، کاری انجام نمی‌شود
+    });
+
+    return false;
+}
+
+function confirmSendWithSweetAlert(event) {
+    event.preventDefault(); // جلوگیری از رفتن به لینک فوری
+
+    const url = event.currentTarget.href; // آدرس لینک
+
+    Swal.fire({
+        title: 'آیا مطمئن هستید که می‌خواهید اعلان به این واحد انجام شود؟',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'بله',
+        cancelButtonText: 'خیر',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // اگر کاربر تأیید کرد، به لینک هدایت شود
+            window.location.href = url;
+        }
+        // اگر لغو کرد، کاری انجام نمی‌شود
+    });
+
+    return false;
+}
 // ================= middle message ================
 
 document.addEventListener("DOMContentLoaded", function() {

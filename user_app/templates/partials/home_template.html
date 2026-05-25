@@ -48,7 +48,7 @@
                         {% if total_paid_amount %}
                         	{{ total_paid_amount|three_digit_currency }} تومان
                             {% else %}
-                            0
+                            {{ total_paid_amount|three_digit_currency }}
                         {% endif %} 
                         
                     </h2>
@@ -93,7 +93,7 @@
 <div class="row mt-3 g-1 align-items-stretch">
     <!-- جدول شارژها -->
 {% if last_charges %}
-<div class="col-lg-6 p-0 d-flex">
+<div class="col-12 col-lg-6 p-0">
 
     <div class="card" style="border-radius: 12px; overflow: hidden;">
         <!-- جدول شارژها -->
@@ -149,7 +149,7 @@
 
 </div>
     {% else %}
-<div class="col-lg-6 p-0 text-center">
+<div class="col-12 col-lg-6 p-0 text-center">
     <div class="card h-100 text-center" style="border-radius: 12px; overflow: hidden; ">
         <div class="icon-container py-5">
             <i class="bi bi-exclamation-triangle-fill"></i>
@@ -166,7 +166,7 @@
     
 
     <!-- تقویم -->
-    <div class="col-lg-6 p-0">
+    <div class="col-12 col-lg-6 p-0">
         <div class="calendar-dashboard">
             <div class="calendar-header shadow_style">
                 <button id="prevMonthBtn">&#9654;</button>

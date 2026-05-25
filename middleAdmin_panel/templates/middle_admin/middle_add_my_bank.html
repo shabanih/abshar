@@ -10,28 +10,33 @@
 {% block main_content %}
     <hr/>
 <div class="container mt-3">
- <div class="col-12 mb-2">
+ <div class="col-12 mb-2 ">
      {% if middle_house %}
      	<button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong3">
-                        <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">
+                        <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="15" alt="">
                     افزودن حساب بانکی
                 </button>
      {% endif %} 
-                
+ 
+      	<a href="{% url 'middle_transfer_bank' %}" class="btn btn-facebook text-white px-4 py-2">انتقال بین بانکی</a>
+
+<a href="{% url 'middle_transfer_bank_list' %}" class="btn-danger px-4 py-1 text-white">
+    لغو انتقال بین بانکی 
+</a>
+
                  </div>
                <div class="table-responsive">
                             <table class="table table-bordered">
                                 <thead class="text-center">
                                     <tr>
                                         <th>#</th>
-{#                                        <th>مدیر ساختمان</th>#}
-{#                                        <th>نام ساختمان</th>#}
-                                        <th> نام بانک</th>
+                                        <th> بانک</th>
                                         <th>نام صاحب حساب</th>
                                         <th>شماره حساب</th>
                                         <th>شماره شبا</th>
                                         <th>شماره کارت</th>
-                                        <th>موجودی اولیه</th>
+                                        <th> اول دوره</th>
+                                        <th>مانده کنونی</th>
                                         <th>فعال/حساب پیش فرض</th>
                                         <th>دستورات</th>
                                     </tr>
@@ -41,14 +46,13 @@
                                     <tbody class="text-center">
                                         <tr>
                                             <td>{{ forloop.counter|to_persian_number }}</td>
-{#                                            <td>{{ bank.user.full_name }}</td>#}
-{#                                            <td>{{bank.house }}</td>#}
                                             <td>{{bank.bank_name|to_persian_number  }}</td>
                                             <td>{{bank.account_holder_name|to_persian_number }}</td>
                                             <td>{{bank.account_no|to_persian_number }}</td>
                                             <td>{{bank.sheba_number|to_persian_number }}</td>
                                             <td>{{bank.cart_number|four_digit_cart }}</td>
                                             <td>{{bank.initial_fund|three_digit_currency }}</td>
+                                            <td>{{bank.current_balance|three_digit_currency }}</td>
                                               <td>
                                                {% if bank.is_active == True %}
                                                 <button class="btn btn-primary bg-gradient-success p-1">فعال</button>

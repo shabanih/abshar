@@ -4,6 +4,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.utils import timezone
 
 from admin_panel.models import Fund
+from middleAdmin_panel.services.bank_services import BankTransactionService
 from user_app.models import User, Renter, MyHouse
 
 
@@ -26,7 +27,7 @@ class UnitUpdateService:
                 self.unit.is_renter = False
                 self.unit.save(update_fields=['owner_name', 'owner_mobile', 'is_renter'])
 
-            self._update_user(owner_changed)
+            self._update_owner_user()
             self._update_unit(owner_changed=owner_changed)
 
             # فقط وقتی مالک تغییر نکرده، مستاجر را به‌روزرسانی کن
@@ -61,36 +62,16 @@ class UnitUpdateService:
     def _deactivate_renters(self):
         self.unit.renters.filter(renter_is_active=True).update(renter_is_active=False)
 
+    def _update_owner_user(self):
+        user = self.unit.user
 
-    def _update_user(self, owner_changed):
-        # اگر مالک تغییر کرده، اصلاً مستاجر را بررسی نکن
-        if owner_changed:
-            user = self.unit.user
-            mobile = self.form.cleaned_data.get('owner_mobile')
-            name = self.form.cleaned_data.get('owner_name')
-            field = 'owner_mobile'
+        mobile = self.form.cleaned_data.get('owner_mobile')
+        name = self.form.cleaned_data.get('owner_name')
 
-        else:
-            renter = self.unit.get_active_renter()
-            if not renter:
-                return
-
-            user = renter.user
-            mobile = self.form.cleaned_data.get('renter_mobile')
-            name = self.form.cleaned_data.get('renter_name')
-            field = 'renter_mobile'
-
-            # فقط وقتی مستاجر فعال داریم، تکراری بودنش چک شود
-            existing_user = User.objects.filter(mobile=mobile).exclude(pk=user.pk).first()
-            if existing_user:
-                self.form.add_error(field, 'این شماره موبایل قبلاً ثبت شده است.')
-                raise ValueError('duplicate_mobile')
-
-        # چک تکراری بودن موبایل مالک
         if mobile and mobile != user.mobile:
             existing_user = User.objects.filter(mobile=mobile).exclude(pk=user.pk).first()
             if existing_user:
-                self.form.add_error(field, 'این شماره موبایل قبلاً ثبت شده است.')
+                self.form.add_error('owner_mobile', 'این شماره موبایل قبلاً ثبت شده است.')
                 raise ValueError('duplicate_mobile')
 
             user.mobile = mobile
@@ -99,14 +80,14 @@ class UnitUpdateService:
         if name:
             user.full_name = name
 
-        password = self.form.cleaned_data.get('password')
-        if password:
-            user.set_password(password)
+        owner_password = self.form.cleaned_data.get('owner_password')
+        if owner_password:
+            user.set_password(owner_password)
 
         user.is_unit = True
         user.save()
 
-        if password and user.pk == self.request.user.pk:
+        if owner_password and user.pk == self.request.user.pk:
             update_session_auth_hash(self.request, user)
 
     # def _update_unit(self):
@@ -131,6 +112,7 @@ class UnitUpdateService:
 
         if active_renter:
             r = active_renter
+            renter_user = r.user
         else:
             renter_user, created = User.objects.get_or_create(
                 mobile=renter_mobile,
@@ -142,6 +124,8 @@ class UnitUpdateService:
                     'is_unit': True
                 }
             )
+            r = Renter.objects.filter(unit=self.unit, user=renter_user).first() or Renter(unit=self.unit,
+                                                                                          user=renter_user)
             if not created and renter_user.manager is None:
                 renter_user.manager = self.request.user
                 renter_user.save(update_fields=['manager'])
@@ -149,6 +133,12 @@ class UnitUpdateService:
             r = Renter.objects.filter(unit=self.unit, user=renter_user).first()
             if not r:
                 r = Renter(unit=self.unit, user=renter_user)
+
+                # ✅ این قسمت باید بیرون از شرط created باشد
+        renter_password = self.form.cleaned_data.get('renter_password')
+        if renter_password:
+            renter_user.set_password(renter_password)
+            renter_user.save()
 
         r.renter_name = self.form.cleaned_data.get('renter_name')
         r.renter_mobile = renter_mobile
@@ -183,11 +173,22 @@ class UnitUpdateService:
                 'creditor_amount': 0,
                 'amount': amount,
                 'payment_date': self.form.cleaned_data.get('renter_payment_date'),
-                'payer_name': self.unit.get_label(),
+                'payer_name': self.unit.get_label,
                 'payment_gateway': 'پرداخت الکترونیک',
                 'transaction_no': self.form.cleaned_data.get('renter_transaction_no'),
                 'content_object': self.unit,
             }
+        )
+        BankTransactionService.deposit(
+            user=self.request.user,
+            bank=self.form.cleaned_data.get('renter_bank'),
+            amount=Decimal(amount),
+            description=f"شارژ اولیه مستاجر {self.unit.get_label}",
+            content_object=self.unit,
+            payment_date=self.form.cleaned_data.get('renter_payment_date'),
+            transaction_no=self.form.cleaned_data.get('renter_transaction_no'),
+            gateway="شارژ واحد",
+            house=self.unit.myhouse
         )
 
     def _handle_owner_charge(self):
@@ -211,6 +212,17 @@ class UnitUpdateService:
                 'transaction_no': self.form.cleaned_data.get('owner_transaction_no'),
                 'content_object': self.unit,
             }
+        )
+        BankTransactionService.deposit(
+            user=self.request.user,
+            bank=self.form.cleaned_data.get('owner_bank'),
+            amount=Decimal(amount),
+            description=f"شارژ اولیه مالک {self.unit.get_label}",
+            content_object=self.unit,
+            payment_date=self.form.cleaned_data.get('owner_payment_date'),
+            transaction_no=self.form.cleaned_data.get('owner_transaction_no'),
+            gateway="شارژ واحد",
+            house=self.unit.myhouse
         )
 
     def _update_people_count(self):

@@ -64,6 +64,32 @@ def show_jalali_date(value):
     return formatted_date.translate(translation_table)
 
 
+@register.filter(name='show_jalali_date_excel')
+def show_jalali_date_excel(value):
+    if not value:
+        return ''
+
+    # اگر datetime باشه، به تایم‌زون محلی تبدیل کن
+    if isinstance(value, datetime.datetime):
+        if timezone.is_aware(value):
+            value = timezone.localtime(value)
+        jalali = jdatetime.datetime.fromgregorian(datetime=value)
+    elif isinstance(value, datetime.date):
+        jalali = jdatetime.date.fromgregorian(date=value)
+    else:
+        return ''
+
+    # قالب سال-ماه-روز
+    formatted_date = f'{jalali.year:04d}-{jalali.month:02d}-{jalali.day:02d}'
+
+    # تبدیل اعداد به فارسی
+    persian_digits = '۰۱۲۳۴۵۶۷۸۹'
+    english_digits = '0123456789'
+    translation_table = str.maketrans(english_digits, persian_digits)
+
+    return formatted_date.translate(translation_table)
+
+
 @register.filter(name='show_jalali')
 def show_jalali(value):
     if not value:
@@ -89,6 +115,7 @@ def show_jalali(value):
 
     return formatted_date.translate(translation_table)
 
+
 @register.filter(name='show_jalali_admin')
 def show_jalali(value):
     if not value:
@@ -109,6 +136,7 @@ def show_jalali(value):
     translation_table = str.maketrans(english_digits, persian_digits)
 
     return formatted_date.translate(translation_table)
+
 
 # @register.filter(name='three_digit_currency')
 # def three_digit_currency(value):
@@ -156,6 +184,7 @@ def four_digit_cart(value):
     # اضافه کردن Left-to-Right Mark برای نمایش درست در متون راست‌به‌چپ
     return '\u200E' + grouped
 
+
 @register.filter
 def get_item(dictionary, key):
     return dictionary.get(key)
@@ -164,6 +193,7 @@ def get_item(dictionary, key):
 @register.filter
 def get_field(obj, field_name):
     return getattr(obj, field_name, None)
+
 
 @register.filter
 def dict_get(d, key):
@@ -206,6 +236,36 @@ REPORT_PREFIXES = [
     "admin_property",
     "admin_maintenance",
     "admin_house_balance",
+
+
+]
+Middle_REPORT_PREFIXES = [
+    "fund_turn_over",
+    "unit_report",
+    "middle_bank",
+    "charge_notify",
+    "middle_sewage",
+    "middle_charge_civil",
+    "debtor_units_report",
+    "unit_history_report",
+    "expense_history_report",
+    "income_history_report",
+    "pay_receive_report",
+    "property_history_report",
+    "maintenance_history_report",
+    "house_balance_view",
+
+
+]
+USER_PREFIXES = [
+    "user_charges",
+    "user_civil",
+]
+
+USER_FINANCE_PREFIXES = [
+    "user_pay_money",
+    "user_sewage",
+    "fund_turn_over_user",
 ]
 
 @register.simple_tag
@@ -214,12 +274,32 @@ def is_report_section(url_name):
         return False
     return any(url_name.startswith(p) for p in REPORT_PREFIXES)
 
+@register.simple_tag
+def is_user_finance_section(url_name):
+    if not url_name:
+        return False
+    return any(url_name.startswith(p) for p in USER_FINANCE_PREFIXES)
+
+
+@register.simple_tag
+def is_middle_report_section(url_name):
+    if not url_name:
+        return False
+    return any(url_name.startswith(p) for p in Middle_REPORT_PREFIXES)
+
+@register.simple_tag
+def is_user_charge_section(url_name):
+    if not url_name:
+        return False
+    return any(url_name.startswith(p) for p in USER_PREFIXES)
+
 
 CHARGE_PREFIXES = [
-    "middle_add",          # همه لینک‌های افزودن شارژ
-    "middle_main_charges", # صفحه شارژهای من
+    "middle_add",
+    "middle_main_charges",
     "civil_charge_manage",
-    ]
+]
+
 
 @register.simple_tag
 def is_charge_section(url_name):
@@ -229,9 +309,20 @@ def is_charge_section(url_name):
     return any(url_name.startswith(p) for p in CHARGE_PREFIXES)
 
 
+# @register.filter
+# def to_persian_number(value):
+#     if not value:
+#         return value
+#
+#     persian_digits = '۰۱۲۳۴۵۶۷۸۹'
+#     english_digits = '0123456789'
+#
+#     translation_table = str.maketrans(english_digits, persian_digits)
+#     return str(value).translate(translation_table)
+
 @register.filter
 def to_persian_number(value):
-    if not value:
+    if value is None:
         return value
 
     persian_digits = '۰۱۲۳۴۵۶۷۸۹'
@@ -239,3 +330,4 @@ def to_persian_number(value):
 
     translation_table = str.maketrans(english_digits, persian_digits)
     return str(value).translate(translation_table)
+

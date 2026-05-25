@@ -7,29 +7,43 @@ from django.utils import timezone
 from admin_panel.models import UnifiedCharge, Announcement, MessageToUser, MessageReadStatus, SmsCredit, \
     MiddleMessageReadStatus, SmsManagement, Subscription
 from home.models import FreeRequest, ContactUs
+from polls_app.models import Poll
 from user_app.models import MyHouse, Unit
 
-# def current_middle_house(request):
-#     if not request.user.is_authenticated:
-#         return {}
-#
-#     middle_house = MyHouse.objects.filter(
-#         residents=request.user,
-#         is_active=True
-#     ).order_by('-created_at').first()
-#
-#     return {'middle_house': middle_house}
+
+def user_unit_context(request):
+    if not request.user.is_authenticated:
+        return {}
+
+    house = MyHouse.objects.filter(
+        Q(units__user=request.user) |
+        Q(units__renters__user=request.user, units__renters__renter_is_active=True)
+    ).distinct().order_by('-created_at').first()
+
+    unit = None
+    is_unit_owner = False
+
+    if house:
+        unit = Unit.objects.filter(
+            Q(user=request.user) |
+            Q(renters__user=request.user, renters__renter_is_active=True),
+            myhouse=house
+        ).distinct().first()
+
+        if unit and unit.user == request.user:
+            is_unit_owner = True
+
+    return {
+        'current_house': house,
+        'current_unit': unit,
+        'is_unit_owner': is_unit_owner,
+    }
+
 
 
 def current_middle_house(request):
     """
-    برمی‌گرداند:
-    - خانه فعال کاربر
-    - اشتراک معتبر
-    - تعداد کل روزها
-    - روزهای مانده
-    - وضعیت اشتراک
-    - هشدار تمدید اشتراک (3 روز قبل یا بعد)
+    ارسال اطلاعات خانه و اشتراک فعال به تمامی قالب‌ها بدون خطا
     """
     if not request.user.is_authenticated:
         return {}
@@ -39,69 +53,44 @@ def current_middle_house(request):
         is_active=True
     ).order_by('-created_at').first()
 
-    # مقادیر پیش‌فرض
-    current_subscription = None
-    total_days = 0
-    remaining_days = 0
-    sub_status = "inactive"
-    plan = None
-    subscription_warning = False
-    redirect_to_buy = False
+    # مقادیر پیش‌فرض امن
+    context = {
+        "middle_house": middle_house,
+        "current_subscription": None,
+        "total_days": 1,
+        "remaining_days": 0,
+        "sub_status": "inactive",
+        "plan": None,
+        "subscription_warning": True,  # به صورت پیش‌فرض هشدار فعال است مگر خلافش ثابت شود
+        "redirect_to_buy": False,
+        "progress_dashoffset": 345
+    }
 
-    now = timezone.now()
-
-    # آخرین اشتراک
     last_sub = Subscription.objects.filter(user=request.user).order_by('-created_at').first()
 
     if last_sub:
-        # expire کردن اتوماتیک اگر تمام شده
         last_sub.expire_if_needed()
+        last_sub.refresh_from_db()  # دریافت وضعیت جدیدِ منقضی شده بعد از تغییر احتمالی
 
-        current_subscription = last_sub
-        plan = last_sub.plan
+        context["current_subscription"] = last_sub
+        context["plan"] = last_sub.plan
+        context["total_days"] = last_sub.total_days
+        context["remaining_days"] = last_sub.days_remaining
 
         if last_sub.status == "active":
-            sub_status = "trial" if last_sub.is_trial else "paid"
-            total_days = (last_sub.end_date.date() - last_sub.start_date.date()).days
-            remaining_days = max((last_sub.end_date.date() - now.date()).days, 0)
+            context["sub_status"] = "trial" if last_sub.is_trial else "paid"
 
-        elif last_sub.status in ["expired", "cancelled"]:
-            sub_status = "inactive"
-            total_days = (last_sub.end_date.date() - last_sub.start_date.date()).days if last_sub.end_date else 0
-            remaining_days = 0
+            remaining = last_sub.days_remaining
+            context["subscription_warning"] = (0 < remaining <= 3)
 
-        # هشدار 1 روز قبل یا بعد از پایان
-        if last_sub.status == "active" and 0 <= remaining_days <= 1:
-            subscription_warning = True
+            ratio = min(max(remaining / last_sub.total_days, 0), 1)
+            context["progress_dashoffset"] = int(345 - (ratio * 345))
+        else:
+            context["sub_status"] = "inactive"
+            context["subscription_warning"] = True
+            context["progress_dashoffset"] = 345
 
-        # # هدایت مستقیم بعد از 1 روز از پایان اشتراک
-        # if last_sub.status == "expired" and remaining_days <= -5:
-        #     redirect_to_buy = True
-
-    else:
-        # اگر هیچ اشتراکی وجود ندارد
-        sub_status = "inactive"
-        subscription_warning = True
-        redirect_to_buy = False
-
-    if total_days > 0:
-        progress_dashoffset = int(remaining_days / total_days * 345)
-    else:
-        progress_dashoffset = 345  # پیش‌فرض وقتی اشتراک نیست
-
-    return {
-        "middle_house": middle_house,
-        "current_subscription": current_subscription,
-        "total_days": total_days,
-        "remaining_days": remaining_days,
-        "sub_status": sub_status,
-        "plan": plan,
-        "subscription_warning": subscription_warning,
-        "redirect_to_buy": redirect_to_buy,
-        "progress_dashoffset": progress_dashoffset
-    }
-
-
+    return context
 
 
 def current_house(request):
@@ -110,7 +99,7 @@ def current_house(request):
 
     houses = MyHouse.objects.filter(
         Q(units__user=request.user) |
-        Q(units__renters__user=request.user, units__renters__renter_is_active=True)
+        Q(units__renters__user=request.user)
     ).distinct().order_by('-created_at')
 
     return {
@@ -124,20 +113,25 @@ def user_header_notifications(request):
         return {
             'new_charges_count': 0,
             'new_messages_count': 0,
+            'new_polls_count': 0,
         }
-    # واحدهایی که کاربر مالک یا مستاجر فعال آن است
-    # user_units = Unit.objects.filter(
-    #     is_active=True
-    # ).filter(
-    #     Q(user=request.user) |  # مالک
-    #     Q(renters__user=request.user, renters__renter_is_active=True)  # مستاجر فعال
-    # ).distinct()
-    # # شارژهای پرداخت‌نشده
-    # # new_user_charges_count = UnifiedCharge.objects.filter(
-    # #     unit__in=user_units,
-    # #     is_paid=False
-    # # ).select_related('unit').count()
-    #
+
+    user_units = Unit.objects.filter(
+        Q(user=request.user) |
+        Q(renters__user=request.user, renters__renter_is_active=True),
+        is_active=True
+    )
+    user_houses = MyHouse.objects.filter(
+        units__in=user_units
+    ).distinct()
+    polls = Poll.objects.filter(
+        house__in=user_houses,
+        is_active=True
+    )
+    user_polls_without_vote = polls.exclude(
+        vote__unit__in=user_units
+    ).count()
+
     user_unit_ids = Unit.objects.filter(
         is_active=True
     ).filter(
@@ -186,6 +180,7 @@ def user_header_notifications(request):
         'new_user_charges_count': new_user_charges_count,
         'new_user_messages_count': new_user_messages_count,
         'marquee_announcements': marquee_announcements,
+        'user_polls_without_vote': user_polls_without_vote,
     }
 
 
@@ -243,7 +238,7 @@ def admin_header_notifications(request):
         'admin_new_messages_count': admin_new_messages_count,
         'admin_new_consultant': admin_new_consultant,
         'admin_new_comment': admin_new_comment
-            }
+    }
 
 
 def impersonation_banner(request):

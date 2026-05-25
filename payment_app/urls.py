@@ -16,7 +16,24 @@ urlpatterns = [
         views.unit_charge_middle_payment_view,
         name='unit_charge_payment'
     ),
-    # path('payment/unit-charge/done/<int:pk>/', views.charge_payment_done_view, name='charge_payment_done'),
+    path('middle/pay/civil/<int:pk>/', views.middle_pay_civil_charge, name='middle_pay_civil_charge'),
+    path('middle/cancel/pay/civil/<int:pk>/', views.middle_cancel_pay_civil_charge,
+         name='middle_cancel_pay_civil_charge'),
+
+    path('middle/pay/sewage/<int:pk>/', views.middle_pay_sewage, name='middle_pay_sewage'),
+    path('middle/cancel/pay/sewage/<int:pk>/', views.middle_cancel_pay_sewage,
+         name='middle_cancel_pay_sewage'),
+
+    path('user/pay/civil/<int:pk>/', views.user_pay_civil_installment, name='user_pay_civil_charge'),
+    path('user-pay/installment/request/<int:inst_id>/', views.request_user_pay_installment,
+         name='request_user_pay_installment'),
+    path('user-pay-installment-verify/', views.verify_user_pay_installment, name='verify_user_pay_installment'),
+
+    path('user/pay/sewage/<int:pk>/', views.user_pay_sewage_installment, name='user_pay_sewage_installment'),
+    path('user-pay-sewage/installment/request/<int:inst_id>/', views.request_user_pay_sewage_installment,
+         name='request_user_pay_sewage_installment'),
+    path('user-pay-sewage-installment-verify/', views.verify_user_pay_sewage_installment,
+         name='verify_user_pay_sewage_installment'),
 
 ]
 if settings.DEBUG:

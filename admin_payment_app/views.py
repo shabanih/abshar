@@ -32,6 +32,7 @@ description = "Raya"  # Required
 CallbackURLSMS = 'http://127.0.0.1:8001/admin-payment/verify-sms-pay/'
 CallbackURLSub = 'http://127.0.0.1:8001/admin-payment/verify-subscription-pay/'
 
+
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def request_sms_pay(request):
     if request.method != 'POST':
@@ -54,7 +55,7 @@ def request_sms_pay(request):
     # ایجاد رکورد SmsCredit
     credit = SmsCredit.objects.create(
         user=request.user,
-        amount=Decimal(amount),              # مبلغ اصلی
+        amount=Decimal(amount),  # مبلغ اصلی
         amount_with_tax=Decimal(amount_with_tax),  # شامل مالیات
         is_paid=False
     )
@@ -153,10 +154,10 @@ def verify_sms_credit_pay(request):
                 payment_gateway='پرداخت اینترنتی',
                 payment_date=credit.paid_at,
                 transaction_no=ref_id,
+                house=credit.house,
                 payment_description=f"شارژ حساب پیامک ",
                 is_paid=True
             )
-
 
             messages.success(request, f'پرداخت با موفقیت انجام شد. کد پیگیری: {ref_id}')
             return redirect('add_sms_credit')
@@ -177,17 +178,14 @@ def verify_sms_credit_pay(request):
         })
 
 
-
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def request_subscription_pay(request):
-
     if request.method != 'POST':
         return redirect('buy_subscription')
 
     plan_id = request.POST.get('plan')
     units_count = request.POST.get('units_count')
 
-    # ---------- اعتبارسنجی ----------
     if not plan_id or not units_count:
         messages.error(request, "اطلاعات ناقص است")
         return redirect('buy_subscription')
@@ -200,33 +198,25 @@ def request_subscription_pay(request):
         messages.error(request, "تعداد واحد نامعتبر است")
         return redirect('buy_subscription')
 
-    # ---------- گرفتن پلن ----------
     try:
         plan = SubscriptionPlan.objects.get(id=plan_id)
     except SubscriptionPlan.DoesNotExist:
         messages.error(request, "پلن انتخابی معتبر نیست")
         return redirect('buy_subscription')
 
-    # ---------- محاسبه مبلغ ----------
     amount = units_count * plan.price_per_unit
 
-    # اگر مالیات می‌خوای:
-    # amount = round(amount * 1.1)
+    # ✅ ذخیره در session
+    request.session['subscription_payment'] = {
+        "plan_id": plan.id,
+        "units_count": units_count,
+        "amount": amount
+    }
 
-    # ---------- ساخت Subscription ----------
-    sub = Subscription.objects.create(
-        user=request.user,
-        units_count=units_count,
-        plan=plan,
-        total_amount=amount,
-        is_paid=False
-    )
-
-    # ---------- آماده سازی درگاه ----------
     req_data = {
         "merchant_id": MERCHANT,
-        "amount": int(amount * 10),  # تومان → ریال
-        "callback_url": f"{CallbackURLSub}?sub_id={sub.id}",
+        "amount": int(amount * 10),
+        "callback_url": CallbackURLSub,
         "description": "خرید اشتراک ساختمان",
     }
 
@@ -235,63 +225,51 @@ def request_subscription_pay(request):
         "content-type": "application/json"
     }
 
-    # ---------- درخواست به درگاه ----------
     try:
         req = requests.post(
-            ZP_API_REQUEST,
-            data=json.dumps(req_data),
+            url=ZP_API_REQUEST,
+            data=json.dumps(req_data),  # هیچ Decimal ای وجود ندارد
             headers=req_header
         )
-
         result = req.json()
 
         if req.status_code == 200 and 'authority' in result.get('data', {}):
             authority = result['data']['authority']
             return redirect(ZP_API_STARTPAY.format(authority=authority))
 
-        # خطای درگاه
-        e = result.get('errors', {})
-        return HttpResponse(f"{e.get('code')} - {e.get('message')}")
+            # خطا در درخواست
+        e_code = result.get('errors', {}).get('code', '')
+        e_message = result.get('errors', {}).get('message', '')
+        return HttpResponse(f"{e_code} - {e_message}")
 
     except requests.RequestException as e:
         return HttpResponse(f"خطا در ارتباط با درگاه: {e}", status=500)
 
 
-
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def verify_subscription_pay(request):
-    sub_id = request.GET.get('sub_id')
     authority = request.GET.get('Authority')
     status = request.GET.get('Status')
 
-    if not sub_id:
+    payment_data = request.session.get('subscription_payment')
+
+    if not payment_data:
         return render(request, 'admin_payment_done.html', {
-            'error': 'شناسه اشتراک ارسال نشده'
+            'error': 'اطلاعات پرداخت پیدا نشد'
         })
 
-    # فقط اشتراک‌های خود کاربر
-    subscription = get_object_or_404(
-        Subscription,
-        id=sub_id,
-        user=request.user,
-        is_paid=False
-    )
-
-    # اگر کاربر پرداخت را لغو کرد
     if status != 'OK':
         messages.error(request, "پرداخت لغو شد")
         return redirect('buy_subscription')
 
-    # بررسی plan
-    if not subscription.plan:
-        return render(request, 'admin_payment_done.html', {
-            'error': 'پلن اشتراک مشخص نیست'
-        })
+    plan = get_object_or_404(SubscriptionPlan, id=payment_data['plan_id'])
 
-    # -------- Verify به زرین پال --------
+    amount = payment_data['amount']
+    units_count = payment_data['units_count']
+
     req_data = {
         "merchant_id": MERCHANT,
-        "amount": int(subscription.total_amount * 10),  # تومان → ریال
+        "amount": int(amount * 10),
         "authority": authority
     }
 
@@ -310,75 +288,60 @@ def verify_subscription_pay(request):
         result = req.json()
         data = result.get('data', {})
 
-        # خطای زرین پال
         if result.get('errors'):
             return render(request, 'admin_payment_done.html', {
-                'error': result['errors'].get('message', 'خطای نامشخص در درگاه پرداخت')
+                'error': result['errors'].get('message')
             })
 
-        code = data.get('code')
+        if data.get('code') == 100:
 
-        # ---------- پرداخت موفق ----------
-        if code == 100:
             ref_id = data.get('ref_id')
             now = timezone.now()
 
-            subscription.is_paid = True
-
-            subscription.is_trial = False
-            subscription.payment_date = now
-            subscription.house = MyHouse.objects.filter(user=request.user).first()
-            subscription.transaction_id = ref_id
-
-            # ---------- تعیین مدت اشتراک ----------
-            now = timezone.now()
-
-            if subscription.end_date and subscription.end_date > now:
-                # اگر هنوز اشتراک فعال است → از تاریخ پایان فعلی ادامه بده
-                subscription.start_date = subscription.end_date
-            else:
-                subscription.start_date = now
-
-            subscription.end_date = subscription.start_date + relativedelta(
-                months=subscription.plan.duration
+            # ✅ ساخت اشتراک بعد از پرداخت موفق
+            subscription = Subscription.objects.create(
+                user=request.user,
+                units_count=units_count,
+                plan=plan,
+                total_amount=amount,
+                is_paid=True,
+                payment_date=now,
+                transaction_id=ref_id,
+                house=MyHouse.objects.filter(user=request.user).first(),
+                start_date=now,
+                end_date=now + relativedelta(months=plan.duration)
             )
 
-            subscription.save()
-
             content_type = ContentType.objects.get_for_model(Subscription)
+
             AdminFund.objects.create(
                 user=request.user,
-                bank=None,  # اگر بانک مربوط به درگاه داری می‌تونی اینجا بفرستی
                 content_type=content_type,
                 object_id=subscription.id,
                 amount=subscription.total_amount,
                 payment_gateway='پرداخت اینترنتی',
-                payment_date=subscription.payment_date,
+                payment_date=now,
                 transaction_no=ref_id,
-                payment_description=f"خرید اشتراک {subscription.plan} ",
+                payment_description=f"خرید اشتراک {plan}",
+                house=MyHouse.objects.filter(user=request.user).first(),
                 is_paid=True
             )
 
-            messages.success(
-                request,
-                f"پرداخت موفق. کد پیگیری: {ref_id}"
-            )
+            # پاک کردن session
+            del request.session['subscription_payment']
 
+            messages.success(request, f"پرداخت موفق. کد پیگیری: {ref_id}")
             return redirect('middle_admin_dashboard')
 
-        # ---------- پرداخت تکراری ----------
-        elif code == 101:
+        elif data.get('code') == 101:
             messages.info(request, "این پرداخت قبلاً ثبت شده")
             return redirect('middle_admin_dashboard')
 
-        # سایر خطاها
         return render(request, 'admin_payment_done.html', {
-            'error': data.get('message', 'خطای نامشخص در پرداخت')
+            'error': data.get('message')
         })
 
     except Exception as e:
         return render(request, 'admin_payment_done.html', {
-            'error': f"خطا در تأیید پرداخت: {e}"
+            'error': f"خطا در تایید پرداخت: {e}"
         })
-
-

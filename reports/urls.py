@@ -3,6 +3,7 @@ from django.conf.urls.static import static
 from django.urls import path
 
 from reports import views
+from reports.views import civil_sent_units
 
 urlpatterns = [
     path('fund/turnover', views.fund_middle_turnover, name='fund_turn_over'),
@@ -26,6 +27,42 @@ urlpatterns = [
         name='single_charge_invoice_report_pdf'
     ),
     path('charges/notify/list/', views.charge_notify_report_list, name='charge_notify_report_list'),
+
+    # Civil Charge Urls
+
+    path('charges/civil/list/', views.civil_charge_report_list, name='middle_charge_civil_report_list'),
+    path('civil/<int:pk>/sent-units/', views.civil_sent_units, name='middle_charge_civil_sent_units'),
+    path('civil/<int:civil_id>/unit/<int:unit_id>/installments/', views.civil_unit_installments,
+         name='middle_charge_civil_unit_installments'),
+    path(
+        'civil/<int:civil_id>/unit/<int:unit_id>/cancel-send/', views.cancel_civil_send_for_unit,
+        name='cancel_civil_send'),
+    path(
+        'civil/<int:civil_id>/unit/<int:unit_id>/send/', views.middle_send_civil_charge_for_unit,
+        name='middle_send_civil_charge'),
+    path(
+        'middle/civil/charge/', views.middle_civil_list_report_pdf, name='middle_civil_charge_report_pdf'),
+    path(
+        'civil/installments/pdf/<int:civil_id>/unit/<int:unit_id>/send/', views.middle_civil_installments_report_pdf,
+        name='middle_civil_installments_report_pdf'),
+
+    # Sewage Report urls
+    path('sewages/cost/list/', views.middle_sewage_report_list, name='middle_sewage_report_list'),
+    path('sewage/<int:pk>/sent-units/', views.sewage_sent_units, name='middle_sewage_sent_units'),
+    path('sewage/<int:sewage_id>/unit/<int:unit_id>/installments/', views.sewage_unit_installments,
+         name='middle_sewage_unit_installments'),
+    path(
+        'sewage/<int:sewage_id>/unit/<int:unit_id>/cancel-send/', views.cancel_sewage_send_for_unit,
+        name='cancel_sewage_send'),
+    path(
+        'sewage/<int:sewage_id>/unit/<int:unit_id>/send/', views.middle_send_sewage_for_unit,
+        name='middle_send_sewage'),
+    path(
+        'middle/sewage/charge/', views.middle_sewage_list_report_pdf, name='middle_sewage_report_pdf'),
+    path(
+        'sewage/installments/pdf/<int:sewage_id>/unit/<int:unit_id>/send/', views.middle_sewage_installments_report_pdf,
+        name='middle_sewage_installments_report_pdf'),
+
 
     path('report/export/excel/', views.export_units_report_excel, name='export_units_report_excel'),
     path('report/export/pdf/', views.export_units_report_pdf, name='export_units_report_pdf'),
@@ -66,14 +103,12 @@ urlpatterns = [
 
     path('report/balance/', views.house_balance_view, name='house_balance_view'),
 
-
     path('middleAdmin-fund', views.middleAdmin_turnover, name='middleAdmin_fund_turn_over'),
     path('report/middleFund/export/excel/', views.middleFund_report_excel, name='middle_report_excel'),
     path('report/middleFund/export/pdf/', views.middleFund_report_pdf, name='middle_report_pdf'),
 
     # admin Urls
     path('admin/fund/turnover', views.admin_fund_turnover, name='admin_fund_turn_over'),
-
 
 ]
 if settings.DEBUG:

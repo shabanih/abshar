@@ -16,32 +16,48 @@
 }
 </style>
 
+
+{#    <script src="{% static 'admin_panel/vendors/js/vendor.bundle.base.js' %}"></script>#}
+{#<script src="{% static 'admin_panel/js/sweetalert2@11.js' %}"></script>#}
    <div class="container">
 
-{% if subscription_warning %}
-<script>
-let swalText = '';
-{% if sub_status == 'trial' %}
-    swalText = 'اشتراک رایگان شما به زودی منقضی می‌شود.';
-{% elif sub_status == 'paid' %}
-    swalText = 'اشتراک  شما به زودی منقضی می‌شود.';
-{% elif sub_status == 'inactive' %}
-    swalText = ' در حال حاضر اشتراک فعالی ندارید. لطفا نسبت به خرید اشتراک اقدام نمایید';
-{% endif %}
 
-Swal.fire({
-    icon: 'warning',
-    title: 'هشدار!',
-    text: swalText,
-});
-</script>
-{% endif %}
+{#<script>#}
+{##}
+{#let swalText = '';#}
+{##}
+{#{% if sub_status == 'trial' %}#}
+{#swalText = 'اشتراک رایگان شما به زودی منقضی می‌شود.';#}
+{#{% elif sub_status == 'paid' %}#}
+{#swalText = 'اشتراک شما به زودی منقضی می‌شود.';#}
+{#{% elif sub_status == 'inactive' %}#}
+{#swalText = 'در حال حاضر اشتراک فعالی ندارید. لطفاً نسبت به خرید اشتراک اقدام نمایید.';#}
+{#{% endif %}#}
+{##}
+{#const lastShown = localStorage.getItem('subscription_warning_date');#}
+{#const today = new Date().toISOString().slice(0,10);#}
+{##}
+{#if (lastShown !== today) {#}
+{#    Swal.fire({#}
+{#        icon: 'warning',#}
+{#        title: 'هشدار!',#}
+{#        text: swalText,#}
+{#        confirmButtonText: 'متوجه شدم'#}
+{#    });#}
+{##}
+{#    localStorage.setItem('subscription_warning_date', today);#}
+{#}#}
+{##}
+{#</script>#}
+{#{% endif %}#}
+{##}
+{##}
+{#{% if redirect_to_buy %}#}
+{#<script>#}
+{#window.location.href = "{% url 'buy_subscription' %}";#}
+{#</script>#}
+{#{% endif %}#}
 
-{% if redirect_to_buy %}
-<script>
-window.location.href = "{% url 'buy_subscription' %}";
-</script>
-{% endif %}
 
      <div class="row g-2 mt-2">
               <div class="col-md-3">
@@ -196,15 +212,14 @@ window.location.href = "{% url 'buy_subscription' %}";
            <div class="col-lg-6 grid-margin stretch-card">
                     <div class="card p-2">
                       <div class="card-body p-3">
-                       {% if income_chart_data.data %}
-                        <p class="text-muted mb-2">نمودار درآمد </p>
-                       {{ income_chart_data|json_script:"income_chart_json" }}
-                             <canvas id="incomeChart" style="width: 400px; height: 230px; margin-top: 1rem"></canvas>
-
-                          {% else %}
-                        <div class="text-center mt-4">
-                            <img src="/static/img/vecteezy_pie-chart-icon-design_53007028.jpg" width="250" alt="نمودار موجود نیست">
-                         <p class="text-muted text-small">نموداری ثبت نشده است</p>
+                     {% if has_income_chart_data %}
+                            <p class="text-muted mb-2">نمودار درآمد</p>
+                            {{ income_chart_data|json_script:"income_chart_json" }}
+                            <canvas id="incomeChart" style="width: 400px; height: 230px; margin: 1rem"></canvas>
+                        {% else %}
+                            <div class="text-center mt-4">
+                                <img src="/static/img/vecteezy_pie-chart-icon-design_53007028.jpg" width="250" alt="نمودار موجود نیست">
+                                <p class="text-muted text-small">نموداری ثبت نشده است</p>
                             </div>
                         {% endif %}
 

@@ -82,6 +82,14 @@
               </a>
             </li>
           
+              <li class="nav-item border-top  mt-0">
+                 {% url 'admin_finance_by_house' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title">امور مالی</i>
+                <i class="mdi mdi mdi-cash-multiple menu-icon"></i>
+              </a>
+            </li>
+          
              {% url 'subscription_plan' as url_add_subscription %}
             {% url 'subscription_list' as url_subscription_list %}
 

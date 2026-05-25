@@ -1,77 +1,58 @@
 
 <!-- footer start -->
-  <footer>
-     <div class="container" >
-        <div class="row">
-{#          <div class="col-md-2">#}
-{#               <div class="full">#}
-{#                  <div class="logo_footer">#}
-{#                    <a href="#"><img width="100" src="/static/img/Enamad.png" alt="#" /></a>#}
-{#                    <a href="#"><img width="150" src="/static/img/BehPardakht-faraboom.png" alt="#" /></a>#}
-{#                  </div>#}
-{#               </div>#}
-{#           </div>#}
-           <div class="col-md-12 ">
-              <div class="row">
-              <div class="col-md-7">
-                 <div class="row">
-                        <div class="col-md-6">
-                             <a href="#"><img width="80" src="/static/img/Enamad.png" alt="#" /></a>
-                    <a href="#"><img width="150" src="/static/img/BehPardakht-faraboom.png" alt="#" /></a>
-                                                <p><strong>Email:</strong> yourmain@gmail.com</p>
+<footer>
+  <div class="container py-1">
+    <div class="row align-items-center">
 
-                     </div>
-                    <div class="col-md-6">
-                 <div class="widget_menu text-center">
-                    <h3>دسترسی سریع</h3>
-                    <ul>
-                       <li><a href="#">خانه</a></li>
-                       <li><a href="#">درباره ما</a></li>
-{#                       <li><a href="#">معرفی</a></li>#}
-                       <li><a href="#">مقالات</a></li>
-                       <li><a href="#">تماس با ما</a></li>
-                    </ul>
-                 </div>
-              </div>
-                  
-{#                    <div class="col-md-6">#}
-{#                     <div class="widget_menu">#}
-{#                        <h3></h3>#}
-{#                        <ul>#}
-{#                           <li><a href="#">Account</a></li>#}
-{#                           <li><a href="#">Checkout</a></li>#}
-{#                           <li><a href="#">Login</a></li>#}
-{#                           <li><a href="#">Register</a></li>#}
-{#                           <li><a href="#">Shopping</a></li>#}
-{#                           <li><a href="#">Widget</a></li>#}
-{#                        </ul>#}
-{#                     </div>#}
-{#                  </div>#}
-               
-                 </div>
-              </div>     
-               <div class="col-md-5">
-               <div class="full text-center">
-                  <div class="logo_footer">
-                    <a href="#"><img width="210" src="/static/home/images/logo.png" alt="#" /></a>
-                  </div>
-                  <div class="information_f">
-                      <p>
-                          در ابتدا مباحث پایه جاوااسکریپت آموزش داده میشود و سپس آسیبپذیریهای مرتبط و مکانیزمهای امنیتی مرورگر مانندCORS و CSP و دیگر سیاستهای حفاظتی بررسی خواهند شد.
-                      </p>
-                    <p><strong>تلفن:</strong> 0996 63 63 905</p>
-{#                    <p><strong>ایمیل:</strong> yourmain@gmail.com</p>#}
-                  </div>
-               </div>
-           </div>
-              </div>
-           </div>
+      <!-- ستون اول: در موبایل دوم، در دسکتاپ اول -->
+      <div class="col-md-7 col-12 order-2 order-md-1">
+        <div class="row align-items-center gy-4">
+
+          <!-- لوگوهای نماد -->
+          <div class="col-12 col-sm-6 text-center text-sm-start">
+            <a href="#"><img width="80" src="/static/img/Enamad.png" alt="#" class="mb-0" /></a>
+            <a href="#"><img width="150" src="/static/img/BehPardakht-faraboom.png" alt="#" class="mb-0" /></a>
+
+            <p><strong>Email:</strong> yourmain@gmail.com</p>
+              <p><strong>تلفن:</strong> 0996 63 63 905</p>
+          </div>
+
+          <!-- دسترسی سریع -->
+          <div class="col-12 col-sm-6 text-center">
+            <div class="widget_menu">
+              <h3>دسترسی سریع</h3>
+              <ul class="list-unstyled">
+                <li><a href="{% url 'home' %}">خانه</a></li>
+                <li><a href="{% url 'about_us' %}">درباره ما</a></li>
+                <li><a href="{% url 'articles' %}">مقالات</a></li>
+                <li><a href="{% url 'contact_us' %}">تماس با ما</a></li>
+              </ul>
+            </div>
+          </div>
+
         </div>
-     </div>
-  </footer>
+      </div>
+
+      <!-- ستون دوم: در موبایل اول، در دسکتاپ دوم -->
+      <div class="col-md-5 col-12 text-center align-items-center mt-3 order-1 order-md-2">
+        <div class="logo_footer align-items-center">
+          <a href="#"><img width="210" src="/static/home/images/img/logo2.png" alt="#" /></a>
+        </div>
+
+        <div class="information_f px-3" dir="rtl">
+          <p>
+رایا شارژ با هدف تسهیل مدیریت مجتمع‌های مسکونی و تجاری طراحی شده است. ما همواره می‌کوشیم با شناسایی چالش‌ها و بهره‌گیری از بازخوردهای شما کاربران گرامی، گامی موثر در جهت بهینه‌سازی این سامانه برداریم.          
+        </div>
+      </div>
+
+    </div>
+  </div>
+</footer>
+
+
   <!-- footer end -->
   <div class="cpy_">
-     <p class="mx-auto">© 2021 All Rights Reserved By myCharge.com<br>
+     <p class="mx-auto">© 2026 All Rights Reserved By RayaCharge<br>
      
 {#        طراحی و توسعه توسط رایا توسعه هوشمند داریا</a>#}
      

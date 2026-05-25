@@ -65,6 +65,7 @@
         <option value="$MODULE_DIR$/admin_panel/templates/report" />
         <option value="$MODULE_DIR$/home/templates" />
         <option value="$MODULE_DIR$/middleAdmin_panel/templates/middelSewage" />
+        <option value="$MODULE_DIR$/polls_app/templates" />
       </list>
     </option>
   </component>

@@ -8,6 +8,7 @@ from django.utils import timezone
 from jalali_date.fields import JalaliDateField
 from jalali_date.widgets import AdminJalaliDateWidget
 
+from admin_panel.models import CivilInstallment, SewageInstallment
 from notifications.models import SupportUser, SupportMessage, AdminTicket, AdminTicketMessage
 from user_app.models import User, Unit, UserPayMoney, Bank
 
@@ -211,7 +212,7 @@ class UserPayMoneyForm(forms.ModelForm):
                              widget=forms.TextInput(attrs=attr),
                              label='مبلغ')
     description = forms.CharField(error_messages=error_message, widget=forms.TextInput(attrs=attr), required=True,
-                                  label='شرح سند')
+                                  label='شرح پرداخت')
     document = forms.FileField(
         required=False,
         error_messages=error_message,
@@ -331,6 +332,120 @@ class UserPayGateForm(forms.ModelForm):
 
     class Meta:
         model = UserPayMoney
+        fields = ['payment_date', 'transaction_reference', 'bank']
+
+    def __init__(self, *args, **kwargs):
+        house = kwargs.pop('house', None)  # خانه را از view می‌گیریم
+        super().__init__(*args, **kwargs)
+
+        # بانک‌ها پیش‌فرض خالی
+        self.fields['bank'].queryset = Bank.objects.none()
+
+        if house:
+            # همه بانک‌های فعال خانه
+            banks = Bank.objects.filter(is_active=True, house=house).order_by('-is_default', 'bank_name')
+            self.fields['bank'].queryset = banks
+
+            # بانک پیش‌فرض خانه
+            default_bank = banks.filter(is_default=True).first()
+            if default_bank:
+                self.fields['bank'].initial = default_bank
+
+            # نمایش label با "(پیش‌فرض)"
+            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.cart_number}" + (
+                " (پیش‌فرض)" if obj.is_default else "")
+
+    def clean_payment_date(self):
+        date = self.cleaned_data.get('payment_date')
+        if date:
+            # تبدیل Jalali به Gregorian
+            gregorian_date = date.togregorian().date() if isinstance(date, jdatetime.date) else date
+
+            today = timezone.now().date()
+            if gregorian_date > today:
+                raise ValidationError("تاریخ پرداخت نمی‌تواند از امروز بیشتر باشد.")
+        return date
+
+
+class MiddlePayCivilForm(forms.ModelForm):
+    payment_date = JalaliDateField(
+        label='تاریخ پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        required=False
+    )
+    transaction_reference = forms.IntegerField(
+        label='کد پیگیری',
+        min_value=0,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    bank = forms.ModelChoiceField(
+        queryset=Bank.objects.none(),
+        label='شماره کارت',
+        required=True,
+        empty_label="شماره کارت را انتخاب کنید",
+        widget=forms.Select(attrs={'class': 'form-control form-control-sm'})
+    )
+
+    class Meta:
+        model = CivilInstallment
+        fields = ['payment_date', 'transaction_reference', 'bank']
+
+    def __init__(self, *args, **kwargs):
+        house = kwargs.pop('house', None)  # خانه را از view می‌گیریم
+        super().__init__(*args, **kwargs)
+
+        # بانک‌ها پیش‌فرض خالی
+        self.fields['bank'].queryset = Bank.objects.none()
+
+        if house:
+            # همه بانک‌های فعال خانه
+            banks = Bank.objects.filter(is_active=True, house=house).order_by('-is_default', 'bank_name')
+            self.fields['bank'].queryset = banks
+
+            # بانک پیش‌فرض خانه
+            default_bank = banks.filter(is_default=True).first()
+            if default_bank:
+                self.fields['bank'].initial = default_bank
+
+            # نمایش label با "(پیش‌فرض)"
+            self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.cart_number}" + (
+                " (پیش‌فرض)" if obj.is_default else "")
+
+    def clean_payment_date(self):
+        date = self.cleaned_data.get('payment_date')
+        if date:
+            # تبدیل Jalali به Gregorian
+            gregorian_date = date.togregorian().date() if isinstance(date, jdatetime.date) else date
+
+            today = timezone.now().date()
+            if gregorian_date > today:
+                raise ValidationError("تاریخ پرداخت نمی‌تواند از امروز بیشتر باشد.")
+        return date
+
+
+class MiddlePaySewageForm(forms.ModelForm):
+    payment_date = JalaliDateField(
+        label='تاریخ پرداخت',
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+        required=False
+    )
+    transaction_reference = forms.IntegerField(
+        label='کد پیگیری',
+        min_value=0,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    bank = forms.ModelChoiceField(
+        queryset=Bank.objects.none(),
+        label='شماره کارت',
+        required=True,
+        empty_label="شماره کارت را انتخاب کنید",
+        widget=forms.Select(attrs={'class': 'form-control form-control-sm'})
+    )
+
+    class Meta:
+        model = SewageInstallment
         fields = ['payment_date', 'transaction_reference', 'bank']
 
     def __init__(self, *args, **kwargs):

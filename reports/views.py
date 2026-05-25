@@ -1,6 +1,6 @@
 import io
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 import jdatetime
@@ -27,10 +27,12 @@ from django.views.generic.edit import FormMixin
 from admin_panel.forms import UnifiedChargePaymentForm
 from admin_panel.models import Fund, Expense, Income, Property, ExpenseCategory, IncomeCategory, Maintenance, \
     UnifiedCharge, PersonCharge, FixPersonCharge, FixAreaCharge, AreaCharge, \
-    FixCharge, ChargeByPersonArea, ChargeFixVariable, ChargeByFixPersonArea, PayMoney, ReceiveMoney, AdminFund
+    FixCharge, ChargeByPersonArea, ChargeFixVariable, ChargeByFixPersonArea, PayMoney, ReceiveMoney, AdminFund, \
+    CivilManage, CivilInstallment, SewageManage, SewageInstallment, BankFund
 from middleAdmin_panel.views import middle_admin_required
-from polls.templatetags.poll_extras import show_jalali, jalali_to_gregorian, show_jalali_date_time, show_jalali_date
-from user_app.forms import UnitReportForm
+from polls.templatetags.poll_extras import show_jalali, jalali_to_gregorian, show_jalali_date_time, show_jalali_date, \
+    show_jalali_date_excel
+from user_app.forms import UnitReportForm, MiddlePayCivilForm
 from user_app.models import Unit, MyHouse, UnitResidenceHistory, Bank, User, UserPayMoney
 from openpyxl.styles import PatternFill, Font, Alignment
 from pypdf import PdfWriter
@@ -90,28 +92,7 @@ class MiddleBankList(ListView):
         context = super().get_context_data(**kwargs)
         banks = Bank.objects.filter(user=self.request.user).order_by('-create_at')
 
-        bank_transactions = {}  # کل تراکنش‌ها و موجودی هر بانک
-
-        for bank in banks:
-            funds = Fund.objects.filter(bank=bank).order_by('doc_number')
-            running_total = Decimal(0)
-            transactions = []
-            for f in funds:
-                running_total += (f.debtor_amount or 0) - (f.creditor_amount or 0)
-                transactions.append({
-                    'date': f.payment_date,
-                    'description': f.payment_description,
-                    'debit': f.debtor_amount,
-                    'credit': f.creditor_amount,
-                    'balance': running_total
-                })
-            bank_transactions[bank.id] = {
-                'transactions': transactions,
-                'balance': running_total
-            }
-
         context['banks'] = banks
-        context['bank_transactions'] = bank_transactions
         return context
 
 
@@ -119,24 +100,27 @@ class MiddleBankList(ListView):
 def bank_detail_view(request, bank_id):
     bank = get_object_or_404(Bank, id=bank_id, user=request.user)
 
+    bank_funds = BankFund.objects.filter(bank=bank).order_by('-id')
+
     # تراکنش‌ها
-    funds = Fund.objects.filter(bank=bank).order_by('doc_number')
-    running_total = Decimal(0)
-    transactions = []
-    for f in funds:
-        running_total += (f.debtor_amount or 0) - (f.creditor_amount or 0)
-        transactions.append({
-            'date': f.payment_date,
-            'description': f.payment_description,
-            'debit': f.debtor_amount,
-            'credit': f.creditor_amount,
-            'balance': running_total
-        })
+    # funds = Fund.objects.filter(bank=bank).order_by('doc_number')
+    # running_total = Decimal(0)
+    # transactions = []
+    # for f in funds:
+    #     running_total += (f.debtor_amount or 0) - (f.creditor_amount or 0)
+    #     transactions.append({
+    #         'date': f.payment_date,
+    #         'description': f.payment_description,
+    #         'debit': f.debtor_amount,
+    #         'credit': f.creditor_amount,
+    #         'balance': running_total
+    #     })
 
     context = {
         'bank': bank,
-        'transactions': transactions,
-        'balance': running_total,
+        'bank_funds': bank_funds,
+        # 'transactions': transactions,
+        # 'balance': running_total,
     }
     return render(request, 'bank_turnover_detail.html', context)
 
@@ -1002,12 +986,12 @@ def charge_units_list_report_excel(request):
     for index, uc in enumerate(unified_charges, start=1):
         ws.cell(row=row, column=1, value=index)
         ws.cell(row=row, column=2, value=uc.title)
-        ws.cell(row=row, column=3, value=uc.unit.get_label())
+        ws.cell(row=row, column=3, value=uc.unit.get_label)
         ws.cell(row=row, column=4, value=uc.base_charge)
         ws.cell(row=row, column=5, value=uc.penalty_amount)
         ws.cell(row=row, column=6, value=uc.total_charge_month)
-        ws.cell(row=row, column=7, value=show_jalali(uc.send_notification_date))
-        ws.cell(row=row, column=8, value=show_jalali(uc.payment_deadline_date))
+        ws.cell(row=row, column=7, value=show_jalali_date_excel(uc.send_notification_date))
+        ws.cell(row=row, column=8, value=show_jalali_date_excel(uc.payment_deadline_date))
         ws.cell(row=row, column=9, value="پرداخت شده" if uc.is_paid else "پرداخت نشده")
         row += 1
 
@@ -1052,6 +1036,701 @@ def charge_units_report_pdf(request, charge_id):
 
     response = HttpResponse(pdf, content_type='application/pdf')
     response['Content-Disposition'] = 'attachment; filename="charge_units_report.pdf"'
+    return response
+
+
+# =============================================================
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def civil_charge_report_list(request):
+    search = request.GET.get('q', '').strip()
+
+    charges = (
+        CivilManage.objects
+        .filter(user=request.user).order_by('-created_at'))
+    print(f'charges: {len(charges)}')
+
+    # 🔍 فیلتر جستجو
+    if search:
+        q_obj = (
+                Q(name__icontains=search) |
+                Q(details__icontains=search)
+
+        )
+
+        if search.isdigit():
+            q_obj = (Q(amount__icontains=search) | Q(prepayment__icontains=search) |
+                     Q(installment_count__icontains=search))
+
+        charges = charges.filter(q_obj)
+
+    # 📄 pagination
+    paginate = request.GET.get('paginate', '20')
+    if str(paginate).lower() == 'all':
+        paginate = charges.count() or 1
+    else:
+        try:
+            paginate = int(paginate)
+        except ValueError:
+            paginate = 20
+
+    paginator = Paginator(charges, paginate)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    context = {
+        'page_obj': page_obj,
+        'query': search,
+        'paginate': paginate,
+    }
+
+    return render(request, 'civil_charge_report.html', context)
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def civil_sent_units(request, pk):
+    civil = get_object_or_404(CivilManage, id=pk, user=request.user)
+
+    units = Unit.objects.filter(
+        user__manager=request.user,
+        is_active=True
+    )
+
+    # 🔍 جستجو
+    search = request.GET.get('q', '').strip()
+    if search:
+        q_obj = (
+                Q(unit__icontains=search) |
+                Q(owner_name__icontains=search) |
+                Q(owner_mobile__icontains=search)
+        )
+        units = units.filter(q_obj)
+
+    units = units.annotate(
+        paid_count=Count(
+            'civilinstallment',
+            filter=Q(
+                civilinstallment__civil_manage=civil,
+                civilinstallment__is_paid=True
+            )
+        )
+    )
+
+    units_with_info = []
+
+    for unit in units:
+
+        has_prepayment = CivilInstallment.objects.filter(
+            civil_manage=civil,
+            unit=unit,
+            installment_number=0
+        ).exists()
+
+        if has_prepayment:
+            total_installments = civil.installment_count + 1
+        else:
+            total_installments = civil.installment_count
+
+        has_sent = CivilInstallment.objects.filter(
+            civil_manage=civil,
+            unit=unit,
+            send_notification=True
+        ).exists()
+
+        units_with_info.append({
+            'unit': unit,
+            'has_sent': has_sent,
+            'paid_count': unit.paid_count,
+            'total_installments': total_installments
+        })
+
+    # 📄 pagination
+    paginate = request.GET.get('paginate', '20')
+    if str(paginate).lower() == 'all':
+        paginate = len(units_with_info) or 1
+    else:
+        try:
+            paginate = int(paginate)
+        except ValueError:
+            paginate = 20
+
+    paginator = Paginator(units_with_info, paginate)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'civil_sent_units.html', {
+        'civil': civil,
+        'page_obj': page_obj,
+        'query': search,
+        'paginate': paginate,
+    })
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def civil_unit_installments(request, civil_id, unit_id):
+    civil = get_object_or_404(CivilManage, id=civil_id, user=request.user)
+    unit = get_object_or_404(Unit, id=unit_id, user__manager=request.user)
+    house = civil.house
+
+    form = MiddlePayCivilForm(instance=civil, house=house)
+
+    installments = CivilInstallment.objects.filter(
+        civil_manage=civil,
+        unit=unit
+    ).order_by('installment_number')
+
+    return render(request, "civil_unit_installments.html", {
+        "civil": civil,
+        "unit": unit,
+        "installments": installments,
+        'form': form
+    })
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def cancel_civil_send_for_unit(request, civil_id, unit_id):
+    civil = get_object_or_404(CivilManage, id=civil_id, user=request.user)
+    unit = get_object_or_404(Unit, id=unit_id, user__manager=request.user)
+
+    # پیدا کردن همه اقساط این واحد
+    installments = CivilInstallment.objects.filter(
+        civil_manage=civil,
+        unit=unit,
+        send_notification=True
+    )
+
+    if not installments.exists():
+        messages.warning(request, "برای این واحد هیچ ارسالی ثبت نشده بود.")
+        return redirect('middle_charge_civil_sent_units', pk=civil.id)
+
+    if installments.filter(is_paid=True).exists():
+        messages.warning(request, 'بدلیل پرداخت اقساط توسط مالک، لغو امکان پذیر نیست')
+        return redirect('middle_charge_civil_sent_units', pk=civil.id)
+
+    # تغییر وضعیت ارسال
+    installments.update(
+        send_notification=False,
+        send_notification_date=None
+    )
+
+    messages.success(request, f"ارسال شارژ برای واحد {unit.unit} با موفقیت لغو شد.")
+    return redirect('middle_charge_civil_sent_units', pk=civil.id)
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_send_civil_charge_for_unit(request, civil_id, unit_id):
+    civil = get_object_or_404(CivilManage, id=civil_id, user=request.user)
+    unit = get_object_or_404(Unit, id=unit_id, user__manager=request.user)
+
+    # پیدا کردن همه اقساط این واحد
+    installments = CivilInstallment.objects.filter(
+        civil_manage=civil,
+        unit=unit,
+        send_notification=False
+    )
+
+    if not installments.exists():
+        messages.warning(request, "برای این واحد هیچ ارسالی ثبت نشده بود.")
+        return redirect('middle_charge_civil_sent_units', pk=civil.id)
+
+    # تغییر وضعیت ارسال
+    installments.update(
+        send_notification=True,
+        send_notification_date=timezone.now()
+    )
+
+    messages.success(request, f"ارسال شارژ برای واحد {unit.unit} با موفقیت ارسال گردید .")
+    return redirect('middle_charge_civil_sent_units', pk=civil.id)
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_civil_list_report_pdf(request):
+    manager = request.user
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
+
+    # 🔍 جستجو
+    query = request.GET.get('q', '').strip()
+
+    civil_charges = CivilManage.objects.filter(user=manager).order_by('-created_at')
+
+    if query:
+        search_q = (
+                Q(name__icontains=query) |
+                Q(details__icontains=query)
+        )
+
+        try:
+            value = Decimal(query)
+            search_q |= (
+                    Q(amount=value) |
+                    Q(prepayment=value) |
+                    Q(installment_count=value)
+            )
+        except:
+            pass
+
+        civil_charges = civil_charges.filter(search_q)
+
+    civil_charges = civil_charges.order_by('-created_at')
+
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+               @page {{ size: A4 landscape; margin: 1cm; }}
+               body {{
+                   font-family: 'BYekan', sans-serif;
+               }}
+               @font-face {{
+                   font-family: 'BYekan';
+                   src: url('{font_url}');
+               }}
+           """)
+
+    # Render HTML template
+    template = get_template("civil_charge_report_pdf.html")
+    context = {
+        'font_path': font_url,
+        'civil_charges': civil_charges,
+        'query': query,
+        'house': house,
+        'today': datetime.now(),
+    }
+    html = template.render(context)
+
+    # Generate PDF
+    page_pdf = io.BytesIO()
+    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(page_pdf, stylesheets=[css])
+
+    page_pdf.seek(0)
+
+    # Generate the final PDF response
+    pdf_merger = PdfWriter()
+    pdf_merger.append(page_pdf)
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="civil_charge_report.pdf"'
+    pdf_merger.write(response)
+    return response
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_civil_installments_report_pdf(request, civil_id, unit_id):
+    civil = get_object_or_404(CivilManage, id=civil_id, user=request.user)
+    unit = get_object_or_404(Unit, id=unit_id, user__manager=request.user)
+
+    manager = request.user
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
+
+    # 🔍 جستجو
+    query = request.GET.get('q', '').strip()
+
+    installments = CivilInstallment.objects.filter(
+        civil_manage=civil,
+        unit=unit
+    )
+
+    if query:
+        search_q = (
+                Q(name__icontains=query) |
+                Q(details__icontains=query)
+        )
+
+        try:
+            value = Decimal(query)
+            search_q |= (
+                    Q(amount=value) |
+                    Q(prepayment=value) |
+                    Q(installment_count=value)
+            )
+        except:
+            pass
+
+        installments = installments.filter(search_q)
+
+    installments_civil = installments.order_by('id')
+
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+            @page {{ size: A4 landscape; margin: 1cm; }}
+            body {{
+                font-family: 'BYekan', sans-serif;
+            }}
+            @font-face {{
+                font-family: 'BYekan';
+                src: url('{font_url}');
+            }}
+        """)
+
+    # Render HTML template
+    template = get_template("civil_charge_installments_report_pdf.html")
+    context = {
+        'font_path': font_url,
+        'installments': installments_civil,
+        'query': query,
+        'unit': unit,
+        'house': house,
+        'today': datetime.now(),
+    }
+    html = template.render(context)
+
+    # Generate PDF
+    page_pdf = io.BytesIO()
+    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(page_pdf, stylesheets=[css])
+
+    page_pdf.seek(0)
+
+    # Generate the final PDF response
+    pdf_merger = PdfWriter()
+    pdf_merger.append(page_pdf)
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="civil_installments_report.pdf"'
+    pdf_merger.write(response)
+    return response
+
+
+# =============================================================
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_sewage_report_list(request):
+    search = request.GET.get('q', '').strip()
+
+    sewages = (
+        SewageManage.objects
+        .filter(user=request.user).order_by('-created_at'))
+
+    # 🔍 فیلتر جستجو
+    if search:
+        q_obj = (
+                Q(name__icontains=search) |
+                Q(details__icontains=search)
+
+        )
+
+        if search.isdigit():
+            q_obj = (Q(amount__icontains=search) | Q(prepayment__icontains=search) |
+                     Q(installment_count__icontains=search))
+
+        sewages = sewages.filter(q_obj)
+
+    # 📄 pagination
+    paginate = request.GET.get('paginate', '20')
+    if str(paginate).lower() == 'all':
+        paginate = sewages.count() or 1
+    else:
+        try:
+            paginate = int(paginate)
+        except ValueError:
+            paginate = 20
+
+    paginator = Paginator(sewages, paginate)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    context = {
+        'page_obj': page_obj,
+        'query': search,
+        'paginate': paginate,
+    }
+
+    return render(request, 'sewage_report.html', context)
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def sewage_sent_units(request, pk):
+    sewage = get_object_or_404(SewageManage, id=pk, user=request.user)
+
+    units = Unit.objects.filter(
+        user__manager=request.user,
+        is_active=True
+    )
+
+    # 🔍 جستجو
+    search = request.GET.get('q', '').strip()
+    if search:
+        q_obj = (
+                Q(unit__icontains=search) |
+                Q(owner_name__icontains=search) |
+                Q(owner_mobile__icontains=search)
+        )
+        units = units.filter(q_obj)
+
+    units = units.annotate(
+        paid_count=Count(
+            'sewageinstallment',
+            filter=Q(
+                sewageinstallment__sewage_manage=sewage,
+                sewageinstallment__is_paid=True
+            )
+        )
+    )
+
+    units_with_info = []
+
+    for unit in units:
+
+        has_prepayment = SewageInstallment.objects.filter(
+            sewage_manage=sewage,
+            unit=unit,
+            installment_number=0
+        ).exists()
+
+        if has_prepayment:
+            total_installments = sewage.installment_count + 1
+        else:
+            total_installments = sewage.installment_count
+
+        has_sent = SewageInstallment.objects.filter(
+            sewage_manage=sewage,
+            unit=unit,
+            send_notification=True
+        ).exists()
+
+        units_with_info.append({
+            'unit': unit,
+            'has_sent': has_sent,
+            'paid_count': unit.paid_count,
+            'total_installments': total_installments
+        })
+
+    # 📄 pagination
+    paginate = request.GET.get('paginate', '20')
+    if str(paginate).lower() == 'all':
+        paginate = len(units_with_info) or 1
+    else:
+        try:
+            paginate = int(paginate)
+        except ValueError:
+            paginate = 20
+
+    paginator = Paginator(units_with_info, paginate)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'sewage_sent_units.html', {
+        'sewage': sewage,
+        'page_obj': page_obj,
+        'query': search,
+        'paginate': paginate,
+    })
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def sewage_unit_installments(request, sewage_id, unit_id):
+    sewage = get_object_or_404(SewageManage, id=sewage_id, user=request.user)
+    unit = get_object_or_404(Unit, id=unit_id, user__manager=request.user)
+    house = sewage.house
+
+    form = MiddlePayCivilForm(instance=sewage, house=house)
+
+    installments = SewageInstallment.objects.filter(
+        sewage_manage=sewage,
+        unit=unit
+    ).order_by('installment_number')
+
+    return render(request, "sewage_installments.html", {
+        "sewage": sewage,
+        "unit": unit,
+        "installments": installments,
+        'form': form
+    })
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def cancel_sewage_send_for_unit(request, sewage_id, unit_id):
+    sewage = get_object_or_404(SewageManage, id=sewage_id, user=request.user)
+    unit = get_object_or_404(Unit, id=unit_id, user__manager=request.user)
+
+    # پیدا کردن همه اقساط این واحد
+    installments = SewageInstallment.objects.filter(
+        sewage_manage=sewage,
+        unit=unit,
+        send_notification=True
+    )
+
+    if not installments.exists():
+        messages.warning(request, "برای این واحد هیچ ارسالی ثبت نشده بود.")
+        return redirect('middle_sewage_sent_units', pk=sewage.id)
+
+    if installments.filter(is_paid=True).exists():
+        messages.warning(request, 'بدلیل پرداخت اقساط توسط مالک، لغو امکان پذیر نیست')
+        return redirect('middle_sewage_sent_units', pk=sewage.id)
+
+    # تغییر وضعیت ارسال
+    installments.update(
+        send_notification=False,
+        send_notification_date=None
+    )
+
+    messages.success(request, f"ارسال شارژ برای واحد {unit.unit} با موفقیت لغو شد.")
+    return redirect('middle_sewage_sent_units', pk=sewage.id)
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_send_sewage_for_unit(request, sewage_id, unit_id):
+    sewage = get_object_or_404(SewageManage, id=sewage_id, user=request.user)
+    unit = get_object_or_404(Unit, id=unit_id, user__manager=request.user)
+
+    # پیدا کردن همه اقساط این واحد
+    installments = SewageInstallment.objects.filter(
+        sewage_manage=sewage,
+        unit=unit,
+        send_notification=False
+    )
+
+    if not installments.exists():
+        messages.warning(request, "برای این واحد هیچ ارسالی ثبت نشده بود.")
+        return redirect('middle_sewage_sent_units', pk=sewage.id)
+
+    # تغییر وضعیت ارسال
+    installments.update(
+        send_notification=True,
+        send_notification_date=timezone.now()
+    )
+
+    messages.success(request, f"ارسال شارژ برای واحد {unit.unit} با موفقیت ارسال گردید .")
+    return redirect('middle_sewage_sent_units', pk=sewage.id)
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_sewage_list_report_pdf(request):
+    manager = request.user
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
+
+    # 🔍 جستجو
+    query = request.GET.get('q', '').strip()
+
+    sewage_costs = SewageManage.objects.filter(user=manager).order_by('-created_at')
+
+    if query:
+        search_q = (
+                Q(name__icontains=query) |
+                Q(details__icontains=query)
+        )
+
+        try:
+            value = Decimal(query)
+            search_q |= (
+                    Q(amount=value) |
+                    Q(prepayment=value) |
+                    Q(installment_count=value)
+            )
+        except:
+            pass
+
+        sewage_costs = sewage_costs.filter(search_q)
+
+    sewage_costs = sewage_costs.order_by('-created_at')
+
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+               @page {{ size: A4 landscape; margin: 1cm; }}
+               body {{
+                   font-family: 'BYekan', sans-serif;
+               }}
+               @font-face {{
+                   font-family: 'BYekan';
+                   src: url('{font_url}');
+               }}
+           """)
+
+    # Render HTML template
+    template = get_template("sewage_report_pdf.html")
+    context = {
+        'font_path': font_url,
+        'sewage_costs': sewage_costs,
+        'query': query,
+        'house': house,
+        'today': datetime.now(),
+    }
+    html = template.render(context)
+
+    # Generate PDF
+    page_pdf = io.BytesIO()
+    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(page_pdf, stylesheets=[css])
+
+    page_pdf.seek(0)
+
+    # Generate the final PDF response
+    pdf_merger = PdfWriter()
+    pdf_merger.append(page_pdf)
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="sewage_list_report.pdf"'
+    pdf_merger.write(response)
+    return response
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_sewage_installments_report_pdf(request, sewage_id, unit_id):
+    sewage = get_object_or_404(SewageManage, id=sewage_id, user=request.user)
+    unit = get_object_or_404(Unit, id=unit_id, user__manager=request.user)
+
+    manager = request.user
+    house = None
+    if request.user.is_authenticated:
+        house = MyHouse.objects.filter(residents=request.user).order_by('-created_at').first()
+
+    # 🔍 جستجو
+    query = request.GET.get('q', '').strip()
+
+    installments = SewageInstallment.objects.filter(
+        sewage_manage=sewage,
+        unit=unit
+    )
+
+    if query:
+        search_q = (
+                Q(name__icontains=query) |
+                Q(details__icontains=query)
+        )
+
+        try:
+            value = Decimal(query)
+            search_q |= (
+                    Q(amount=value) |
+                    Q(prepayment=value) |
+                    Q(installment_count=value)
+            )
+        except:
+            pass
+
+        installments = installments.filter(search_q)
+
+    installments_sewage = installments.order_by('id')
+
+    font_url = request.build_absolute_uri('/static/fonts/BYekan.ttf')
+    css = CSS(string=f"""
+            @page {{ size: A4 landscape; margin: 1cm; }}
+            body {{
+                font-family: 'BYekan', sans-serif;
+            }}
+            @font-face {{
+                font-family: 'BYekan';
+                src: url('{font_url}');
+            }}
+        """)
+
+    # Render HTML template
+    template = get_template("sewage_installments_report_pdf.html")
+    context = {
+        'font_path': font_url,
+        'installments': installments_sewage,
+        'query': query,
+        'unit': unit,
+        'house': house,
+        'today': datetime.now(),
+    }
+    html = template.render(context)
+
+    # Generate PDF
+    page_pdf = io.BytesIO()
+    HTML(string=html, base_url=request.build_absolute_uri()).write_pdf(page_pdf, stylesheets=[css])
+
+    page_pdf.seek(0)
+
+    # Generate the final PDF response
+    pdf_merger = PdfWriter()
+    pdf_merger.append(page_pdf)
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="sewage_installments_report.pdf"'
+    pdf_merger.write(response)
     return response
 
 
@@ -2042,8 +2721,8 @@ class ReportPropertyView(ListView):
         context['total_properties'] = Property.objects.filter(user=self.request.user).count()
         context['properties'] = Property.objects.filter(user=self.request.user)
         context['total_amount'] = \
-        Property.objects.filter(user=self.request.user).aggregate(total=Sum('property_price'))[
-            'total'] or 0
+            Property.objects.filter(user=self.request.user).aggregate(total=Sum('property_price'))[
+                'total'] or 0
         return context
 
 
@@ -2176,7 +2855,6 @@ def export_property_report_excel(request):
                'توضیحات', 'وضعیت پرداخت', 'تاریخ پرداخت']
 
     bank = Bank.objects.filter(user=request.user)
-
 
     # ✅ Write header (row 2)
     for col_num, column_title in enumerate(headers, 1):
@@ -2715,7 +3393,8 @@ def house_balance_view(request):
     balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
 
     total_charge_unpaid = \
-        UnifiedCharge.objects.filter(is_paid=False, user=request.user, **payment_filter).aggregate(Sum('total_charge_month'))[
+        UnifiedCharge.objects.filter(is_paid=False, user=request.user, **payment_filter).aggregate(
+            Sum('total_charge_month'))[
             'total_charge_month__sum']
 
     # =================================== part 2 =====================
@@ -2745,10 +3424,12 @@ def house_balance_view(request):
         'amount__sum']
 
     total_charges = \
-        UnifiedCharge.objects.filter(user=request.user,  **payment_filter).exclude().aggregate(Sum('total_charge_month'))[
+        UnifiedCharge.objects.filter(user=request.user, **payment_filter).exclude().aggregate(
+            Sum('total_charge_month'))[
             'total_charge_month__sum']
 
-    total_civil = UnifiedCharge.objects.filter(is_paid=True, user=request.user, **payment_filter).aggregate(Sum('civil'))[
+    total_civil = \
+        UnifiedCharge.objects.filter(is_paid=True, user=request.user, **payment_filter).aggregate(Sum('civil'))[
             'civil__sum']
 
     total_assets = ((total_incomes or 0) + (total_receive_money or 0) + (total_unit_pay or 0)
@@ -2760,10 +3441,13 @@ def house_balance_view(request):
         'amount__sum']
     total_pay_money = PayMoney.objects.filter(user=request.user, **payment_filter, ).aggregate(Sum('amount'))[
         'amount__sum']
-    total_maintenances = Maintenance.objects.filter(user=request.user, **payment_filter, is_paid=True).aggregate(Sum('maintenance_price'))[
-        'maintenance_price__sum']
-    total_properties = Property.objects.filter(user=request.user, **payment_filter, is_paid=True).aggregate(Sum('property_price'))[
-        'property_price__sum']
+    total_maintenances = \
+        Maintenance.objects.filter(user=request.user, **payment_filter, is_paid=True).aggregate(
+            Sum('maintenance_price'))[
+            'maintenance_price__sum']
+    total_properties = \
+        Property.objects.filter(user=request.user, **payment_filter, is_paid=True).aggregate(Sum('property_price'))[
+            'property_price__sum']
     # total_gas_expenses = (Expense.objects.filter(user=request.user, **payment_filter, is_paid=True).
     #                       aggregate(Sum('gas_expenses')))
 

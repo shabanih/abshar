@@ -1,4 +1,6 @@
 import json
+from decimal import Decimal
+
 import requests
 from django.conf import settings
 from django.contrib import messages
@@ -6,14 +8,16 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
 
 from admin_panel.forms import UnifiedChargePaymentForm
-from admin_panel.models import Fund, UnifiedCharge
-from user_app.forms import UserPayMoneyForm, UserPayGateForm
+from admin_panel.models import Fund, UnifiedCharge, CivilInstallment, SewageInstallment, BankFund
+from middleAdmin_panel.services.bank_services import BankTransactionService
+from user_app.forms import UserPayMoneyForm, UserPayGateForm, MiddlePayCivilForm, MiddlePaySewageForm
 from user_app.models import Bank, UserPayMoney
 
 MERCHANT = "3d6d6a26-c139-49ac-9d8d-b03a8cdf0fdd"
@@ -31,6 +35,8 @@ description = "Raya"  # Required
 
 CallbackURLCharge = 'http://127.0.0.1:8001/payment/verify-pay/'
 CallbackURLUserPay = 'http://127.0.0.1:8001/payment/user-pay-verify/'
+CallbackURLUserPayInstallment = 'http://127.0.0.1:8001/payment/user-pay-installment-verify/'
+CallbackURLUserPaySewageInstallment = 'http://127.0.0.1:8001/payment/user-pay-sewage-installment-verify/'
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -146,6 +152,17 @@ def verify_pay(request: HttpRequest):
                         transaction_no=payment_charge.transaction_reference,
                         payment_gateway='پرداخت اینترنتی'
                     )
+                    BankTransactionService.deposit(
+                        user=request.user,
+                        bank=default_bank,
+                        amount=Decimal(payment_charge.total_charge_month),
+                        description=f"{payment_charge.title}",
+                        content_object=payment_charge.unit,
+                        payment_date=payment_charge.payment_date,
+                        transaction_no=payment_charge.transaction_reference,
+                        gateway="شارژ ماهیانه",
+                        house=payment_charge.house
+                    )
 
                     messages.success(
                         request,
@@ -213,11 +230,23 @@ def payment_charge_user_view(request, pk):
                 amount=charge.total_charge_month,
                 creditor_amount=0,
                 user=request.user,
-                payer_name=charge.unit.get_label(),
+                payer_name=charge.unit.get_label,
                 payment_date=charge.payment_date,
                 payment_description=f"{charge.title}",
                 transaction_no=charge.transaction_reference,
                 payment_gateway='کارت به کارت'
+            )
+            BankTransactionService.deposit(
+                user=request.user,
+                bank=charge.bank,
+                unit=charge.unit,
+                amount=Decimal(charge.total_charge_month),
+                description=f"{charge.title}",
+                content_object=charge.unit,
+                payment_date=charge.payment_date,
+                transaction_no=charge.transaction_reference,
+                gateway="کارت به کارت",
+                house=charge.house
             )
             messages.success(request, 'پرداخت شارژ با موفقیت ثبت گردید')
             return redirect('user_charges')
@@ -232,6 +261,7 @@ def payment_charge_user_view(request, pk):
         })
 
 
+# ===========================================================
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def user_pay_money_view(request, pk):
     pay = get_object_or_404(UserPayMoney, pk=pk)
@@ -260,11 +290,23 @@ def user_pay_money_view(request, pk):
                 amount=pay.amount,
                 creditor_amount=0,
                 user=request.user,
-                payer_name=pay.unit.get_label(),
+                payer_name=pay.unit.get_label,
                 payment_date=pay.payment_date,
                 payment_description=f" پرداخت به ساختمان: {(pay.description or '')[:50]}",
                 transaction_no=pay.transaction_reference,
                 payment_gateway='کارت به کارت'
+            )
+            BankTransactionService.deposit(
+                user=request.user,
+                bank=pay.bank,
+                unit=pay.unit,
+                amount=Decimal(pay.amount),
+                description=f" پرداخت به ساختمان: {(pay.description or '')[:50]}",
+                content_object=pay.unit,
+                payment_date=pay.payment_date,
+                transaction_no=pay.transaction_reference,
+                gateway='کارت به کارت',
+                house=pay.house
             )
 
             messages.success(request, 'پرداخت شما با موفقیت ثبت گردید')
@@ -395,17 +437,28 @@ def verify_user_pay_money(request: HttpRequest):
                 unit=pay.unit,
                 house=pay.house,
                 bank=bank,
-                debtor_amount=0,
+                debtor_amount=pay.amount,
                 amount=pay.amount,
-                creditor_amount=pay.amount,
+                creditor_amount=0,
                 user=request.user,
-                payer_name=pay.unit.get_label(),
+                payer_name=pay.unit.get_label,
                 payment_date=pay.payment_date,
                 payment_description=f" پرداخت به ساختمان: {(pay.description or '')[:50]}",
                 transaction_no=ref_id,
                 payment_gateway='پرداخت اینترنتی'
             )
-
+            BankTransactionService.deposit(
+                user=request.user,
+                bank=pay.bank,
+                unit=pay.unit,
+                amount=Decimal(pay.amount),
+                description=f" پرداخت به ساختمان: {(pay.description or '')[:50]}",
+                content_object=pay.unit,
+                payment_date=pay.payment_date,
+                transaction_no=ref_id,
+                gateway='پرداخت اینترنتی',
+                house=pay.house
+            )
 
             messages.success(request, f'پرداخت با موفقیت انجام شد. کد پیگیری: {ref_id}')
             return redirect('user_pay_money')
@@ -414,21 +467,21 @@ def verify_user_pay_money(request: HttpRequest):
             messages.info(request, 'این پرداخت قبلاً ثبت شده است')
             return redirect('user_pay_money')
 
-        return render(request, 'payment_done.html', {
+        return render(request, 'civil_payment_done.html', {
             'error': result['data'].get('message'),
             'pay': pay
         })
 
     except Exception as e:
-        return render(request, 'payment_done.html', {
+        return render(request, 'civil_payment_done.html', {
             'error': f"خطا: {e}",
             'pay': pay
         })
 
 
+# ================================================================
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def unit_charge_middle_payment_view(request, charge_id):
-
     charge = get_object_or_404(
         UnifiedCharge,
         id=charge_id,
@@ -449,11 +502,10 @@ def unit_charge_middle_payment_view(request, charge_id):
 
         if form.is_valid():
             with transaction.atomic():
-
                 unified_charge = form.save(commit=False)
 
                 unified_charge.is_paid = True
-                unified_charge.payment_gateway = 'پرداخت الکترونیک'
+                unified_charge.payment_gateway = 'کارت به کارت'
                 unified_charge.update_penalty(save=False)
 
                 unified_charge.save(update_fields=[
@@ -472,7 +524,7 @@ def unit_charge_middle_payment_view(request, charge_id):
                     bank=unified_charge.bank,
                     unit=unified_charge.unit,
                     house=unified_charge.house,
-                    payer_name=unified_charge.unit.get_label(),
+                    payer_name=unified_charge.unit.get_label,
                     debtor_amount=unified_charge.total_charge_month,
                     amount=unified_charge.total_charge_month,
                     creditor_amount=0,
@@ -480,7 +532,19 @@ def unit_charge_middle_payment_view(request, charge_id):
                     payment_date=unified_charge.payment_date,
                     payment_description=unified_charge.title,
                     transaction_no=unified_charge.transaction_reference,
-                    payment_gateway='پرداخت الکترونیک'
+                    payment_gateway='کارت به کارت'
+                )
+                BankTransactionService.deposit(
+                    user=request.user,
+                    bank=unified_charge.bank,
+                    unit=unified_charge.unit,
+                    amount=Decimal(unified_charge.total_charge_month),
+                    description=f"{(unified_charge.title or '')[:50]}",
+                    content_object=unified_charge.unit,
+                    payment_date=unified_charge.payment_date,
+                    transaction_no=unified_charge.transaction_reference,
+                    gateway='کارت به کارت',
+                    house=unified_charge.house
                 )
 
             main_charge = unified_charge.main_charge
@@ -515,3 +579,841 @@ def unit_charge_middle_payment_view(request, charge_id):
     })
 
 
+# ===========================================================
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_pay_civil_charge(request, pk):
+    installment = get_object_or_404(CivilInstallment, pk=pk)
+    house = installment.unit.myhouse
+
+    if request.method == 'POST':
+        form = MiddlePayCivilForm(request.POST, instance=installment, house=house)
+
+        if installment.installment_number > 0:
+            prev_installment = CivilInstallment.objects.filter(
+                civil_manage=installment.civil_manage,
+                unit=installment.unit,
+                installment_number=installment.installment_number - 1
+            ).first()
+
+            if prev_installment and not prev_installment.is_paid:
+                messages.error(request, "ابتدا باید قسط قبلی پرداخت شود")
+                return redirect(
+                    'middle_charge_civil_unit_installments',
+                    civil_id=installment.civil_manage.id,
+                    unit_id=installment.unit.id
+                )
+
+        if form.is_valid():
+            installment = form.save(commit=False)
+            installment.is_paid = True
+            installment.save()
+
+            selected_bank = form.cleaned_data['bank']
+
+            content_type = ContentType.objects.get_for_model(CivilInstallment)
+
+            Fund.objects.create(
+                content_type=content_type,
+                object_id=installment.id,
+                unit=installment.unit,
+                house=house,
+                bank=selected_bank,
+                debtor_amount=installment.amount,
+                amount=installment.amount,
+                creditor_amount=0,
+                user=request.user,
+                is_paid=True,
+                payer_name=installment.unit.get_label,
+                payment_date=installment.payment_date,
+                payment_description=f"پرداخت شارژ عمرانی: {(installment.civil_manage.name or '')[:50]}",
+                transaction_no=installment.transaction_reference,
+                payment_gateway='کارت به کارت'
+            )
+            BankTransactionService.deposit(
+                user=request.user,
+                bank=selected_bank,
+                unit=installment.unit,
+                amount=Decimal(installment.amount),
+                description=f"پرداخت شارژ عمرانی: {(installment.civil_manage.name or '')[:50]}",
+                content_object=installment,
+                payment_date=installment.payment_date,
+                transaction_no=installment.transaction_reference,
+                gateway='کارت به کارت',
+                house=house
+            )
+
+            messages.success(request, 'پرداخت شما با موفقیت ثبت گردید')
+
+        else:
+            messages.error(request, 'خطا در ثبت پرداخت')
+
+        return redirect(
+            'middle_charge_civil_unit_installments',
+            civil_id=installment.civil_manage.id,
+            unit_id=installment.unit.id
+        )
+
+    return redirect(
+        'middle_charge_civil_unit_installments',
+        civil_id=installment.civil_manage.id,
+        unit_id=installment.unit.id
+    )
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_cancel_pay_civil_charge(request, pk):
+    installment = get_object_or_404(CivilInstallment, pk=pk)
+
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+
+                content_type = ContentType.objects.get_for_model(CivilInstallment)
+
+                fund = Fund.objects.filter(
+                    content_type=content_type,
+                    object_id=installment.id
+                ).first()
+
+                if not fund:
+                    messages.error(request, 'Fund مرتبط با این پرداخت پیدا نشد!')
+                    return redirect(request.META.get('HTTP_REFERER'))
+
+                # ----------------------------
+                # پیدا کردن BankFund مرتبط
+                # ----------------------------
+                bank_fund = BankFund.objects.filter(
+                    content_type=content_type,
+                    object_id=installment.id
+                ).first()
+                print(f'bank_fund: {bank_fund}')
+
+                if bank_fund:
+                    bank = bank_fund.bank
+
+                    # اصلاح موجودی بانک
+                    if bank_fund.transaction_type == 'deposit':
+                        bank.current_balance -= bank_fund.amount
+                    else:
+                        bank.current_balance += bank_fund.amount
+
+                    bank.save(update_fields=['current_balance'])
+
+                    bank_fund.delete()
+
+                # ----------------------------
+                # حذف Fund
+                # ----------------------------
+                fund_id = fund.id
+                fund.delete()
+
+                # بازمحاسبه صندوق
+                next_fund = Fund.objects.filter(id__gt=fund_id).order_by('id').first()
+                if next_fund:
+                    Fund.recalc_final_amounts_from(next_fund)
+
+                # ----------------------------
+                # بازگرداندن installment
+                # ----------------------------
+                installment.is_paid = False
+                installment.bank = None
+                installment.transaction_reference = None
+                installment.payment_date = None
+
+                installment.save(update_fields=[
+                    'is_paid',
+                    'bank',
+                    'transaction_reference',
+                    'payment_date',
+                ])
+
+                messages.success(request, 'دریافت با موفقیت لغو شد و صندوق و بانک اصلاح شد.')
+                return redirect(request.META.get('HTTP_REFERER'))
+
+        except Exception as e:
+            messages.error(request, f'خطا در لغو دریافت: {e}')
+            return redirect(request.META.get('HTTP_REFERER'))
+
+    return redirect(request.META.get('HTTP_REFERER'))
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def user_pay_civil_installment(request, pk):
+    installment = get_object_or_404(
+        CivilInstallment.objects.filter(
+            Q(unit__user=request.user) |
+            Q(unit__renters__user=request.user, unit__renters__renter_is_active=True)
+        ),
+        pk=pk
+    )
+    house = installment.unit.myhouse
+
+    if request.method == 'POST':
+        form = MiddlePayCivilForm(request.POST, instance=installment, house=house)
+
+        if form.is_valid():
+            installment = form.save(commit=False)
+            installment.is_paid = True
+            installment.payment_gateway = 'کارت به کارت'
+            installment.save()
+
+            selected_bank = form.cleaned_data['bank']
+
+            content_type = ContentType.objects.get_for_model(CivilInstallment)
+
+            Fund.objects.create(
+                content_type=content_type,
+                object_id=installment.id,
+                unit=installment.unit,
+                house=house,
+                bank=selected_bank,
+                debtor_amount=installment.amount,
+                amount=installment.amount,
+                creditor_amount=0,
+                user=request.user,
+                is_paid=True,
+                payer_name=installment.unit.get_label,
+                payment_date=installment.payment_date,
+                payment_description=f"پرداخت شارژ عمرانی: {(installment.civil_manage.name or '')[:50]}",
+                transaction_no=installment.transaction_reference,
+                payment_gateway='کارت به کارت'
+            )
+            BankTransactionService.deposit(
+                user=request.user,
+                bank=selected_bank,
+                unit=installment.unit,
+                amount=Decimal(installment.amount),
+                description=f"پرداخت شارژ عمرانی: {(installment.civil_manage.name or '')[:50]}",
+                content_object=installment,
+                payment_date=installment.payment_date,
+                transaction_no=installment.transaction_reference,
+                gateway='کارت به کارت',
+                house=house
+            )
+
+            messages.success(request, 'پرداخت شارژ با موفقیت ثبت گردید')
+            return redirect(
+                'user_civil_installments_list',
+                civil_id=installment.civil_manage.id,
+                unit_id=installment.unit.id
+            )
+
+        else:
+            messages.error(request, 'خطا در ثبت پرداخت ')
+            return redirect(
+                'user_civil_installments_list',
+                civil_id=installment.civil_manage.id,
+                unit_id=installment.unit.id
+            )
+
+    else:
+        form = MiddlePayCivilForm(instance=installment, house=house)
+
+    return render(request, 'civil_payment_gateway.html', {
+        'installment': installment,
+        'form': form,
+    })
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def request_user_pay_installment(request: HttpRequest, inst_id):
+    installment = get_object_or_404(
+        CivilInstallment,
+        id=inst_id,
+        is_paid=False
+    )
+
+    if not installment.amount or installment.amount <= 0:
+        return HttpResponse("مبلغ پرداخت نامعتبر است.", status=400)
+
+    callback_url = f"{CallbackURLUserPayInstallment}?inst_id={installment.id}"
+
+    req_data = {
+        "merchant_id": MERCHANT,
+        "amount": installment.amount * 10,  # تومان → ریال
+        "callback_url": callback_url,
+        "description": installment.civil_manage.name or "پرداخت اینترنتی",
+    }
+
+    req_header = {
+        "accept": "application/json",
+        "content-type": "application/json"
+    }
+
+    try:
+        req = requests.post(
+            url=ZP_API_REQUEST,
+            data=json.dumps(req_data),
+            headers=req_header
+        )
+        req_data = req.json()
+
+        if req.status_code == 200 and 'authority' in req_data.get('data', {}):
+            authority = req_data['data']['authority']
+            return redirect(ZP_API_STARTPAY.format(authority=authority))
+
+        e_code = req_data.get('errors', {}).get('code')
+        e_message = req_data.get('errors', {}).get('message')
+        return HttpResponse(f"{e_code} - {e_message}")
+
+    except requests.RequestException as e:
+        return HttpResponse(f"خطا در ارتباط با درگاه: {e}", status=500)
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+@transaction.atomic
+def verify_user_pay_installment(request: HttpRequest):
+    inst_id = request.GET.get('inst_id')
+    authority = request.GET.get('Authority')
+    status = request.GET.get('Status')
+
+    if not inst_id:
+        return render(request, 'civil_payment_done.html', {
+            'error': 'شناسه پرداخت ارسال نشده است'
+        })
+
+    # 🔒 قفل کردن رکورد برای جلوگیری از race condition
+    installment = get_object_or_404(
+        CivilInstallment.objects.select_for_update(),
+        id=inst_id
+    )
+
+    # اگر قبلاً پرداخت شده
+    if installment.is_paid:
+        messages.info(request, 'این قسط قبلاً پرداخت شده است')
+        return redirect('user_pay_civil_charge')
+
+    if status != 'OK':
+        messages.error(request, 'پرداخت لغو شد')
+        return redirect('user_pay_civil_charge')
+
+    req_data = {
+        "merchant_id": MERCHANT,
+        "amount": installment.amount * 10,
+        "authority": authority
+    }
+
+    req_header = {
+        "accept": "application/json",
+        "content-type": "application/json"
+    }
+
+    try:
+        req = requests.post(
+            url=ZP_API_VERIFY,
+            data=json.dumps(req_data),
+            headers=req_header,
+            timeout=10
+        )
+
+        result = req.json()
+
+        if result.get('errors'):
+            return render(request, 'civil_payment_done.html', {
+                'error': result['errors'].get('message'),
+                'installment': installment
+            })
+
+        code = result['data']['code']
+
+        if code == 100:
+
+            ref_id = result['data']['ref_id']
+
+            # ✅ بررسی تکراری نبودن ref_id
+            if Fund.objects.filter(transaction_no=ref_id).exists():
+                messages.info(request, 'این پرداخت قبلاً ثبت شده است')
+                return redirect('user_pay_civil_charge')
+
+            bank = Bank.objects.filter(
+                house=installment.unit.myhouse,
+                is_gateway=True,
+                is_active=True
+            ).first()
+
+            if not bank:
+                messages.error(request, 'حساب درگاه اینترنتی تعریف نشده است')
+                return redirect('user_pay_civil_charge')
+
+            # ✅ ثبت پرداخت
+            installment.bank = bank
+            installment.transaction_reference = ref_id
+            installment.is_paid = True
+            installment.payment_gateway = 'پرداخت اینترنتی'
+            installment.payment_date = timezone.now()
+            installment.save()
+
+            content_type = ContentType.objects.get_for_model(CivilInstallment)
+
+            Fund.objects.create(
+                content_type=content_type,
+                object_id=installment.id,
+                unit=installment.unit,
+                house=installment.house,
+                bank=bank,
+                debtor_amount=installment.amount,
+                amount=installment.amount,
+                creditor_amount=0,
+                user=request.user,
+                is_paid=True,
+                payer_name=installment.unit.get_label,
+                payment_date=installment.payment_date,
+                payment_description=f"پرداخت شارژ عمرانی: {(installment.civil_manage.name or '')[:50]}",
+                transaction_no=ref_id,
+                payment_gateway='پرداخت اینترنتی'
+            )
+            BankTransactionService.deposit(
+                user=request.user,
+                bank=bank,
+                unit=installment.unit,
+                amount=Decimal(installment.amount),
+                description=f"پرداخت شارژ عمرانی: {(installment.civil_manage.name or '')[:50]}",
+                content_object=installment,
+                payment_date=installment.payment_date,
+                transaction_no=ref_id,
+                gateway='پرداخت اینترنتی',
+                house=installment.house
+            )
+            # return render(request, 'civil_payment_done.html', {
+            #     'success': f'پرداخت با موفقیت انجام شد. کد پیگیری: {ref_id}'
+            # })
+            messages.success(request, f'پرداخت شارژ با موفقیت انجام شد. کد پیگیری: {ref_id}')
+            return redirect(
+                'user_civil_installments_list',
+                civil_id=installment.civil_manage.id,
+                unit_id=installment.unit.id
+            )
+
+            # messages.success(
+            #     request,
+            #     f'پرداخت با موفقیت انجام شد. کد پیگیری: {ref_id}'
+            # )
+            # return redirect('user_pay_civil_charge', installment.id)
+
+        elif code == 101:
+            messages.info(request, 'این پرداخت قبلاً تایید شده است')
+            return redirect('user_pay_civil_charge')
+
+        return render(request, 'civil_payment_done.html', {
+            'error': result['data'].get('message'),
+            'installment': installment
+        })
+
+    except requests.RequestException as e:
+        return render(request, 'civil_payment_done.html', {
+            'error': f"خطا در ارتباط با درگاه: {e}",
+            'installment': installment
+        })
+
+
+# ===============================================================
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_pay_sewage(request, pk):
+    installment = get_object_or_404(SewageInstallment, pk=pk)
+    house = installment.unit.myhouse
+
+    if request.method == 'POST':
+        form = MiddlePayCivilForm(request.POST, instance=installment, house=house)
+
+        if installment.installment_number > 0:
+            prev_installment = SewageInstallment.objects.filter(
+                sewage_manage=installment.sewage_manage,
+                unit=installment.unit,
+                installment_number=installment.installment_number - 1
+            ).first()
+
+            if prev_installment and not prev_installment.is_paid:
+                messages.error(request, "ابتدا باید قسط قبلی پرداخت شود")
+                return redirect(
+                    'middle_sewage_unit_installments',
+                    sewage_id=installment.sewage_manage.id,
+                    unit_id=installment.unit.id
+                )
+
+        if form.is_valid():
+            installment = form.save(commit=False)
+            installment.is_paid = True
+            installment.payment_gateway = 'کارت به کارت'
+            installment.save()
+
+            selected_bank = form.cleaned_data['bank']
+
+            content_type = ContentType.objects.get_for_model(SewageInstallment)
+
+            Fund.objects.create(
+                content_type=content_type,
+                object_id=installment.id,
+                unit=installment.unit,
+                house=house,
+                bank=selected_bank,
+                debtor_amount=installment.amount,
+                amount=installment.amount,
+                creditor_amount=0,
+                user=request.user,
+                is_paid=True,
+                payer_name=installment.unit.get_label,
+                payment_date=installment.payment_date,
+                payment_description=f"پرداخت هزینه فاضلاب: {(installment.sewage_manage.name or '')[:50]}",
+                transaction_no=installment.transaction_reference,
+                payment_gateway='کارت به کارت'
+            )
+            BankTransactionService.deposit(
+                user=request.user,
+                bank=selected_bank,
+                unit=installment.unit,
+                amount=Decimal(installment.amount),
+                description=f"پرداخت هزینه فاضلاب: {(installment.sewage_manage.name or '')[:50]}",
+                content_object=installment,
+                payment_date=installment.payment_date,
+                transaction_no=installment.transaction_reference,
+                gateway='کارت به کارت',
+                house=house
+            )
+
+            messages.success(request, 'پرداخت شما با موفقیت ثبت گردید')
+
+        else:
+            messages.error(request, 'خطا در ثبت پرداخت')
+
+        return redirect(
+            'middle_sewage_unit_installments',
+            sewage_id=installment.sewage_manage.id,
+            unit_id=installment.unit.id
+        )
+
+    return redirect(
+        'middle_sewage_unit_installments',
+        sewage_id=installment.sewage_manage.id,
+        unit_id=installment.unit.id
+    )
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_cancel_pay_sewage(request, pk):
+    installment = get_object_or_404(SewageInstallment, pk=pk)
+
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+
+                content_type = ContentType.objects.get_for_model(SewageInstallment)
+
+                fund = Fund.objects.filter(
+                    content_type=content_type,
+                    object_id=installment.id
+                ).first()
+
+                if not fund:
+                    messages.error(request, 'Fund مرتبط با این پرداخت پیدا نشد!')
+                    return redirect(request.META.get('HTTP_REFERER'))
+
+                # حذف Fund
+                fund.delete()
+
+                # ----------------------------
+                # پیدا کردن BankFund مرتبط
+                # ----------------------------
+                bank_fund = BankFund.objects.filter(
+                    content_type=content_type,
+                    object_id=installment.id
+                ).first()
+                print(f'bank_fund: {bank_fund}')
+
+                if bank_fund:
+                    bank = bank_fund.bank
+
+                    # اصلاح موجودی بانک
+                    if bank_fund.transaction_type == 'deposit':
+                        bank.current_balance -= bank_fund.amount
+                    else:
+                        bank.current_balance += bank_fund.amount
+
+                    bank.save(update_fields=['current_balance'])
+
+                    bank_fund.delete()
+
+                # بازمحاسبه موجودی صندوق از این Fund به بعد
+                Fund.recalc_final_amounts_from(fund)
+
+                # بازگرداندن Expense به حالت پرداخت‌نشده
+                installment.is_paid = False
+                installment.bank = None
+                installment.transaction_reference = None
+                installment.payment_date = None
+
+                installment.save(update_fields=[
+                    'is_paid',
+                    'bank',
+                    'transaction_reference',
+                    'payment_date',
+                ])
+
+                messages.success(request, 'دریافت با موفقیت لغو شد و صندوق اصلاح شد.')
+                return redirect(request.META.get('HTTP_REFERER'))
+
+        except Exception as e:
+            messages.error(request, f'خطا در لغو دریافت: {e}')
+            return redirect(request.META.get('HTTP_REFERER'))
+
+    # اگر GET باشد، فقط برگرد به صفحه قبل
+    return redirect(request.META.get('HTTP_REFERER'))
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def user_pay_sewage_installment(request, pk):
+    installment = get_object_or_404(SewageInstallment, pk=pk)
+    house = installment.unit.myhouse
+
+    if request.method == 'POST':
+        form = MiddlePaySewageForm(request.POST, instance=installment, house=house)
+
+        if form.is_valid():
+            installment = form.save(commit=False)
+            installment.is_paid = True
+            installment.payment_gateway = 'کارت به کارت'
+            installment.save()
+
+            selected_bank = form.cleaned_data['bank']
+
+            content_type = ContentType.objects.get_for_model(SewageInstallment)
+
+            Fund.objects.create(
+                content_type=content_type,
+                object_id=installment.id,
+                unit=installment.unit,
+                house=house,
+                bank=selected_bank,
+                debtor_amount=installment.amount,
+                amount=installment.amount,
+                creditor_amount=0,
+                user=request.user,
+                is_paid=True,
+                payer_name=installment.unit.get_label,
+                payment_date=installment.payment_date,
+                payment_description=f"پرداخت هزینه فاضلاب: {(installment.sewage_manage.name or '')[:50]}",
+                transaction_no=installment.transaction_reference,
+                payment_gateway='کارت به کارت'
+            )
+            BankTransactionService.deposit(
+                user=request.user,
+                bank=selected_bank,
+                unit=installment.unit,
+                amount=Decimal(installment.amount),
+                description=f"پرداخت هزینه فاضلاب: {(installment.sewage_manage.name or '')[:50]}",
+                content_object=installment,
+                payment_date=installment.payment_date,
+                transaction_no=installment.transaction_reference,
+                gateway='کارت به کارت',
+                house=house
+            )
+
+            messages.success(request, 'پرداخت با موفقیت ثبت گردید')
+            return redirect(
+                'user_sewage_installments_list',
+                sewage_id=installment.sewage_manage.id,
+                unit_id=installment.unit.id
+            )
+
+        else:
+            messages.error(request, 'خطا در ثبت پرداخت')
+            return redirect(
+                'user_sewage_installments_list',
+                sewage_id=installment.sewage_manage.id,
+                unit_id=installment.unit.id
+            )
+
+    else:
+        form = MiddlePaySewageForm(instance=installment, house=house)
+
+    return render(request, 'sewage_payment_gateway.html', {
+        'installment': installment,
+        'form': form,
+    })
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def request_user_pay_sewage_installment(request: HttpRequest, inst_id):
+    installment = get_object_or_404(
+        SewageInstallment,
+        id=inst_id,
+        is_paid=False
+    )
+
+    if not installment.amount or installment.amount <= 0:
+        return HttpResponse("مبلغ پرداخت نامعتبر است.", status=400)
+
+    callback_url = f"{CallbackURLUserPaySewageInstallment}?inst_id={installment.id}"
+
+    req_data = {
+        "merchant_id": MERCHANT,
+        "amount": installment.amount * 10,  # تومان → ریال
+        "callback_url": callback_url,
+        "description": installment.sewage_manage.name or "پرداخت اینترنتی",
+    }
+
+    req_header = {
+        "accept": "application/json",
+        "content-type": "application/json"
+    }
+
+    try:
+        req = requests.post(
+            url=ZP_API_REQUEST,
+            data=json.dumps(req_data),
+            headers=req_header
+        )
+        req_data = req.json()
+
+        if req.status_code == 200 and 'authority' in req_data.get('data', {}):
+            authority = req_data['data']['authority']
+            return redirect(ZP_API_STARTPAY.format(authority=authority))
+
+        e_code = req_data.get('errors', {}).get('code')
+        e_message = req_data.get('errors', {}).get('message')
+        return HttpResponse(f"{e_code} - {e_message}")
+
+    except requests.RequestException as e:
+        return HttpResponse(f"خطا در ارتباط با درگاه: {e}", status=500)
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+@transaction.atomic
+def verify_user_pay_sewage_installment(request: HttpRequest):
+    inst_id = request.GET.get('inst_id')
+    authority = request.GET.get('Authority')
+    status = request.GET.get('Status')
+
+    if not inst_id:
+        return render(request, 'sewage_payment_done.html', {
+            'error': 'شناسه پرداخت ارسال نشده است'
+        })
+
+    # 🔒 قفل کردن رکورد برای جلوگیری از race condition
+    installment = get_object_or_404(
+        SewageInstallment.objects.select_for_update(),
+        id=inst_id
+    )
+
+    # اگر قبلاً پرداخت شده
+    if installment.is_paid:
+        messages.info(request, 'این قسط قبلاً پرداخت شده است')
+        return redirect('user_pay_sewage_installment')
+
+    if status != 'OK':
+        messages.error(request, 'پرداخت لغو شد')
+        return redirect('user_pay_sewage_installment')
+
+    req_data = {
+        "merchant_id": MERCHANT,
+        "amount": installment.amount * 10,
+        "authority": authority
+    }
+
+    req_header = {
+        "accept": "application/json",
+        "content-type": "application/json"
+    }
+
+    try:
+        req = requests.post(
+            url=ZP_API_VERIFY,
+            data=json.dumps(req_data),
+            headers=req_header,
+            timeout=10
+        )
+
+        result = req.json()
+
+        if result.get('errors'):
+            return render(request, 'sewage_payment_done.html', {
+                'error': result['errors'].get('message'),
+                'installment': installment
+            })
+
+        code = result['data']['code']
+
+        if code == 100:
+
+            ref_id = result['data']['ref_id']
+
+            # ✅ بررسی تکراری نبودن ref_id
+            if Fund.objects.filter(transaction_no=ref_id).exists():
+                messages.info(request, 'این پرداخت قبلاً ثبت شده است')
+                return redirect('user_pay_sewage_installment')
+
+            bank = Bank.objects.filter(
+                house=installment.unit.myhouse,
+                is_gateway=True,
+                is_active=True
+            ).first()
+
+            if not bank:
+                messages.error(request, 'حساب درگاه اینترنتی تعریف نشده است')
+                return redirect('user_pay_sewage_installment')
+
+            # ✅ ثبت پرداخت
+            installment.bank = bank
+            installment.transaction_reference = ref_id
+            installment.is_paid = True
+            installment.payment_gateway = 'پرداخت اینترنتی'
+            installment.payment_date = timezone.now()
+            installment.save()
+
+            content_type = ContentType.objects.get_for_model(SewageInstallment)
+
+            Fund.objects.create(
+                content_type=content_type,
+                object_id=installment.id,
+                unit=installment.unit,
+                house=installment.house,
+                bank=bank,
+                debtor_amount=installment.amount,
+                amount=installment.amount,
+                creditor_amount=0,
+                user=request.user,
+                is_paid=True,
+                payer_name=installment.unit.get_label,
+                payment_date=installment.payment_date,
+                payment_description=f"پرداخت هزینه فاضلاب: {(installment.sewage_manage.name or '')[:50]}",
+                transaction_no=ref_id,
+                payment_gateway='پرداخت اینترنتی'
+            )
+            BankTransactionService.deposit(
+                user=request.user,
+                bank=bank,
+                unit=installment.unit,
+                amount=Decimal(installment.amount),
+                description=f"پرداخت هزینه فاضلاب: {(installment.sewage_manage.name or '')[:50]}",
+                content_object=installment,
+                payment_date=installment.payment_date,
+                transaction_no=ref_id,
+                gateway='پرداخت اینترنتی',
+                house=installment.house
+            )
+            messages.success(request, 'پرداخت شما با موفقیت ثبت گردید')
+            return redirect(
+                'user_sewage_installments_list',
+                sewage_id=installment.sewage_manage.id,
+                unit_id=installment.unit.id
+            )
+
+            # messages.success(
+            #     request,
+            #     f'پرداخت با موفقیت انجام شد. کد پیگیری: {ref_id}'
+            # )
+            # return redirect('user_pay_civil_charge', installment.id)
+
+        elif code == 101:
+            messages.info(request, 'این پرداخت قبلاً تایید شده است')
+            return redirect('user_pay_sewage_installment')
+
+        return render(request, 'sewage_payment_done.html', {
+            'error': result['data'].get('message'),
+            'installment': installment
+        })
+
+    except requests.RequestException as e:
+        return render(request, 'sewage_payment_done.html', {
+            'error': f"خطا در ارتباط با درگاه: {e}",
+            'installment': installment
+        })

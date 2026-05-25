@@ -4,7 +4,7 @@
 {% load jalali_tags %}
 
 {% block page_title %}
-مدیریت حساب بانکی
+بانک ها
 {% endblock page_title %}
 
 {% block main_content %}
@@ -21,7 +21,7 @@
                                         <th>شماره شبا</th>
                                         <th>شماره کارت</th>
                                         <th>فعال/حساب پیش فرض</th>
-                                           <th>موجودی در حال حاضر</th>
+                                           <th>مانده</th>
                                         <th>گردش حساب</th>
                                     </tr>
                                 </thead>
@@ -46,9 +46,8 @@
                                                 <button class="btn btn-gradient-warning p-1">پیش فرض</button>
                                                {% endif %}
                                             </td>
-                                                {% with bank_data=bank_transactions|dict_get:bank.id %}
-                                                    <td>{{ bank_data.balance|three_digit_currency }}</td>
-                                                {% endwith %}
+                                                    <td>{{ bank.current_balance|three_digit_currency }}</td>
+                                         
 
                                      <td class="col-lg-1 col-xl-1">
                                        <a href="{% url 'middle_bank_detail' bank.id %}" class="btn btn-info p-1 p-1">

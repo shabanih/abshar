@@ -3,9 +3,11 @@ import json
 import logging
 import os
 import time
-from datetime import timezone, datetime
+from datetime import timezone, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from itertools import chain
+
+from dateutil.relativedelta import relativedelta
 from django.apps import apps
 from django.conf.urls.static import static
 from django.contrib.auth.forms import PasswordChangeForm
@@ -21,12 +23,13 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import user_passes_test, login_required
 from django.db import transaction, IntegrityError, models
-from django.db.models import ProtectedError, Count, Q, Sum, F
+from django.db.models import ProtectedError, Count, Q, Sum, F, Prefetch, Case, When, IntegerField, FilteredRelation
 from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import get_template, render_to_string
 from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
+from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, UpdateView, DetailView, ListView
 from openpyxl.styles import PatternFill, Alignment, Font
@@ -39,15 +42,18 @@ from admin_panel.forms import announcementForm, BankForm, UnitForm, ExpenseCateg
     IncomeCategoryForm, IncomeForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, MaintenanceForm, FixChargeForm, \
     FixAreaChargeForm, AreaChargeForm, PersonChargeForm, FixPersonChargeForm, PersonAreaChargeForm, \
     PersonAreaFixChargeForm, VariableFixChargeForm, MyHouseForm, SmsForm, RenterAddForm, ExpensePayForm, IncomePayForm, \
-    SmsCreditForm, SubscriptionPlanForm
+    SmsCreditForm, SubscriptionPlanForm, CivilForm, SewageForm, ReceivePayForm, PayMoneyForm, PropertyPayForm, \
+    MaintenancePayForm, TransferMoneyForm
 from admin_panel.helper import send_notify_user_by_sms
 from admin_panel.models import Announcement, ExpenseCategory, Expense, Fund, ExpenseDocument, IncomeCategory, Income, \
     IncomeDocument, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, FixCharge, AreaCharge, PersonCharge, \
     FixAreaCharge, FixPersonCharge, ChargeByPersonArea, \
     ChargeByFixPersonArea, ChargeFixVariable, SmsManagement, \
-    UnifiedCharge, SmsCredit, SubscriptionPlan, Subscription
+    UnifiedCharge, SmsCredit, SubscriptionPlan, Subscription, CivilManage, CivilDocument, CivilInstallment, \
+    SewageManage, SewageDocument, SewageInstallment, BankFund
 from admin_panel.services.calculators import CALCULATORS
+from middleAdmin_panel.services.bank_services import BankTransactionService
 from middleAdmin_panel.services.unit_services import UnitUpdateService
 from notifications.models import Notification, SupportUser
 from notifications.services.sms_service import SmsService
@@ -74,16 +80,24 @@ def buy_subscription(request):
         is_active=True,
     ).count()
 
-    # 🔹 چک اشتراک فعال
-    active_subscription = Subscription.objects.filter(
-        house__user=request.user,
-        status='active',  # اگر فیلد status اضافه کردی
-        end_date__gt=timezone.now()
-    ).exists()
+    # اشتراک فعال فعلی (اگر وجود داشته باشد)
+    active_sub = Subscription.objects.filter(
+        user=request.user,
+        status='active'
+    ).order_by("-end_date").first()
+
+    active_subscription = False
+
+    if active_sub and active_sub.end_date:
+        remaining_days = (active_sub.end_date.date() - timezone.now().date()).days
+
+        # اگر بیشتر از ۳ روز مانده باشد → اجازه خرید اشتراک جدید ندارد
+        if remaining_days > 3:
+            active_subscription = True
 
     if active_subscription:
-        messages.warning(request, "شما در حال حاضر اشتراک فعال دارید.")
-        return redirect("middle_admin_dashboard")  # یا هر صفحه مناسب
+        messages.warning(request, "هنوز بیش از ۳ روز به پایان اشتراک فعلی شما مانده است.")
+        return redirect("middle_admin_dashboard")
 
     if request.method == "POST":
         try:
@@ -108,14 +122,23 @@ def buy_subscription(request):
 
         total = units * plan.price_per_unit
 
+        # تعیین تاریخ شروع
+        if active_sub and active_sub.end_date:
+            start_date = active_sub.end_date + timedelta(days=1)
+        else:
+            start_date = timezone.now()
+
+        end_date = start_date + timedelta(days=plan.duration)
+
         Subscription.objects.create(
             user=request.user,
-            house__user=request.user,
             units_count=units,
             plan=plan,
+            start_date=start_date,
+            end_date=end_date,
             total_amount=total,
             is_paid=False,
-            status='active'  # مهم
+            status='active'
         )
 
         return redirect("subscription_success")
@@ -124,6 +147,66 @@ def buy_subscription(request):
         "plans": plans,
         "unit_count": unit_count,
     })
+
+# def buy_subscription(request):
+#     plans = SubscriptionPlan.objects.filter(is_active=True).order_by('duration')
+#
+#     managed_users = request.user.managed_users.all()
+#     unit_count = Unit.objects.filter(
+#         Q(user=request.user) | Q(user__in=managed_users),
+#         is_active=True,
+#     ).count()
+#
+#     # 🔹 چک اشتراک فعال
+#     active_subscription = Subscription.objects.filter(
+#         house__user=request.user,
+#         status='active',  # اگر فیلد status اضافه کردی
+#         end_date__gt=timezone.now()
+#     ).exists()
+#
+#     if active_subscription:
+#         messages.warning(request, "شما در حال حاضر اشتراک فعال دارید.")
+#         return redirect("middle_admin_dashboard")  # یا هر صفحه مناسب
+#
+#     if request.method == "POST":
+#         try:
+#             units = int(request.POST.get("units_count"))
+#         except (ValueError, TypeError):
+#             messages.error(request, "تعداد واحد نامعتبر است.")
+#             return redirect("buy_subscription")
+#
+#         if units < unit_count:
+#             messages.error(
+#                 request,
+#                 f"تعداد واحد وارد شده نمی‌تواند کمتر از تعداد ثبت‌شده ({unit_count}) باشد."
+#             )
+#             return redirect("buy_subscription")
+#
+#         try:
+#             plan_id = int(request.POST.get("plan"))
+#             plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
+#         except (ValueError, SubscriptionPlan.DoesNotExist):
+#             messages.error(request, "پلن انتخابی نامعتبر است.")
+#             return redirect("buy_subscription")
+#
+#         total = units * plan.price_per_unit
+#
+#         Subscription.objects.create(
+#             user=request.user,
+#             house__user=request.user,
+#             units_count=units,
+#             plan=plan,
+#             total_amount=total,
+#             is_paid=False,
+#             status='active'  # مهم
+#         )
+#
+#         return redirect("subscription_success")
+#
+#     return render(request, "middle_admin/middle_add_subscription.html", {
+#         "plans": plans,
+#         "unit_count": unit_count,
+#     })
 
 
 # ==============================================================
@@ -177,7 +260,7 @@ def switch_to_resident(request):
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_admin_dashboard(request):
     if not request.user.is_authenticated:
-        return redirect('login')  # یا هر URL ورود شما
+        return redirect('login')
 
     now = timezone.now().date()
 
@@ -187,16 +270,19 @@ def middle_admin_dashboard(request):
 
     if subscription:
         subscription.expire_if_needed()
+        subscription.refresh_from_db()
 
+        # بررسی امنیت فیلد تاریخ انقضا
         if subscription.end_date:
             days_after_expire = (now - subscription.end_date.date()).days
 
-            # اگر بیشتر از 5 روز از پایان گذشته
-            if subscription.status == "expired" and days_after_expire > 5:
+            if subscription.status == "expired":
                 return redirect('buy_subscription')
-
+        else:
+            # اگر به هر دلیلی تاریخ انقضا ست نشده باشد ولی رکورد وجود دارد
+            return redirect('buy_subscription')
     else:
-        # اگر اصلاً اشتراک ندارد
+        # اگر کاربر اصلاً رکوردی برای اشتراک ندارد
         return redirect('buy_subscription')
 
     managed_users = request.user.managed_users.all()
@@ -256,16 +342,25 @@ def middle_admin_dashboard(request):
     income_by_category = (
         IncomeCategory.objects
         .filter(user=request.user, is_active=True)
-        .annotate(total_amount=Sum(
-            'incomes__amount',
-            filter=Q(incomes__is_paid=True, incomes__is_active=True)
-        ))
+        .annotate(
+            paid_incomes=FilteredRelation(
+                'incomes',
+                condition=Q(incomes__is_paid=True, incomes__is_active=True)
+            )
+        )
+        .annotate(
+            incomes_count=Count('paid_incomes'),
+            total_amount=Sum('paid_incomes__amount')
+        )
+        .filter(incomes_count__gt=0)  # فقط دسته‌هایی که درآمد دارند
     )
 
     income_chart_data = {
-        "labels": [cat.subject for cat in income_by_category] or [],
-        "data": [cat.total_amount or 0 for cat in income_by_category] or []
+        "labels": [cat.subject for cat in income_by_category],
+        "data": [cat.total_amount or 0 for cat in income_by_category]
     }
+
+    has_income_chart_data = any(amount > 0 for amount in income_chart_data["data"])
 
     tickets = SupportUser.objects.filter(Q(user=request.user) | Q(user__in=managed_users)).order_by('-created_at')[:5]
 
@@ -336,6 +431,7 @@ def middle_admin_dashboard(request):
         'paid_data': paid_data,
         'unpaid_data': unpaid_data,
         'has_charge_data': has_charge_data,
+        'has_income_chart_data': has_income_chart_data
 
     }
     return render(request, 'middleShared/home_template.html', context)
@@ -572,34 +668,65 @@ class middleAddBankView(CreateView):
         response = super().form_valid(form)
 
         bank = self.object
-        house = bank.house  # اینجا هم اصلاح شد
+        house = bank.house
+        initial_fund = bank.initial_fund or Decimal('0')
+        content_type = ContentType.objects.get_for_model(Bank)
 
-        # اگر موجودی اولیه دارد → Fund افتتاحیه
-        if bank.initial_fund and bank.initial_fund > 0:
-            content_type = ContentType.objects.get_for_model(Bank)
+        # اگر موجودی اولیه دارد
+        if initial_fund > 0:
 
-            if not Fund.objects.filter(
-                    content_type=content_type,
-                    object_id=bank.id,
-                    payment_description__icontains='افتتاحیه'
-            ).exists():
+            # --- ثبت Fund افتتاحیه (در صورتی که وجود نداشته باشد)
+            fund_exists = Fund.objects.filter(
+                content_type=content_type,
+                object_id=bank.id,
+                is_initial=True
+            ).exists()
+
+            if not fund_exists:
                 Fund.objects.create(
                     user=self.request.user,
                     bank=bank,
                     house=house,
                     payer_name=bank.account_holder_name,
                     receiver_name='صندوق',
-                    payment_gateway='پرداخت الکترونیک',
+                    payment_gateway='کارت به کارت',
                     content_type=content_type,
                     object_id=bank.id,
                     is_initial=True,
                     is_paid=True,
-                    amount=bank.initial_fund,
-                    debtor_amount=bank.initial_fund,
-                    creditor_amount=Decimal(0),
+                    amount=initial_fund,
+                    debtor_amount=initial_fund,
+                    creditor_amount=Decimal('0'),
                     payment_date=bank.create_at.date(),
                     payment_description=f'افتتاحیه حساب بانک {bank.bank_name}'
                 )
+
+            # --- ثبت BankFund افتتاحیه (با استفاده از سرویس)
+            bankfund_exists = BankFund.objects.filter(
+                content_type=content_type,
+                object_id=bank.id,
+                transaction_type='deposit',
+                payment_description__icontains='افتتاحیه'
+            ).exists()
+
+            if not bankfund_exists:
+                BankTransactionService.deposit(
+                    user=self.request.user,
+                    bank=bank,
+                    unit=None,
+                    amount=initial_fund,
+                    description=f'افتتاحیه حساب بانک {bank.bank_name}',
+                    content_object=bank,
+                    payment_date=bank.create_at.date(),
+                    gateway="افتتاح حساب",
+                    house=bank.house
+                )
+
+        else:
+            # اگر موجودی اولیه ندارد، موجودی جاری باید صفر بماند
+            if bank.current_balance != Decimal('0'):
+                bank.current_balance = Decimal('0')
+                bank.save(update_fields=['current_balance'])
 
         messages.success(self.request, 'حساب بانکی با موفقیت ثبت گردید!')
         return response
@@ -625,77 +752,111 @@ class middleBankUpdateView(UpdateView):
     @transaction.atomic
     def form_valid(self, form):
         bank = self.get_object()
-        old_initial_fund = bank.initial_fund  # مقدار قبلی
+        old_initial_fund = bank.initial_fund or Decimal('0')
 
-        # ست کردن کاربر قبل از ذخیره فرم
+        # ست کردن کاربر
         form.instance.user = self.request.user
 
-        # ذخیره Bank (شامل house و بقیه فیلدها)
+        # ذخیره بانک
         response = super().form_valid(form)
 
-        # بارگذاری دوباره بانک بعد از ذخیره
+        # بانک جدید
         bank.refresh_from_db()
-        new_initial_fund = bank.initial_fund
-        house = bank.house  # حتما house را از بانک بگیری
+        new_initial_fund = bank.initial_fund or Decimal('0')
+        house = bank.house
 
-        # بررسی تغییر مقدار اولیه
+        # اگر تغییری نکرده
         if old_initial_fund == new_initial_fund:
-            messages.success(self.request, 'اطلاعات حساب بانکی بروزرسانی شد.')
+            messages.success(self.request, 'حساب بانکی بروزرسانی شد.')
             return response
 
+        # محاسبه تغییر موجودی
+        delta = new_initial_fund - old_initial_fund
+
         content_type = ContentType.objects.get_for_model(Bank)
+
+        # Fund افتتاحیه
         initial_fund_obj = Fund.objects.filter(
             content_type=content_type,
             object_id=bank.id,
             is_initial=True
         ).first()
 
-        # اگر موجودی جدید مثبت است → ایجاد یا بروزرسانی Fund
-        if new_initial_fund and new_initial_fund > 0:
+        # --------- 1) اگر افتتاحیه جدید مثبت است → Fund را بروزرسانی یا ایجاد کن ---------
+        if new_initial_fund > 0:
+
             if initial_fund_obj:
-                # بروزرسانی
-                initial_fund_obj.amount = Decimal(new_initial_fund)
-                initial_fund_obj.debtor_amount = Decimal(new_initial_fund)
-                initial_fund_obj.creditor_amount = Decimal(0)
-                initial_fund_obj.payment_description = f'افتتاحیه حساب بانک {bank.bank_name}'
-                initial_fund_obj.house = house  # ✅ مهم
+                # بروزرسانی Fund
+                initial_fund_obj.amount = new_initial_fund
+                initial_fund_obj.debtor_amount = new_initial_fund
+                initial_fund_obj.creditor_amount = 0
+                initial_fund_obj.house = house
+                initial_fund_obj.payment_description = f"افتتاحیه حساب بانک {bank.bank_name}"
                 initial_fund_obj.save()
                 Fund.recalc_final_amounts_from(initial_fund_obj)
+
             else:
                 # ایجاد Fund جدید
                 fund = Fund.objects.create(
                     user=self.request.user,
                     bank=bank,
-                    house=house,  # ✅ مهم
+                    house=house,
                     payer_name=bank.account_holder_name,
                     receiver_name='صندوق',
-                    payment_gateway='پرداخت الکترونیک',
+                    payment_gateway="کارت به کارت",
                     content_type=content_type,
                     object_id=bank.id,
                     is_initial=True,
                     is_paid=True,
-                    amount=Decimal(new_initial_fund),
-                    debtor_amount=Decimal(new_initial_fund),
-                    creditor_amount=Decimal(0),
-                    payment_date=bank.created_at.date(),
-                    payment_description=f'افتتاحیه حساب بانک {bank.bank_name}'
+                    amount=new_initial_fund,
+                    debtor_amount=new_initial_fund,
+                    creditor_amount=0,
+                    payment_date=bank.create_at.date(),
+                    payment_description=f"افتتاحیه حساب بانک {bank.bank_name}",
                 )
                 Fund.recalc_final_amounts_from(fund)
 
-        # اگر موجودی صفر یا حذف شد → حذف Fund افتتاحیه
+        # --------- 2) اگر افتتاحیه صفر شد → Fund افتتاحیه را حذف کن ---------
         else:
             if initial_fund_obj:
                 next_fund = Fund.objects.filter(
                     bank=bank,
                     id__gt=initial_fund_obj.id
-                ).order_by('id').first()
+                ).order_by("id").first()
 
                 initial_fund_obj.delete()
 
                 if next_fund:
                     Fund.recalc_final_amounts_from(next_fund)
 
-        messages.success(self.request, 'اطلاعات حساب بانکی با موفقیت بروزرسانی شد!')
+        # --------- 3) اعمال تغییر واقعی بر حساب بانکی ---------
+        if delta > 0:
+            # افزایش افتتاحیه = واریز به بانک
+            BankTransactionService.deposit(
+                user=self.request.user,
+                bank=bank,
+                amount=delta,
+                description=f"افزایش موجودی افتتاحیه بانک {bank.bank_name}",
+                content_object=bank,
+                payment_date=bank.create_at.date(),
+                gateway="اصلاح افتتاحیه",
+                house=bank.house
+            )
+
+        elif delta < 0:
+            # کاهش افتتاحیه = برداشت از بانک
+            BankTransactionService.withdraw(
+                user=self.request.user,
+                bank=bank,
+                amount=abs(delta),
+                description=f"کاهش موجودی افتتاحیه بانک {bank.bank_name}",
+                content_object=bank,
+                payment_date=bank.created_at.date(),
+                gateway="اصلاح افتتاحیه",
+                house=bank.house
+            )
+
+        messages.success(self.request, 'افتتاحیه حساب بانکی با موفقیت اصلاح شد!')
         return response
 
     def get_context_data(self, **kwargs):
@@ -722,6 +883,79 @@ def middle_bank_delete(request, pk):
     except Bank.DoesNotExist:
         messages.info(request, 'خطا در حذف')
         return redirect(reverse('middle_manage_bank'))
+
+
+@method_decorator(middle_admin_required, name='dispatch')
+class TransferMoneyView(CreateView):
+    model = BankFund  # مدلی که قرار است در نهایت یک رکورد در آن ثبت شود
+    form_class = TransferMoneyForm
+    template_name = 'middle_admin/transfer_money_banks.html'
+    success_url = reverse_lazy('middle_manage_bank')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        try:
+            BankTransactionService.transfer(
+                user=self.request.user,
+                from_bank=form.cleaned_data['from_bank'],
+                to_bank=form.cleaned_data['to_bank'],
+                amount=form.cleaned_data['amount'],
+                unit=None,
+                description="انتقال وجه داخلی",
+                transaction_no=form.cleaned_data['transaction_reference'],
+                payment_date=form.cleaned_data['payment_date'],
+                # content_object=...  (در صورت نیاز)
+            )
+            messages.success(self.request, "انتقال وجه با موفقیت انجام شد.")
+            return redirect(self.success_url)
+        except Exception as e:
+            form.add_error(None, str(e))
+            return self.form_invalid(form)
+
+
+def transfer_list_view(request):
+    # گرفتن تمام رکوردهای انتقال مربوط به این بانک
+    all_transfers = BankFund.objects.filter(
+        transfer_group_id__isnull=False,
+        user=request.user
+    ).order_by('-created_at')
+
+    # دسته‌بندی بر اساس group_id
+    grouped_transfers = {}
+    for t in all_transfers:
+        if t.transfer_group_id not in grouped_transfers:
+            grouped_transfers[t.transfer_group_id] = {'withdraw': None, 'deposit': None}
+
+        if t.transaction_type == 'withdraw':
+            grouped_transfers[t.transfer_group_id]['withdraw'] = t
+        else:
+            grouped_transfers[t.transfer_group_id]['deposit'] = t
+
+    context = {
+        'grouped_transfers': grouped_transfers.items()  # لیست جفت‌ها
+    }
+    return render(request, 'middle_admin/transfer_list_view.html', context)
+
+
+@transaction.atomic
+def delete_transfer(request, pk):
+    record = get_object_or_404(BankFund, pk=pk)
+
+    if not record.transfer_group_id:
+        # اگر این رکورد انتقال نیست، فقط همان یکی حذف شود
+        record.delete()
+        messages.success(request, "لغو انتقال با موفقیت انجام شد.")
+        return redirect('middle_manage_bank')
+
+    BankFund.objects.filter(
+        transfer_group_id=record.transfer_group_id
+    ).delete()
+    messages.success(request, "لغو انتقال با موفقیت انجام شد.")
+    return redirect('middle_manage_bank')
 
 
 # =========================== unit Views ================================
@@ -790,12 +1024,11 @@ class MiddleUnitRegisterView(CreateView):
                     owner_user.save()
 
                 # اگر تازه ساخته شده → پسورد ست شود
-                if owner_created:
-                    password = form.cleaned_data.get('password')
-                    if password:
-                        owner_user.set_password(password)
-                        owner_user.save()
+                owner_password = form.cleaned_data.get('owner_password')
 
+                if owner_password:
+                    owner_user.set_password(owner_password)
+                    owner_user.save()
                 # -----------------------
                 # 2️⃣ ساخت Unit با مالک
                 # -----------------------
@@ -826,9 +1059,14 @@ class MiddleUnitRegisterView(CreateView):
                             'is_unit': True,
                         }
                     )
+                    renter_password = form.cleaned_data.get('renter_password')
+
+                    if renter_password:
+                        renter_user.set_password(renter_password)
+                        renter_user.save()
 
                     # 👇 غیرفعال کردن مالک
-                    owner_user.is_active = False
+                    owner_user.is_active = True
                     owner_user.save(update_fields=['is_active'])
 
                     # ساخت مستاجر
@@ -871,11 +1109,22 @@ class MiddleUnitRegisterView(CreateView):
                         amount=Decimal(first_charge_owner),
                         is_initial=True,
                         payment_date=form.cleaned_data.get('owner_payment_date'),
-                        payer_name=unit.get_label(),
+                        payer_name=unit.get_label,
                         payment_description="شارژ اولیه مالک",
-                        payment_gateway='پرداخت الکترونیک',
+                        payment_gateway='کارت به کارت',
                         content_object=unit,
                         transaction_no=form.cleaned_data.get('owner_transaction_no'),
+                    )
+                    BankTransactionService.deposit(
+                        user=self.request.user,
+                        bank=owner_bank,
+                        amount=Decimal(first_charge_owner),
+                        description=f"شارژ اولیه مالک {unit.get_label}",
+                        content_object=unit,
+                        payment_date=form.cleaned_data.get('owner_payment_date'),
+                        transaction_no=form.cleaned_data.get('owner_transaction_no'),
+                        gateway="شارژ واحد",
+                        house=unit.myhouse
                     )
 
                 # -------------------------
@@ -894,19 +1143,34 @@ class MiddleUnitRegisterView(CreateView):
                         amount=Decimal(first_charge_renter),
                         is_initial=True,
                         payment_date=form.cleaned_data.get('renter_payment_date'),
-                        payer_name=unit.get_label(),
+                        payer_name=unit.get_label,
                         payment_description="شارژ اولیه مستاجر",
-                        payment_gateway='پرداخت الکترونیک',
+                        payment_gateway='کارت به کارت',
                         content_object=unit,
                         transaction_no=form.cleaned_data.get('renter_transaction_no'),
+                    )
+                    BankTransactionService.deposit(
+                        user=self.request.user,
+                        bank=renter_bank,
+                        amount=Decimal(first_charge_renter),
+                        description=f"شارژ اولیه مستاجر {unit.get_label}",
+                        content_object=unit,
+                        payment_date=form.cleaned_data.get('renter_payment_date'),
+                        transaction_no=form.cleaned_data.get('renter_transaction_no'),
+                        gateway="شارژ واحد",
+                        house=unit.myhouse
                     )
 
                 messages.success(self.request, 'واحد با موفقیت ثبت شد.')
                 return super().form_valid(form)
 
         except Exception as e:
+            import traceback
+            print(traceback.format_exc())
             form.add_error(None, f'خطا در ثبت اطلاعات: {e}')
             return self.form_invalid(form)
+            # form.add_error(None, f'خطا در ثبت اطلاعات: {e}')
+            # return self.form_invalid(form)
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
@@ -1023,11 +1287,22 @@ def add_renter_to_unit(request, unit_id):
                         amount=Decimal(first_charge_renter),
                         is_initial=True,
                         payment_date=form.cleaned_data.get('renter_payment_date'),
-                        payer_name=unit.get_label(),
+                        payer_name=unit.get_label,
                         payment_description="شارژ اولیه مستاجر",
-                        payment_gateway='پرداخت الکترونیک',
+                        payment_gateway='کارت به کارت',
                         content_object=unit,
                         transaction_no=form.cleaned_data.get('renter_transaction_no'),
+                    )
+                    BankTransactionService.deposit(
+                        user=request.user,
+                        bank=renter_bank,
+                        amount=Decimal(first_charge_renter),
+                        description=f"شارژ اولیه مستاجر {unit.get_label}",
+                        content_object=unit,
+                        payment_date=form.cleaned_data.get('renter_payment_date'),
+                        transaction_no=form.cleaned_data.get('renter_transaction_no'),
+                        gateway="شارژ واحد",
+                        house=unit.myhouse
                     )
 
                 messages.success(request, 'مستاجر با موفقیت ثبت شد.')
@@ -1440,6 +1715,11 @@ class MiddleExpenseView(CreateView):
     success_url = reverse_lazy('middle_register_expense')
 
     def form_valid(self, form):
+        files = self.request.FILES.getlist('document')
+        if len(files) > 2:
+            messages.error(self.request, "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+            return redirect('middle_register_expense')
+
         form.instance.user = self.request.user
         house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
         form.instance.house = house  # 🔹 این مهم است
@@ -1453,7 +1733,7 @@ class MiddleExpenseView(CreateView):
                 self.object.save()
 
                 # ذخیره فایل‌ها
-                files = self.request.FILES.getlist('document')
+                # files = self.request.FILES.getlist('document')
                 for f in files:
                     ExpenseDocument.objects.create(
                         expense=self.object,
@@ -1567,28 +1847,37 @@ def expense_pay_view(request, expense_id):
 
                     # 🔹 موجودی فعلی صندوق بانک انتخاب شده
 
-                    funds = Fund.objects.filter(user=request.user, bank=bank)
-                    print(f"Funds count for bank {bank.id}: {funds.count()}")
-                    for f in funds:
-                        print(f"Fund: {f.id}, bank: {f.bank}, final: {f.final_amount}")
+                    current_balance = bank.current_balance
 
-                    bank_funds = Fund.objects.filter(user=request.user, bank=bank)
-                    total_debit = bank_funds.aggregate(Sum('debtor_amount'))['debtor_amount__sum'] or 0
-                    total_credit = bank_funds.aggregate(Sum('creditor_amount'))['creditor_amount__sum'] or 0
-                    current_final = Decimal(total_debit) - Decimal(total_credit)
-
-                    print(f'bank-fund:{current_final}')
-
-                    # 🔴 بررسی موجودی
-                    if current_final < expense.amount:
+                    if current_balance < expense.amount:
                         messages.error(
                             request,
-                            'موجودی صندوق کافی نیست'
+                            f'موجودی بانک کافی نیست. موجودی فعلی: {current_balance:,} تومان'
                         )
                         return redirect(request.META.get('HTTP_REFERER'))
 
+                    # funds = Fund.objects.filter(user=request.user, bank=bank)
+                    # print(f"Funds count for bank {bank.id}: {funds.count()}")
+                    # for f in funds:
+                    #     print(f"Fund: {f.id}, bank: {f.bank}, final: {f.final_amount}")
+                    #
+                    # bank_funds = Fund.objects.filter(user=request.user, bank=bank)
+                    # total_debit = bank_funds.aggregate(Sum('debtor_amount'))['debtor_amount__sum'] or 0
+                    # total_credit = bank_funds.aggregate(Sum('creditor_amount'))['creditor_amount__sum'] or 0
+                    # current_final = Decimal(total_debit) - Decimal(total_credit)
+                    #
+                    # print(f'bank-fund:{current_final}')
+
+                    # 🔴 بررسی موجودی
+                    # if current_final < expense.amount:
+                    #     messages.error(
+                    #         request,
+                    #         'موجودی صندوق کافی نیست'
+                    #     )
+                    #     return redirect(request.META.get('HTTP_REFERER'))
+
                     # 🔹 ثبت Fund (هزینه → بستانکار)
-                    fund = Fund.objects.create(
+                    Fund.objects.create(
                         unit=unit if unit else None,
                         receiver_name=receiver_name if not unit else f' {unit.get_label()}',
                         user=request.user,
@@ -1600,10 +1889,23 @@ def expense_pay_view(request, expense_id):
                         creditor_amount=expense.amount,
                         payment_date=payment_date,
                         transaction_no=reference,
-                        payment_gateway='پرداخت الکترونیک',
+                        payment_gateway='کارت به کارت',
                         payment_description=f' هزینه:  {expense.category.title}',
                         is_paid=True,
 
+                    )
+                    BankTransactionService.withdraw(
+                        user=request.user,
+                        bank=bank,
+                        unit=unit if unit else None,
+                        amount=Decimal(expense.amount),
+                        description=f' هزینه: {expense.category.title}',
+                        content_object=expense,
+                        payment_date=payment_date,
+                        transaction_no=reference,
+                        gateway='کارت به کارت',
+                        receiver_name=receiver_name if not unit else f' {unit.get_label}',
+                        house=expense.house
                     )
 
                     # 🔹 بروزرسانی Expense
@@ -1612,7 +1914,7 @@ def expense_pay_view(request, expense_id):
                     expense.transaction_reference = reference
                     expense.payment_date = payment_date
                     expense.unit = unit
-                    expense.receiver_name = unit.get_label() if unit else receiver_name
+                    expense.receiver_name = unit.get_label if unit else receiver_name
 
                     expense.save(update_fields=[
                         'is_paid',
@@ -1671,6 +1973,24 @@ def expense_cancel_pay_view(request, expense_id):
 
                 # حذف Fund
                 fund.delete()
+                bank_fund = BankFund.objects.filter(
+                    content_type__model='expense',
+                    object_id=expense.id
+                ).first()
+                print(f'bank_fund: {bank_fund}')
+
+                if bank_fund:
+                    bank = bank_fund.bank
+
+                    # اصلاح موجودی بانک
+                    if bank_fund.transaction_type == 'withdraw':
+                        bank.current_balance -= bank_fund.amount
+                    else:
+                        bank.current_balance += bank_fund.amount
+
+                    bank.save(update_fields=['current_balance'])
+
+                    bank_fund.delete()
 
                 # بازمحاسبه موجودی صندوق از این Fund به بعد
                 Fund.recalc_final_amounts_from(fund)
@@ -1687,7 +2007,7 @@ def expense_cancel_pay_view(request, expense_id):
                     'payment_date'
                 ])
 
-                messages.success(request, 'پرداخت با موفقیت لغو شد و صندوق اصلاح شد.')
+                messages.success(request, 'پرداخت با موفقیت لغو شد و صندوق و بانک اصلاح شد.')
                 return redirect(request.META.get('HTTP_REFERER'))
 
         except Exception as e:
@@ -1723,6 +2043,10 @@ def middle_expense_edit(request, pk):
         return redirect('middle_register_expense')
 
     with transaction.atomic():
+        files = request.FILES.getlist('document')
+        if len(files) > 2:
+            messages.error(request, "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+            return redirect('middle_register_expense')
         # 🔹 ست کردن خانه مرتبط با کاربر
         house = MyHouse.objects.filter(user=request.user, is_active=True).first()
         form.instance.house = house
@@ -1731,7 +2055,7 @@ def middle_expense_edit(request, pk):
         expense = form.save()
 
         # ذخیره فایل‌های جدید بدون حذف قبلی
-        for f in request.FILES.getlist('document'):
+        for f in files:
             ExpenseDocument.objects.create(expense=expense, document=f)
 
     messages.success(request, 'هزینه با موفقیت ویرایش شد.')
@@ -2023,6 +2347,10 @@ class MiddleIncomeView(CreateView):
     success_url = reverse_lazy('middle_register_income')
 
     def form_valid(self, form):
+        files = self.request.FILES.getlist('document')
+        if len(files) > 2:
+            messages.error(self.request, "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+            return redirect('middle_register_income')
         form.instance.user = self.request.user
         house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
         form.instance.house = house  # 🔹 این مهم است
@@ -2036,7 +2364,7 @@ class MiddleIncomeView(CreateView):
                 self.object.save()
 
                 # ذخیره فایل‌ها
-                files = self.request.FILES.getlist('document')
+                # files = self.request.FILES.getlist('document')
                 for f in files:
                     IncomeDocument.objects.create(
                         income=self.object,
@@ -2142,27 +2470,30 @@ class MiddleIncomeView(CreateView):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def income_pay_view(request, income_id):
-    income = get_object_or_404(
-        Income,
-        id=income_id,
-        is_paid=False,
-        is_active=True
-    )
-
     if request.method == 'POST':
         form = IncomePayForm(request.POST, user=request.user)
+
         if form.is_valid():
             try:
                 with transaction.atomic():
+
+                    income = Income.objects.select_for_update().get(
+                        id=income_id,
+                        is_paid=False,
+                        is_active=True
+                    )
+
                     bank = form.cleaned_data['bank']
                     reference = form.cleaned_data.get('transaction_reference')
                     payment_date = form.cleaned_data.get('payment_date')
                     payer_name = form.cleaned_data.get('payer_name')
                     unit = form.cleaned_data['unit']
 
-                    fund = Fund.objects.create(
-                        unit=unit if unit else None,
-                        payer_name=payer_name if not unit else f' {unit.get_label()}',
+                    payer = unit.get_label if unit else payer_name
+
+                    Fund.objects.create(
+                        unit=unit,
+                        payer_name=payer,
                         user=request.user,
                         bank=bank,
                         house=income.house,
@@ -2172,19 +2503,30 @@ def income_pay_view(request, income_id):
                         creditor_amount=0,
                         payment_date=payment_date,
                         transaction_no=reference,
-                        payment_gateway='پرداخت الکترونیک',
-                        payment_description=f' درآمد: {income.category.subject}',
+                        payment_gateway='کارت به کارت',
+                        payment_description=f'درآمد: {income.category.subject}',
                         is_paid=True,
-
+                    )
+                    BankTransactionService.deposit(
+                        user=request.user,
+                        bank=bank,
+                        unit=unit,
+                        amount=Decimal(income.amount),
+                        description=f'درآمد: {income.category.subject}',
+                        content_object=income,
+                        payment_date=payment_date,
+                        transaction_no=reference,
+                        gateway='کارت به کارت',
+                        payer_name=payer,
+                        house=income.house
                     )
 
-                    # 🔹 بروزرسانی Expense
                     income.is_paid = True
                     income.bank = bank
                     income.transaction_reference = reference
                     income.payment_date = payment_date
                     income.unit = unit
-                    income.payer_name = unit.get_label() if unit else payer_name
+                    income.payer_name = payer
 
                     income.save(update_fields=[
                         'is_paid',
@@ -2205,6 +2547,12 @@ def income_pay_view(request, income_id):
 
     else:
         form = IncomePayForm(user=request.user)
+        income = get_object_or_404(
+            Income,
+            id=income_id,
+            is_paid=False,
+            is_active=True
+        )
 
     return render(
         request,
@@ -2243,6 +2591,24 @@ def income_cancel_pay_view(request, income_id):
 
                 # حذف Fund
                 fund.delete()
+                bank_fund = BankFund.objects.filter(
+                    content_type__model='income',
+                    object_id=income.id
+                ).first()
+                print(f'bank_fund: {bank_fund}')
+
+                if bank_fund:
+                    bank = bank_fund.bank
+
+                    # اصلاح موجودی بانک
+                    if bank_fund.transaction_type == 'deposit':
+                        bank.current_balance -= bank_fund.amount
+                    else:
+                        bank.current_balance += bank_fund.amount
+
+                    bank.save(update_fields=['current_balance'])
+
+                    bank_fund.delete()
 
                 # بازمحاسبه موجودی صندوق از این Fund به بعد
                 Fund.recalc_final_amounts_from(fund)
@@ -2261,7 +2627,7 @@ def income_cancel_pay_view(request, income_id):
                     'payer_name',
                 ])
 
-                messages.success(request, 'دریافت با موفقیت لغو شد و صندوق اصلاح شد.')
+                messages.success(request, 'دریافت با موفقیت لغو شد و صندوق و بانک اصلاح شد.')
                 return redirect(request.META.get('HTTP_REFERER'))
 
         except Exception as e:
@@ -2291,12 +2657,17 @@ def middle_income_edit(request, pk):
 
     try:
         with transaction.atomic():
+            files = request.FILES.getlist('document')
+            if len(files) > 2:
+                messages.error(request,
+                               "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+                return redirect('middle_register_income')
             house = MyHouse.objects.filter(user=request.user, is_active=True).first()
             form.instance.house = house
             income = form.save()
 
             # 🔹 ذخیره فایل‌های جدید بدون حذف قبلی
-            files = request.FILES.getlist('document')
+            # files = request.FILES.getlist('document')
             for f in files:
                 IncomeDocument.objects.create(income=income, document=f)
 
@@ -2311,6 +2682,11 @@ def middle_income_edit(request, pk):
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_income_delete(request, pk):
     income = get_object_or_404(Income, id=pk)
+
+    if income.is_paid:
+        messages.warning(request, 'بدلیل ثبت پرداخت، حذف امکان پذیر نیست!')
+        return redirect(reverse('middle_register_income'))
+
     try:
         with transaction.atomic():
             # حذف Fund مربوطه
@@ -2530,41 +2906,60 @@ class MiddleReceiveMoneyCreateView(CreateView):
     def form_valid(self, form):
         form.instance.user = self.request.user
         try:
+            files = self.request.FILES.getlist('document')
+            if len(files) > 2:
+                messages.error(self.request,
+                               "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+                return redirect('middle_register_receive')
             # 🔹 مشخص کردن خانه کاربر
             house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
             form.instance.house = house  # ذخیره خانه در ReceiveMoney
 
             self.object = form.save(commit=False)
-            self.object.payer_name = self.object.get_payer_display()
-            self.object.is_received_money = True
+            # self.object.payer_name = self.object.get_payer_display()
+            # self.object.is_received_money = True
             self.object.save()
             form.save_m2m()
 
-            content_type = ContentType.objects.get_for_model(self.object)
-            payer_name_for_fund = self.object.payer_name if self.object.get_payer_display else f"{self.object.unit}"
+            # content_type = ContentType.objects.get_for_model(self.object)
+            # # payer_name_for_fund = self.object.payer_name
+            #
+            #
+            # # 🔹 ذخیره سند در Fund با خانه
+            # Fund.objects.create(
+            #     user=self.request.user,
+            #     content_type=content_type,
+            #     object_id=self.object.id,
+            #     bank=self.object.bank,
+            #     unit=self.object.unit,
+            #     house=house,  # ← اضافه شد
+            #     amount=self.object.amount or 0,
+            #     debtor_amount=self.object.amount or 0,
+            #     creditor_amount=0,
+            #     doc_number=self.object.doc_number,
+            #     payer_name=self.object.payer_name,
+            #     payment_gateway='کارت به کارت',
+            #     transaction_no=self.object.transaction_reference,
+            #     payment_date=self.object.payment_date,
+            #     payment_description=f"حسابهای دریافتنی: {self.object.description[:50]}",
+            #     is_paid=True,
+            #     is_received_money=True
+            # )
+            # BankTransactionService.deposit(
+            #     user=self.request.user,
+            #     bank=self.object.bank,
+            #     unit=self.object.unit,
+            #     amount=Decimal(self.object.amount),
+            #     description=f"حسابهای دریافتنی: {self.object.description[:50]}",
+            #     content_object=self.object,
+            #     transaction_no=self.object.transaction_reference,
+            #     payment_date=self.object.payment_date,
+            #     gateway='کارت به کارت',
+            #     payer_name=self.object.payer_name,
+            #     house=house
+            # )
 
-            # 🔹 ذخیره سند در Fund با خانه
-            Fund.objects.create(
-                user=self.request.user,
-                content_type=content_type,
-                object_id=self.object.id,
-                bank=self.object.bank,
-                unit=self.object.unit,
-                house=house,  # ← اضافه شد
-                amount=self.object.amount or 0,
-                debtor_amount=self.object.amount or 0,
-                creditor_amount=0,
-                doc_number=self.object.doc_number,
-                payer_name=payer_name_for_fund,
-                payment_gateway='پرداخت الکترونیک',
-                transaction_no=self.object.transaction_reference,
-                payment_date=self.object.payment_date,
-                payment_description=f"حسابهای دریافتنی: {self.object.description[:50]}",
-                is_paid=True,
-                is_received_money=True
-            )
-
-            files = self.request.FILES.getlist('document')
+            # files = self.request.FILES.getlist('document')
             for f in files:
                 ReceiveDocument.objects.create(receive=self.object, document=f)
 
@@ -2627,10 +3022,10 @@ class MiddleReceiveMoneyCreateView(CreateView):
             queryset = queryset.filter(is_paid=False)
         return queryset
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        return kwargs
+    # def get_form_kwargs(self):
+    #     kwargs = super().get_form_kwargs()
+    #     kwargs['user'] = self.request.user
+    #     return kwargs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -2646,28 +3041,202 @@ class MiddleReceiveMoneyCreateView(CreateView):
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-def delete_fund_record(request, pk):
-    # اطمینان از اینکه فقط کاربر صاحب سند می‌تواند حذف کند
-    receive = get_object_or_404(ReceiveMoney, pk=pk, user=request.user)
+def receive_pay_view(request, receive_id):
+    receive = get_object_or_404(
+        ReceiveMoney,
+        id=receive_id,
+        is_paid=False,
+        is_active=True
+    )
 
-    try:
-        content_type = ContentType.objects.get_for_model(receive)
-        fund = Fund.objects.filter(content_type=content_type, object_id=receive.id).first()
-        if fund:
-            fund.delete()
-            receive.is_paid = False
-            receive.is_received_money = False
-            receive.payment_date = None
-            receive.transaction_reference = None
-            receive.payer_name = ''
-            receive.save()
-            messages.success(request, 'رکورد پرداخت با موفقیت حذف شد.')
-        else:
-            messages.warning(request, 'رکورد پرداختی پیدا نشد.')
-    except Exception as e:
-        messages.error(request, f'خطا در حذف رکورد پرداخت: {e}')
+    if request.method == 'POST':
+        form = ReceivePayForm(
+            request.POST,
+            user=request.user,
+            instance=receive
+        )
 
-    return redirect('middle_register_receive')  # یا هر URL صفحه لیست شما
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+
+                    receive = ReceiveMoney.objects.select_for_update().get(
+                        id=receive_id,
+                        is_paid=False,
+                        is_active=True
+                    )
+
+                    bank = form.cleaned_data['bank']
+                    reference = form.cleaned_data.get('transaction_reference')
+                    payment_date = form.cleaned_data.get('payment_date')
+                    payer_name = form.cleaned_data.get('payer_name')
+                    unit = form.cleaned_data['unit']
+
+                    payer = unit.get_label if unit else payer_name
+
+                    content_type = ContentType.objects.get_for_model(receive)
+
+                    Fund.objects.create(
+                        user=request.user,
+                        content_type=content_type,
+                        object_id=receive.id,
+                        bank=bank,
+                        unit=unit,
+                        house=receive.house,
+                        amount=receive.amount or 0,
+                        debtor_amount=receive.amount or 0,
+                        creditor_amount=0,
+                        doc_number=receive.doc_number,
+                        payer_name=payer,
+                        payment_gateway='کارت به کارت',
+                        transaction_no=reference,
+                        payment_date=payment_date,
+                        payment_description=f"حسابهای دریافتنی: {receive.description[:50]}",
+                        is_paid=True,
+                        is_received_money=True
+                    )
+
+                    BankTransactionService.deposit(
+                        user=request.user,
+                        bank=bank,
+                        unit=unit,
+                        amount=Decimal(receive.amount),
+                        description=f'اسناد دریافتنی: {receive.description}',
+                        content_object=receive,
+                        payment_date=payment_date,
+                        transaction_no=reference,
+                        gateway='کارت به کارت',
+                        payer_name=payer,
+                        house=receive.house
+                    )
+
+                    receive.is_paid = True
+                    receive.bank = bank
+                    receive.transaction_reference = reference
+                    receive.payment_date = payment_date
+                    receive.unit = unit
+                    receive.payer_name = payer
+
+                    receive.save(update_fields=[
+                        'is_paid',
+                        'bank',
+                        'transaction_reference',
+                        'payment_date',
+                        'unit',
+                        'payer_name'
+                    ])
+
+                messages.success(request, 'دریافت با موفقیت انجام شد')
+                return redirect('middle_register_receive')
+
+            except ValidationError as e:
+                messages.error(request, e.message)
+
+            except Exception as e:
+                messages.error(request, f'خطا در دریافت: {e}')
+
+    else:
+        form = ReceivePayForm(
+            user=request.user,
+            instance=receive
+        )
+
+    return render(
+        request,
+        'MiddleReceiveMoney/receive_pay.html',
+        {
+            'receive': receive,
+            'form': form
+        }
+    )
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def receive_cancel_pay_view(request, receive_id):
+    receive = get_object_or_404(
+        ReceiveMoney,
+        id=receive_id,
+        is_paid=True,
+        is_active=True,
+        user=request.user
+    )
+
+    if request.method == 'POST':
+
+        try:
+            with transaction.atomic():
+
+                content_type = ContentType.objects.get_for_model(receive)
+
+                fund = Fund.objects.filter(
+                    content_type=content_type,
+                    object_id=receive.id,
+                    user=request.user,
+                    is_paid=True
+                ).first()
+
+                if not fund:
+                    messages.error(request, 'Fund مرتبط با این پرداخت پیدا نشد!')
+                    return redirect(request.META.get('HTTP_REFERER'))
+
+                bank_fund = BankFund.objects.filter(
+                    content_type=content_type,
+                    object_id=receive.id
+                ).first()
+
+                # اصلاح موجودی بانک
+                if bank_fund:
+
+                    bank = bank_fund.bank
+
+                    if bank_fund.transaction_type == 'deposit':
+                        bank.current_balance -= bank_fund.amount
+
+                    elif bank_fund.transaction_type == 'withdraw':
+                        bank.current_balance += bank_fund.amount
+
+                    bank.save(update_fields=['current_balance'])
+
+                    bank_fund.delete()
+
+                # حذف Fund
+                fund.delete()
+
+                # باز محاسبه صندوق
+                Fund.recalc_final_amounts_from(fund)
+
+                # بازگرداندن وضعیت دریافت
+                receive.is_paid = False
+                receive.bank = None
+                receive.transaction_reference = None
+                receive.payment_date = None
+                receive.payer_name = ''
+
+                receive.save(update_fields=[
+                    'is_paid',
+                    'bank',
+                    'transaction_reference',
+                    'payment_date',
+                    'payer_name',
+                ])
+
+                messages.success(
+                    request,
+                    'دریافت با موفقیت لغو شد و صندوق و بانک اصلاح شد.'
+                )
+
+                return redirect(request.META.get('HTTP_REFERER'))
+
+        except Exception as e:
+
+            messages.error(
+                request,
+                f'خطا در لغو دریافت: {e}'
+            )
+
+            return redirect(request.META.get('HTTP_REFERER'))
+
+    return redirect(request.META.get('HTTP_REFERER'))
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -2686,60 +3255,24 @@ def middle_receive_edit(request, pk):
             request.POST,
             request.FILES,
             instance=receive,
-            user=request.user
         )
 
         if form.is_valid():
             try:
                 with transaction.atomic():
-
+                    files = request.FILES.getlist('document')
+                    if len(files) > 2:
+                        messages.error(request,
+                                       "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+                        return redirect('middle_register_receive')
                     receive = form.save(commit=False)
-                    receive.payer_name = receive.get_payer_display()
+                    # receive.payer_name = receive.get_payer_display()
                     receive.is_received_money = True
                     receive.save()
                     form.save_m2m()
 
-                    payer_name_for_fund = (
-                        str(receive.unit) if receive.unit else receive.payer_name
-                    )
-
-                    # پیدا کردن Fund مربوط به receive
-                    content_type = ContentType.objects.get_for_model(receive)
-                    fund = Fund.objects.filter(content_type=content_type, object_id=receive.id).first()
-
-                    # اگر Fund وجود ندارد، ایجاد می‌کنیم
-                    if not fund:
-                        fund = Fund(
-                            user=request.user,
-                            content_type=content_type,
-                            object_id=receive.id
-                        )
-
-                    # مقداردهی ایمن فیلدهای Decimal و NOT NULL
-                    try:
-                        amount = Decimal(receive.amount)
-                    except (TypeError, ValueError, InvalidOperation):
-                        amount = Decimal('0.00')
-
-                    fund.amount = amount
-                    fund.debtor_amount = amount
-                    fund.creditor_amount = Decimal('0.00')
-                    fund.bank = receive.bank
-                    fund.unit = receive.unit
-                    fund.payment_date = receive.payment_date or None
-                    fund.transaction_no = receive.transaction_reference or ''
-                    fund.doc_number = receive.doc_number or ''
-                    fund.payment_gateway = 'پرداخت الکترونیک'
-                    fund.payer_name = str(receive.unit) if receive.unit else receive.payer_name
-                    fund.payment_description = f"حسابهای دریافتنی: {(receive.description or '')[:50]}"
-                    fund.is_paid = True
-                    fund.is_received_money = True
-                    fund.save()
-
-                    Fund.recalc_final_amounts_from(fund)
-
                     # 📎 ذخیره فایل‌ها
-                    files = request.FILES.getlist('document')
+                    # files = request.FILES.getlist('document')
                     for f in files:
                         ReceiveDocument.objects.create(
                             receive=receive,
@@ -2756,7 +3289,7 @@ def middle_receive_edit(request, pk):
             messages.error(request, 'خطا در ویرایش فرم. لطفاً دوباره تلاش کنید.')
 
     else:
-        form = ReceiveMoneyForm(instance=receive, user=request.user)
+        form = ReceiveMoneyForm(instance=receive)
 
     return render(
         request,
@@ -2772,6 +3305,9 @@ def middle_receive_edit(request, pk):
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_receive_delete(request, pk):
     receive = get_object_or_404(ReceiveMoney, id=pk)
+    if receive.is_paid:
+        messages.warning(request, 'بدلیل ثبت پرداخت، حذف امکان پذیر نیست!')
+        return redirect(reverse('middle_register_receive'))
     try:
         with transaction.atomic():
             # حذف Fund مربوطه
@@ -2995,6 +3531,11 @@ class MiddlePaymentMoneyCreateView(CreateView):
     success_url = reverse_lazy('middle_register_pay')
 
     def form_valid(self, form):
+        files = self.request.FILES.getlist('document')
+        if len(files) > 2:
+            messages.error(self.request,
+                           "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+            return redirect('middle_register_pay')
         form.instance.user = self.request.user
         house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
         form.instance.house = house
@@ -3003,60 +3544,60 @@ class MiddlePaymentMoneyCreateView(CreateView):
 
             self.object = form.save(commit=False)
 
-            bank = self.object.bank
-            amount = self.object.amount
+            # bank = self.object.bank
+            # amount = self.object.amount
+            #
+            # bank_funds = Fund.objects.filter(
+            #     user=self.request.user,
+            #     bank=bank
+            # )
+            #
+            # total_debit = bank_funds.aggregate(
+            #     Sum('debtor_amount')
+            # )['debtor_amount__sum'] or 0
+            #
+            # total_credit = bank_funds.aggregate(
+            #     Sum('creditor_amount')
+            # )['creditor_amount__sum'] or 0
+            #
+            # current_final = Decimal(total_debit) - Decimal(total_credit)
+            #
+            # if current_final < amount:
+            #     messages.error(self.request, 'موجودی صندوق کافی نیست')
+            #     return self.form_invalid(form)
 
-            bank_funds = Fund.objects.filter(
-                user=self.request.user,
-                bank=bank
-            )
-
-            total_debit = bank_funds.aggregate(
-                Sum('debtor_amount')
-            )['debtor_amount__sum'] or 0
-
-            total_credit = bank_funds.aggregate(
-                Sum('creditor_amount')
-            )['creditor_amount__sum'] or 0
-
-            current_final = Decimal(total_debit) - Decimal(total_credit)
-
-            if current_final < amount:
-                messages.error(self.request, 'موجودی صندوق کافی نیست')
-                return self.form_invalid(form)
-
-            self.object.receiver_name = self.object.get_receiver_display
-            self.object.is_paid_money = True
+            # self.object.receiver_name = self.object.get_receiver_display
+            # self.object.is_paid_money = True
             self.object.save()
             form.save_m2m()
 
-            content_type = ContentType.objects.get_for_model(self.object)
+            # content_type = ContentType.objects.get_for_model(self.object)
+            #
+            # receiver_name_for_fund = (
+            #     self.object.receiver_name
+            #     if not self.object.unit else f"{self.object.unit}"
+            # )
+            #
+            # Fund.objects.create(
+            #     user=self.request.user,
+            #     content_type=content_type,
+            #     object_id=self.object.id,
+            #     bank=bank,
+            #     house=house,
+            #     unit=self.object.unit,
+            #     amount=self.object.amount,
+            #     debtor_amount=0,
+            #     receiver_name=receiver_name_for_fund,
+            #     creditor_amount=self.object.amount,
+            #     payment_gateway='کارت به کارت',
+            #     payment_date=self.object.payment_date,
+            #     doc_number=self.object.document_number,
+            #     payment_description=f"حسابهای پرداختنی: {self.object.description[:50]}",
+            #     is_paid=True,
+            #     is_paid_money=True
+            # )
 
-            receiver_name_for_fund = (
-                self.object.receiver_name
-                if not self.object.unit else f"{self.object.unit}"
-            )
-
-            Fund.objects.create(
-                user=self.request.user,
-                content_type=content_type,
-                object_id=self.object.id,
-                bank=bank,
-                house=house,
-                unit=self.object.unit,
-                amount=self.object.amount,
-                debtor_amount=0,
-                receiver_name=receiver_name_for_fund,
-                creditor_amount=self.object.amount,
-                payment_gateway='پرداخت الکترونیک',
-                payment_date=self.object.payment_date,
-                doc_number=self.object.document_number,
-                payment_description=f"حسابهای پرداختنی: {self.object.description[:50]}",
-                is_paid=True,
-                is_paid_money=True
-            )
-
-            files = self.request.FILES.getlist('document')
+            # files = self.request.FILES.getlist('document')
             for f in files:
                 PayDocument.objects.create(payment=self.object, document=f)
 
@@ -3119,10 +3660,10 @@ class MiddlePaymentMoneyCreateView(CreateView):
             queryset = queryset.filter(is_paid=False)
         return queryset
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        return kwargs
+    # def get_form_kwargs(self):
+    #     kwargs = super().get_form_kwargs()
+    #     kwargs['user'] = self.request.user
+    #     return kwargs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -3138,31 +3679,6 @@ class MiddlePaymentMoneyCreateView(CreateView):
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-def delete_pay_fund_record(request, pk):
-    # اطمینان از اینکه فقط کاربر صاحب سند می‌تواند حذف کند
-    payment = get_object_or_404(PayMoney, pk=pk, user=request.user)
-
-    try:
-        content_type = ContentType.objects.get_for_model(payment)
-        fund = Fund.objects.filter(content_type=content_type, object_id=payment.id).first()
-        if fund:
-            fund.delete()
-            payment.is_paid = False
-            payment.is_received_money = False
-            payment.payment_date = None
-            payment.transaction_reference = None
-            payment.receiver_name = ''
-            payment.save()
-            messages.success(request, 'رکورد پرداخت با موفقیت حذف شد.')
-        else:
-            messages.warning(request, 'رکورد پرداختی پیدا نشد.')
-    except Exception as e:
-        messages.error(request, f'خطا در حذف رکورد پرداخت: {e}')
-
-    return redirect('middle_register_pay')  # یا هر URL صفحه لیست شما
-
-
-@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_pay_edit(request, pk):
     # گرفتن رکورد پرداخت موجود
     payment = get_object_or_404(PayMoney, pk=pk)
@@ -3173,63 +3689,68 @@ def middle_pay_edit(request, pk):
 
     if request.method == 'POST':
         # فرم با instance برای ویرایش
-        form = PayerMoneyForm(request.POST, request.FILES, instance=payment, user=request.user)
+        form = PayerMoneyForm(request.POST, request.FILES, instance=payment)
 
         if form.is_valid():
+            files = request.FILES.getlist('document')
+            if len(files) > 2:
+                messages.error(request,
+                               "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+                return redirect('middle_register_pay')
             payment = form.save(commit=False)
-            payment.receiver_name = payment.get_receiver_display
-            payment.is_paid_money = True
+            # payment.receiver_name = payment.get_receiver_display
+            # payment.is_paid_money = True
             payment.save()
             form.save_m2m()
 
-            if payment.unit:
-                receiver_name_for_fund = str(payment.unit)
-            else:
-                receiver_name_for_fund = payment.receiver_name
-
-            content_type = ContentType.objects.get_for_model(PayMoney)
-            fund = Fund.objects.filter(content_type=content_type, object_id=payment.id).first()
-
-            if fund:
-                # بروزرسانی رکورد موجود
-                fund.bank = payment.bank
-                fund.unit = payment.unit
-                fund.debtor_amount = 0
-                fund.amount = payment.amount or 0
-                fund.creditor_amount = payment.amount or 0
-                fund.payment_date = payment.document_date
-                fund.doc_number = payment.document_number
-                fund.receiver_name = receiver_name_for_fund
-                fund.payment_gateway = 'پرداخت الکترونیک'
-                fund.payment_description = f"حسابهای پرداختنی: {(payment.description or '')[:50]}"
-                fund.is_paid_money = True
-                fund.is_paid = True
-                fund.save()  # موجودی بانک بروزرسانی می‌شود
-                Fund.recalc_final_amounts_from(fund)
-
-
-            else:
-                # ایجاد فقط اگر رکورد موجود نبود
-                Fund.objects.create(
-                    content_type=content_type,
-                    object_id=payment.id,
-                    bank=payment.bank,
-                    unit=payment.unit,
-                    debtor_amount=0,
-                    amount=payment.amount or 0,
-                    creditor_amount=payment.amount or 0,
-                    user=request.user,
-                    receiver_name=receiver_name_for_fund,
-                    payment_date=payment.document_date,
-                    doc_number=payment.document_number,
-                    payment_gateway='پرداخت الکترونیک',
-                    payment_description=f"حسابهای پرداختنی: {(payment.description or '')[:50]}",
-                    is_paid=True,
-                    is_paid_money=True
-                )
+            # if payment.unit:
+            #     receiver_name_for_fund = str(payment.unit)
+            # else:
+            #     receiver_name_for_fund = payment.receiver_name
+            #
+            # content_type = ContentType.objects.get_for_model(PayMoney)
+            # fund = Fund.objects.filter(content_type=content_type, object_id=payment.id).first()
+            #
+            # if fund:
+            #     # بروزرسانی رکورد موجود
+            #     fund.bank = payment.bank
+            #     fund.unit = payment.unit
+            #     fund.debtor_amount = 0
+            #     fund.amount = payment.amount or 0
+            #     fund.creditor_amount = payment.amount or 0
+            #     fund.payment_date = payment.document_date
+            #     fund.doc_number = payment.document_number
+            #     fund.receiver_name = receiver_name_for_fund
+            #     fund.payment_gateway = 'کارت به کارت'
+            #     fund.payment_description = f"حسابهای پرداختنی: {(payment.description or '')[:50]}"
+            #     fund.is_paid_money = True
+            #     fund.is_paid = True
+            #     fund.save()  # موجودی بانک بروزرسانی می‌شود
+            #     Fund.recalc_final_amounts_from(fund)
+            #
+            #
+            # else:
+            #     # ایجاد فقط اگر رکورد موجود نبود
+            #     Fund.objects.create(
+            #         content_type=content_type,
+            #         object_id=payment.id,
+            #         bank=payment.bank,
+            #         unit=payment.unit,
+            #         debtor_amount=0,
+            #         amount=payment.amount or 0,
+            #         creditor_amount=payment.amount or 0,
+            #         user=request.user,
+            #         receiver_name=receiver_name_for_fund,
+            #         payment_date=payment.document_date,
+            #         doc_number=payment.document_number,
+            #         payment_gateway='کارت به کارت',
+            #         payment_description=f"حسابهای پرداختنی: {(payment.description or '')[:50]}",
+            #         is_paid=True,
+            #         is_paid_money=True
+            #     )
 
             # ثبت فایل‌های پیوست جدید
-            files = request.FILES.getlist('document')
+            # files = request.FILES.getlist('document')
             for f in files:
                 PayDocument.objects.create(payment=payment, document=f)
 
@@ -3244,7 +3765,7 @@ def middle_pay_edit(request, pk):
                 'open_modal': True,
             })
     else:
-        form = PayerMoneyForm(instance=payment, user=request.user)
+        form = PayerMoneyForm(instance=payment)
         return render(request, 'MiddlePayMoney/add_pay_money.html',
                       {'form': form,
                        'payment': payment,
@@ -3253,8 +3774,219 @@ def middle_pay_edit(request, pk):
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def payment_pay_money_view(request, payment_id):
+    payment = get_object_or_404(
+        PayMoney,
+        id=payment_id,
+        is_paid=False,
+        is_active=True
+    )
+
+    if request.method == 'POST':
+        form = PayMoneyForm(
+            request.POST,
+            user=request.user,
+            instance=payment
+        )
+
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+
+                    payment = PayMoney.objects.select_for_update().get(
+                        id=payment_id,
+                        is_paid=False,
+                        is_active=True
+                    )
+
+                    bank = form.cleaned_data['bank']
+                    reference = form.cleaned_data.get('transaction_reference')
+                    payment_date = form.cleaned_data.get('payment_date')
+                    receiver_name = form.cleaned_data.get('receiver_name')
+                    unit = form.cleaned_data['unit']
+
+                    current_balance = bank.current_balance
+
+                    if current_balance < payment.amount:
+                        messages.error(
+                            request,
+                            f'موجودی بانک کافی نیست. موجودی فعلی: {current_balance:,} تومان'
+                        )
+                        return redirect(request.META.get('HTTP_REFERER'))
+
+                    receiver = unit.get_label if unit else receiver_name
+
+                    content_type = ContentType.objects.get_for_model(payment)
+
+                    Fund.objects.create(
+                        user=request.user,
+                        content_type=content_type,
+                        object_id=payment.id,
+                        bank=bank,
+                        unit=unit,
+                        house=payment.house,
+                        amount=payment.amount or 0,
+                        debtor_amount=0,
+                        creditor_amount=payment.amount or 0,
+                        doc_number=payment.document_number,
+                        receiver_name=receiver,
+                        payment_gateway='کارت به کارت',
+                        transaction_no=reference,
+                        payment_date=payment_date,
+                        payment_description=f"حسابهای پرداختنی: {payment.description[:50]}",
+                        is_paid=True,
+                        is_received_money=True
+                    )
+
+                    BankTransactionService.withdraw(
+                        user=request.user,
+                        bank=bank,
+                        unit=unit,
+                        amount=Decimal(payment.amount),
+                        description=f'اسناد پرداختنی: {payment.description}',
+                        content_object=payment,
+                        payment_date=payment_date,
+                        transaction_no=reference,
+                        gateway='کارت به کارت',
+                        receiver_name=receiver,
+                        house=payment.house
+                    )
+
+                    payment.is_paid = True
+                    payment.bank = bank
+                    payment.transaction_reference = reference
+                    payment.payment_date = payment_date
+                    payment.unit = unit
+                    payment.receiver_name = receiver
+
+                    payment.save(update_fields=[
+                        'is_paid',
+                        'bank',
+                        'transaction_reference',
+                        'payment_date',
+                        'unit',
+                        'receiver_name'
+                    ])
+
+                messages.success(request, 'پرداخت با موفقیت انجام شد')
+                return redirect('middle_register_pay')
+
+            except ValidationError as e:
+                messages.error(request, e.message)
+
+            except Exception as e:
+                messages.error(request, f'خطا در پرداخت: {e}')
+
+    else:
+        form = PayMoneyForm(
+            user=request.user,
+            instance=payment
+        )
+
+    return render(
+        request,
+        'MiddlePayMoney/payment_pay_money.html',
+        {
+            'payment': payment,
+            'form': form
+        }
+    )
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def payment_cancel_pay_money_view(request, payment_id):
+    payment = get_object_or_404(
+        PayMoney,
+        id=payment_id,
+        is_paid=True,
+        is_active=True,
+        user=request.user
+    )
+
+    if request.method == 'POST':
+
+        try:
+            with transaction.atomic():
+
+                content_type = ContentType.objects.get_for_model(payment)
+
+                fund = Fund.objects.filter(
+                    content_type=content_type,
+                    object_id=payment.id,
+                    user=request.user,
+                    is_paid=True
+                ).first()
+
+                if not fund:
+                    messages.error(request, 'Fund مرتبط با این پرداخت پیدا نشد!')
+                    return redirect(request.META.get('HTTP_REFERER'))
+
+                bank_fund = BankFund.objects.filter(
+                    content_type=content_type,
+                    object_id=payment.id
+                ).first()
+
+                # اصلاح موجودی بانک
+                if bank_fund:
+
+                    bank = bank_fund.bank
+
+                    if bank_fund.transaction_type == 'deposit':
+                        bank.current_balance -= bank_fund.amount
+
+                    elif bank_fund.transaction_type == 'withdraw':
+                        bank.current_balance += bank_fund.amount
+
+                    bank.save(update_fields=['current_balance'])
+
+                    bank_fund.delete()
+
+                # حذف Fund
+                fund.delete()
+
+                # باز محاسبه صندوق
+                Fund.recalc_final_amounts_from(fund)
+
+                # بازگرداندن وضعیت دریافت
+                payment.is_paid = False
+                payment.bank = None
+                payment.transaction_reference = None
+                payment.payment_date = None
+                payment.receiver_name = ''
+
+                payment.save(update_fields=[
+                    'is_paid',
+                    'bank',
+                    'transaction_reference',
+                    'payment_date',
+                    'receiver_name',
+                ])
+
+                messages.success(
+                    request,
+                    'پرداخت با موفقیت لغو شد و صندوق و بانک اصلاح شد.'
+                )
+
+                return redirect(request.META.get('HTTP_REFERER'))
+
+        except Exception as e:
+
+            messages.error(
+                request,
+                f'خطا در لغو دریافت: {e}'
+            )
+
+            return redirect(request.META.get('HTTP_REFERER'))
+
+    return redirect(request.META.get('HTTP_REFERER'))
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_pay_delete(request, pk):
     payment = get_object_or_404(PayMoney, id=pk)
+    if payment.is_paid:
+        messages.warning(request, 'بدلیل ثبت پرداخت، حذف امکان پذیر نیست!')
+        return redirect(reverse('middle_register_pay'))
     try:
         with transaction.atomic():
             # حذف Fund مربوطه
@@ -3484,91 +4216,42 @@ class MiddlePropertyCreateView(CreateView):
         form.instance.house = house
 
         with transaction.atomic():
-
+            files = self.request.FILES.getlist('document')
+            if len(files) > 2:
+                messages.error(self.request,
+                               "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+                return redirect('middle_register_property')
             self.object = form.save(commit=False)
-
-            bank = self.object.bank
-            property_price = self.object.property_price
-
-            bank_funds = Fund.objects.filter(
-                user=self.request.user,
-                bank=bank
-            )
-
-            total_debit = bank_funds.aggregate(
-                Sum('debtor_amount')
-            )['debtor_amount__sum'] or 0
-            print(f"d-{total_debit}")
-
-            total_credit = bank_funds.aggregate(
-                Sum('creditor_amount')
-            )['creditor_amount__sum'] or 0
-            print(f"c-{total_credit}")
-
-            current_final = Decimal(total_debit) - Decimal(total_credit)
-            print(f"current:{current_final}")
-
-            if current_final < property_price:
-                messages.error(self.request, 'موجودی صندوق کافی نیست')
-                return self.form_invalid(form)
-
-            # self.object.receiver_name = self.object.get_receiver_display
-            if self.object.payment_date:
-                self.object.is_paid = True
             self.object.save()
             form.save_m2m()
+            #
+            # content_type = ContentType.objects.get_for_model(self.object)
+            #
+            # Fund.objects.create(
+            #     user=self.request.user,
+            #     content_type=content_type,
+            #     object_id=self.object.id,
+            #     bank=bank,
+            #     house=house,
+            #     unit=None,
+            #     amount=self.object.property_price,
+            #     debtor_amount=0,
+            #     receiver_name=self.object.receiver_name,
+            #     creditor_amount=self.object.property_price,
+            #     payment_gateway='کارت به کارت',
+            #     payment_date=self.object.payment_date,
+            #     doc_number=self.object.document_number,
+            #     payment_description=f"خرید اموال: {self.object.property_name[:50]}",
+            #     is_paid=True,
+            #
+            # )
 
-            content_type = ContentType.objects.get_for_model(self.object)
-
-            Fund.objects.create(
-                user=self.request.user,
-                content_type=content_type,
-                object_id=self.object.id,
-                bank=bank,
-                house=house,
-                unit=None,
-                amount=self.object.property_price,
-                debtor_amount=0,
-                receiver_name=self.object.receiver_name,
-                creditor_amount=self.object.property_price,
-                payment_gateway='پرداخت الکترونیک',
-                payment_date=self.object.payment_date,
-                doc_number=self.object.document_number,
-                payment_description=f"خرید اموال: {self.object.property_name[:50]}",
-                is_paid=True,
-
-            )
-
-            files = self.request.FILES.getlist('document')
+            # files = self.request.FILES.getlist('document')
             for f in files:
                 PropertyDocument.objects.create(property=self.object, document=f)
 
             messages.success(self.request, 'سند با موفقیت ثبت گردید!')
             return super().form_valid(form)
-
-        # except Exception as e:
-        #     messages.error(self.request, f'خطا در ثبت: {e}')
-        #     return self.form_invalid(form)
-
-    # def form_valid(self, form):
-    #     form.instance.user = self.request.user
-    #     house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
-    #     form.instance.house = house
-    #     try:
-    #         self.object = form.save()
-    #         files = self.request.FILES.getlist('document')
-    #
-    #         for f in files:
-    #             PropertyDocument.objects.create(property=self.object, document=f)
-    #         messages.success(self.request, 'سند پرداخت با موفقیت ثبت گردید!')
-    #         return super().form_valid(form)
-    #     except:
-    #         messages.error(self.request, 'خطا در ثبت!')
-    #         return self.form_invalid(form)
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        return kwargs
 
     def get_queryset(self):
         queryset = Property.objects.filter(user=self.request.user)
@@ -3629,26 +4312,207 @@ class MiddlePropertyCreateView(CreateView):
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-def delete_property_fund_record(request, pk):
-    # اطمینان از اینکه فقط کاربر صاحب سند می‌تواند حذف کند
-    property_d = get_object_or_404(Property, pk=pk, user=request.user)
+def property_pay_money_view(request, property_id):
+    prop = get_object_or_404(
+        Property,
+        id=property_id,
+        is_paid=False,
+        is_active=True
+    )
 
-    try:
-        content_type = ContentType.objects.get_for_model(property_d)
-        fund = Fund.objects.filter(content_type=content_type, object_id=property_d.id).first()
-        if fund:
-            fund.delete()
-            property_d.is_paid = False
-            property_d.payment_date = None
-            property_d.transaction_reference = None
-            property_d.save()
-            messages.success(request, 'رکورد پرداخت با موفقیت حذف شد.')
-        else:
-            messages.warning(request, 'رکورد پرداختی پیدا نشد.')
-    except Exception as e:
-        messages.error(request, f'خطا در حذف رکورد پرداخت: {e}')
+    if request.method == 'POST':
+        form = PropertyPayForm(
+            request.POST,
+            user=request.user,
+            instance=prop
+        )
 
-    return redirect('middle_register_property')  # یا هر URL صفحه لیست شما
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+
+                    prop = Property.objects.select_for_update().get(
+                        id=property_id,
+                        is_paid=False,
+                        is_active=True
+                    )
+
+                    bank = form.cleaned_data['bank']
+                    reference = form.cleaned_data.get('transaction_reference')
+                    payment_date = form.cleaned_data.get('payment_date')
+                    receiver_name = form.cleaned_data.get('receiver_name')
+
+                    current_balance = bank.current_balance
+
+                    if current_balance < prop.property_price:
+                        messages.error(
+                            request,
+                            f'موجودی بانک کافی نیست. موجودی فعلی: {current_balance:,} تومان'
+                        )
+                        return redirect(request.META.get('HTTP_REFERER'))
+
+                    content_type = ContentType.objects.get_for_model(prop)
+
+                    Fund.objects.create(
+                        user=request.user,
+                        content_type=content_type,
+                        object_id=prop.id,
+                        bank=bank,
+                        house=prop.house,
+                        unit=None,
+                        amount=prop.property_price,
+                        debtor_amount=0,
+                        receiver_name=receiver_name,
+                        creditor_amount=prop.property_price,
+                        payment_gateway='کارت به کارت',
+                        payment_date=payment_date,
+                        transaction_no=reference,
+                        doc_number=prop.document_number,
+                        payment_description=f"خرید اموال: {prop.property_name[:50]}",
+                        is_paid=True,
+
+                    )
+
+                    BankTransactionService.withdraw(
+                        user=request.user,
+                        bank=bank,
+                        unit=None,
+                        amount=Decimal(prop.property_price),
+                        description=f"خرید اموال: {prop.property_name[:50]}",
+                        content_object=prop,
+                        payment_date=payment_date,
+                        transaction_no=reference,
+                        gateway='کارت به کارت',
+                        receiver_name=receiver_name,
+                        house=prop.house
+                    )
+
+                    prop.is_paid = True
+                    prop.bank = bank
+                    prop.transaction_reference = reference
+                    prop.payment_date = payment_date
+                    prop.receiver_name = receiver_name
+
+                    prop.save(update_fields=[
+                        'is_paid',
+                        'bank',
+                        'transaction_reference',
+                        'payment_date',
+
+                        'receiver_name'
+                    ])
+
+                messages.success(request, 'پرداخت با موفقیت انجام شد')
+                return redirect('middle_register_property')
+
+            except ValidationError as e:
+                messages.error(request, e.message)
+
+            except Exception as e:
+                messages.error(request, f'خطا در پرداخت: {e}')
+
+    else:
+        form = PropertyPayForm(
+            user=request.user,
+            instance=prop
+        )
+
+    return render(
+        request,
+        'middleProperty/property_pay.html',
+        {
+            'prop': prop,
+            'form': form
+        }
+    )
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def property_cancel_pay_money_view(request, property_id):
+    prop = get_object_or_404(
+        Property,
+        id=property_id,
+        is_paid=True,
+        is_active=True,
+        user=request.user
+    )
+
+    if request.method == 'POST':
+
+        try:
+            with transaction.atomic():
+
+                content_type = ContentType.objects.get_for_model(prop)
+
+                fund = Fund.objects.filter(
+                    content_type=content_type,
+                    object_id=prop.id,
+                    user=request.user,
+                    is_paid=True
+                ).first()
+
+                if not fund:
+                    messages.error(request, 'Fund مرتبط با این پرداخت پیدا نشد!')
+                    return redirect(request.META.get('HTTP_REFERER'))
+
+                bank_fund = BankFund.objects.filter(
+                    content_type=content_type,
+                    object_id=prop.id
+                ).first()
+
+                # اصلاح موجودی بانک
+                if bank_fund:
+
+                    bank = bank_fund.bank
+
+                    if bank_fund.transaction_type == 'deposit':
+                        bank.current_balance -= bank_fund.amount
+
+                    elif bank_fund.transaction_type == 'withdraw':
+                        bank.current_balance += bank_fund.amount
+
+                    bank.save(update_fields=['current_balance'])
+
+                    bank_fund.delete()
+
+                # حذف Fund
+                fund.delete()
+
+                # باز محاسبه صندوق
+                Fund.recalc_final_amounts_from(fund)
+
+                # بازگرداندن وضعیت دریافت
+                prop.is_paid = False
+                prop.bank = None
+                prop.transaction_reference = None
+                prop.payment_date = None
+                prop.receiver_name = ''
+
+                prop.save(update_fields=[
+                    'is_paid',
+                    'bank',
+                    'transaction_reference',
+                    'payment_date',
+                    'receiver_name',
+                ])
+
+                messages.success(
+                    request,
+                    'پرداخت با موفقیت لغو شد و صندوق و بانک اصلاح شد.'
+                )
+
+                return redirect(request.META.get('HTTP_REFERER'))
+
+        except Exception as e:
+
+            messages.error(
+                request,
+                f'خطا در لغو دریافت: {e}'
+            )
+
+            return redirect(request.META.get('HTTP_REFERER'))
+
+    return redirect(request.META.get('HTTP_REFERER'))
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -3661,59 +4525,20 @@ def middle_property_edit(request, pk):
 
     if request.method == 'POST':
         # فرم با instance برای ویرایش
-        form = PropertyForm(request.POST, request.FILES, instance=property_d, user=request.user)
+        form = PropertyForm(request.POST, request.FILES, instance=property_d)
 
         if form.is_valid():
+            files = request.FILES.getlist('document')
+            if len(files) > 2:
+                messages.error(request,
+                               "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+                return redirect('middle_register_property')
             property_d = form.save(commit=False)
-            property_d.receiver_name = property_d.receiver_name
-
-            if property_d.payment_date:
-                property_d.is_paid = True
             property_d.save()
             form.save_m2m()
 
-            content_type = ContentType.objects.get_for_model(Property)
-            fund = Fund.objects.filter(content_type=content_type, object_id=property_d.id).first()
-
-            if fund:
-                # بروزرسانی رکورد موجود
-                fund.bank = property_d.bank
-                fund.unit = None
-                fund.debtor_amount = 0
-                fund.amount = property_d.property_price or 0
-                fund.creditor_amount = property_d.property_price or 0
-                fund.payment_date = property_d.payment_date
-                fund.doc_number = property_d.document_number
-                fund.receiver_name = property_d.receiver_name
-                fund.payment_gateway = 'پرداخت الکترونیک'
-                fund.payment_description = f"خرید اموال: {(property_d.property_name or '')[:50]}"
-                fund.is_paid = True
-                fund.save()  # موجودی بانک بروزرسانی می‌شود
-                Fund.recalc_final_amounts_from(fund)
-
-
-            else:
-                # ایجاد فقط اگر رکورد موجود نبود
-                Fund.objects.create(
-                    content_type=content_type,
-                    object_id=property_d.id,
-                    bank=property_d.bank,
-                    unit=None,
-                    debtor_amount=0,
-                    amount=property_d.property_price or 0,
-                    creditor_amount=property_d.property_price or 0,
-                    user=request.user,
-                    receiver_name=property_d.receiver_name,
-                    payment_date=property_d.payment_date,
-                    doc_number=property_d.document_number,
-                    payment_gateway='پرداخت الکترونیک',
-                    payment_description=f"خرید اموال: {(property_d.property_name or '')[:50]}",
-                    is_paid=True,
-                    is_paid_money=True
-                )
-
             # ثبت فایل‌های پیوست جدید
-            files = request.FILES.getlist('document')
+            # files = request.FILES.getlist('document')
             for f in files:
                 PropertyDocument.objects.create(property=property_d, document=f)
 
@@ -3761,6 +4586,9 @@ def middle_property_edit(request, pk):
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_property_delete(request, pk):
     property_d = get_object_or_404(Property, id=pk)
+    if property_d.is_paid:
+        messages.warning(request, 'بدلیل ثبت پرداخت، حذف امکان پذیر نیست!')
+        return redirect(reverse('middle_register_property'))
     try:
         property_d.delete()
         messages.success(request, ' اموال با موفقیت حذف گردید!')
@@ -3821,62 +4649,67 @@ class MiddleMaintenanceCreateView(CreateView):
         form.instance.house = house
 
         with transaction.atomic():
-
-            self.object = form.save(commit=False)
-
-            bank = self.object.bank
-            maintenance_price = self.object.maintenance_price
-
-            bank_funds = Fund.objects.filter(
-                user=self.request.user,
-                bank=bank
-            )
-
-            total_debit = bank_funds.aggregate(
-                Sum('debtor_amount')
-            )['debtor_amount__sum'] or 0
-            print(f"d-{total_debit}")
-
-            total_credit = bank_funds.aggregate(
-                Sum('creditor_amount')
-            )['creditor_amount__sum'] or 0
-            print(f"c-{total_credit}")
-
-            current_final = Decimal(total_debit) - Decimal(total_credit)
-            print(f"current:{current_final}")
-
-            if current_final < maintenance_price:
-                messages.error(self.request, 'موجودی صندوق کافی نیست')
-                return self.form_invalid(form)
-
-            # self.object.receiver_name = self.object.get_receiver_display
-            if self.object.payment_date:
-                self.object.is_paid = True
-            self.object.save()
-            form.save_m2m()
-
-            content_type = ContentType.objects.get_for_model(self.object)
-
-            Fund.objects.create(
-                user=self.request.user,
-                content_type=content_type,
-                object_id=self.object.id,
-                bank=bank,
-                house=house,
-                unit=None,
-                amount=self.object.maintenance_price,
-                debtor_amount=0,
-                receiver_name=self.object.receiver_name,
-                creditor_amount=self.object.maintenance_price,
-                payment_gateway='پرداخت الکترونیک',
-                payment_date=self.object.payment_date,
-                doc_number=self.object.maintenance_document_no,
-                payment_description=f"تعیمر و نگهداری: {self.object.maintenance_description[:50]}",
-                is_paid=True,
-
-            )
-
             files = self.request.FILES.getlist('document')
+            if len(files) > 2:
+                messages.error(self.request,
+                               "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+                return redirect('middle_register_maintenance')
+            self.object = form.save(commit=False)
+            self.object.save()
+
+            # bank = self.object.bank
+            # maintenance_price = self.object.maintenance_price
+            #
+            # bank_funds = Fund.objects.filter(
+            #     user=self.request.user,
+            #     bank=bank
+            # )
+            #
+            # total_debit = bank_funds.aggregate(
+            #     Sum('debtor_amount')
+            # )['debtor_amount__sum'] or 0
+            # print(f"d-{total_debit}")
+            #
+            # total_credit = bank_funds.aggregate(
+            #     Sum('creditor_amount')
+            # )['creditor_amount__sum'] or 0
+
+            #
+            # current_final = Decimal(total_debit) - Decimal(total_credit)
+
+            #
+            # if current_final < maintenance_price:
+            #     messages.error(self.request, 'موجودی صندوق کافی نیست')
+            #     return self.form_invalid(form)
+            #
+            # # self.object.receiver_name = self.object.get_receiver_display
+            # if self.object.payment_date:
+            #     self.object.is_paid = True
+            # self.object.save()
+            # form.save_m2m()
+            #
+            # content_type = ContentType.objects.get_for_model(self.object)
+            #
+            # Fund.objects.create(
+            #     user=self.request.user,
+            #     content_type=content_type,
+            #     object_id=self.object.id,
+            #     bank=bank,
+            #     house=house,
+            #     unit=None,
+            #     amount=self.object.maintenance_price,
+            #     debtor_amount=0,
+            #     receiver_name=self.object.receiver_name,
+            #     creditor_amount=self.object.maintenance_price,
+            #     payment_gateway='کارت به کارت',
+            #     payment_date=self.object.payment_date,
+            #     doc_number=self.object.maintenance_document_no,
+            #     payment_description=f"تعیمر و نگهداری: {self.object.maintenance_description[:50]}",
+            #     is_paid=True,
+            #
+            # )
+
+            # files = self.request.FILES.getlist('document')
             for f in files:
                 MaintenanceDocument.objects.create(maintenance=self.object, document=f)
 
@@ -3886,22 +4719,6 @@ class MiddleMaintenanceCreateView(CreateView):
         # except Exception as e:
         #     messages.error(self.request, f'خطا در ثبت: {e}')
         #     return self.form_invalid(form)
-
-    # def form_valid(self, form):
-    #     form.instance.user = self.request.user
-    #     house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
-    #     form.instance.house = house
-    #     try:
-    #         self.object = form.save()
-    #         files = self.request.FILES.getlist('document')
-    #
-    #         for f in files:
-    #             MaintenanceDocument.objects.create(maintenance=self.object, document=f)
-    #         messages.success(self.request, 'سند با موفقیت ثبت گردید!')
-    #         return super().form_valid(form)
-    #     except:
-    #         messages.error(self.request, 'خطا در ثبت!')
-    #         return self.form_invalid(form)
 
     def get_queryset(self):
         queryset = Maintenance.objects.filter(user=self.request.user)
@@ -3947,10 +4764,10 @@ class MiddleMaintenanceCreateView(CreateView):
 
         return queryset
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        return kwargs
+    # def get_form_kwargs(self):
+    #     kwargs = super().get_form_kwargs()
+    #     kwargs['user'] = self.request.user
+    #     return kwargs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -3966,30 +4783,6 @@ class MiddleMaintenanceCreateView(CreateView):
         return context
 
 
-@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-def delete_maintenance_fund_record(request, pk):
-    # اطمینان از اینکه فقط کاربر صاحب سند می‌تواند حذف کند
-    maintenance = get_object_or_404(Maintenance, pk=pk, user=request.user)
-
-    try:
-        content_type = ContentType.objects.get_for_model(maintenance)
-        fund = Fund.objects.filter(content_type=content_type, object_id=maintenance.id).first()
-        if fund:
-            fund.delete()
-            maintenance.is_paid = False
-            maintenance.payment_date = None
-            maintenance.transaction_reference = None
-            maintenance.receiver_name = ''
-            maintenance.save()
-            messages.success(request, 'رکورد پرداخت با موفقیت حذف شد.')
-        else:
-            messages.warning(request, 'رکورد پرداختی پیدا نشد.')
-    except Exception as e:
-        messages.error(request, f'خطا در حذف رکورد پرداخت: {e}')
-
-    return redirect('middle_register_maintenance')  # یا هر URL صفحه لیست شما
-
-
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def middle_maintenance_edit(request, pk):
     maintenance = get_object_or_404(Maintenance, pk=pk)
@@ -4000,58 +4793,19 @@ def middle_maintenance_edit(request, pk):
 
     if request.method == 'POST':
         # فرم با instance برای ویرایش
-        form = MaintenanceForm(request.POST, request.FILES, instance=maintenance, user=request.user)
+        form = MaintenanceForm(request.POST, request.FILES, instance=maintenance)
 
         if form.is_valid():
+            files = request.FILES.getlist('document')
+            if len(files) > 2:
+                messages.error(request,
+                               "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+                return redirect('middle_register_maintenance')
             maintenance = form.save(commit=False)
-            maintenance.receiver_name = maintenance.receiver_name
-            if maintenance.payment_date:
-                maintenance.is_paid = True
             maintenance.save()
-            form.save_m2m()
-
-            content_type = ContentType.objects.get_for_model(Maintenance)
-            fund = Fund.objects.filter(content_type=content_type, object_id=maintenance.id).first()
-
-            if fund:
-                # بروزرسانی رکورد موجود
-                fund.bank = maintenance.bank
-                fund.unit = None
-                fund.debtor_amount = 0
-                fund.amount = maintenance.maintenance_price or 0
-                fund.creditor_amount = maintenance.maintenance_price or 0
-                fund.payment_date = maintenance.payment_date
-                fund.doc_number = maintenance.maintenance_document_no
-                fund.receiver_name = maintenance.receiver_name
-                fund.payment_gateway = 'پرداخت الکترونیک'
-                fund.payment_description = f"تعمیر و نگهداری: {(maintenance.maintenance_description or '')[:50]}"
-                fund.is_paid = True
-                fund.save()  # موجودی بانک بروزرسانی می‌شود
-                Fund.recalc_final_amounts_from(fund)
-
-
-            else:
-                # ایجاد فقط اگر رکورد موجود نبود
-                Fund.objects.create(
-                    content_type=content_type,
-                    object_id=maintenance.id,
-                    bank=maintenance.bank,
-                    unit=None,
-                    debtor_amount=0,
-                    amount=maintenance.maintenance_price or 0,
-                    creditor_amount=maintenance.maintenance_price or 0,
-                    user=request.user,
-                    receiver_name=maintenance.receiver_name,
-                    payment_date=maintenance.payment_date,
-                    doc_number=maintenance.maintenance_document_no,
-                    payment_gateway='پرداخت الکترونیک',
-                    payment_description=f"تعمیر و نگهداری: {(maintenance.maintenance_description or '')[:50]}",
-                    is_paid=True,
-                    is_paid_money=True
-                )
 
             # ثبت فایل‌های پیوست جدید
-            files = request.FILES.getlist('document')
+            # files = request.FILES.getlist('document')
             for f in files:
                 MaintenanceDocument.objects.create(maintenance=maintenance, document=f)
 
@@ -4066,7 +4820,7 @@ def middle_maintenance_edit(request, pk):
                 'open_modal': True,
             })
     else:
-        form = PayerMoneyForm(instance=maintenance, user=request.user)
+        form = PayerMoneyForm(instance=maintenance)
         return render(request, 'middleMaintenance/add_maintenance.html',
                       {'form': form,
                        'maintenance': maintenance,
@@ -4074,9 +4828,216 @@ def middle_maintenance_edit(request, pk):
                        })
 
 
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def maintenance_pay_money_view(request, maintenance_id):
+    maintenance = get_object_or_404(
+        Maintenance,
+        id=maintenance_id,
+        is_paid=False,
+        is_active=True
+    )
+
+    if request.method == 'POST':
+        form = MaintenancePayForm(
+            request.POST,
+            user=request.user,
+            instance=maintenance
+        )
+
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+
+                    maintenance = Maintenance.objects.select_for_update().get(
+                        id=maintenance_id,
+                        is_paid=False,
+                        is_active=True
+                    )
+
+                    bank = form.cleaned_data['bank']
+                    reference = form.cleaned_data.get('transaction_reference')
+                    payment_date = form.cleaned_data.get('payment_date')
+                    receiver_name = form.cleaned_data.get('receiver_name')
+
+                    current_balance = bank.current_balance
+
+                    if current_balance < maintenance.maintenance_price:
+                        messages.error(
+                            request,
+                            f'موجودی بانک کافی نیست. موجودی فعلی: {current_balance:,} تومان'
+                        )
+                        return redirect(request.META.get('HTTP_REFERER'))
+
+                    content_type = ContentType.objects.get_for_model(maintenance)
+
+                    Fund.objects.create(
+                        user=request.user,
+                        content_type=content_type,
+                        object_id=maintenance.id,
+                        bank=bank,
+                        house=maintenance.house,
+                        unit=None,
+                        amount=maintenance.maintenance_price,
+                        debtor_amount=0,
+                        receiver_name=receiver_name,
+                        creditor_amount=maintenance.maintenance_price,
+                        payment_gateway='کارت به کارت',
+                        payment_date=payment_date,
+                        transaction_no=reference,
+                        doc_number=maintenance.maintenance_document_no,
+                        payment_description=f"هزینه تعمیر و نگهداری: {maintenance.maintenance_description[:50]}",
+                        is_paid=True,
+
+                    )
+
+                    BankTransactionService.withdraw(
+                        user=request.user,
+                        bank=bank,
+                        unit=None,
+                        amount=Decimal(maintenance.maintenance_price),
+                        description=f"هزینه تعمیر و نگهداری: {maintenance.maintenance_description[:50]}",
+                        content_object=maintenance,
+                        payment_date=payment_date,
+                        transaction_no=reference,
+                        gateway='کارت به کارت',
+                        receiver_name=receiver_name,
+                        house=maintenance.house
+                    )
+
+                    maintenance.is_paid = True
+                    maintenance.bank = bank
+                    maintenance.transaction_reference = reference
+                    maintenance.payment_date = payment_date
+                    maintenance.receiver_name = receiver_name
+
+                    maintenance.save(update_fields=[
+                        'is_paid',
+                        'bank',
+                        'transaction_reference',
+                        'payment_date',
+                        'receiver_name'
+                    ])
+
+                messages.success(request, 'پرداخت با موفقیت انجام شد')
+                return redirect('middle_register_maintenance')
+
+            except ValidationError as e:
+                messages.error(request, e.message)
+
+            except Exception as e:
+                messages.error(request, f'خطا در پرداخت: {e}')
+
+    else:
+        form = MaintenancePayForm(
+            user=request.user,
+            instance=maintenance
+        )
+
+    return render(
+        request,
+        'middleMaintenance/maintenance_pay.html',
+        {
+            'maintenance': maintenance,
+            'form': form
+        }
+    )
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def maintenance_cancel_pay_money_view(request, maintenance_id):
+    maintenance = get_object_or_404(
+        Maintenance,
+        id=maintenance_id,
+        is_paid=True,
+        is_active=True,
+        user=request.user
+    )
+
+    if request.method == 'POST':
+
+        try:
+            with transaction.atomic():
+
+                content_type = ContentType.objects.get_for_model(maintenance)
+
+                fund = Fund.objects.filter(
+                    content_type=content_type,
+                    object_id=maintenance.id,
+                    user=request.user,
+                    is_paid=True
+                ).first()
+
+                if not fund:
+                    messages.error(request, 'Fund مرتبط با این پرداخت پیدا نشد!')
+                    return redirect(request.META.get('HTTP_REFERER'))
+
+                bank_fund = BankFund.objects.filter(
+                    content_type=content_type,
+                    object_id=maintenance.id
+                ).first()
+
+                # اصلاح موجودی بانک
+                if bank_fund:
+
+                    bank = bank_fund.bank
+
+                    if bank_fund.transaction_type == 'deposit':
+                        bank.current_balance -= bank_fund.amount
+
+                    elif bank_fund.transaction_type == 'withdraw':
+                        bank.current_balance += bank_fund.amount
+
+                    bank.save(update_fields=['current_balance'])
+
+                    bank_fund.delete()
+
+                # حذف Fund
+                fund.delete()
+
+                # باز محاسبه صندوق
+                Fund.recalc_final_amounts_from(fund)
+
+                # بازگرداندن وضعیت دریافت
+                maintenance.is_paid = False
+                maintenance.bank = None
+                maintenance.transaction_reference = None
+                maintenance.payment_date = None
+                maintenance.receiver_name = ''
+
+                maintenance.save(update_fields=[
+                    'is_paid',
+                    'bank',
+                    'transaction_reference',
+                    'payment_date',
+                    'receiver_name',
+                ])
+
+                messages.success(
+                    request,
+                    'پرداخت با موفقیت لغو شد و صندوق و بانک اصلاح شد.'
+                )
+
+                return redirect(request.META.get('HTTP_REFERER'))
+
+        except Exception as e:
+
+            messages.error(
+                request,
+                f'خطا در لغو دریافت: {e}'
+            )
+
+            return redirect(request.META.get('HTTP_REFERER'))
+
+    return redirect(request.META.get('HTTP_REFERER'))
+
+
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def middle_maintenance_delete(request, pk):
     maintenance = get_object_or_404(Maintenance, id=pk)
+    if maintenance.is_paid:
+        messages.warning(request, 'این سند بدلیل ثبت رکورد پرداخت قابل حذف نیست')
+        return redirect('middle_register_maintenance')
+
     try:
         with transaction.atomic():
             # حذف Fund مربوطه
@@ -4129,18 +5090,665 @@ def middle_delete_maintenance_document(request):
     return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
 
 
-# @login_required(login_url=settings.LOGIN_URL_ADMIN)
-# def parse_jalali_to_gregorian(date_str):
-#     try:
-#         return jdatetime.date.fromisoformat(date_str.strip()).togregorian()
-#     except Exception:
-#         return None
+# ========================Sewage Views ======================================
+class SewageCostManage(CreateView):
+    model = SewageManage
+    template_name = 'middelSewage/sewage_register.html'
+    form_class = SewageForm
+    success_url = reverse_lazy('middle_register_sewage')
 
-def middle_sewage_view(request):
-    return render(request, 'middelSewage/sewage_register.html')
+    def form_valid(self, form):
+        files = self.request.FILES.getlist('document')
+        if len(files) > 2:
+            messages.error(self.request, "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+            return redirect('middle_register_sewage')
+
+        form.instance.user = self.request.user
+        form.instance.house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
+        self.object = form.save()
+
+        for f in files:
+            SewageDocument.objects.create(sewage=self.object, document=f)
+
+        messages.success(self.request, "سند با موفقیت ثبت شد.")
+        return redirect('middle_register_sewage')
+
+    def get_queryset(self):
+        queryset = SewageManage.objects.filter(user=self.request.user)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        sewages = self.get_queryset().order_by('-created_at')
+        paginator = Paginator(sewages, 50)
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context['page_obj'] = page_obj
+        context['total_sewage'] = sewages.filter(user=self.request.user).count()
+        context['sewages'] = page_obj.object_list
+        context['units'] = Unit.objects.filter(
+            is_active=True,
+            user__manager=self.request.user).count()
+
+        return context
 
 
-# ======================== Charge Views ======================================
+def sewage_cost_edit(request, pk):
+    sewage = get_object_or_404(SewageManage, pk=pk)
+
+    if request.method == 'POST':
+        # فرم با instance برای ویرایش
+        form = SewageForm(request.POST, request.FILES, instance=sewage)
+
+        if form.is_valid():
+            files = request.FILES.getlist('document')
+            if len(files) > 2:
+                messages.error(request,
+                               "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+                return redirect('middle_register_sewage')
+
+            sewage = form.save(commit=False)
+            sewage.user = request.user  # اختصاص کاربر فعال
+            sewage.save()
+
+            for f in files:
+                SewageDocument.objects.create(sewage=sewage, document=f)
+
+            # ثبت فایل‌های پیوست جدید
+            # files = request.FILES.getlist('document')
+            # for f in files:
+            #     CivilDocument.objects.create(civil=civil, document=f)
+
+            messages.success(request, 'رکورد با موفقیت ویرایش گردید.')
+            return redirect(reverse('middle_register_sewage'))  # Adjust redirect as necessary
+
+        else:
+            messages.error(request, 'خطا در ویرایش فرم . لطفا دوباره تلاش کنید.')
+            return render(request, 'middelSewage/sewage_register.html', {
+                'form': form,
+                'sewage': sewage,
+                'open_modal': True,
+            })
+    else:
+        form = SewageForm(instance=sewage, user=request.user)
+        return render(request, 'middleCharge/civil_charge_manage.html',
+                      {'form': form,
+                       'sewage': sewage,
+                       'open_modal': True,
+                       })
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+@csrf_exempt
+def middle_delete_sewage_document(request):
+    if request.method == 'POST':
+        image_url = request.POST.get('url')
+        sewage_id = request.POST.get('sewage_id')
+
+        if not image_url or not sewage_id:
+            return JsonResponse({'status': 'error', 'message': 'URL یا ID هزینه مشخص نیست'})
+
+        try:
+            sewage = get_object_or_404(SewageManage, id=sewage_id)
+
+            relative_path = image_url.replace(settings.MEDIA_URL, '')  # دقیق کردن مسیر
+            doc = SewageDocument.objects.filter(sewage=sewage, document=relative_path).first()
+
+            if doc:
+                # Delete the file from filesystem
+                if doc.document:
+                    file_path = os.path.join(settings.MEDIA_ROOT, doc.document.name)
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+
+                doc.delete()
+                return JsonResponse({'status': 'success'})
+            else:
+                return JsonResponse({'status': 'error', 'message': 'تصویر مرتبط پیدا نشد'})
+
+        except Expense.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'هزینه یافت نشد'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': f'خطا در حذف تصویر: {str(e)}'})
+
+    return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
+
+
+def middle_sewage_delete(request, pk):
+    sewage = get_object_or_404(SewageManage, id=pk)
+    if sewage.count_sent_units() > 0:
+        messages.error(request, 'به علت ارسال هزینه فاضلاب به ساکنین، حذف امکان‌پذیر نیست!')
+        return redirect(reverse('middle_register_sewage'))  # ← توقف کامل
+
+    try:
+        with transaction.atomic():
+            sewage.delete()
+        messages.success(request, ' هزینه فاضلاب با موفقیت حذف گردید!')
+    except ProtectedError:
+        messages.error(request, " امکان حذف وجود ندارد! ")
+    return redirect(reverse('middle_register_sewage'))
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_show_sewage_form(request, pk):
+    sewage = get_object_or_404(SewageManage, id=pk, user=request.user)
+    sewages = SewageManage.objects.filter(user=request.user, id=pk).order_by('id')
+
+    units = Unit.objects.filter(
+        is_active=True,
+        user__manager=request.user
+    ).order_by('unit')
+
+    units_with_details = []
+    for unit in units:
+        # ✅ بررسی اینکه آیا برای این واحد اقساط مربوط به این civil ارسال شده‌اند
+        has_been_sent = SewageInstallment.objects.filter(
+            sewage_manage=sewage,
+            unit=unit,
+            send_notification=True
+        ).exists()
+
+        units_with_details.append({
+            'unit': unit,
+            'sent_status': has_been_sent,
+        })
+
+    return render(request, 'middelSewage/sewage_notify.html', {
+        'sewage': sewage,
+        'units_with_details': units_with_details,
+        'sewages': sewages,
+    })
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_send_sewage(request, pk):
+    sewage = get_object_or_404(SewageManage, id=pk, user=request.user)
+    all_units_count = Unit.objects.filter(
+        is_active=True,
+        user__manager=request.user
+    ).count()
+    logger = logging.getLogger(__name__)
+
+    logger.info(f"all_units: {all_units_count}")
+
+    if request.method == "POST":
+        selected_units = request.POST.getlist('units')
+
+        if not selected_units:
+            messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
+            return redirect('middle_show_send_sewage_form', pk=pk)
+
+        units_qs = Unit.objects.filter(is_active=True, user__manager=request.user)
+
+        if 'all' in selected_units:
+            units_to_notify = units_qs
+        else:
+            units_to_notify = units_qs.filter(id__in=selected_units)
+
+        if not units_to_notify.exists():
+            messages.warning(request, 'هیچ واحد معتبری برای ارسال پیدا نشد.')
+            return redirect('middle_show_send_sewage_form', pk=pk)
+
+        already_sent = 0
+        created_count = 0
+
+        with transaction.atomic():
+
+            total_amount = sewage.amount
+            prepayment_total = sewage.prepayment or 0
+            installment_count = sewage.installment_count or 1
+
+            if installment_count <= 0:
+                installment_count = 1
+
+            # ✅ تعداد کل واحدهای ساختمان
+
+            # ✅ محاسبه سهم هر واحد
+            share_per_unit = total_amount // all_units_count
+            print(f'share_per_unit : {share_per_unit}')
+
+            prepayment_per_unit = prepayment_total // all_units_count
+            print(f'prepayment_per_unit : {prepayment_per_unit}', flush=True)
+
+            remaining_total = total_amount - prepayment_total
+            print(f'remaining_total : {remaining_total}')
+
+            remaining_per_unit = remaining_total // all_units_count
+            print(f'remaining_per_unit : {remaining_per_unit}')
+
+            monthly_installment = (
+                remaining_per_unit // installment_count
+                if installment_count > 0 else remaining_per_unit
+            )
+            print(f'monthly_installment : {monthly_installment}')
+
+            # واحدهایی که قبلاً ارسال شده‌اند
+            sent_unit_ids = set(
+                SewageInstallment.objects.filter(
+                    sewage_manage=sewage,
+                    unit__in=units_to_notify,
+                    send_notification=True
+                ).values_list('unit_id', flat=True)
+            )
+
+            for unit in units_to_notify:
+
+                if unit.id in sent_unit_ids:
+                    already_sent += 1
+                    continue
+
+                SewageInstallment.objects.filter(
+                    sewage_manage=sewage,
+                    unit=unit
+                ).delete()
+
+                base_date = sewage.first_due_date or timezone.now()
+
+                installments = []
+
+                # ✅ 1️⃣ ایجاد رکورد پیش‌پرداخت (فقط یکبار)
+                if prepayment_per_unit > 0:
+                    installments.append(
+                        SewageInstallment(
+                            sewage_manage=sewage,
+                            unit=unit,
+                            installment_number=0,  # پیش پرداخت
+                            amount=prepayment_per_unit,
+                            due_date=base_date,
+                            send_notification=True,
+                            send_notification_date=timezone.now(),
+                            prepayment_per_unit=prepayment_per_unit,
+                            house=sewage.house
+                        )
+                    )
+
+                # ✅ 2️⃣ ایجاد اقساط معمولی (بدون پیش‌پرداخت)
+                for i in range(1, installment_count + 1):
+                    due_date = base_date + relativedelta(months=i)
+
+                    installments.append(
+                        SewageInstallment(
+                            sewage_manage=sewage,
+                            unit=unit,
+                            installment_number=i,
+                            amount=monthly_installment,
+                            due_date=due_date,
+                            send_notification=True,
+                            send_notification_date=timezone.now(),
+                            prepayment_per_unit=0,  # ❌ دیگر تکرار نمی‌شود
+                            house=sewage.house
+                        )
+                    )
+
+                SewageInstallment.objects.bulk_create(installments)
+                created_count += 1
+
+        # پیام نهایی
+        if created_count > 0 and already_sent > 0:
+            messages.success(
+                request,
+                f'{created_count} واحد جدید ارسال شد. {already_sent} واحد قبلاً ارسال شده بودند.'
+            )
+        elif created_count > 0:
+            messages.success(
+                request,
+                f'برای {created_count} واحد، پیش‌پرداخت و اقساط ایجاد شد.'
+            )
+        else:
+            messages.warning(
+                request,
+                'اعلان قبلاً برای همه واحدهای انتخابی ارسال شده بود.'
+            )
+
+        return redirect('middle_register_sewage')
+
+    # GET
+    units = Unit.objects.filter(
+        is_active=True,
+        user__manager=request.user
+    ).order_by('unit')
+
+    units_with_details = [{'unit': unit} for unit in units]
+
+    return render(request, 'middelSewage/sewage_notify.html', {
+        'sewage': sewage,
+        'units_with_details': units_with_details,
+        'all_unit': all_units_count
+    })
+
+
+# ========================Civil Charge Views ======================================
+class CivilChargeManage(CreateView):
+    model = CivilManage
+    template_name = 'middleCharge/civil_charge_manage.html'
+    form_class = CivilForm
+    success_url = reverse_lazy('civil_charge_manage')
+
+    def form_valid(self, form):
+        files = self.request.FILES.getlist('document')
+        if len(files) > 2:
+            messages.error(self.request, "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+            return redirect('civil_charge_manage')
+
+        form.instance.user = self.request.user
+        form.instance.house = MyHouse.objects.filter(user=self.request.user, is_active=True).first()
+        self.object = form.save()
+
+        for f in files:
+            CivilDocument.objects.create(civil=self.object, document=f)
+
+        messages.success(self.request, "هزینه فاضلاب با موفقیت ثبت شد.")
+        return redirect('civil_charge_manage')
+
+    def get_queryset(self):
+        queryset = CivilManage.objects.filter(user=self.request.user)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        civiles = self.get_queryset().order_by('-created_at')
+        paginator = Paginator(civiles, 50)
+        page_number = self.request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        context['page_obj'] = page_obj
+        context['total_civil'] = civiles.filter(user=self.request.user).count()
+        context['civils'] = page_obj.object_list
+        context['units'] = Unit.objects.filter(
+            is_active=True,
+            user__manager=self.request.user).count()
+
+        return context
+
+
+def civil_charge_edit(request, pk):
+    civil = get_object_or_404(CivilManage, pk=pk)
+
+    if request.method == 'POST':
+        # فرم با instance برای ویرایش
+        form = CivilForm(request.POST, request.FILES, instance=civil)
+
+        if form.is_valid():
+            files = request.FILES.getlist('document')
+            if len(files) > 2:
+                messages.error(request,
+                               "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
+                return redirect('middle_register_sewage')
+
+            civil = form.save(commit=False)
+            civil.user = request.user  # اختصاص کاربر فعال
+            civil.save()
+
+            for f in files:
+                CivilDocument.objects.create(civil=civil, document=f)
+
+            # ثبت فایل‌های پیوست جدید
+            # files = request.FILES.getlist('document')
+            # for f in files:
+            #     CivilDocument.objects.create(civil=civil, document=f)
+
+            messages.success(request, 'رکورد با موفقیت ویرایش گردید.')
+            return redirect(reverse('middle_register_sewage'))  # Adjust redirect as necessary
+
+        else:
+            messages.error(request, 'خطا در ویرایش فرم . لطفا دوباره تلاش کنید.')
+            return render(request, 'middelSewage/sewage_register.html', {
+                'form': form,
+                'civil': civil,
+                'open_modal': True,
+            })
+    else:
+        form = CivilForm(instance=civil)
+        return render(request, 'middelSewage/sewage_register.html',
+                      {'form': form,
+                       'civil': civil,
+                       'open_modal': True,
+                       })
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+@csrf_exempt
+def middle_delete_civil_document(request):
+    if request.method == 'POST':
+        image_url = request.POST.get('url')
+        civil_id = request.POST.get('civil_id')
+
+        print(f'maintenance_id: {civil_id}')
+
+        if not image_url or not civil_id:
+            return JsonResponse({'status': 'error', 'message': 'URL یا ID هزینه مشخص نیست'})
+
+        try:
+            civil = get_object_or_404(CivilManage, id=civil_id)
+
+            relative_path = image_url.replace(settings.MEDIA_URL, '')  # دقیق کردن مسیر
+            doc = CivilDocument.objects.filter(civil=civil, document=relative_path).first()
+
+            if doc:
+                # Delete the file from filesystem
+                if doc.document:
+                    file_path = os.path.join(settings.MEDIA_ROOT, doc.document.name)
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+
+                doc.delete()
+                return JsonResponse({'status': 'success'})
+            else:
+                return JsonResponse({'status': 'error', 'message': 'تصویر مرتبط پیدا نشد'})
+
+        except Expense.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'هزینه یافت نشد'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': f'خطا در حذف تصویر: {str(e)}'})
+
+    return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
+
+
+def middle_civil_delete(request, pk):
+    civil = get_object_or_404(CivilManage, id=pk)
+    if civil.count_sent_units() > 0:
+        messages.error(request, 'به علت ارسال شارژ به ساکنین، حذف امکان‌پذیر نیست!')
+        return redirect(reverse('civil_charge_manage'))  # ← توقف کامل
+
+    try:
+        with transaction.atomic():
+            civil.delete()
+        messages.success(request, ' شارژ با موفقیت حذف گردید!')
+    except ProtectedError:
+        messages.error(request, " امکان حذف وجود ندارد! ")
+    return redirect(reverse('civil_charge_manage'))
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_show_civil_form(request, pk):
+    civil = get_object_or_404(CivilManage, id=pk, user=request.user)
+    civils = CivilManage.objects.filter(user=request.user, id=pk).order_by('id')
+
+    units = Unit.objects.filter(
+        is_active=True,
+        user__manager=request.user
+    ).order_by('unit')
+
+    units_with_details = []
+    for unit in units:
+        # ✅ بررسی اینکه آیا برای این واحد اقساط مربوط به این civil ارسال شده‌اند
+        has_been_sent = CivilInstallment.objects.filter(
+            civil_manage=civil,
+            unit=unit,
+            send_notification=True
+        ).exists()
+
+        units_with_details.append({
+            'unit': unit,
+            'sent_status': has_been_sent,
+        })
+
+    return render(request, 'middleCharge/civil_charge_notify.html', {
+        'civil': civil,
+        'units_with_details': units_with_details,
+        'civils': civils,
+    })
+
+
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
+def middle_send_civil_charge(request, pk):
+    civil = get_object_or_404(CivilManage, id=pk, user=request.user)
+    all_units_count = Unit.objects.filter(
+        is_active=True,
+        user__manager=request.user
+    ).count()
+    logger = logging.getLogger(__name__)
+
+    logger.info(f"all_units: {all_units_count}")
+
+    if request.method == "POST":
+        selected_units = request.POST.getlist('units')
+
+        if not selected_units:
+            messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
+            return redirect('middle_show_send_civil_form', pk=pk)
+
+        units_qs = Unit.objects.filter(is_active=True, user__manager=request.user)
+
+        if 'all' in selected_units:
+            units_to_notify = units_qs
+        else:
+            units_to_notify = units_qs.filter(id__in=selected_units)
+
+        if not units_to_notify.exists():
+            messages.warning(request, 'هیچ واحد معتبری برای ارسال پیدا نشد.')
+            return redirect('middle_show_send_civil_form', pk=pk)
+
+        already_sent = 0
+        created_count = 0
+
+        with transaction.atomic():
+
+            total_amount = civil.amount
+            prepayment_total = civil.prepayment or 0
+            installment_count = civil.installment_count or 1
+
+            if installment_count <= 0:
+                installment_count = 1
+
+            # ✅ تعداد کل واحدهای ساختمان
+
+            # ✅ محاسبه سهم هر واحد
+            share_per_unit = total_amount // all_units_count
+            print(f'share_per_unit : {share_per_unit}')
+
+            prepayment_per_unit = prepayment_total // all_units_count
+            print(f'prepayment_per_unit : {prepayment_per_unit}', flush=True)
+
+            remaining_total = total_amount - prepayment_total
+            print(f'remaining_total : {remaining_total}')
+
+            remaining_per_unit = remaining_total // all_units_count
+            print(f'remaining_per_unit : {remaining_per_unit}')
+
+            monthly_installment = (
+                remaining_per_unit // installment_count
+                if installment_count > 0 else remaining_per_unit
+            )
+            print(f'monthly_installment : {monthly_installment}')
+
+            # واحدهایی که قبلاً ارسال شده‌اند
+            sent_unit_ids = set(
+                CivilInstallment.objects.filter(
+                    civil_manage=civil,
+                    unit__in=units_to_notify,
+                    send_notification=True
+                ).values_list('unit_id', flat=True)
+            )
+
+            for unit in units_to_notify:
+
+                if unit.id in sent_unit_ids:
+                    already_sent += 1
+                    continue
+
+                CivilInstallment.objects.filter(
+                    civil_manage=civil,
+                    unit=unit
+                ).delete()
+
+                base_date = civil.first_due_date or timezone.now()
+
+                installments = []
+
+                # ✅ 1️⃣ ایجاد رکورد پیش‌پرداخت (فقط یکبار)
+                if prepayment_per_unit > 0:
+                    installments.append(
+                        CivilInstallment(
+                            civil_manage=civil,
+                            unit=unit,
+                            installment_number=0,  # پیش پرداخت
+                            amount=prepayment_per_unit,
+                            due_date=base_date,
+                            send_notification=True,
+                            send_notification_date=timezone.now(),
+                            prepayment_per_unit=prepayment_per_unit,
+                            house=civil.house
+                        )
+                    )
+
+                # ✅ 2️⃣ ایجاد اقساط معمولی (بدون پیش‌پرداخت)
+                for i in range(1, installment_count + 1):
+                    due_date = base_date + relativedelta(months=i)
+
+                    installments.append(
+                        CivilInstallment(
+                            civil_manage=civil,
+                            unit=unit,
+                            installment_number=i,
+                            amount=monthly_installment,
+                            due_date=due_date,
+                            send_notification=True,
+                            send_notification_date=timezone.now(),
+                            prepayment_per_unit=0,  # ❌ دیگر تکرار نمی‌شود
+                            house=civil.house
+                        )
+                    )
+
+                CivilInstallment.objects.bulk_create(installments)
+                created_count += 1
+
+        # پیام نهایی
+        if created_count > 0 and already_sent > 0:
+            messages.success(
+                request,
+                f'{created_count} واحد جدید ارسال شد. {already_sent} واحد قبلاً ارسال شده بودند.'
+            )
+        elif created_count > 0:
+            messages.success(
+                request,
+                f'برای {created_count} واحد، پیش‌پرداخت و اقساط ایجاد شد.'
+            )
+        else:
+            messages.warning(
+                request,
+                'اعلان قبلاً برای همه واحدهای انتخابی ارسال شده بود.'
+            )
+
+        return redirect('civil_charge_manage')
+
+    # GET
+    units = Unit.objects.filter(
+        is_active=True,
+        user__manager=request.user
+    ).order_by('unit')
+
+    units_with_details = [{'unit': unit} for unit in units]
+
+    return render(request, 'middleCharge/civil_charge_notify.html', {
+        'civil': civil,
+        'units_with_details': units_with_details,
+        'all_unit': all_units_count
+    })
+
+
+# ================================================================================================
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_charge_view(request):
     user = request.user
@@ -4157,10 +5765,6 @@ def middle_charge_view(request):
         "middleCharge/add_charge.html",
         context
     )
-
-
-def civil_charge_manage(request):
-    return render(request, 'middleCharge/civil_charge_manage.html')
 
 
 @method_decorator(middle_admin_required, name='dispatch')

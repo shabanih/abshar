@@ -110,7 +110,6 @@
                             <th>تاریخ سند</th>
                              <th>توضیحات </th>
                             <th>تصویر سند</th>
-                           
                              <th>در وجه</th>
                             <th>وضعیت پرداخت</th>
                             <th>دستورات</th>
@@ -164,13 +163,13 @@
                                       <a
                                            class="btn btn-gradient-warning p-1 edit-m-pay"
                                            data-id="{{ payment.id }}"
-                                           data-bank="{{ payment.bank.id}}"
-                                           data-unit="{{ payment.unit.id}}"
+{#                                           data-bank="{{ payment.bank.id}}"#}
+{#                                           data-unit="{{ payment.unit.id}}"#}
                                            data-amount="{{ payment.amount }}"
-                                           data-receiver_name="{{ payment.receiver_name }}"
+{#                                           data-receiver_name="{{ payment.receiver_name }}"#}
                                            data-document_date="{{ payment.document_date|show_jalali }}"
-                                           data-payment_date="{{ payment.payment_date|show_jalali }}"
-                                           data-transaction_reference="{{ payment.transaction_reference|default:0 }}"
+{#                                           data-payment_date="{{ payment.payment_date|show_jalali }}"#}
+{#                                           data-transaction_reference="{{ payment.transaction_reference|default:0 }}"#}
                                            data-document_number="{{ payment.document_number}}"
                                            data-description="{{ payment.description }}"
                                            data-details="{{ payment.details }}"
@@ -188,13 +187,20 @@
                               <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ payment.id }}" title="نمایش جزئیات"
                                                         class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
                                                 </button>
-                                           {% if payment.is_paid %}
-                                        <a href="{% url 'delete_pay_fund_record' payment.id %}" 
-                                           class="btn btn-danger px-2 py-1"
-                                           onclick="return confirmDisapprovedWithSweetAlert(event)">
-                                           لغو پرداخت
-                                        </a>
-                                        {% endif %}
+                                  {% if not payment.is_paid %}
+                                  <a href="{% url 'payment_pay_money' payment.id %}" 
+                                        class="btn btn-gradient-success px-2 py-2"
+                                        >
+                                        پرداخت
+                                    </a>
+                                {% else %}
+                                    <button
+                                        class="btn btn-gradient-danger px-2 py-2"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#cancelPayModal{{ payment.id }}">
+                                        لغو پرداخت
+                                    </button>
+                                {% endif %}
 
                             </td>
                                     <div class="modal fade"  id="exampleModalLong2{{ payment.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ payment.id }}" aria-hidden="true">
@@ -245,7 +251,25 @@
                         </div>
                     </div>
                 </div>
-
+ <div class="modal fade" id="cancelPayModal{{ payment.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'payment_cancel_pay_money' payment.id %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title text-danger">لغو پرداخت</h5>
+        </div>
+        <div class="modal-body">
+          ⚠️ با لغو پرداخت، سند صندوق و بانک اصلاح می‌شود. ادامه می‌دهید؟
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">بله</button>
+          <a href="{% url 'middle_register_pay' %}" class="btn btn-danger">خیر</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
                             </tr>
                         {% endfor %}
                             {% else %}
@@ -317,6 +341,13 @@
               {{ form.document_number.errors }}
             </div>
           </div>
+                       <div class="row g-2">
+            <div class="col-12 col-lg-12">
+              {{ form.amount.label_tag }}
+              {{ form.amount }}
+              {{ form.amount.errors }}
+            </div>
+          </div>
           <!-- توضیحات -->
           <div class="row">
             <div class="col-12">
@@ -326,59 +357,46 @@
             </div>
           </div>
             
-         <div class="row g-2">
-            <!-- بانک -->
-            <div class="col-12 col-lg-6">
-              {{ form.bank.label_tag }}
-              {{ form.bank }}
-              {{ form.bank.errors }}
-            </div>
 
-            <!-- مبلغ -->
-            <div class="col-12 col-lg-6">
-              {{ form.amount.label_tag }}
-              {{ form.amount }}
-              {{ form.amount.errors }}
-            </div>
-          </div>
 
-          <div class="row g-2">
+{#          <div class="row g-2">#}
             <!-- انتخاب واحد -->
-            <div class="col-12 col-lg-6">
-              {{ form.unit.label_tag }}
-              {{ form.unit }}
-              {{ form.unit.errors }}
-            </div>
+{#            <div class="col-12 col-lg-6">#}
+{#              {{ form.unit.label_tag }}#}
+{#              {{ form.unit }}#}
+{#              {{ form.unit.errors }}#}
+{#            </div>#}
 
-            <!-- پرداخت کننده -->
-            <div class="col-12 col-lg-6">
-              {{ form.receiver_name.label_tag }}
-              {{ form.receiver_name }}
-              {{ form.receiver_name.errors }}
-            </div>
-          </div>
+{#            <!-- پرداخت کننده -->#}
+{#            <div class="col-12 col-lg-6">#}
+{#              {{ form.receiver_name.label_tag }}#}
+{#              {{ form.receiver_name }}#}
+{#              {{ form.receiver_name.errors }}#}
+{#            </div>#}
+{#          </div>#}
             
-            <div class="row g-2">
-            <!-- انتخاب واحد -->
-            <div class="col-12 col-lg-6">
-              {{ form.payment_date.label_tag }}
-              {{ form.payment_date }}
-              {{ form.payment_date.errors }}
-            </div>
+{#            <div class="row g-2">#}
+{#            <!-- انتخاب واحد -->#}
+{#            <div class="col-12 col-lg-6">#}
+{#              {{ form.payment_date.label_tag }}#}
+{#              {{ form.payment_date }}#}
+{#              {{ form.payment_date.errors }}#}
+{#            </div>#}
 
             <!-- پرداخت کننده -->
-            <div class="col-12 col-lg-6">
-              {{ form.transaction_reference.label_tag }}
-              {{ form.transaction_reference }}
-              {{ form.transaction_reference.errors }}
-            </div>
-          </div>
+{#            <div class="col-12 col-lg-6">#}
+{#              {{ form.transaction_reference.label_tag }}#}
+{#              {{ form.transaction_reference }}#}
+{#              {{ form.transaction_reference.errors }}#}
+{#            </div>#}
+{#          </div>#}
 
               
               
              <div class="row">
                   <div class="image-item form-group col-12">
                     <label>تصاویر سند:</label>
+                      <span class="form-text text-danger text-small">آپلود حداکثر ۲ فایل مجاز است.</span>
                       <input type="file" name="document" multiple class="form-control" accept="image/*">
                       <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}" id="{{ payment.id }}">
                        <div id="preview" class="mt-3"></div>

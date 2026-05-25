@@ -1,8 +1,46 @@
 {% extends 'renter_partials/base.html' %}
-
+{% load static %}
 {% block title %}سامانه مدیریت مجتمع خانه من{% endblock %}
 {% block content %}
-
+<div class="hero_area">
+        <!-- slider section -->
+<section class="slider_section ">
+<div class="slider_bg_box">
+   <img src="/static/home/images/slider-bg.jpg" alt="">
+</div>
+<div id="customCarousel1" class="carousel slide" data-ride="carousel">
+   <div class="carousel-inner">
+{% for slide in sliders %}
+<div class="carousel-item {% if forloop.first %}active{% endif %}">
+<div class="container">
+<div class="row">
+<div class="col-md-7 col-lg-6">
+   <div class="detail-box">
+      <h1>
+         <span>{{ slide.title }}</span>
+      </h1>
+      <p>{{ slide.text }}</p>
+   </div>
+</div>
+</div>
+</div>
+</div>
+{% endfor %}
+</div>
+   <div class="container">
+      <ol class="carousel-indicators">
+       {% for slide in sliders %}
+       <li data-target="#customCarousel1"
+           data-slide-to="{{ forloop.counter0 }}"
+           class="{% if forloop.first %}active{% endif %}">
+       </li>
+       {% endfor %}
+    </ol>
+   </div>
+</div>
+</section>
+    <!-- end slider section -->
+</div> 
    <!-- why section -->
    <section class="why_section layout_padding">
   <div class="container">
@@ -117,7 +155,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-lg-6 col-md-6 col-sm-12 wow fadeIn first_about mb-4" data-wow-delay=".5s">
+                    <div class="col-lg-6 col-md-6 col-sm-12 wow fadeIn first_about mb-4 " data-wow-delay=".5s">
                         <h5 class="mb-4">شارژیار!</h5>
                         <h2 class="mb-4 ">یک تجربه خوب در مدیریت ساختمان </h2>
                         <p>لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ، و با استفاده از طراحان گرافیک است، چاپگرها و متون بلکه روزنامه و مجله در ستون و سطرآنچنان که لازم است، و برای شرایط فعلی تکنولوژی مورد نیاز، و کاربردهای متنوع با هدف بهبود ابزارهای کاربردی می باشد، کتابهای زیادی در شصت و سه درصد گذشته حال و آینده، شناخت فراوان جامعه و متخصصان را می طلبد، تا با نرم افزارها شناخت بیشتری را برای طراحان رایانه ای علی الخصوص طراحان خلاقی، و فرهنگ پیشرو در زورد استفاده قرار گیرد.</p>
@@ -144,12 +182,12 @@
                         <form action="" method="post" novalidate>
                             {% csrf_token %}
                          <div class="row mt-3">
-                                     <div class="col-6">
+                                     <div class=" col-12 col-md-6">
                                  {{ form.mobile }}
                                  {{ form.mobile.errors }}
 {#                              <input type="text" name="name" class="text-center" placeholder="نام و نام خانوادگی را وارد نمایید">#}
                              </div>
-                              <div class="col-6">
+                              <div class="col-12 col-md-6">
                                   {{ form.name }}
                                              {{ form.name.errors }}
 {#                                   <input type="text" name="mobile" class="text-center" placeholder="شماره همراه را وارد نمایید">#}
@@ -171,7 +209,7 @@
          </div>
       </section>
     
-      <!-- about section -->
+      <!-- consultant section -->
        <div class="service">
          <div class="container py-4">
             <div class="row">
@@ -273,30 +311,35 @@
          </div>
       </section>
     
-      <section class="arrival_section py-3" dir="rtl">
-         <div class="container">
-            <div class="box">
-               <div class="arrival_bg_box">
-                  <img src="/static/home/images/arrival-bg.png" alt="">
+  <section class="arrival_section py-5" dir="rtl">
+   <div class="container">
+      <div class="box" style="position: relative; overflow: hidden; border-radius: 15px; background: #f8f9fa;">
+         <!-- پس‌زمینه -->
+         <div class="arrival_bg_box" style="position: absolute; width: 100%; height: 100%; z-index: 0; opacity: 0.2;">
+            <img src="/static/home/images/arrival-bg.png" alt="" style="width: 100%; height: 100%; object-fit: cover;">
+         </div>
+         
+         <div class="row" style="position: relative; z-index: 2;">
+            <!-- تغییر کلاس: حذف mr-auto و استفاده از col-md-6 برای دسکتاپ -->
+            <!-- محتوا در دسکتاپ به صورت پیش‌فرض در راست (RTL) قرار می‌گیرد -->
+            <div class="col-12 col-md-6 text-center text-md-right p-4 p-md-5">
+               <div class="heading_container remove_line_bt">
+                  <h2 style="font-weight: bold; color: #333;">
+                     شارژیار
+                  </h2>
                </div>
-               <div class="row">
-                  <div class="col-md-6 ml-auto text-justify">
-                     <div class="heading_container remove_line_bt">
-                        <h2>
-                           شارژیار
-                        </h2>
-                     </div>
-                     <p style="margin-top: 20px;margin-bottom: 30px;">
-                        طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند. طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند. طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند. طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند
-                     </p>
-                     <a href="">
-                     همین الان شروع کنید
-                     </a>
-                  </div>
-               </div>
+               <p class="mt-3 mb-4" style="line-height: 1.8; font-size: 1rem;">
+                  طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند. طراحان وب و گرافیک از این متن برای پرکردن صفحه و ارائه شکل کلی طرح استفاده می‌کنند.
+               </p>
+               <a href="" class="btn btn-primary px-4 py-2" style="border-radius: 30px; display: inline-block;">
+                  همین الان شروع کنید
+               </a>
             </div>
          </div>
-      </section>
+      </div>
+   </div>
+</section>
+
     
       <!-- faq section -->
     <section id="faq" class="faq section bg-light py-5">
@@ -308,17 +351,17 @@
                </h2>
             </div>
 
-      <div class="container">
+      <div class="container" dir="rtl">
 
         <div class="row justify-content-center">
 
-          <div class="col-lg-10" dir="rtl" data-aos="fade-up" data-aos-delay="100">
+          <div class="col-lg-10" data-aos="fade-up" data-aos-delay="100">
 
             <div class="faq-container">
 
-              <div class="faq-item faq-active">
-                <h3>لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ?</h3>
-                <div class="faq-content text-justify">
+              <div class="faq-item  text-justify faq-active">
+                <h3>لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ؟</h3>
+                <div class="faq-content">
                   <p>
                       اگر شما یک طراح هستین و یا با طراحی های گرافیکی سروکار دارید به متن های برخورده اید که با نام لورم ایپسوم شناخته می‌شوند. لورم ایپسوم یا طرح‌نما (به انگلیسی: Lorem ipsum) متنی ساختگی و بدون معنی است که برای امتحان فونت و یا پر کردن فضا در یک طراحی گرافیکی و یا صنعت چاپ استفاده میشود.  صفحه و ارائه شکل کلی طرح استفاده می‌کنند.
                   </p>
@@ -326,41 +369,41 @@
                 <i class="faq-toggle bi bi-chevron-right"></i>
               </div><!-- End Faq item-->
 
-              <div class="faq-item">
-                <h3>لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ?</h3>
-                <div class="faq-content text-justify">
+              <div class="faq-item text-justify">
+                <h3>لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ؟</h3>
+                <div class="faq-content">
                   <p>طراحان سایت هنگام طراحی قالب سایت معمولا با این موضوع رو برو هستند که محتوای اصلی صفحات آماده نیست. .</p>
                 </div>
                 <i class="faq-toggle bi bi-chevron-right"></i>
               </div><!-- End Faq item-->
 
-              <div class="faq-item ">
-                <h3>لورم ایپسوم متن ساختگی ن ساختگی  با تولید سادگی نامفهوم از صنعت چاپ?</h3>
-                <div class="faq-content text-justify">
+              <div class="faq-item text-justify ">
+                <h3>لورم ایپسوم متن ساختگی ن ساختگی  با تولید سادگی نامفهوم از صنعت چاپ؟</h3>
+                <div class="faq-content">
                   <p>طراحان سایت هنگام طراحی قالب سایت معمولا با این موضوع رو برو هستند که محتوای اصلی صفحات آماده نیست طراحان سایت هنگام طراحی قالب سایت معمولا با این موضوع رو برو هستند. </p>
                 </div>
                 <i class="faq-toggle bi bi-chevron-right"></i>
               </div><!-- End Faq item-->
 
               <div class="faq-item text-justify">
-                <h3>لورم ایپسوم متن ساختگی لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ?</h3>
+                <h3>لورم ایپسوم متن ساختگی لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ؟</h3>
                 <div class="faq-content">
                   <p>از آنجا که لورم ایپسوم، شباهت زیادی به متن های واقعی دارد، طراحان معمولا از لورم ایپسوم استفاده میکنند.</p>
                 </div>
                 <i class="faq-toggle bi bi-chevron-right"></i>
               </div><!-- End Faq item-->
 
-              <div class="faq-item">
-                <h3>لورم ایپسوم تن ساختگی با تولید سادگی نامفهوم از متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ?</h3>
-                <div class="faq-content text-justify">
+              <div class="faq-item text-justify">
+                <h3>لورم ایپسوم تن ساختگی با تولید سادگی نامفهوم از متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ؟</h3>
+                <div class="faq-content">
                   <p>به همین دلیل اغلب اوقات ما با وبسایتهایی مواجه می‌شویم که در گوشه و کنار صفحات آنها متن لورم ایپسوم هنوز وجود دارد و حذف نشده است که این نشان دهنده بی توجهی طراحان است.</p>
                 </div>
                 <i class="faq-toggle bi bi-chevron-right"></i>
               </div><!-- End Faq item-->
 
-              <div class="faq-item">
-                <h3>لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم  سادگی نامفهواز صنعت چاپ?</h3>
-                <div class="faq-content text-justify">
+              <div class="faq-item text-justify">
+                <h3>لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم  سادگی نامفهواز صنعت چاپ؟</h3>
+                <div class="faq-content">
                   <p> نکته بعدی در مورد متن ساختگی لورم ایپسوم این است </p>
                 </div>
                 <i class="faq-toggle bi bi-chevron-right"></i>
@@ -474,6 +517,25 @@
     });
   });
 
+</script>
+{#    <script src="{% static 'admin_panel/vendors/js/vendor.bundle.base.js' %}"></script>#}
+<script src="{% static 'admin_panel/js/sweetalert2@11.js' %}"></script>
+    <script>
+    // اطمینان از اینکه فقط یک بار اجرا می شود
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if messages %}
+            {% for message in messages %}
+                Swal.fire({
+                    // مطمئن شوید که تگ ها به درستی به آیکون و عنوان تبدیل می شوند
+                    icon: "{% if message.tags == 'success' %}success{% elif message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% elif message.tags == 'info' %}info{% else %}question{% endif %}",
+                    title: "{% if message.tags == 'success' %}عملیات موفق{% elif message.tags == 'error' %}خطا{% elif message.tags == 'warning' %}هشدار{% elif message.tags == 'info' %}اطلاعات{% else %}پیام{% endif %}",
+                    text: "{{ message }}",
+                    confirmButtonText: 'باشه',
+                    confirmButtonColor: '#3085d6'
+                });
+            {% endfor %}
+        {% endif %}
+    });
 </script>
 
 {% endblock %}

@@ -31,6 +31,10 @@ urlpatterns = [
     path('middle/bank/edit/<int:pk>/', views.middleBankUpdateView.as_view(), name='middle_edit_bank'),
     path('middle/delete/bank/<int:pk>/', views.middle_bank_delete, name='middle_delete_bank'),
 
+    path('middle-transfer-bank', views.TransferMoneyView.as_view(), name='middle_transfer_bank'),
+    path('middle-transfer-bank_list', views.transfer_list_view, name='middle_transfer_bank_list'),
+    path('middle--delete-transfer-bank/<int:pk>/', views.delete_transfer, name='middle_delete_transfer_bank'),
+
     # Unit Urls
     path('middle-add-unit', views.MiddleUnitRegisterView.as_view(), name='middle_unit_register'),
     path('middle-info-unit/<int:pk>/', views.MiddleUnitInfoView.as_view(), name='middle_unit_info'),
@@ -90,8 +94,15 @@ urlpatterns = [
 
     # ReceiveMoney Urls
     path('middle-add-receive', views.MiddleReceiveMoneyCreateView.as_view(), name='middle_register_receive'),
-    path('receive/<int:pk>/delete_fund/', views.delete_fund_record, name='delete_fund_record'),
+
+    # path('receive/<int:pk>/delete_fund/', views.delete_fund_record, name='delete_fund_record'),
     path('receive/middle/edit/<int:pk>/', views.middle_receive_edit, name='middle_receive_edit'),
+    path('receive/pay/<int:receive_id>/', views.receive_pay_view, name='receive_pay'),
+    path(
+        'receive/cancel-pay/<int:receive_id>/',
+        views.receive_cancel_pay_view,
+        name='receive_cancel_pay'
+    ),
     path('receive/middle/delete/<int:pk>/', views.middle_receive_delete, name='middle_receive_delete'),
     path('receive/middle/delete-document/', views.middle_delete_receive_document, name='middle_delete_delete_document'),
     path('receive/export/excel/', views.export_receive_excel, name='export_receive_excel'),
@@ -99,8 +110,14 @@ urlpatterns = [
 
     # PayMoney Urls
     path('middle-add-pay', views.MiddlePaymentMoneyCreateView.as_view(), name='middle_register_pay'),
-    path('pay/<int:pk>/delete_fund/', views.delete_pay_fund_record, name='delete_pay_fund_record'),
+    # path('pay/<int:pk>/delete_fund/', views.delete_pay_fund_record, name='delete_pay_fund_record'),
     path('pay/middle/edit/<int:pk>/', views.middle_pay_edit, name='middle_pay_edit'),
+    path('payment/pay/<int:payment_id>/', views.payment_pay_money_view, name='payment_pay_money'),
+    path(
+        'payment/cancel-pay/<int:payment_id>/',
+        views.payment_cancel_pay_money_view,
+        name='payment_cancel_pay_money'
+    ),
     path('pay/middle/delete/<int:pk>/', views.middle_pay_delete, name='middle_pay_delete'),
     path('pay/middle/delete-document/', views.middle_delete_pay_document, name='middle_delete_pay_document'),
     path('pay/export/excel/', views.export_pay_excel, name='export_pay_excel'),
@@ -109,13 +126,19 @@ urlpatterns = [
     # Property Urls
     path('middle-add-Property', views.MiddlePropertyCreateView.as_view(), name='middle_register_property'),
     path('Property/middle/edit/<int:pk>/', views.middle_property_edit, name='middle_property_edit'),
+    path('property/pay/<int:property_id>/', views.property_pay_money_view, name='property_pay_money'),
+    path(
+        'property/cancel-pay/<int:property_id>/',
+        views.property_cancel_pay_money_view,
+        name='property_cancel_pay_money'
+    ),
     path('Property/middle/delete/<int:pk>/', views.middle_property_delete, name='middle_property_delete'),
     path('middleProperty/delete-document/', views.middle_delete_property_document,
          name='middle_delete_property_document'),
     # path('Property/export/excel/', views.export_property_excel, name='export_property_excel'),
     # path('Property/export/pdf/', views.export_property_pdf, name='export_property_pdf'),
-    path('property/<int:pk>/delete_fund/', views.delete_property_fund_record,
-         name='delete_property_fund_record'),
+    # path('property/<int:pk>/delete_fund/', views.delete_property_fund_record,
+    #      name='delete_property_fund_record'),
 
     # Maintenance Urls
     path('middle-add-maintenance', views.MiddleMaintenanceCreateView.as_view(), name='middle_register_maintenance'),
@@ -123,14 +146,28 @@ urlpatterns = [
     path('maintenance/middle/delete/<int:pk>/', views.middle_maintenance_delete, name='middle_maintenance_delete'),
     path('maintenance/middle/delete-document/', views.middle_delete_maintenance_document,
          name='middle_delete_maintenance_document'),
+
+    path('maintenance/pay/<int:maintenance_id>/', views.maintenance_pay_money_view, name='maintenance_pay_money'),
+    path(
+        'maintenance/cancel-pay/<int:maintenance_id>/',views.maintenance_cancel_pay_money_view,
+        name='maintenance_cancel_pay_money'),
     # path('maintenance/export/excel/', views.export_maintenance_excel, name='export_maintenance_excel'),
     # path('maintenance/export/pdf/', views.export_maintenance_pdf, name='export_maintenance_pdf'),
-    path('maintenance/<int:pk>/delete_fund/', views.delete_maintenance_fund_record,
-         name='delete_maintenance_fund_record'),
+    # path('maintenance/<int:pk>/delete_fund/', views.delete_maintenance_fund_record,
+    #      name='delete_maintenance_fund_record'),
 
-    path('middle-add-sewage/', views.middle_sewage_view, name='middle_register_sewage'),
+    # sewage Urls
+
+    path('middle-add-sewage/', views.SewageCostManage.as_view(), name='middle_register_sewage'),
+    path('sewage/middle/edit/<int:pk>/', views.sewage_cost_edit, name='middle_sewage_edit'),
+    path('sewage/middle/delete/<int:pk>/', views.middle_sewage_delete, name='middle_sewage_delete'),
+    path('sewage/middle/delete-document/', views.middle_delete_sewage_document,
+         name='middle_delete_sewage_document'),
+    path('middle/sewage/send/form/<int:pk>/', views.middle_show_sewage_form, name='middle_show_send_sewage_form'),
+    path('middle-send-sewage/<int:pk>/', views.middle_send_sewage, name='middle_send_sewage'),
 
     # Charge Urls
+
     path('middle-add-charge', views.middle_charge_view, name='middle_add_charge'),
     path('middle-manage-charges', views.base_charge_list, name='middle_main_charges'),
     path('middle-main-charges-pdf/', views.middle_base_charges_pdf, name='middle_main_charges_pdf'),
@@ -162,7 +199,16 @@ urlpatterns = [
         views.restore_penalty_bulk,
         name='restore_penalty'
     ),
-    path('civil_charge/', views.civil_charge_manage, name='civil_charge_manage'),
+
+    # Civil Charge
+
+    path('civil_charge/', views.CivilChargeManage.as_view(), name='civil_charge_manage'),
+    path('civil/middle/edit/<int:pk>/', views.civil_charge_edit, name='middle_civil_edit'),
+    path('civil/middle/delete/<int:pk>/', views.middle_civil_delete, name='middle_civil_delete'),
+    path('civil/middle/delete-document/', views.middle_delete_civil_document,
+         name='middle_delete_civil_document'),
+    path('middle/civil/send/form/<int:pk>/', views.middle_show_civil_form, name='middle_show_send_civil_form'),
+    path('middle-send-civil/<int:pk>/', views.middle_send_civil_charge, name='middle_send_civil_charge'),
 
     # Fix Charge
     path('middle-add-fixed-Charge', views.MiddleFixChargeCreateView.as_view(), name='middle_add_fixed_charge'),

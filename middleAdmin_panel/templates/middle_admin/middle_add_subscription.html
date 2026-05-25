@@ -70,9 +70,9 @@
 
         <p class="text-muted">هزینه هر واحد:</p>
 
-        <h4 class="text-facebook">
+        <h5 class="text-danger">
             {{ plan.price_per_unit|three_digit_currency }} تومان
-        </h4>
+        </h5>
 
         <hr>
 
@@ -125,6 +125,7 @@
     <script src="/static/js/jquery-3.5.1.slim.min.js"></script>
     <script src="/static/js/custom.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 <script>
 const unitsInput = document.getElementById("units");
 const radios = document.querySelectorAll('input[name="plan"]');
@@ -135,9 +136,14 @@ const unitsError = document.getElementById("units_error");
 // مقدار حداقل ثبت‌شده از backend
 const minUnits = parseInt(unitsInput.min);
 
-// تابع سه‌رقمی کردن اعداد
+// ✅ تابع سه‌رقمی کردن عدد
 function formatNumber(num){
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// ✅ تابع تبدیل اعداد به فارسی
+function toPersianNumber(num){
+    return num.toString().replace(/\d/g, d => "۰۱۲۳۴۵۶۷۸۹"[d]);
 }
 
 // انتخاب کارت با کلیک
@@ -153,12 +159,12 @@ cards.forEach(card=>{
 function calculate(){
     let units = parseInt(unitsInput.value) || 0;
 
-    // ✅ بررسی تعداد واحد
+    // بررسی تعداد واحد
     if(units < minUnits){
         unitsError.style.display = "block";
-        unitsError.innerText = `با توجه به تعداد واحد ثبتی، تعداد واحد نمی‌تواند کمتر از ${minUnits} باشد.`;
-        finalPrice.innerText = "0";
-        return; // جلوگیری از ادامه محاسبه
+        unitsError.innerText = `با توجه به تعداد واحد ثبتی، تعداد واحد نمی‌تواند کمتر از ${toPersianNumber(minUnits)} باشد.`;
+        finalPrice.innerText = "۰";
+        return;
     } else {
         unitsError.style.display = "none";
     }
@@ -169,11 +175,11 @@ function calculate(){
 
         let span = document.getElementById("total_" + radio.value);
         if(span){
-            span.innerText = formatNumber(total) + " تومان";
+            span.innerText = toPersianNumber(formatNumber(total)) + " تومان";
         }
 
         if(radio.checked){
-            finalPrice.innerText = formatNumber(total);
+            finalPrice.innerText = toPersianNumber(formatNumber(total));
         }
     });
 }

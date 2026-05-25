@@ -2,6 +2,7 @@
 <!DOCTYPE html >
 
 {% load static %}
+{% load poll_extras %}
 {#{% load jalali_tags %}#}
 <html lang="en">
   <head>
@@ -10,7 +11,7 @@
     <meta charset="utf-8">
 
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>سامانه مدیریت مجتمع مسکونی</title>
+    <title> رایا شارژ | RayaCharge</title>
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@30.1.0/dist/font-face.css" rel="stylesheet" type="text/css" />
 
@@ -26,7 +27,7 @@
 
 <!--date style-->
 
-     <link rel="shortcut icon" href="{% static 'admin_panel/images/favicon.png' %}">
+     <link rel="shortcut icon" href="{% static 'home/images/favicon1.png' %}">
  
     
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
@@ -61,10 +62,10 @@
       <nav
               class="navbar default-layout-navbar col-lg-12 col-12 p-0 border border-primary border-bottom-3 fixed-top d-flex flex-row">
         <div class="text-center navbar-brand-wrapper d-flex align-items-center justify-content-center">
-          <a class="navbar-brand brand-logo" href=""><img src="{% static 'admin_panel/images/logo/logo3.png' %}"
-                                                                    alt="logo" width="15" height="30" />
+          <a class="navbar-brand brand-logo" href="{% url 'middle_admin_dashboard' %}"><img src="{% static 'home/images/img/logo2.png' %}"
+                                                                    alt="logo" width="15" height="25" />
           </a>
-          <a class="navbar-brand brand-logo-mini" href="#"><img src="{% static 'admin_panel/images/logo/logo.png' %}"
+          <a class="navbar-brand brand-logo-mini" href="{% url 'middle_admin_dashboard' %}"><img src="{% static 'home/images/favicon1.png' %}"
                                                                          alt="logo"  /></a>
         </div>
         <div class="navbar-menu-wrapper d-flex align-items-stretch">
@@ -100,6 +101,32 @@
         <div class="main-panel">
 
           <div class="content-wrapper">
+              {% if subscription_warning %}
+{% if subscription_warning and sub_status != "inactive" %}
+<div class="row">
+  <div class="col-12">
+    <div class="card bg-warning shadow-sm mt-2">
+      <div class="card-body d-flex justify-content-between align-items-center py-2 px-3">
+
+        <p class="mb-0 text-dark" style="font-size: 0.9rem;">
+          ⚠️ اشتراک شما تا
+          <strong>{{ remaining_days|to_persian_number }}</strong>
+          روز دیگر به پایان می‌رسد. لطفاً قبل از غیرفعال شدن، تمدید کنید.
+        </p>
+
+        <a href="{% url 'buy_subscription' %}"
+           class="btn btn-sm btn-gradient-success px-3">
+           تمدید اشتراک
+        </a>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+
+   {% endif %}
           {% if is_impersonating %}
 <div id="impersonation-banner">
     🔐 شما در حال مشاهده حساب
@@ -251,7 +278,7 @@
       alert.classList.add('hide'); // fade out
       setTimeout(() => alert.remove(), 500); // بعد از fade حذف می‌کنه
     });
-  }, 3000); // 3000 میلی‌ثانیه = 3 ثانیه
+  }, 5000); // 3000 میلی‌ثانیه = 3 ثانیه
 </script>
 {#  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>#}
 {#<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>#}

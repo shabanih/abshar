@@ -128,23 +128,36 @@
                                           {{ form.first_charge_owner }}
                                           {{ form.first_charge_owner.errors }}
                                       </div>
-                                      <div class=" col-12 col-lg-4 col-xl-4">
+                                      <div class=" col-12 col-lg-4 col-xl-3">
                                         {{ form.owner_bank.label_tag }}
                                         {{ form.owner_bank }}
                                         {{ form.owner_bank.errors }}
                                       </div>
-                                       <div class=" col-12 col-lg-2 col-xl-2">
+                                       <div class=" col-12 col-lg-2 col-xl-3">
                                         {{ form.owner_payment_date.label_tag }}
                                         {{ form.owner_payment_date }}
                                         {{ form.owner_payment_date.errors }}
                                       </div>
-                                      <div class=" col-12 col-lg-2 col-xl-2">
+                                      <div class=" col-12 col-lg-2 col-xl-3">
                                         {{ form.owner_transaction_no.label_tag }}
                                         {{ form.owner_transaction_no }}
                                         {{ form.owner_transaction_no.errors }}
                                       </div>
                                     
                                     </div>
+                                         <div class="row g-3 justify-content-start">
+                                    <p class="mt-2 mb-0" style="font-weight: 900">اطلاعات کاربری</p>
+                                    <div class="col-6 col-lg-4 col-xl-3">
+                                         {{ form.owner_password.label_tag }}
+                                        {{ form.owner_password }}
+                                        {{ form.owner_password.errors }}
+                                    </div>
+                                    <div class="col-6 col-lg-4 col-xl-3">
+                                        {{ form.confirm_owner_password.label_tag }}
+                                        {{ form.confirm_owner_password }}
+                                        {{ form.confirm_owner_password.errors }}
+                                    </div>
+                                </div>
 
 
                              <hr class="mt-2" style="color: #0f1531">
@@ -230,29 +243,21 @@
                                           {{ form.renter_transaction_no.errors }}
                                       </div>
                                         </div>
+                                      <div class="row g-3 justify-content-start">
+                                    <p class="mt-2 mb-0" style="font-weight: 900">اطلاعات کاربری</p>
+                                    <div class="col-6 col-lg-3 col-xl-3">
+                                            {{ form.renter_password.label_tag }}
+                                        {{ form.renter_password }}
+                                        {{ form.renter_password.errors }}
+                                    </div>
+                                    <div class="col-6 col-lg-3 col-xl-3">
+                                            {{ form.confirm_renter_password.label_tag }}
+                                        {{ form.confirm_renter_password }}
+                                        {{ form.confirm_renter_password.errors }}
+                                    </div>
+                                </div>
                                   </div>
-                                       <hr class="mt-2" style="color: #0f1531">
-                                      <div class="row justify-content-start">
-                                             <p class="mt-2 mb-0" style="font-weight: 900">اطلاعات کاربری</p>
-                                          <p class="text-danger mt-2">توجه: نام کاربری شماره همراه شخص ساکن در ساختمان(مالک/مستاجر)میباشد</p>
-{#                                           <div class="col-6 col-lg-2 col-xl-2 ">#}
-{#                                          {{ form.mobile.label_tag }}#}
-{#                                          {{ form.mobile }}#}
-{#                                          {{ form.mobile.errors }}#}
-{#                                          </div>#}
-                                              <div class="col-6 col-lg-3 col-xl-3">
-                                          {{ form.password.label_tag }}
-                                          {{ form.password }}
-                                          {{ form.password.errors }}
-                                           </div>
-                                              <div class="col-6 col-lg-3 col-xl-3">
-                                          {{ form.confirm_password.label_tag }}
-                                          {{ form.confirm_password }}
-                                          {{ form.confirm_password.errors }}
-                                           </div>
-                                      </div>
-
-
+                                      
                                   <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
                                      <button type="submit" class="btn btn-gradient-primary mr-1">ذخیره</button>
                                             <a class="btn btn-danger" type="button"

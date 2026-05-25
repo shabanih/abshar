@@ -38,13 +38,14 @@ from admin_panel.forms import announcementForm, UnitForm, ExpenseForm, ExpenseCa
     IncomeForm, IncomeCategoryForm, BankForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, \
     MaintenanceForm, FixChargeForm, PersonAreaChargeForm, AreaChargeForm, PersonChargeForm, FixAreaChargeForm, \
     FixPersonChargeForm, PersonAreaFixChargeForm, VariableFixChargeForm, UserRegistrationForm, SmsForm, MyHouseForm, \
-    ChargeCategoryForm, AdminSmsForm, SubscriptionPlanForm, SliderForm
+    ChargeCategoryForm, AdminSmsForm, SubscriptionPlanForm, SliderForm, SubscriptionUpdateForm
 from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDocument, Income, IncomeDocument, \
     IncomeCategory, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, ChargeByPersonArea, \
     ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
     FixPersonCharge, FixAreaCharge, ChargeFixVariable, \
-    SmsManagement, Fund, UnifiedCharge, AdminSmsManagement, SmsCredit, ImpersonationLog, SubscriptionPlan, Subscription
+    SmsManagement, Fund, UnifiedCharge, AdminSmsManagement, SmsCredit, ImpersonationLog, SubscriptionPlan, Subscription, \
+    AdminFund
 from home.forms import ArticleForm
 from home.models import SliderText, ContactUs, FreeRequest, Articles
 from notifications.models import AdminTicket
@@ -201,14 +202,11 @@ class SubscriptionListView(ListView):
 
     def get_paginate_by(self, queryset):
         paginate = self.request.GET.get('paginate')
-        if paginate == '1000':
-            return None  # نمایش همه آیتم‌ها
-        return int(paginate or 20)
+        return None if paginate == '1000' else int(paginate or 20)
 
     def get_queryset(self):
         query = self.request.GET.get('q', '').strip()
         qs = Subscription.objects.all().select_related('user', 'house', 'plan')
-
         if query:
             if query.isdigit():
                 qs = qs.filter(
@@ -229,25 +227,66 @@ class SubscriptionListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # ارسال فرم به قالب
+        if 'form' not in context:
+            context['form'] = SubscriptionUpdateForm()
         context['query'] = self.request.GET.get('q', '')
-        context['paginate'] = self.request.GET.get('paginate', '1')
         return context
 
+    def post(self, request, *args, **kwargs):
+        form = SubscriptionUpdateForm(request.POST)
+        if form.is_valid():
+            # ۱. استخراج داده‌ها از فرم
+            house = form.cleaned_data['house']
+            plan = form.cleaned_data.get('plan')  # استفاده از .get چون ممکن است None باشد
 
-def admin_cancel_subscription(request, subscription_id):
+            # ۲. انتساب مدیر ساختمان
+            form.instance.user = house.user
+
+            # ۳. مدیریت وضعیت اشتراک
+            if plan:
+                form.instance.is_trial = False
+                form.instance.plan = plan
+                form.instance.is_paid = True
+            else:
+                form.instance.is_trial = True
+                form.instance.is_paid = False  # اشتراک رایگان معمولاً پرداخت شده محسوب نمی‌شود
+
+            form.save()
+            messages.success(request, 'اشتراک با موفقیت ثبت شد.')
+            return redirect('subscription_list')
+
+        # در صورت خطا
+        self.object_list = self.get_queryset()
+        context = self.get_context_data(form=form)
+        return self.render_to_response(context)
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def admin_edit_subscription(request, subscription_id):
     subscription = get_object_or_404(Subscription, id=subscription_id)
 
-    # بررسی اینکه اشتراک قبلا لغو شده است
-    if subscription.status == 'cancelled':
-        messages.error(request, 'اشتراک قبلا لغو شده است')
-        return redirect(request.META.get('HTTP_REFERER'))
+    if request.method == 'POST':
+        form = SubscriptionUpdateForm(request.POST, instance=subscription)
+        if form.is_valid():
+            # استخراج پلن از داده‌های فرم (حتی اگر خالی باشد)
+            plan = form.cleaned_data.get('plan')
 
-    # لغو اشتراک بدون تغییر تاریخ‌ها
-    subscription.status = 'cancelled'
-    subscription.save(update_fields=['status'])
+            # به‌روزرسانی وضعیت بر اساس انتخاب جدید ادمین
+            if plan:
+                form.instance.is_trial = False
+                form.instance.is_paid = True
+            else:
+                form.instance.is_trial = True
+                form.instance.is_paid = False
 
-    messages.success(request, "اشتراک غیرفعال شد. تاریخ‌ها بدون تغییر باقی ماندند.")
-    return redirect(request.META.get('HTTP_REFERER'))
+            form.save()
+            messages.success(request, "تغییرات با موفقیت ذخیره شد.")
+            return redirect('subscription_list')
+    else:
+        form = SubscriptionUpdateForm(instance=subscription)
+
+    return render(request, 'admin_panel/edit_subscription.html', {'form': form})
 
 
 # ==========================================================================
@@ -4139,6 +4178,83 @@ def delete_note(request):
         CalendarNote.objects.filter(user=request.user, year=year, month=month, day=day).delete()
         return JsonResponse({"status": "ok"})
     return JsonResponse({"status": "error"}, status=400)
+
+
+# ================================== fund for admin ==================================
+@method_decorator(admin_required, name='dispatch')
+class AdminFinanceByHouse(ListView):
+    model = MyHouse
+    template_name = 'admin_panel/admin_finance_by_house.html'
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+
+        qs = (
+            MyHouse.objects
+            .filter(admin_houses__id__isnull=False)
+            .annotate(
+                total_finances=Count('admin_houses')
+            )
+            .distinct()
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(name__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        return context
+
+
+class AdminFinanceList(ListView):
+    model = AdminFund
+    template_name = 'admin_panel/admin_finance_report.html'
+    context_object_name = 'funds'
+
+    def get_paginate_by(self, queryset):
+        paginate = self.request.GET.get('paginate')
+        if paginate == '1000':
+            return None  # نمایش همه آیتم‌ها
+        return int(paginate or 20)
+
+    def get_queryset(self):
+        house_id = self.kwargs['house_id']
+        query = self.request.GET.get('q', '')
+
+        qs = (
+            AdminFund.objects.filter(
+                house_id=house_id,
+            ).order_by('-id')
+        )
+
+        if query:
+            qs = qs.filter(
+                Q(payment_description__icontains=query) |
+                Q(user__full_name__icontains=query)
+            )
+
+        return qs
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['query'] = self.request.GET.get('q', '')
+        context['paginate'] = self.request.GET.get('paginate', '20')
+        context['house'] = MyHouse.objects.filter(id=self.kwargs['house_id']).first()
+        return context
 
 
 # ========================== Fund Report =============================================

@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'notifications',
     'admin_payment_app',
     'home',
+    'polls_app',
 
     # 'jalali_date',
 
@@ -106,6 +107,7 @@ TEMPLATES = [
         'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
+       
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
@@ -116,6 +118,8 @@ TEMPLATES = [
                 'absharProject.context_processors.middle_header_notifications',
                 'absharProject.context_processors.admin_header_notifications',
                 'absharProject.context_processors.impersonation_banner',
+                'absharProject.context_processors.user_unit_context',
+
             ],
         },
     },

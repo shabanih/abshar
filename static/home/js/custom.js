@@ -1,4 +1,6 @@
 // to get current year
+
+console.log('ok')
 function getYear() {
     var currentDate = new Date();
     var currentYear = currentDate.getFullYear();

@@ -10,7 +10,7 @@
     <meta charset="utf-8">
 
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>سامانه مدیریت مجتمع مسکونی</title>
+    <title>رایا شارژ | RayaCharge</title>
   <link rel="stylesheet" href="{% static 'admin_panel/dist/bootstrap.min.css' %}">
     <!-- plugins:css -->
     <link rel="stylesheet" href="{% static 'admin_panel/css/bootstrap-rtl.min.css' %}">
@@ -28,7 +28,7 @@
     <link rel="stylesheet" href="{% static 'admin_panel/css/all.min.css' %}">
     <!-- Layout styles -->
     <link rel="stylesheet" href="{% static 'admin_panel/css/style.css' %}">
-     <link rel="shortcut icon" href="{% static 'admin_panel/images/favicon.png' %}">
+     <link rel="shortcut icon" href="{% static 'home/images/favicon1.png' %}">
  
     
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css">
@@ -57,10 +57,10 @@
       <nav
               class="navbar default-layout-navbar col-lg-12 col-12 p-0 border border-primary border-bottom-3 fixed-top d-flex flex-row">
         <div class="text-center navbar-brand-wrapper d-flex align-items-center justify-content-center">
-          <a class="navbar-brand brand-logo" href=""><img src="{% static 'admin_panel/images/logo/logo3.png' %}"
-                                                                    alt="logo" width="15" height="30" />
+          <a class="navbar-brand brand-logo" href="{% url 'user_panel' %}"><img src="{% static 'home/images/img/logo2.png' %}"
+                                                                    alt="logo" width="15" height="15" />
           </a>
-          <a class="navbar-brand brand-logo-mini" href="#"><img src="{% static 'admin_panel/images/logo/logo.png' %}"
+          <a class="navbar-brand brand-logo-mini" href="{% url 'user_panel' %}"><img src="{% static 'home/images/favicon1.png' %}"
                                                                          alt="logo"  /></a>
         </div>
         <div class="navbar-menu-wrapper d-flex align-items-stretch">
@@ -120,7 +120,7 @@
       {{ title.title|safe }}
     </li>
   {% empty %}
-    <li class="active">اطلاعیه‌ای وجود ندارد</li>
+    <li class="active">اطلاعیه‌ای ثبت نشده است.</li>
   {% endfor %}
 </ul>
       </div>
@@ -204,14 +204,14 @@
     <script src="{% static 'admin_panel/js/django_jalali.min.js' %}"></script>
     <script src="{% static 'admin_panel/js/jalaliDatePicker2.js' %}"></script>
     <script src="{% static 'admin_panel/js/middle.js' %}"></script>
+    
 
   <script src="{% static 'js/custom.js' %}"></script>
   
 
 <script src="https://cdn.jsdelivr.net/npm/persian-date/dist/persian-date.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
-      </div>
-    </div>
+
   
   </body>
 <script>
@@ -237,7 +237,7 @@
       alert.classList.add('hide'); // fade out
       setTimeout(() => alert.remove(), 500); // بعد از fade حذف می‌کنه
     });
-  }, 3000); // 3000 میلی‌ثانیه = 3 ثانیه
+  }, 10000); // 3000 میلی‌ثانیه = 3 ثانیه
 </script>
 
 <script>

@@ -23,6 +23,22 @@ urlpatterns = [
     path('user-pay-pdf/', views.export_user_pay_money_pdf, name='user_pay_money_pdf'),
     path('user-pay-excel/', views.export_user_pay_money_excel, name='user_pay_money_excel'),
 
+    path('user-civil-charges/', views.unit_civil_charge_list, name='user_civil_charge_list'),
+    path('user-civil-installments/<int:civil_id>/unit/<int:unit_id>/', views.unit_installments_civil_list,
+         name='user_civil_installments_list'),
+    path('user-civil-charge-pdf/', views.export_charge_civil_pdf, name='user_civil_charge_pdf'),
+    path('user-civil-installments-pdf/<int:civil_id>/unit/<int:unit_id>/', views.export_installments_civil_pdf,
+         name='user_civil_installments_pdf'),
+
+    path('user-sewage/', views.unit_sewage_list, name='user_sewage_list'),
+    path('user-sewage-installments/<int:sewage_id>/unit/<int:unit_id>/', views.unit_installments_sewage_list,
+         name='user_sewage_installments_list'),
+    path('user-sewage-pdf/', views.export_sewage_pdf, name='user_sewage_pdf'),
+    path('user-sewage-installments-pdf/<int:sewage_id>/unit/<int:unit_id>/', views.export_installments_sewage_pdf,
+         name='user_sewage_installments_pdf'),
+
     path('profile/', views.user_profile, name='user_profile'),
+    path('poll/', views.unit_polls, name='unit_poll'),
+    path('poll/<int:poll_id>/', views.resident_poll_vote, name='resident_poll_vote'),
 
 ]

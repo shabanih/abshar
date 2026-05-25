@@ -12,8 +12,8 @@ attr = {'class': 'form-control border-1 py-2 mb-4 '}
 attr0 = {'class': 'form-control form-control-sm border-1 py-1 mb-4 '}
 attr1 = {'class': 'form-control border-1 py-1 mb-4 '}
 attr3 = {'class': 'form-control form-control-sm border-1'}
-attr2 = {'class': 'form-control', 'placeholder': 'نام و نام خانوادگی خود را وارد نمایید'}
-attr4 = {'class': 'form-control', 'placeholder': 'شماره همراه خود را وارد نمایید'}
+attr2 = {'class': 'form-control gray-placeholder', 'placeholder': 'نام و نام خانوادگی '}
+attr4 = {'class': 'form-control gray-placeholder', 'placeholder': 'شماره همراه'}
 
 
 class FreeRequestForm(forms.ModelForm):

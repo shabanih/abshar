@@ -114,9 +114,13 @@
     left: auto;
     right: 0;
 }
+.navbar .navbar-brand-wrapper .navbar-brand.brand-logo-mini img {
+    width: 70%;
+    height: 70%;
+}
 
 .navbar .navbar-brand-wrapper .navbar-brand img {
-    width: 70%;
+    width: 60%;
     height: 70%;
 }
 
@@ -1130,3 +1134,15 @@ div.d-flex.justify-content-between div{
 .add-note-today:hover {
     text-decoration: underline;
 }
+
+/*==============================*/
+
+.sidebar-subscription-box {
+display: block !important;
+}
+
+/* ۲. اگر سایدبار در دسکتاپ جمع شد (کلاس sidebar-icon-only در body) */
+body.sidebar-icon-only .sidebar-subscription-box {
+    display: none !important;
+}
+/*==========================*/

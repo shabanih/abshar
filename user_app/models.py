@@ -96,6 +96,13 @@ class Bank(models.Model):
         null=True,
         blank=True
     )
+    current_balance = models.DecimalField(
+        max_digits=18,
+        decimal_places=2,
+        default=0,
+        null=True,
+        blank=True
+    )
     is_default = models.BooleanField(default=False, verbose_name='حساب پیش فرض')
     is_gateway = models.BooleanField(default=False, verbose_name='حساب پیش فرض درگاه اینترنتی')
     create_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
@@ -382,53 +389,6 @@ class Renter(models.Model):
 
         super().save(*args, **kwargs)
         # today = timezone.now().date()
-
-        # =============================
-        # مستاجر فعال شد
-        # =============================
-        # if self.renter_is_active and (is_new or not old.renter_is_active):
-        #     change_date = self.start_date or today
-        #
-        #     # بستن هر رکورد فعال قبلی مستاجر یا مالک در تاریخچه
-        #     UnitResidenceHistory.objects.filter(
-        #         unit=self.unit,
-        #         to_date__isnull=True
-        #     ).update(to_date=change_date)
-        #
-        #     # ثبت مستاجر جدید
-        #     UnitResidenceHistory.objects.create(
-        #         unit=self.unit,
-        #         resident_type='renter',
-        #         renter=self,
-        #         name=self.renter_name,
-        #         mobile=self.renter_mobile,
-        #         people_count=int(self.renter_people_count or 0),
-        #         from_date=change_date,
-        #         changed_by=self.user
-        #     )
-        #
-        # # =============================
-        # # مستاجر غیرفعال شد
-        # # =============================
-        # if old and old.renter_is_active and not self.renter_is_active:
-        #     end_date = self.end_date or today
-        #
-        #     # بستن رکورد مستاجر فعال
-        #     UnitResidenceHistory.objects.filter(
-        #         renter=self,
-        #         to_date__isnull=True
-        #     ).update(to_date=end_date)
-        #
-        #     # فعال شدن مالک
-        #     UnitResidenceHistory.objects.create(
-        #         unit=self.unit,
-        #         resident_type='owner',
-        #         name=self.unit.owner_name,
-        #         mobile=self.unit.owner_mobile,
-        #         people_count=int(self.unit.owner_people_count or 0),
-        #         from_date=end_date,
-        #         changed_by=self.user
-        #     )
 
 
 class UnitResidenceHistory(models.Model):

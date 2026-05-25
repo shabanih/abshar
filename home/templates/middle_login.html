@@ -1,18 +1,19 @@
 {% load poll_extras %}
-
+{% load static %}
 <html lang="fa">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>سامانه مدیریت مجتمع بلوک B آبشار</title>
+    <title>سامانه مدیریت مجتمع رایا شارژ</title>
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"/>
     <link rel="stylesheet" href="/static/css/all.css">
     <link rel="stylesheet" href="/static/css/bootstrap.min.css">
     <link rel="stylesheet" href="/static/css/bootstrap-icons.css">
     <link rel="stylesheet" href="/static/css/bootstrap-rtl.min.css">
     <link rel="stylesheet" href="/static/css/core.css">
+     <link rel="shortcut icon" href="{% static 'home/images/favicon1.png' %}">
 
     <script src="/static/js/jquery.min.js"></script>
     <script src="/static/js/Bootstrap.min.js"></script>
@@ -29,7 +30,7 @@
         <div class="row text-center">
             <div class="col p-0">
                 <div id="grad1"></div>
-                        <img src="/static/img/logo_core.png" class="logo-style" alt="">
+                        <img src="/static/home/images/img/logo2.png"  class="logo-style" alt="">
 
             </div>
         </div>
@@ -58,7 +59,7 @@
   </div>
 {% endif %}
 
-      <h5 class="mb-4 mt-4 fw-bold">ورود به سامانه</h5>
+      <h6 class="mb-4 mt-4 fw-bold">ورود به پنل کاربری</h6>
 
       <form action="" method="post" novalidate class="d-flex flex-column align-items-center">
         {% csrf_token %}
@@ -75,11 +76,11 @@
           {{ form.password }}
            <span class="text-danger">{{ form.password.errors }}</span> 
         </div>
-             <button type="submit" class="btn btn-info text-white w-25">
+             <button type="submit" class="btn-login">
             ورود
           </button>
         <div class="d-flex justify-content-between align-items-center mt-4 ">
-          <a href="{% url 'mobile_login' %}" class=" btn-sm">
+          <a href="{% url 'mobile_login' %}" class="btn-sm">
             ورود با رمز یکبار مصرف
           </a>
          

@@ -326,6 +326,54 @@
 // });
 
 // ============================================================
+function toGregorian(jy, jm, jd) {
+    jy += 1595;
+    let days = -355668 + (365 * jy) + Math.floor(jy / 33) * 8 + Math.floor(((jy % 33) + 3) / 4) + jd;
+
+    if (jm < 7)
+        days += (jm - 1) * 31;
+    else
+        days += ((jm - 7) * 30) + 186;
+
+    let gy = 400 * Math.floor(days / 146097);
+    days %= 146097;
+
+    if (days > 36524) {
+        gy += 100 * Math.floor(--days / 36524);
+        days %= 36524;
+        if (days >= 365) days++;
+    }
+
+    gy += 4 * Math.floor(days / 1461);
+    days %= 1461;
+
+    if (days > 365) {
+        gy += Math.floor((days - 1) / 365);
+        days = (days - 1) % 365;
+    }
+
+    let gd = days + 1;
+
+    const sal_a = [0,31,(gy%4==0 && gy%100!=0)||gy%400==0?29:28,31,30,31,30,31,31,30,31,30,31];
+    let gm;
+
+    for (gm = 0; gm < 13; gm++) {
+        let v = sal_a[gm];
+        if (gd <= v) break;
+        gd -= v;
+    }
+
+    return {gy: gy, gm: gm, gd: gd};
+}
+
+function getDaysInJalaaliMonth(jy, jm) {
+    if (jm <= 6) return 31;
+    if (jm <= 11) return 30;
+
+    const mod = jy % 33;
+    return [1,5,9,13,17,22,26,30].includes(mod) ? 30 : 29;
+}
+
 function toPersianNumber(num) {
     const persianDigits = "۰۱۲۳۴۵۶۷۸۹";
     return num.toString().replace(/[0-9]/g, function (w) {
@@ -403,9 +451,15 @@ window.addEventListener("DOMContentLoaded", function () {
             console.error(e);
         }
 
-        const daysInMonth = new Date(currentYear, currentMonth <= 6 ? currentMonth : currentMonth + 1, 0).getDate();
-        const firstDayGregorian = new Date(currentYear, currentMonth - 1, 1);
-        const weekDay = firstDayGregorian.getDay();
+    const daysInMonth = getDaysInJalaaliMonth(currentYear, currentMonth);
+
+    // تبدیل روز اول ماه شمسی به میلادی
+    const firstGregorian = toGregorian(currentYear, currentMonth, 1);
+    const firstDate = new Date(firstGregorian.gy, firstGregorian.gm - 1, firstGregorian.gd);
+
+    // روز هفته شروع ماه
+    const weekDay = (firstDate.getDay() + 1) % 7;
+
 
 
         let row = document.createElement("tr");
@@ -457,7 +511,8 @@ window.addEventListener("DOMContentLoaded", function () {
                         selectedYear = currentYear;
                         selectedMonth = currentMonth;
                         selectedDay = d;
-                        selectedDayTitle.textContent =`یادداشت ${toPersianNumber(d)} ${persianMonthNames[currentMonth - 1]}`;
+                        selectedDayTitle.textContent =
+                        `یادداشت ${toPersianNumber(d)} ${persianMonthNames[currentMonth - 1]}`;
                         noteText.value = "";
                         noteModal.style.display = "flex";
                     };
@@ -470,7 +525,8 @@ window.addEventListener("DOMContentLoaded", function () {
                 selectedYear = currentYear;
                 selectedMonth = currentMonth;
                 selectedDay = d;
-                selectedDayTitle.textContent = `یادداشت ${d} ${persianMonthNames[currentMonth - 1]}`;
+                selectedDayTitle.textContent =
+                `یادداشت ${toPersianNumber(d)} ${persianMonthNames[currentMonth - 1]}`;
                 noteText.value = notes[noteKey] || "";
                 noteModal.style.display = "flex";
             };
@@ -760,3 +816,93 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 });
+
+// =========================Poll Chart ===================================
+document.addEventListener("DOMContentLoaded", function () {
+
+    const pollData = JSON.parse(
+    document.getElementById("poll_chart_data").textContent
+    );
+
+    const ctx = document.getElementById('pollChart').getContext('2d');
+
+    new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+    labels: pollData.labels,
+    datasets: [{
+    data: pollData.data,
+    backgroundColor: [
+    '#28a745',
+    '#17a2b8',
+    '#ffc107',
+    '#6610f2',
+    '#e83e8c',
+    '#20c997'
+    ],
+    borderWidth: 1
+}]
+},
+    options: {
+    responsive: true,
+    plugins: {
+    legend: {
+    position: 'bottom'
+},
+    tooltip: {
+    callbacks: {
+    label: function(context) {
+    let value = context.raw.toLocaleString();
+    return context.label + ' : ' + value + ' تومان';
+}
+}
+}
+}
+}
+});
+
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const pollData = JSON.parse(
+    document.getElementById("voted_chart_data").textContent
+    );
+
+    const ctx = document.getElementById('votedChart').getContext('2d');
+
+    new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+    labels: pollData.labels,
+    datasets: [{
+    data: pollData.data,
+    backgroundColor: [
+    '#20c997',
+    '#e83e8c',
+
+    ],
+    borderWidth: 1
+}]
+},
+    options: {
+    responsive: true,
+    plugins: {
+    legend: {
+    position: 'bottom'
+},
+    tooltip: {
+    callbacks: {
+    label: function(context) {
+    let value = context.raw.toLocaleString();
+    return context.label + ' : ' + value + ' تومان';
+}
+}
+}
+}
+}
+});
+
+});
+
+// =================================================================

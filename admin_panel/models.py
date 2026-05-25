@@ -9,6 +9,7 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
+from django.db.models import Count
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.safestring import mark_safe
@@ -244,7 +245,7 @@ class IncomeDocument(models.Model):
 # ======================= Receive & Pay Modals ==========================
 class ReceiveMoney(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
     house = models.ForeignKey(
         MyHouse,
@@ -308,7 +309,7 @@ class ReceiveDocument(models.Model):
 
 class PayMoney(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
     house = models.ForeignKey(
         MyHouse,
@@ -355,7 +356,6 @@ class PayMoney(models.Model):
         else:
             return self.receiver_name
 
-
     def get_document_urls_json(self):
         # Use the correct attribute to access the file URL in the related `ExpenseDocument` model
         image_urls = [doc.document.url for doc in self.documents.all() if doc.document]
@@ -375,7 +375,7 @@ class PayDocument(models.Model):
 # =========================== middleProperty Views ====================
 class Property(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     house = models.ForeignKey(
         MyHouse,
         on_delete=models.SET_NULL,
@@ -385,6 +385,7 @@ class Property(models.Model):
         verbose_name='ساختمان مرتبط'
     )
     receiver_name = models.CharField(max_length=200, verbose_name='دریافت کننده')
+    company_name = models.CharField(max_length=200, verbose_name='فروشنده', null=True, blank=True)
     document_number = models.IntegerField(verbose_name='شماره سند')
     count = models.IntegerField(verbose_name='تعداد')
     property_name = models.CharField(max_length=400, verbose_name='نام')
@@ -426,7 +427,7 @@ class PropertyDocument(models.Model):
 # ======================== Maintenance =============================
 class Maintenance(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     house = models.ForeignKey(
         MyHouse,
         on_delete=models.SET_NULL,
@@ -435,6 +436,7 @@ class Maintenance(models.Model):
         related_name='house_maintenance',
         verbose_name='ساختمان مرتبط'
     )
+    expert_name = models.CharField(max_length=200, verbose_name='نام کارشناس')
     maintenance_description = models.CharField(max_length=1000, verbose_name='')
     maintenance_start_date = models.DateField(verbose_name='')
     maintenance_end_date = models.DateField(verbose_name='')
@@ -471,6 +473,194 @@ class MaintenanceDocument(models.Model):
 
     def __str__(self):
         return str(self.maintenance.maintenance_description)
+
+
+# =========================== sewage Modals =============================
+class SewageManage(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='house_sewage',
+        verbose_name='ساختمان مرتبط'
+    )
+    name = models.CharField(max_length=500)
+    amount = models.PositiveIntegerField(verbose_name='')
+    prepayment = models.PositiveIntegerField(verbose_name='')
+    installment_count = models.PositiveIntegerField(verbose_name='')
+    first_due_date = models.DateField(
+        null=True, blank=True,
+        verbose_name="تاریخ شروع اقساط"
+    )
+    details = models.TextField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True, verbose_name='')
+
+    def __str__(self):
+        return str(self.name)
+
+    def get_documents_urls_json(self):
+        # Use the correct attribute to access the file URL in the related `ExpenseDocument` model
+        image_urls = [doc.document.url for doc in self.sewage_documents.all() if doc.document]
+        print(image_urls)
+        return mark_safe(json.dumps(image_urls))
+
+    def count_sent_units(self):
+        """
+        تعداد واحدهای منحصر به فردی که برای این CivilManage شارژ ارسال شده است را برمی‌گرداند.
+        """
+        # استفاده از Count برای شمارش واحدهای منحصر به فرد (unit_id)
+        # که CivilInstallment با send_notification=True دارند.
+        sent_units_count = SewageInstallment.objects.filter(
+            sewage_manage=self,
+            send_notification=True
+        ).aggregate(
+            unique_unit_count=Count('unit_id', distinct=True)
+        )
+        return sent_units_count.get('unique_unit_count', 0)
+
+
+class SewageDocument(models.Model):
+    sewage = models.ForeignKey(SewageManage, on_delete=models.CASCADE, related_name='sewage_documents')
+    document = models.FileField(upload_to='images/sewage/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return str(self.sewage.name)
+
+
+class SewageInstallment(models.Model):
+    sewage_manage = models.ForeignKey('SewageManage', on_delete=models.CASCADE, related_name='sewage_installments')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='house_installment_sewage',
+        verbose_name='ساختمان مرتبط'
+    )
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
+    installment_number = models.PositiveIntegerField()
+    amount = models.PositiveIntegerField()
+    prepayment_per_unit = models.PositiveIntegerField()
+    due_date = models.DateField(null=True, blank=True)
+    is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده/ نشده')
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True, default=0)
+    payment_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="تاریخ پرداخت"
+    )
+    payment_gateway = models.CharField(max_length=100, null=True, blank=True)
+    send_notification = models.BooleanField(default=False)
+
+    # تاریخ ارسال نوتیفیکیشن
+    send_notification_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="تاریخ ارسال اعلان"
+    )
+
+    def __str__(self):
+        return f"قسط شماره {self.installment_number} از {self.sewage_manage.name}"
+
+
+# =========================== civil Modals =============================
+class CivilManage(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='house_civil',
+        verbose_name='ساختمان مرتبط'
+    )
+    name = models.CharField(max_length=500)
+    amount = models.PositiveIntegerField(verbose_name='')
+    prepayment = models.PositiveIntegerField(verbose_name='')
+    installment_count = models.PositiveIntegerField(verbose_name='')
+    first_due_date = models.DateField(
+        null=True, blank=True,
+        verbose_name="تاریخ شروع اقساط"
+    )
+    details = models.TextField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True, verbose_name='')
+
+    def __str__(self):
+        return str(self.name)
+
+    def get_documents_urls_json(self):
+        # Use the correct attribute to access the file URL in the related `ExpenseDocument` model
+        image_urls = [doc.document.url for doc in self.civil_documents.all() if doc.document]
+        print(image_urls)
+        return mark_safe(json.dumps(image_urls))
+
+    def count_sent_units(self):
+        """
+        تعداد واحدهای منحصر به فردی که برای این CivilManage شارژ ارسال شده است را برمی‌گرداند.
+        """
+        # استفاده از Count برای شمارش واحدهای منحصر به فرد (unit_id)
+        # که CivilInstallment با send_notification=True دارند.
+        sent_units_count = CivilInstallment.objects.filter(
+            civil_manage=self,
+            send_notification=True
+        ).aggregate(
+            unique_unit_count=Count('unit_id', distinct=True)
+        )
+        return sent_units_count.get('unique_unit_count', 0)
+
+
+class CivilDocument(models.Model):
+    civil = models.ForeignKey(CivilManage, on_delete=models.CASCADE, related_name='civil_documents')
+    document = models.FileField(upload_to='images/civil/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return str(self.civil.name)
+
+
+class CivilInstallment(models.Model):
+    civil_manage = models.ForeignKey('CivilManage', on_delete=models.CASCADE, related_name='installments')
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='house_installment',
+        verbose_name='ساختمان مرتبط'
+    )
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True)
+    installment_number = models.PositiveIntegerField()
+    amount = models.PositiveIntegerField()
+    prepayment_per_unit = models.PositiveIntegerField()
+    due_date = models.DateField(null=True, blank=True)
+    is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده/ نشده')
+    transaction_reference = models.CharField(max_length=20, null=True, blank=True, default=0)
+    payment_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="تاریخ پرداخت"
+    )
+    payment_gateway = models.CharField(max_length=100, null=True, blank=True)
+    send_notification = models.BooleanField(default=False)
+
+    # تاریخ ارسال نوتیفیکیشن
+    send_notification_date = models.DateField(
+        null=True,
+        blank=True,
+        verbose_name="تاریخ ارسال اعلان"
+    )
+
+    def __str__(self):
+        return f"قسط شماره {self.installment_number} از {self.civil_manage.name}"
 
 
 # =========================== Charge Modals =============================
@@ -894,7 +1084,6 @@ class UnifiedCharge(models.Model):
     #     current = self.total_charge_month or self.amount or 0
     #     return previous + current
 
-
     def get_previous_debt_by_type(self):
         """
         محاسبه بدهی‌های پرداخت‌نشده قبلی همان واحد، تفکیک شده بر اساس نوع شارژ
@@ -1022,6 +1211,7 @@ class Fund(models.Model):
 
 class BankFund(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    unit = models.ForeignKey(Unit, on_delete=models.CASCADE, null=True, blank=True, related_name='banks_funds')
     house = models.ForeignKey(
         MyHouse,
         on_delete=models.SET_NULL,
@@ -1030,6 +1220,33 @@ class BankFund(models.Model):
         related_name='bank_funds',
         verbose_name='ساختمان مرتبط'
     )
+    TRANSACTION_TYPES = (
+        ('deposit', 'واریز'),
+        ('withdraw', 'برداشت'),
+        ('transfer', 'انتقال'),
+    )
+
+    transaction_type = models.CharField(
+        max_length=20,
+        choices=TRANSACTION_TYPES,
+        default='deposit'
+    )
+    transfer_group_id = models.UUIDField(null=True, blank=True, editable=False, db_index=True)
+
+    to_bank = models.ForeignKey(
+        Bank,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='received_transfers'
+    )
+    balance_after = models.DecimalField(
+        max_digits=12,
+        decimal_places=0,
+        default=0
+    )
+    payer_name = models.CharField(max_length=200, null=True, blank=True)
+    receiver_name = models.CharField(max_length=200, null=True, blank=True)
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
@@ -1050,6 +1267,8 @@ class BankFund(models.Model):
 class AdminFund(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     bank = models.ForeignKey(Bank, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True)
+    house = models.ForeignKey(MyHouse, on_delete=models.CASCADE, verbose_name='شماره حساب', null=True, blank=True,
+                              related_name='admin_houses')
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
     content_object = GenericForeignKey('content_type', 'object_id')
@@ -1250,27 +1469,12 @@ class Subscription(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
-
     def start_trial(self):
         self.is_trial = True
         self.start_date = timezone.now()
         self.end_date = self.start_date + timedelta(days=35)
         self.save()
 
-    # def trial_active(self):
-    #     if self.is_trial and self.end_date:
-    #         if timezone.now() <= self.end_date:
-    #             return True
-    #         else:
-    #             # ⛔ تریال تمام شده → خاموشش کن
-    #             self.is_trial = False
-    #             self.save(update_fields=['is_trial'])
-    #
-    #             if hasattr(self.user, 'is_trial'):
-    #                 self.user.is_trial = False
-    #                 self.user.save(update_fields=['is_trial'])
-    #
-    #     return False
     @property
     def trial_days_remaining(self):
         if self.is_trial and self.end_date:
@@ -1289,11 +1493,16 @@ class Subscription(models.Model):
     def is_active(self):
         if self.status != "active":
             return False
-
         if not self.end_date:
             return False
-
         return timezone.now() <= self.end_date
+
+    # ➕ پروپرتی جدید و فوق‌العاده کاربردی برای محاسبه کل روزهای دوره
+    @property
+    def total_days(self):
+        if self.start_date and self.end_date:
+            return max((self.end_date.date() - self.start_date.date()).days + 1, 1)
+        return 1
 
     def expire_if_needed(self):
         if self.end_date and timezone.now() > self.end_date:
@@ -1301,6 +1510,3 @@ class Subscription(models.Model):
                 self.status = "expired"
                 self.is_trial = False
                 self.save(update_fields=["status", "is_trial"])
-
-
-

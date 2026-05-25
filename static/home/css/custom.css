@@ -119,6 +119,8 @@ body {
     font-size: 20px;
     font-weight: 900;
     font-family: VazirBold, sans-serif;
+    color: #4A148C;
+
 }
 
 .heading_container h2::after {
@@ -126,12 +128,12 @@ body {
     display: block;
     width: 70px;
     height: 5px;
-    background: #a26ae7;
+    background: #00ACC1;
     margin: 10px auto 10px;
 }
 
 .heading_container h2 span {
-  color: #a26ae7;
+  color: #00ACC1;
 }
 
 .heading_container p {
@@ -186,6 +188,25 @@ a:focus {
 .header_section {
     padding: 15px 0;
 }
+/* تنظیمات ثابت شدن هدر */
+@media (min-width: 992px) {
+    .header_section {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000; /* برای اینکه همیشه روی بقیه المان‌ها باشد */
+        background-color: #ffffff; /* رنگ پس‌زمینه را بسته به نیاز تغییر دهید */
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* سایه نرم برای جدا شدن از صفحه */
+        transition: all 0.3s;
+    }
+
+    /* جلوگیری از پنهان شدن محتوای صفحه زیر هدر ثابت */
+    body {
+        padding-top: 80px; /* این مقدار باید برابر با ارتفاع هدر شما باشد */
+    }
+}
+
 
 .header_section .container-fluid {
   padding-right: 25px;
@@ -229,11 +250,11 @@ a:focus {
 }
 
 .custom_nav-container .navbar-nav .nav-item:hover .nav-link, .custom_nav-container .navbar-nav .nav-item.active .nav-link {
-  color: #a26ae7;
+  color: #00ACC1;
 }
 
 .custom_nav-container .navbar-nav .nav-item:hover .nav-link svg, .custom_nav-container .navbar-nav .nav-item.active .nav-link svg {
-  fill: #a26ae7;
+  fill: #00ACC1;
 }
 
 .custom_nav-container .nav_search-btn {
@@ -245,7 +266,7 @@ a:focus {
 }
 
 .custom_nav-container .nav_search-btn:hover {
-  color: #a26ae7;
+  color: #00ACC1;
 }
 
 .custom_nav-container .navbar-toggler {
@@ -359,8 +380,8 @@ a:focus {
 .slider_section .detail-box a {
     display: inline-block;
     padding: 12px 45px;
-    background-color: #a26ae7;
-    border: 1px solid #a26ae7;
+    background-color: #00ACC1;
+    border: 1px solid #00ACC1;
     color: #ffffff;
     border-radius: 0;
     -webkit-transition: all 0.3s;
@@ -371,7 +392,7 @@ a:focus {
 
 .slider_section .detail-box a:hover {
   background-color: transparent;
-  color: #a26ae7;
+  color: #00ACC1;
 }
 
 .slider_section .img-box img {
@@ -401,7 +422,7 @@ a:focus {
 .slider_section .carousel-indicators li.active {
   width: 20px;
   height: 20px;
-  background-color: #a26ae7;
+  background-color: #00ACC1 ;
 }
 
 .slider_bg_box {
@@ -546,8 +567,8 @@ a:focus {
 }
 
 .product_section .options .option1 {
-  background-color: #a26ae7;
-  border: 1px solid #a26ae7;
+  background-color: #00ACC1;
+  border: 1px solid #00ACC1;
   color: #ffffff;
 }
 
@@ -581,8 +602,8 @@ a:focus {
 .product_section .btn-box a {
   display: inline-block;
   padding: 10px 25px;
-  background-color: #a26ae7;
-  border: 1px solid #a26ae7;
+  background-color: #00ACC1;
+  border: 1px solid #00ACC1;
   color: #ffffff;
   border-radius: 35px;
   -webkit-transition: all 0.3s;
@@ -596,7 +617,7 @@ a:focus {
 
 .product_section .btn-box a:hover {
   background-color: transparent;
-  color: #a26ae7;
+  color: #00ACC1;
 }
 
 .arrival_section .heading_container {
@@ -634,8 +655,8 @@ a:focus {
 .arrival_section a {
   /*display: inline-block;*/
   padding: 10px 25px;
-  background-color: #a26ae7;
-  border: 1px solid #a26ae7;
+  background-color: #00ACC1;
+  border: 1px solid #00ACC1;
   color: #ffffff;
   border-radius: 35px;
   -webkit-transition: all 0.3s;
@@ -744,8 +765,8 @@ a:focus {
 .subscribe_section .subscribe_form form button {
   display: inline-block;
   padding: 10px 45px;
-  background-color: #a26ae7;
-  border: 1px solid #a26ae7;
+  background-color: #00ACC1;
+  border: 1px solid #00ACC1;
   color: #ffffff;
   border-radius: 35px;
   -webkit-transition: all 0.3s;
@@ -856,7 +877,7 @@ a:focus {
   height: 50px;
   opacity: 1;
   color: #ffffff;
-  background-color: #a26ae7;
+  background-color: #00ACC1;
   border-radius: 100%;
 }
 
@@ -921,7 +942,7 @@ a:focus {
 }
 
 .footer_section .footer_contact .contact_link_box a:hover {
-  color: #a26ae7;
+  color: #00ACC1;
 }
 
 .footer_section .footer-logo {
@@ -962,7 +983,7 @@ a:focus {
 }
 
 .footer_section .footer_social a:hover {
-  color: #a26ae7;
+  color: #00ACC1;
 }
 
 .footer_section .map_container {
@@ -1040,11 +1061,11 @@ li.nav-item ul li a {
 }
 
 li.nav-item ul li a:hover, li.nav-item ul li a:focus {
-    color: #a26ae7;
+    color: #00ACC1;
 }
 
 .inner_page_head {
-    background: #a26ae7;
+    background: #00ACC1;
     text-align: center;
     color: #fff;
     padding-top: 22px;
@@ -1130,7 +1151,7 @@ div.form_sub .field input[type="email"], div.form_sub .field input[type="email"]
 .form_sub input[type="email"] + input[type="submit"] {
     position: absolute;
     right: 0;
-    background: #a26ae7;
+    background: #00ACC1;
     color: #fff;
     border: none;
     top: 0px;
@@ -1165,8 +1186,8 @@ form textarea {
 
 form input[type="submit"] {
      padding: 10px 25px;
-  background-color: #a26ae7;
-  border: 1px solid #a26ae7;
+  background-color: #00ACC1;
+  border: 1px solid #00ACC1;
   color: #ffffff;
   border-radius: 35px;
   -webkit-transition: all 0.3s;
@@ -1201,21 +1222,22 @@ form input[type="submit"]:focus {
 
 .cpy_ p a {
     margin: 0;
-    color: #a26ae7;
+    color: #00ACC1;
     font-size: 15px;
     font-weight: 400;
+
 }
 @media screen and (min-width: 992px) {
     .button-log {
         padding: 8px 20px;
         margin-right: 230px;
-        background-color: #a26ae7;
-          border: 1px solid #a26ae7;
-          color: #ffffff;
-          border-radius: 20px;
-          -webkit-transition: all 0.3s;
-          transition: all 0.3s;
-          text-transform: uppercase;
+        background-color: #00ACC1;
+      border: 1px solid #00ACC1;
+      color: #ffffff;
+      border-radius: 20px;
+      -webkit-transition: all 0.3s;
+      transition: all 0.3s;
+      text-transform: uppercase;
     }
 
 }
@@ -1454,7 +1476,7 @@ form input[type="submit"]:focus {
   height: 15px;
   border-radius: 50%;
   background-color: #ffffff;
-  border: 1px solid #b663ee;
+  border: 1px solid #00ACC1;
   color: #00C2C8;
   font-size: 22px;
   display: flex;
@@ -1470,18 +1492,21 @@ form input[type="submit"]:focus {
     /*font-family: 'Vazir';*/
 }
 .first_about h5{
-    color: #0f1531;
+    color: #4A148C ;
     font-weight: 900;
-    text-shadow: 1px 10px 8px #975AF8CC;
+    text-shadow: 1px 10px 8px #00ACC1;
     font-size: 24px;
       font-family: "VazirBold", 'sans-serif';
+     text-align: center;
 }
 
 .first_about h2{
+    color: #4A148C ;
     font-weight: 600;
     font-size: 20px;
-    text-shadow: 1px 10px 8px #975AF8CC;
+    text-shadow: 1px 10px 8px #00ACC1;
     font-family: "VazirB1", 'sans-serif';
+    text-align: center;
 }
 
 .aos-animate{
@@ -1491,21 +1516,21 @@ form input[type="submit"]:focus {
 .who-we-are{
     font-weight: 600;
     font-size: 20px;
-    text-shadow: 1px 10px 8px #975AF8CC;
+    text-shadow: 1px 10px 8px #00ACC1;
     font-family: "VazirB1", 'sans-serif';
     margin: 20px 0;
 }
 .aos-animate h3 {
     font-weight: 600;
     font-size: 20px;
-    text-shadow: 1px 10px 8px #975AF8CC;
+    text-shadow: 1px 10px 8px #00ACC1;
     font-family: "VazirB1", 'sans-serif';
     /*margin: 20px 0;*/
 }
 .profile-name{
       font-weight: 600;
     font-size: 20px;
-    text-shadow: 1px 10px 8px #975AF8CC;
+    text-shadow: 1px 10px 8px #00ACC1;
     font-family: "VazirB1", 'sans-serif';
     margin: 20px 0;
 }
@@ -1513,7 +1538,7 @@ form input[type="submit"]:focus {
 .about .about-meta {
   font-weight: 600;
     font-size: 20px;
-    text-shadow: 1px 10px 8px #975AF8CC;
+    text-shadow: 1px 10px 8px #00ACC1;
     font-family: "VazirB1", 'sans-serif';
     margin: 20px 0;
   display: inline-block;
@@ -1715,8 +1740,8 @@ form input[type="submit"]:focus {
 }
 .btn-other-info{
      padding: 10px 25px;
-  background-color: #a26ae7;
-  border: 1px solid #a26ae7;
+  background-color: #00ACC1;
+  border: 1px solid #00ACC1;
   color: #ffffff;
   border-radius: 35px;
   -webkit-transition: all 0.3s;
@@ -1761,13 +1786,15 @@ form input[type="submit"]:focus {
 
 .faq .faq-container .faq-item h3 {
   font-weight: 600;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 20px;
   margin: 0 ;
   transition: 0.3s;
   cursor: pointer;
   display: flex;
   align-items: center;
+    color: #525050;
+
 }
 
 .faq .faq-container .faq-item h3 .num {
@@ -1791,6 +1818,7 @@ form input[type="submit"]:focus {
   margin-bottom: 0;
   overflow: hidden;
     font-size: 15px;
+    direction: rtl;
 }
 
 .faq .faq-container .faq-item .faq-toggle {
@@ -1929,7 +1957,7 @@ form input[type="submit"]:focus {
 .service .service-box h3{
    font-weight: 600;
     font-size: 20px;
-    text-shadow: 1px 10px 8px #975AF8CC;
+    text-shadow: 1px 10px 8px #00ACC1;
     font-family: "VazirB1", 'sans-serif';
 }
 .service .service-box p {
@@ -1944,4 +1972,19 @@ form input[type="submit"]:focus {
     padding: 40px 20px;
     box-shadow: #ddd 0px 0px 10px 3px;
     margin-bottom: 5px;
+}
+
+.gray-placeholder::placeholder {
+    color: #808080 !important; /* رنگ خاکستری */
+    opacity: 1; /* برای نمایش صحیح در فایرفاکس */
+}
+
+/* برای مرورگرهای قدیمی مثل اینترنت اکسپلورر */
+.gray-placeholder:-ms-input-placeholder {
+    color: #808080 !important;
+}
+
+/* برای مرورگر Edge قدیم */
+.gray-placeholder::-ms-input-placeholder {
+    color: #808080 !important;
 }

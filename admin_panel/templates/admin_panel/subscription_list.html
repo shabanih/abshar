@@ -10,8 +10,14 @@
 <div class="container mt-3">
     <div class="container p-3">
          <div class="row mb-2 mt-4">
+          <div class="col-12 col-md-2 col-xl-2">
+         	<button type="button" class="btn btn-primary px-1 py-2" data-bs-toggle="modal" data-bs-target="#exampleModalLong3">
+                        <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="15" alt="">
+                    ثبت اشتراک
+                </button>
+          </div>
         <!-- بخش جستجو -->
-        <div class="col-12 col-md-10 col-xl-10 align-self-center">
+        <div class="col-12 col-md-8 col-xl-8 align-self-center">
             <form method="get" action="" class="d-flex gap-2 align-items-center">
                 <input type="text"
                        class="p-2 w-50 w-md-75"
@@ -52,6 +58,7 @@
                             <th>#</th>
                             <th>ساختمان</th>
                             <th>نام مدیر</th>
+                            <th>شماره همراه</th>
                             <th>نوع اشتراک</th>
                             <th>تعداد واحد </th>
                             <th>مبلغ اشتراک </th>
@@ -75,6 +82,7 @@
                                 {% endif %} 
                                 </td>
                                 <td>{{ sub.user.full_name }}</td>
+                                <td>{{ sub.user.mobile }}</td>
                                 <td>
                                     {% if sub.plan.duration %}
                                     	    {{sub.plan.duration }}ماهه
@@ -120,13 +128,19 @@
                                 
 
 
-                               <td class="col-1 p-0">
-{#                                   <a href="" class="btn btn-primary p-1">#}
-{#                              <i class="mdi mdi-lead-pencil" aria-hidden="true"></i></a>#}
-                                     <a href="{% url 'subscription_change' sub.id %}" class="btn btn-gradient-info p-1"
-                                        onclick="return confirmApprovedWithSweetAlert(event)"> تغییر اشتراک
-{#                                              <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>#}
+                                  <td>
+{#                                      {% if sub.status == "expired" or sub.status == "cancelled" %}#}
+{#                                      	  <a href="{% url 'admin_create_subscription' user.id %}" class="btn btn-gradient-primary p-2">#}
+{#                                         ثبت #}
+{#                                            </a>#}
+{#                                      {% endif %} #}
+                                  	  <a href="{% url 'admin_edit_subscription' sub.id %}" class="btn btn-gradient-primary p-2">
+                                         ویرایش 
                                             </a>
+{#                                     <a href="{% url 'subscription_change' sub.id %}" class="btn btn-gradient-danger p-2"#}
+{#                                        onclick="return confirmApprovedWithSweetAlert(event)"> لغو #}
+{#                                            </a>#}
+                              
                          
 
                             </td>
@@ -137,7 +151,7 @@
                     {% else %}
                         <tbody>
                             <tr>
-                                <td colspan="12" class="text-center">هیچ رکوردی ثبت نشده است.</td>
+                                <td colspan="13" class="text-center">هیچ رکوردی ثبت نشده است.</td>
                             </tr>
                         </tbody>
                     {% endif %}
@@ -146,6 +160,89 @@
         </div>
     </div>
     </div>
+
+   <div class="modal fade" id="exampleModalLong3" tabindex="-1" role="dialog" aria-labelledby="exampleModalLongTitle3" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header" id="exampleModalLongTitle3">
+        <h5 class="modal-title">ثبت اشتراک جدید</h5>
+      </div>
+         <hr>
+      <div class="modal-body" >
+         {{ form.non_field_errors }}
+          <form id="bankForm" action="" method="POST"
+                enctype="multipart/form-data" novalidate>
+              {% csrf_token %}
+    <div class="row g-1">
+          <div class="col-6">
+            {{ form.house.label_tag }}
+            {{ form.house }}
+            {{ form.house.errors }}
+        </div>
+        <div class="col-6">
+            {{ form.plan.label_tag }}
+            {{ form.plan }}
+            {{ form.plan.errors }}
+        </div>
+        <div class="col-6">
+            {{ form.start_date.label_tag }}
+            {{ form.start_date }}
+            {{ form.start_date.errors }}
+        </div>
+        <div class="col-6">
+            {{ form.end_date.label_tag }}
+            {{ form.end_date }}
+            {{ form.end_date.errors }}
+        </div>
+    </div>
+              <div class="row g-1">
+                    <div class="col-4">
+            {{ form.units_count.label_tag }}
+            {{ form.units_count }}
+            {{ form.units_count.errors }}
+        </div>
+        <div class="col-4">
+            {{ form.total_amount.label_tag }}
+            {{ form.total_amount }}
+            {{ form.total_amount.errors }}
+        </div>
+      
+        <div class="col-4">
+            {{ form.status.label_tag }}
+            {{ form.status }}
+            {{ form.status.errors }}
+        </div>
+    </div>
+    
+        <div class="row g-1">
+        <div class="col-6">
+            {{ form.payment_date.label_tag }}
+            {{ form.payment_date }}
+            {{ form.payment_date.errors }}
+        </div>
+        <div class="col-6">
+            {{ form.transaction_id.label_tag }}
+            {{ form.transaction_id }}
+            {{ form.transaction_id.errors }}
+        </div>
+    </div>
+                 
+              
+              
+                   <hr class="mt-2" style="color: #0f1531">
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" name="submit_bank" id="account_holder_name" class="btn btn-gradient-success px-4 py-2">ثبت اشتراک</button>
+                           <button type="button" class="btn btn-dark p-3" data-bs-dismiss="modal">بستن</button>
+                     </div>
+        
+
+          </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
  <!-- Pagination -->
       <div class="col-12">
         <div class="pagination d-flex justify-content-center mt-5">
