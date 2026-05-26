@@ -1,0 +1,197 @@
+{% extends 'middleShared/base_template.html' %}
+{% load poll_extras %}
+
+{% block page_title %}
+    لیست شارژهای عمرانی
+{% endblock page_title %}
+
+{% block main_content %}
+    
+    <div class="container py-4">
+     <div class="row g-1">
+        <!-- بخش جستجو -->
+        <div class="col-12 col-md-4 col-xl-4 align-self-center">
+            <form method="get" action="" class="d-flex gap-2 align-items-center">
+                <input type="text"
+                       class="p-2 w-100 w-md-75"
+                       name="q"
+                       id="searchInput"
+                       autocomplete="off"
+                       value="{{ query }}"
+                       placeholder="جستجو ..."
+                       dir="rtl"
+                       oninput="if(this.value === '') this.form.submit();">
+                <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
+            </form>
+        </div>
+       <div class=" col-12 col-md-6 col-xl-6 text-end text-md-center align-self-center">
+{#                {% if page_obj %}#}
+{#            <a href="{% url 'charge_units_list_report_excel' %}?{{ request.GET.urlencode }}"#}
+{#                class="btn btn-facebook text-white px-4 py-2"> خروجی Excel  </a>#}
+            <a href="{% url 'middle_civil_charge_report_pdf' %}?{{ request.GET.urlencode }}"
+                   class="btn btn-gradient-danger px-4 py-2">
+                    خروجی PDF 
+                </a>
+{#            {% else %}#}
+{#        <button class="btn btn-facebook text-white px-4 py-2" disabled>خروجی Excel</button>#}
+{#        <button class="btn btn-gradient-danger px-4 py-2" disabled>خروجی PDF</button>#}
+{#    {% endif %}#}
+            </div>
+
+        <!-- بخش تعداد نمایش → فقط دسکتاپ -->
+        <div class="col-12 col-md-2 col-xl-2 d-none d-md-block ">
+            <div class="d-flex align-items-center">
+                <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label>
+           <select id="cardsPerPage"
+        class="form-select select-fix"
+        style="width: auto;"
+        onchange="window.location.href='?q={{ query }}&paginate=' + this.value;">
+    <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option>
+    <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option>
+    <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option>
+    <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+</select>
+
+            </div>
+        </div>
+    </div>
+
+   <div class="row mt-4">
+                <div class="table-responsive">
+                <table class="table table-bordered " id="incomeTable">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th> عنوان</th>
+                            <th>مبلغ شارژ عمرانی</th>
+                            <th>مبلغ پیش پرداخت</th>
+                              <th>تعداد اقساط</th>
+                            <th>تاریخ سررسید اول</th>
+                             <th>توضیحات </th>
+                             <th>تصویر </th>
+                             <th>ارسال شده </th>
+                            <th>دستورات</th>
+                        </tr>
+                    </thead>
+                {% if page_obj %}
+               {% for civil in page_obj %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter|to_persian_number }}</td>
+                                <td>{{civil.name|to_persian_number }}</td>
+                                <td>{{civil.amount|three_digit_currency }}</td>
+                                <td>{{civil.prepayment|three_digit_currency }}</td>
+                                <td>{{civil.installment_count|three_digit_currency }}</td>
+                                 <td>{{civil.first_due_date|show_jalali }}</td>
+                               <td>
+                                   {% if civil.details|to_persian_number %}
+                                       دارد
+                                   	{% else %}
+                                       ندارد
+                                   {% endif %} 
+                             
+                               </td>
+                                <td class="d-flex justify-content-center align-self-center">
+                                  {% for doc in civil.civil_documents.all %}
+                                        <a href="{{ doc.document.url }}" target="_blank" 
+                                           > 
+                                            <i class="fas fa-image fa-2x me-2"></i></a>
+                                    {% empty %}
+                                     !No File
+                                    {% endfor %}
+                                </td>
+                            <td>
+                                   {{ civil.count_sent_units }} 
+                            </td>
+{#                                       <td>#}
+{#                                {% if income.is_paid %}#}
+{#                                	<span class="badge badge-success fw-bold">پرداخت شده</span>#}
+{#                                    {% else %}#}
+{#                                	<span class="badge badge-danger fw-bold">پرداخت نشده</span>#}
+{#                                {% endif %} #}
+{#                              #}
+{#                            </td>#}
+                            
+                                   <td >
+                                       
+                                    <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ civil.id }}" title="نمایش جزئیات"
+                                                        class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>
+                                                </button>
+{#                                  <a href="{% url 'middle_show_send_civil_form' civil.id %}"#}
+{#                                         class="btn btn-gradient-success px-3 py-1" #}
+{#                                          data-bs-toggle="tooltip"  title="اعلان شارژ">#}
+{#                                         <i class="fas fa-bullhorn fa-flip-horizontal"></i>#}
+{#                                            </a>#}
+                                       <a href="{% url 'middle_charge_civil_sent_units' civil.id %}" 
+                                           class="btn btn-sm btn-primary px-2 py-1">
+                                           لیست واحدها
+                                        </a>
+
+                            </td>
+                       <div class="modal fade"  id="exampleModalLong2{{ civil.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ civil.id }}" aria-hidden="true">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalLabel{{ civil.id }}">مشاهده جزئیات </h5>
+                            </div>
+                          <hr/>
+                            <div class="modal-body text-end">
+                                <p><strong> عنوان:</strong> {{ civil.name|to_persian_number }}</p>
+                                 <p><strong>مبلغ شارژ :</strong> {{ civil.amount|three_digit_currency }}تومان </p>
+                                <p><strong>مبلغ پیش پرداخت:</strong> {{ civil.prepayment|three_digit_currency }} تومان</p>
+                                <p><strong>تعدا اقساط :</strong> {{ civil.installment_count|to_persian_number }} </p>
+{#                                <p><strong>مبلغ هر قسط :</strong> {{ civil.get_per_installment_amount|three_digit_currency }} </p>#}
+                                <p><strong>تاریخ اولین سررسید :</strong> {{ civil.first_due_date|show_jalali_date_only}} </p>
+                                <p><strong>توضیحات:</strong>
+                                    {% if civil.details %}
+                                        <span class="badge bg-warning">{{ civil.details|to_persian_number }} </span>
+                                        {% else %}
+                                        توضیحات ثبت نشده است
+                                    {% endif %}
+
+                                </p>
+                            </div>
+                     
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                            </tr>
+                        {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
+                            </tr>
+                     <tbody>
+                    {% endif %}
+                </table>
+                   <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+    </div>
+
+</div>
+    
+    
+{% endblock main_content %}

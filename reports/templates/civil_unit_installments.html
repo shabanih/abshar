@@ -1,0 +1,213 @@
+{% extends 'middleShared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}لیست اقساط  : واحد {{ unit.unit|to_persian_number }} - {{ unit.owner_name|to_persian_number }}  {% endblock %}
+
+{% block main_content %}
+<div class="container">
+    <div class="row text-md-start mb-2">
+        <div class="col">
+                  <a href="{% url 'middle_civil_installments_report_pdf' civil.id unit.id %}?{{ request.GET.urlencode }}"
+                   class="btn btn-gradient-danger px-4 py-2">
+                    خروجی PDF 
+                </a>
+            <a href="{% url 'middle_charge_civil_sent_units' civil.id %}" class="btn btn-outline-info py-2 px-3">برگشت به لیست </a>
+             
+        </div>
+    </div>
+{#<h4> اقساط {{ civil.name|to_persian_number }} - واحد {{ unit.unit|to_persian_number }} - {{ unit.owner_name|to_persian_number }}   </h4>#}
+
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>مبلغ</th>
+            <th>نوع</th>
+            <th>تاریخ سررسید</th>
+            <th>وضعیت پرداخت</th>
+            <th>تاریخ پرداخت</th>
+            <th>بانک</th>
+            <th>کد پیگیری</th>
+            <th> دستورات</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for inst in installments %}
+        <tr>
+            <td>{{ inst.installment_number|to_persian_number }}</td>
+            <td>{{ inst.amount|three_digit_currency }}</td>
+            <td>
+                {% if inst.installment_number == 0 %}
+                پیش‌پرداخت
+                {% else %}
+                قسط {{ inst.installment_number|to_persian_number }}
+                {% endif %}
+            </td>
+            <td>{{ inst.due_date|show_jalali }}</td>
+            <td>
+                {% if inst.is_paid %}
+                    <span class="badge badge-gradient-success">پرداخت شده</span>
+                {% else %}
+                    <span class="badge badge-gradient-warning">در انتظار پرداخت</span>
+                {% endif %}
+            </td>
+             <td>
+                 {% if inst.payment_date %}
+                 	 {{ inst.payment_date|show_jalali }}
+                     {% else %}
+                     -
+                 {% endif %} 
+                
+             </td>
+        <td>    {% if inst.bank %}
+            {{ inst.bank }}
+              {% else %}
+                     -
+                 {% endif %} 
+        </td>
+             <td>
+                 {% if inst.transaction_reference %}
+
+                 {{ inst.transaction_reference|to_persian_number }}
+                   {% else %}
+                     -
+                 {% endif %} 
+             </td>
+        <td>
+{#            <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ inst.id }}"#}
+{#                      class="btn btn-gradient-primary px-2 py-1" >پرداخت#}
+{#                                                </button>#}
+{% if inst.is_paid %}
+    <button
+        class="btn btn-gradient-danger px-2 py-2"
+        data-bs-toggle="modal"
+        data-bs-target="#cancelPayModal{{ inst.id }}">
+        لغو پرداخت
+    </button>
+
+{% else %}
+
+    {% if forloop.first %}
+        <!-- اولین قسط لیست ⇒ همیشه فعال -->
+        <button data-bs-toggle="modal"
+                data-bs-target="#exampleModalLong2{{ inst.id }}"
+                title="پرداخت"
+                class="btn btn-gradient-primary px-2 py-2">
+            پرداخت
+        </button>
+
+    {% else %}
+        {% with prev=installments|slice:forloop.counter0|last %}
+            {% if prev.is_paid %}
+                <button data-bs-toggle="modal"
+                        data-bs-target="#exampleModalLong2{{ inst.id }}"
+                        title="پرداخت"
+                        class="btn btn-gradient-primary px-2 py-2">
+                    پرداخت
+                </button>
+            {% else %}
+                <button title="ابتدا باید قسط قبلی را پرداخت کنید"
+                        class="btn btn-secondary px-2 py-2"
+                        disabled>
+                    پرداخت
+                </button>
+            {% endif %}
+        {% endwith %}
+    {% endif %}
+
+{% endif %}
+
+
+
+        </td>
+             <div class="modal fade"  id="exampleModalLong2{{ inst.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ inst.id }}" aria-hidden="true">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalLabel{{ inst.id }}">عملیات پرداخت  </h5>
+                            </div>
+                          <hr/>
+                          
+                     <div class="row">
+                <div class="col-12 px-5">
+            <p class="badge-info text-center p-2">
+                         {% if inst.installment_number == 0 %}
+                پیش‌پرداخت
+                {% else %}
+                قسط {{ inst.installment_number|to_persian_number }}
+                {% endif %}
+                 {{ inst.sewage_manage.name|to_persian_number }}</p>
+      
+              <p class="badge-gradient-info text-center p-2">   مبلغ قابل پرداخت : {{ inst.amount|three_digit_currency }} تومان  </p>
+                
+    
+    </div>  
+    </div>       
+                              
+    <form  method="post" action="{% url 'middle_pay_civil_charge' inst.id %}">
+    {% csrf_token %}
+
+   <div class="row">
+    <div class=" col-12 px-5 mb-3">
+        {{ form.payment_date.label_tag }}
+        {{ form.payment_date }}
+        {{ form.payment_date.errors }}
+    </div>
+
+    <div class=" col-12 px-5 mb-3">
+        {{ form.transaction_reference.label_tag }}
+        {{ form.transaction_reference }}
+        {{ form.transaction_reference.errors }}
+    </div>
+     <div class=" col-12 px-5 mb-3">
+        {{ form.bank.label_tag }}
+        {{ form.bank }}
+        {{ form.bank.errors }}
+    </div>
+</div>
+
+    <div class="text-center">
+        <button type="submit" class="btn btn-gradient-success w-50">ثبت پرداخت</button>
+    </div>
+</form>
+                     
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+        </tr>
+             <div class="modal fade" id="cancelPayModal{{ inst.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" action="{% url 'middle_cancel_pay_civil_charge' inst.id %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title text-danger">لغو دریافت شارژ عمرانی</h5>
+        </div>
+        <div class="modal-body">
+          ⚠️ با لغو دریافت ، سند صندوق اصلاح می‌شود. ادامه می‌دهید؟
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">بله</button>
+          <a href="{% url 'middle_charge_civil_unit_installments' civil.id unit.id %}" class="btn btn-danger">خیر</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+        {% endfor %}
+    </tbody>
+</table>
+
+
+</div>
+
+    
+
+{% endblock %}

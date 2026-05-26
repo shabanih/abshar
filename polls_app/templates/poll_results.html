@@ -1,0 +1,47 @@
+{% extends 'middleShared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+ایجاد نظرسنجی
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container mt-3">
+
+<h3>نتایج نظرسنجی: {{ poll.title }}</h3>
+<div style="max-width:600px;">
+  <canvas id="pollChart"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('pollChart').getContext('2d');
+const labels = {{ choices|map:"title"|safe }};
+const data = {{ choices|map:"vote_count"|safe }};
+const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'تعداد رأی',
+            data: data,
+            backgroundColor: ['#3498db','#2ecc71','#f1c40f','#e74c3c']
+        }]
+    },
+});
+</script>
+
+
+
+
+
+
+
+    <hr>
+</div>
+{% endblock %}
+
+

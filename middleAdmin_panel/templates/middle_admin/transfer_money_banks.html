@@ -1,0 +1,60 @@
+{% extends 'middleShared/base_template.html' %}
+{% load poll_extras %}
+{% load static %}
+
+{% block page_title %}انتقال بین بانکی {% endblock %}
+
+{% block main_content %}
+    <hr>
+<div class="container py-4">
+
+{#    <h4>دریافت سند {{ receive.doc_number|to_persian_number }}</h4>#}
+{#    <p>شرح: {{ receive.description|to_persian_number }}</p>#}
+{#    <p>مبلغ: {{ receive.amount|three_digit_currency }}تومان</p>#}
+{#    <p>تاریخ سند: {{ receive.doc_date|show_jalali_admin }}</p>#}
+
+       <form method="post" action="">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-12 col-md-4">
+        {{ form.from_bank.label_tag }}
+        {{ form.from_bank }}
+        {{ form.from_bank.errors }}
+            </div>
+        <div class="col-12 col-md-4">
+        {{ form.to_bank.label_tag }}
+        {{ form.to_bank }}
+        {{ form.to_bank.errors }}
+            </div>
+          <div class="col-12 col-md-4">
+        {{ form.amount.label_tag }}
+        {{ form.amount }}
+        {{ form.amount.errors }}
+    </div>
+            </div>
+            <div class="row mt-4">
+      <div class="col-12 col-md-4">
+        {{ form.payment_date.label_tag }}
+        {{ form.payment_date }}
+        {{ form.payment_date.errors }}
+    </div>
+
+    <div class="col-12 col-md-4">
+        {{ form.transaction_reference.label_tag }}
+        {{ form.transaction_reference }}
+        {{ form.transaction_reference.errors }}
+    </div>
+       
+        </div>
+        
+
+        <div class="text-start">
+        <button type="submit" class="btn btn-gradient-success">انتقال</button>
+        <a href="{% url 'middle_register_income' %}" class="btn btn-gradient-danger">انصراف</a>
+            </div>
+    </form>
+
+
+
+</div>
+{% endblock %}

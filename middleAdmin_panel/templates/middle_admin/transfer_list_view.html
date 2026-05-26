@@ -1,0 +1,65 @@
+{% extends 'middleShared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+ بانک {{ bank_instance.bank_name }}- تراکنش های انتقال بین بانکی
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container py-3">
+    <div class="row text-md-start mb-2">
+        <div class="col">
+            <a href="{% url 'middle_manage_bank' %}" class="btn btn-gradient-info py-2 px-3">برگشت به لیست </a>
+        </div>
+    </div>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>تاریخ پرداخت</th>
+            <th>شماره پیگیری</th>
+            <th>شرح انتقال</th>
+            <th>مبلغ</th>
+            <th>عملیات</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for group_id, items in grouped_transfers %}
+        {% with w=items.withdraw d=items.deposit %}
+        <tr>
+            <td>{{ w.payment_date|default:d.payment_date|show_jalali }}</td>
+            <td>{{ w.transaction_no|default:d.transaction_no|to_persian_number }}</td>
+            <td>
+                انتقال از {{ w.bank.bank_name }} به {{ d.bank.bank_name }}
+                <br><small class="text-muted">{{ w.description }}</small>
+            </td>
+            <td class="text-primary font-weight-bold">
+                {{ w.amount|three_digit_currency }}
+            </td>
+            <td>
+                <a href="{% url 'middle_delete_transfer_bank' w.id|default:d.id %}" 
+                   class="btn btn-gradient-danger p-1"
+                   onclick="return confirmDeleteWithSweetAlert(event)">
+                   <i class="mdi mdi-delete"></i> حذف
+                </a>
+            </td>
+        </tr>
+        {% endwith %}
+        {% empty %}
+        <tr>
+            <td colspan="5" class="text-center">هیچ انتقال ثبت‌شده‌ای موجود نیست</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
+
+    <hr>
+</div>
+    
+{% endblock %}
+
+

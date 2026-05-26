@@ -1,0 +1,58 @@
+{% extends 'middleShared/base_template.html' %}
+{% load poll_extras %}
+{% load static %}
+
+{% block page_title %}پرداخت / اسناد پرداختنی {% endblock %}
+
+{% block main_content %}
+    <hr>
+<div class="container py-4">
+
+    <h4>دریافت سند {{ payment.document_number|to_persian_number }}</h4>
+    <p>شرح: {{ payment.description|to_persian_number }}</p>
+    <p>مبلغ: {{ payment.amount|three_digit_currency }}تومان</p>
+    <p>تاریخ سند: {{ payment.document_date|show_jalali_admin }}</p>
+
+    <form method="post" action="">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-12 col-md-4">
+        {{ form.bank.label_tag }}
+        {{ form.bank }}
+        {{ form.bank.errors }}
+            </div>
+            
+      <div class="col-12 col-md-4">
+        {{ form.payment_date.label_tag }}
+        {{ form.payment_date }}
+        {{ form.payment_date.errors }}
+    </div>
+
+    <div class="col-12 col-md-4">
+        {{ form.transaction_reference.label_tag }}
+        {{ form.transaction_reference }}
+        {{ form.transaction_reference.errors }}
+    </div>
+              <div class="col-12 col-md-4">
+        {{ form.unit.label_tag }}
+        {{ form.unit }}
+        {{ form.unit.errors }}
+    </div>
+              <div class="col-12 col-md-4">
+        {{ form.receiver_name.label_tag }}
+        {{ form.receiver_name }}
+        {{ form.receiver_name.errors }}
+    </div>
+  
+       
+        </div>
+        
+
+        <div class="text-start">
+        <button type="submit" class="btn btn-gradient-success">تأیید پرداخت</button>
+        <a href="{% url 'middle_register_receive' %}" class="btn btn-gradient-danger">انصراف</a>
+            </div>
+    </form>
+
+</div>
+{% endblock %}

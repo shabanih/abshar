@@ -1,0 +1,107 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+ویرایش اشتراک 
+{% endblock page_title %}
+
+{% block main_content %}
+<div class="container py-4">
+    <hr>
+<form method="POST">
+    {% csrf_token %}
+    <div class="row">
+         <div class="col-4">
+            {{ form.house.label_tag }}
+            {{ form.house }}
+            {{ form.house.errors }}
+        </div>
+        <div class="col-4">
+            {{ form.plan.label_tag }}
+            {{ form.plan }}
+            {{ form.plan.errors }}
+        </div>
+           <div class="col-4">
+            {{ form.units_count.label_tag }}
+            {{ form.units_count }}
+            {{ form.units_count.errors }}
+        </div>
+        <div class="col-4">
+            {{ form.start_date.label_tag }}
+            {{ form.start_date }}
+            {{ form.start_date.errors }}
+        </div>
+        <div class="col-4">
+            {{ form.end_date.label_tag }}
+            {{ form.end_date }}
+            {{ form.end_date.errors }}
+        </div>
+             <div class="col-4">
+            {{ form.total_amount.label_tag }}
+            {{ form.total_amount }}
+            {{ form.total_amount.errors }}
+        </div>
+    </div>
+   
+    
+        <div class="row">
+        <div class="col-4">
+            {{ form.payment_date.label_tag }}
+            {{ form.payment_date }}
+            {{ form.payment_date.errors }}
+        </div>
+        <div class="col-4">
+            {{ form.transaction_id.label_tag }}
+            {{ form.transaction_id }}
+            {{ form.transaction_id.errors }}
+        </div>
+               <div class="col-4">
+            {{ form.status.label_tag }}
+            {{ form.status }}
+            {{ form.status.errors }}
+        </div>
+    </div>
+
+
+
+
+    <button class="btn btn-gradient-primary" type="submit">ذخیره تغییرات</button>
+    <a href="{% url 'subscription_list' %}" class="btn btn-gradient-danger">انصراف</a>
+</form>
+
+
+
+
+ <!-- Pagination -->
+      <div class="col-12">
+        <div class="pagination d-flex justify-content-center mt-5">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+            {% endif %}
+
+            {% for page_number in page_obj.paginator.page_range %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_number }}"
+                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
+                    {{ page_number }}
+                </a>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
+{% endblock main_content %}
+
+
+
+
+
+
+
+
+

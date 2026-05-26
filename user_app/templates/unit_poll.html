@@ -1,0 +1,145 @@
+{% extends 'partials/core_template.html' %}
+{% load poll_extras %}
+
+{% block page_title %}
+ مدیریت نظرسنجی 
+{% endblock page_title %}
+
+{% block main_content %}
+    <div class="container py-5">
+    
+ 
+     <div class="row g-2">
+        <!-- بخش جستجو -->
+        <div class="col-12 col-md-8 col-xl-8 align-self-center">
+            <form method="get" action="" class="d-flex gap-2 align-items-center">
+                <input type="text"
+                       class="p-2 w-75 w-md-75"
+                       name="q"
+                       id="searchInput"
+                       autocomplete="off"
+                       value="{{ query }}"
+                       placeholder="جستجو ..."
+                       dir="rtl"
+                       oninput="if(this.value === '') this.form.submit();">
+                <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
+            </form>
+        </div>
+        <div class="col-12 col-md-2 col-xl-2 pt-1">
+          <a href="{% url 'user_sewage_pdf' %}?{{ request.GET.urlencode }}"
+                   class="btn btn-gradient-danger px-4 py-2">
+                    خروجی PDF 
+                </a>
+</div>
+        <!-- بخش تعداد نمایش → فقط دسکتاپ -->
+        <div class="col-12 col-md-2 col-xl-2 p-0 d-none d-md-block">
+            <div class="d-flex align-items-center gap-1">
+                <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label>
+           <select id="cardsPerPage"
+        class="form-select select-fix"
+        style="width: auto;"
+        onchange="window.location.href='?q={{ query }}&paginate=' + this.value;">
+    <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option>
+    <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option>
+    <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option>
+    <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+</select>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+                <div class="table-responsive">
+                
+                 <div class="table-responsive py-3">
+                <table class="table table-bordered">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th>عنوان </th>
+                            <th>توضیحات</th>
+                            <th>نوع</th>
+                            <th>تاریخ شروع</th>
+                            <th>تاریخ پایان</th>
+                            <th>تاریخ ایجاد</th>
+                            <th>دستورات</th>
+                        </tr>
+                    </thead>
+                    {% if polls %}
+                        {% for poll in polls %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter|to_persian_number  }}</td>
+                                <td>{{ poll.title|to_persian_number  }}</td>
+                                <td>{{ poll.description|to_persian_number  }}</td>
+                                    <td>
+                                        {% for q in poll.questions.all %}
+                                            {{ q.get_question_type_display }}
+                                            {% if not forloop.last %}، {% endif %}
+                                        {% endfor %}
+                                    </td>                              
+                                <td>{{ poll.start_date|show_jalali  }}</td>
+                                <td>{{ poll.end_date|show_jalali  }}</td>
+                                <td>{{ poll.created_at|show_jalali}}</td>
+                                       <td>
+                                        <a href="{% url 'resident_poll_vote' poll.id %}" class="btn btn-info p-1">
+                                          <i class="mdi mdi-eye" aria-hidden="true"></i>
+                                        </a>
+
+                                       </td>
+
+                            </tr>
+                        </tbody>
+                        {% endfor %}
+                    {% else %}
+                        <tbody>
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
+                            </tr>
+                        </tbody>
+                    {% endif %}
+                </table>
+            </div>
+
+                   <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+    </div>
+   
+
+</div>
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+  const headlines = document.querySelectorAll('.headlines li');
+  let current = 0;
+
+  function showNext() {
+    headlines[current].classList.remove('active');
+    current = (current + 1) % headlines.length;
+    headlines[current].classList.add('active');
+  }
+
+  // هر 5 ثانیه عنوان بعدی نمایش داده شود
+  setInterval(showNext, 5000);
+});
+</script>
+    
+{% endblock main_content %}

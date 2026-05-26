@@ -1,0 +1,99 @@
+{% extends 'partials/core_template.html' %}
+{% load poll_extras %}
+
+{% block page_title %}
+مشاهده نظرسنجی 
+{% endblock page_title %}
+
+{% block main_content %}
+
+    
+  <div class="container py-3">
+{% if not already_voted %}
+<form method="post">
+    {% csrf_token %}
+
+    {% for question in poll.questions.all %}
+
+        <div class="card mb-3">
+            <div class="card-header">
+                 {{ question.title }}
+            </div>
+
+            <div class="card-body p-3">
+
+<div class="d-flex flex-wrap gap-5">
+    {% for choice in question.choices.all %}
+        <div class="form-check d-flex align-items-center">
+            <input class="form-check-input"
+                   type="radio"
+                   name="question_{{ question.id }}"
+                   value="{{ choice.id }}"
+                   id="choice_{{ choice.id }}">
+
+            <label class="form-check-label ms-3" for="choice_{{ choice.id }}">
+                {{ choice.title }}
+            </label>
+        </div>
+    {% endfor %}
+
+</div>
+<div class="row mt-3">
+    <div class="col-12">
+      <button class="btn btn-primary px-3 py-2">
+        ثبت رأی
+    </button>
+        </div>
+</div>
+
+
+
+            </div>
+        </div>
+
+    {% endfor %}
+
+  
+
+</form>
+
+{% else %}
+
+  <h5 class="text-success badge badge-gradient-warning">شما در این نظرسنجی شرکت کرده‌اید</h5>
+
+
+{% for question in poll.questions.all %}
+
+    <div class="card mb-3">
+        <div class="card-header">
+             {{ question.title }}
+        </div>
+
+        <div class="card-body p-3">
+
+  <div class="row">
+    {% for choice in question.choices.all %}
+        <div class="col-md-6 mb-3">
+
+            <p class="mb-1">{{ choice.title }}</p>
+
+            <div class="progress" style="height: 20px;">
+                <div class="progress-bar bg-success d-flex align-items-center justify-content-center"
+                     style="width: {{ choice.percentage }}%">
+                    {{ choice.percentage }}%
+                </div>
+            </div>
+
+        </div>
+    {% endfor %}
+</div>
+
+        </div>
+    </div>
+
+{% endfor %}
+
+{% endif %}
+</div>
+    
+{% endblock main_content %}

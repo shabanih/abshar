@@ -1,0 +1,84 @@
+{% extends 'partials/core_template.html' %}
+{% load poll_extras %}
+
+{% block page_title %}
+انتخاب روش پرداخت
+{% endblock page_title %}
+
+{% block main_content %}
+{#    <hr>#}
+    
+  <div class="container py-5">
+
+
+         <div class="d-flex gap-2 mt-4 justify-content-center">
+
+    <!-- کارت کارت به کارت -->
+    <div class="card p-2 text-center" style="width: 300px; cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#manualPayment{{ installment.id }}">
+      <img src="/static/img/payment1.png" class="card-img-top" style="height: 100px; object-fit: contain;" alt="کارت به کارت">
+      <div class="card-body p-1">
+        <small>کارت به کارت</small>
+      </div>
+    </div>
+
+    <!-- کارت پرداخت آنلاین -->
+            
+         <a href="{% url 'request_user_pay_sewage_installment' installment.id %}" class="card p-2 text-center" style="width: 300px; text-decoration:none;">
+      <img src="/static/img/payment2.png" class="card-img-top" style="height: 100px; object-fit: contain;" alt="پرداخت آنلاین">
+      <div class="card-body p-1">
+        <small>درگاه بانکی</small>
+      </div>
+    </a>
+          
+
+
+  </div>
+
+  <!-- فرم کارت به کارت -->
+  <div class="collapse mt-2" id="manualPayment{{ installment.id }}">
+     
+      
+<form method="post" action="" class="mx-auto" style="max-width: 400px;">
+    {% csrf_token %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <p class="badge-gradient-info p-2">
+                نوع: 
+                   {% if installment.installment_number == 0 %}
+                پیش‌پرداخت
+                {% else %}
+                قسط {{ installment.installment_number|to_persian_number }}
+                {% endif %}
+            </p>
+              <p class="badge-gradient-danger p-2">   مبلغ قابل پرداخت : {{ installment.amount|three_digit_currency }} تومان  </p>
+                
+        </div>
+    </div>
+        <div class="mb-3">
+        {{ form.bank.label_tag }}
+        {{ form.bank }}
+        {{ form.bank.errors }}
+    </div>
+    <div class="mb-3">
+        {{ form.payment_date.label_tag }}
+        {{ form.payment_date }}
+        {{ form.payment_date.errors }}
+    </div>
+
+    <div class="mb-3">
+        {{ form.transaction_reference.label_tag }}
+        {{ form.transaction_reference }}
+        {{ form.transaction_reference.errors }}
+    </div>
+    
+
+    <div class="text-center">
+        <button type="submit" class="btn btn-gradient-success w-50">ثبت پرداخت</button>
+    </div>
+</form>
+
+
+  </div>
+  </div>
+    
+{% endblock main_content %}

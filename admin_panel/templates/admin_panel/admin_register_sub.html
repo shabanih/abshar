@@ -1,0 +1,64 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+ثبت اشتراک 
+{% endblock page_title %}
+
+{% block main_content %}
+<div class="container mt-3">
+<h3>صدور اشتراک برای: {{ target_user.full_name }}</h3>
+<form method="POST">
+    {% csrf_token %}
+    <label>انتخاب پلن:</label>
+    <select name="plan" required>
+        {% for plan in plans %}
+            <option value="{{ plan.id }}">{{ plan }} - قیمت واحد: {{ plan.price_per_unit }}</option>
+        {% endfor %}
+    </select>
+
+    <label>تعداد واحد:</label>
+    <input type="number" name="units_count" required>
+
+    <label>مبلغ کل (تومان):</label>
+    <input type="number" name="amount" required>
+
+    <button type="submit">ثبت نهایی اشتراک</button>
+</form>
+
+
+
+
+ <!-- Pagination -->
+      <div class="col-12">
+        <div class="pagination d-flex justify-content-center mt-5">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+            {% endif %}
+
+            {% for page_number in page_obj.paginator.page_range %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_number }}"
+                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
+                    {{ page_number }}
+                </a>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&paginate={{ request.GET.paginate|default:'20' }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
+{% endblock main_content %}
+
+
+
+
+
+
+
+
+

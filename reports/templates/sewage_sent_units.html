@@ -1,0 +1,117 @@
+{% extends 'middleShared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}لیست واحدها ({{ sewage.name|to_persian_number }}) {% endblock %}
+
+{% block main_content %}
+<div class="container mt-3">
+<div class="row text-md-start mb-2">
+     <div class="col">
+            <a href="{% url 'middle_sewage_report_list' %}" class="btn btn-outline-info py-2 px-3">برگشت به لیست </a>
+        </div>
+</div>
+  
+    <div class="row text-md-start mb-2 justify-content-between">
+        <div class="col-12 col-md-4 col-xl-4 align-self-center">
+            <form method="get" action="" class="d-flex gap-2 align-items-center">
+                <input type="text"
+                       class="p-2 w-100 w-md-75"
+                       name="q"
+                       id="searchInput"
+                       autocomplete="off"
+                       value="{{ query }}"
+                       placeholder="جستجو ..."
+                       dir="rtl"
+                       oninput="if(this.value === '') this.form.submit();">
+                <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>
+            </form>
+        </div>
+     
+          <div class="col-12 col-md-2 col-xl-2 text-center d-none d-md-block">
+            <div class="d-flex align-items-center gap-1">
+                <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label>
+           <select id="cardsPerPage"
+        class="form-select select-fix"
+        style="width: auto;"
+        onchange="window.location.href='?q={{ query }}&paginate=' + this.value;">
+    <option value="20" {% if request.GET.paginate|default:'20' == '20' %}selected{% endif %}>20</option>
+    <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option>
+    <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option>
+    <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>
+</select>
+
+            </div>
+        </div>
+    </div>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>واحد</th>
+            <th>مالک</th>
+            <th>همراه</th>
+            <th>مبلغ شارژ</th>
+            <th>تعداد اقساط کل / تعداد اقساط پرداخت شده</th>
+            <th>دستورات</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in page_obj %}
+        <tr>
+            <td>{{ item.unit.unit|to_persian_number }}</td>
+            <td>{{ item.unit.owner_name }}</td>
+            <td>{{ item.unit.owner_mobile|to_persian_number }}</td>
+            <td>{{ sewage.amount|three_digit_currency }}</td>
+            <td>   
+                <span class="badge btn-gradient-primary">{{ item.total_installments }}</span>
+                <span class="badge btn-gradient-success">{{ item.paid_count }}</span>
+            <td>
+            
+               
+        {% if item.has_sent %}
+             <a href="{% url 'middle_sewage_unit_installments' sewage.id item.unit.id %}"
+                   class="btn btn-sm btn-info">
+                    مشاهده اقساط
+                </a>
+    <a href="{% url 'cancel_sewage_send' sewage.id item.unit.id %}"
+       class="btn btn-sm btn-danger"
+         onclick="return confirmCancelWithSweetAlert(event)">
+        لغو ارسال هزینه به واحد
+    </a>
+{% else %}
+    <a href="{% url 'middle_send_sewage' sewage.id item.unit.id %}"
+       class="btn btn-sm btn-gradient-success"
+    onclick="return confirmSendWithSweetAlert(event)">
+        ارسال هزینه به واحد
+    </a>
+{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+  <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
+</div>
+
+    
+
+{% endblock %}

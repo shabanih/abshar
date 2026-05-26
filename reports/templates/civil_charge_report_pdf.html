@@ -1,0 +1,145 @@
+{% load poll_extras %}
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <title>لیست شارژ عمرانی</title>
+   <style>
+        @font-face {
+            font-family: 'BYekan';
+            src: url('{{ font_path }}') format('truetype');
+        }
+        @font-face {
+            font-family: VazirB2;
+            src: url('{{ font_path }}');
+            src: url('{{ font_path }}') format('embedded-opentype'),
+            url('{{ font_path }}') format('woff2'),
+            url('{{ font_path }}') format('woff'),
+            url('{{ font_path }}') format('truetype');
+            font-weight: normal;
+}
+
+
+        @font-face {
+            font-family: Vazir;
+            src: url('{{ font_path }}');
+            src: url('{{ font_path }}') format('embedded-opentype'),
+            url('{{ font_path }}') format('woff2'),
+            url('{{ font_path }}') format('woff'),
+            url('{{ font_path }}') format('truetype');
+            font-weight: 100;
+        }
+        body {
+            font-family: 'Vazir', sans-serif;
+            direction: rtl;
+            text-align: right;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        thead tr {
+            background-color: #9b9797;
+            color: #000000;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: center;
+        }
+        h1, h2{
+            text-align: center;
+            font-family: VazirB2, sans-serif;
+        }
+        .logo-style-pdf{
+            width: 200px;
+            height: 80px;
+            display: block;
+            margin: 0 auto;
+        }
+        p{
+           text-align: center; 
+        }
+    </style>
+</head>
+<body>
+
+<div class="text-center mb-4" style="border-bottom: 2px solid #333; padding-bottom: 10px;">
+    {% if house %}
+        <h1 class="fw-bold mb-1" style="color: #202548F9;">{{ house.name }}</h1>
+    {% endif %}
+    
+    <h2 class="fw-bold mb-1 text-center" style="color: #222;">لیست شارژ عمرانی</h2>
+    
+    <p class="text-muted mb-0" style="font-size: 0.9rem;">
+        تاریخ گزارش: {{ today|show_jalali_date_time }}
+    </p>
+</div>
+
+
+      <div class="table-responsive">
+                <table class="table table-bordered " id="incomeTable">
+                    <thead class="text-center">
+                        <tr>
+                            <th>#</th>
+                            <th> عنوان</th>
+                            <th>مبلغ شارژ عمرانی</th>
+                            <th>مبلغ پیش پرداخت</th>
+                              <th>تعداد اقساط</th>
+                            <th>تاریخ سررسید اول</th>
+                             <th>توضیحات </th>
+                             <th>تصویر </th>
+                             <th>ارسال شده </th>
+                        
+                        </tr>
+                    </thead>
+                {% if civil_charges %}
+               {% for civil in civil_charges %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter|to_persian_number }}</td>
+                                <td>{{civil.name|to_persian_number }}</td>
+                                <td>{{civil.amount|three_digit_currency }}</td>
+                                <td>{{civil.prepayment|three_digit_currency }}</td>
+                                <td>{{civil.installment_count|three_digit_currency }}</td>
+                                 <td>{{civil.first_due_date|show_jalali }}</td>
+                               <td>
+                                   {% if civil.details|to_persian_number %}
+                                       دارد
+                                   	{% else %}
+                                       ندارد
+                                   {% endif %} 
+                             
+                               </td>
+                                <td class="d-flex justify-content-center align-self-center">
+                                  {% for doc in civil.civil_documents.all %}
+                                        <a href="{{ doc.document.url }}" target="_blank" 
+                                           > 
+                                            <i class="fas fa-image fa-2x me-2"></i></a>
+                                    {% empty %}
+                                     !No File
+                                    {% endfor %}
+                                </td>
+                            <td>
+                                   {{ civil.count_sent_units }} 
+                            </td>
+                            
+
+                            </tr>
+                        {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
+                            </tr>
+                     <tbody>
+                    {% endif %}
+                </table>
+             
+            </div>
+
+
+{#<p style="text-align: right; font-size: 11px;">تولید شده توسط سیستم مدیریت ساختمان</p>#}
+
+</body>
+</html>

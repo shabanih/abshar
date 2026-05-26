@@ -1,0 +1,169 @@
+{% extends 'middleShared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% load jalali_tags %}
+
+{% block page_title %}
+ایجاد نظرسنجی
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container mt-3">
+<form method="post">
+{% csrf_token %}
+       <div class="row">
+         <div class="col-4">
+          {{ form.title.label_tag }}
+          {{ form.title }}
+          {{ form.title.errors }}
+        </div>
+                <div class="col-4">
+       {{ form.start_date.label_tag }}
+       {{ form.start_date }}
+       {{ form.start_date.errors }}
+        </div>
+                <div class="col-4">
+       {{ form.end_date.label_tag }}
+       {{ form.end_date }}
+       {{ form.end_date.errors }}
+        </div>
+    </div>
+    <div>
+           <div class="col-12">
+    
+       {{ form.description }}
+       {{ form.description.errors }}
+        </div>
+    </div>
+
+    
+ 
+
+<h4 class="mt-4">سوالات</h4>
+<div id="questions"></div>
+
+<button type="button" class="btn btn-primary" onclick="addQuestion()">➕ افزودن سوال</button>
+<button type="submit" class="btn btn-gradient-success">ثبت نظرسنجی</button>
+</form>
+
+<!-- اسکریپت‌های استایل و جاوااسکریپت -->
+{#<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">#}
+
+<script>
+let questionCount = 0;
+
+function addQuestion() {
+    const container = document.getElementById("questions");
+    const html = `
+    <div class="card mb-3 p-3" id="question-${questionCount}">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0 question-title">سؤال ${questionCount + 1}</h5>
+
+
+        <button type="button" class="btn btn-danger btn-sm" onclick="removeQuestion(${questionCount})">🗑 حذف سوال</button>
+      </div>
+
+      <input type="text" name="questions[${questionCount}][title]" class="form-control mb-2" placeholder="متن سوال">
+
+      <label>نوع سوال</label>
+      <select name="questions[${questionCount}][type]" class="form-control form-control-sm mb-2" onchange="changeType(${questionCount})">
+        <option value="single">تک انتخابی</option>
+        <option value="multi">چند انتخابی</option>
+        <option value="yesno">بلی / خیر</option>
+      </select>
+
+      <div id="choices-${questionCount}">
+        <label>گزینه‌ها</label>
+        <div class="input-group mb-2">
+          <input type="text" name="questions[${questionCount}][choices][]" class="form-control" placeholder="گزینه">
+          <button class="btn btn-gradient-secondary" type="button" onclick="removeChoice(this)">🗑 حذف</button>
+</div>
+  <div class="input-group mb-2">
+           <input type="text" name="questions[${questionCount}][choices][]" class="form-control" placeholder="گزینه">
+          <button class="btn btn-gradient-secondary" type="button" onclick="removeChoice(this)">🗑 حذف</button>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-outline-info" onclick="addChoice(${questionCount})">➕ افزودن گزینه</button>
+    </div>
+    `;
+    container.insertAdjacentHTML("beforeend", html);
+    questionCount++;
+    updateQuestionNumbers()
+}
+
+function removeQuestion(id){
+
+    document.getElementById(`question-${id}`).remove()
+
+    updateQuestionNumbers()
+
+}
+
+
+function updateQuestionNumbers(){
+
+    const questions = document.querySelectorAll(".question-title")
+
+    questions.forEach((q, index) => {
+        q.innerText = `سؤال ${index + 1}`
+    })
+
+}
+
+function addChoice(qIndex) {
+    const choicesDiv = document.getElementById(`choices-${qIndex}`);
+    const html = `
+    <div class="input-group mb-2">
+      <input type="text" name="questions[${qIndex}][choices][]" class="form-control" placeholder="گزینه">
+      <button class="btn btn-gradient-secondary" type="button" onclick="removeChoice(this)">🗑 حذف</button>
+    </div>`;
+    choicesDiv.insertAdjacentHTML("beforeend", html);
+}
+
+function removeChoice(btn) {
+    btn.closest('.input-group').remove();
+}
+
+
+
+function changeType(qIndex) {
+    const select = document.querySelector(`select[name="questions[${qIndex}][type]"]`);
+    const choicesDiv = document.getElementById(`choices-${qIndex}`);
+    if (select.value === "yesno") {
+        // فقط بلی/خیر
+        choicesDiv.innerHTML = `
+        <div class="input-group mb-2">
+          <input type="text" name="questions[${qIndex}][choices][]" class="form-control" value="بلی" readonly>
+          <button class="btn btn-outline-secondary" type="button" onclick="removeChoice(this)">🗑 حذف</button>
+        </div>
+        <div class="input-group mb-2">
+          <input type="text" name="questions[${qIndex}][choices][]" class="form-control" value="خیر" readonly>
+          <button class="btn btn-outline-secondary" type="button" onclick="removeChoice(this)">🗑 حذف</button>
+        </div>
+        `;
+    } else {
+        // گزینه‌های پیش‌فرض
+        choicesDiv.innerHTML = `
+        <div class="input-group mb-2">
+          <input type="text" name="questions[${qIndex}][choices][]" class="form-control" placeholder="گزینه">
+          <button class="btn btn-outline-secondary" type="button" onclick="removeChoice(this)">🗑 حذف</button>
+        </div>
+        <div class="input-group mb-2">
+          <input type="text" name="questions[${qIndex}][choices][]" class="form-control" placeholder="گزینه">
+          <button class="btn btn-outline-secondary" type="button" onclick="removeChoice(this)">🗑 حذف</button>
+        </div>
+        `;
+    }
+}
+
+// شروع اولیه با یک سوال
+addQuestion();
+</script>
+
+
+</div>
+{% endblock %}
+
+

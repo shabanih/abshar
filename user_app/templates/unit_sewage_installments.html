@@ -1,0 +1,252 @@
+{% extends 'partials/core_template.html' %}
+{% load poll_extras %}
+
+{% block page_title %}
+لیست اقساط ({{ sewage.name }}) 
+{% endblock page_title %}
+
+{% block main_content %}
+    <div class="container mt-3">
+    
+      <div class="row text-md-start mb-2">
+        <div class="col p-0">
+                  <a href="{% url 'user_sewage_installments_pdf' sewage.id unit.id %}?{{ request.GET.urlencode }}"
+                   class="btn btn-gradient-danger px-4 py-2">
+                    خروجی PDF 
+                </a>
+            <a href="{% url 'user_sewage_list' %}" class="btn btn-outline-info py-2 px-3">برگشت به لیست </a>
+             
+        </div>
+    </div>
+{#     <div class="row justify-content-center mt-4">#}
+{#        <!-- بخش جستجو -->#}
+{#        <div class="col-12 col-md-10 col-xl-10 align-self-center">#}
+{#            <form method="get" action="" class="d-flex gap-2 align-items-center">#}
+{#                <input type="text"#}
+{#                       class="p-2 w-25 w-md-75"#}
+{#                       name="q"#}
+{#                       id="searchInput"#}
+{#                       autocomplete="off"#}
+{#                       value="{{ query }}"#}
+{#                       placeholder="جستجو ..."#}
+{#                       dir="rtl"#}
+{#                       oninput="if(this.value === '') this.form.submit();">#}
+{#                <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>#}
+{#            </form>#}
+{#        </div>#}
+{##}
+{#        <!-- بخش تعداد نمایش → فقط دسکتاپ -->#}
+{#        <div class="col-12 text-center p-0 d-none d-md-block">#}
+{#            <div class="d-flex align-items-center gap-1">#}
+{#                <label for="cardsPerPage" class="form-label mb-0">تعداد نمایش:</label>#}
+{#           <select id="cardsPerPage"#}
+{#        class="form-select select-fix"#}
+{#        style="width: auto;"#}
+{#        onchange="window.location.href='?q={{ query }}&paginate=' + this.value;">#}
+{#    <option value="1" {% if request.GET.paginate|default:'1' == '1' %}selected{% endif %}>20</option>#}
+{#    <option value="50" {% if request.GET.paginate == '50' %}selected{% endif %}>50</option>#}
+{#    <option value="100" {% if request.GET.paginate == '100' %}selected{% endif %}>100</option>#}
+{#    <option value="1000" {% if request.GET.paginate == '1000' %}selected{% endif %}>همه</option>#}
+{#</select>#}
+{##}
+{#            </div>#}
+{#        </div>#}
+{#    </div>#}
+
+   <div class="row mt-4">
+               <div class="table-responsive p-0">
+               <table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>مبلغ</th>
+            <th>نوع</th>
+            <th>تاریخ سررسید</th>
+            <th>وضعیت پرداخت</th>
+            <th>تاریخ پرداخت</th>
+            <th>روش پرداخت</th>
+            <th>بانک</th>
+            <th>کد پیگیری</th>
+            <th> دستورات</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% if page_obj %}
+        {% for inst in page_obj %}
+        <tr>
+            <td>{{ inst.installment_number|to_persian_number }}</td>
+            <td>{{ inst.amount|three_digit_currency }}</td>
+            <td>
+                {% if inst.installment_number == 0 %}
+                پیش‌پرداخت
+                {% else %}
+                قسط {{ inst.installment_number|to_persian_number }}
+                {% endif %}
+            </td>
+            <td>{{ inst.due_date|show_jalali }}</td>
+            <td>
+                {% if inst.is_paid %}
+                    <span class="badge badge-gradient-success">پرداخت شده</span>
+                {% else %}
+                    <span class="badge badge-gradient-warning">در انتظار پرداخت</span>
+                {% endif %}
+            </td>
+             <td>
+                 {% if inst.payment_date %}
+                 	 {{ inst.payment_date|show_jalali }}
+                     {% else %}
+                     -
+                 {% endif %} 
+                
+             </td>
+             <td>
+                 {% if inst.payment_gateway %}
+
+                 {{ inst.payment_gateway|to_persian_number }}
+                   {% else %}
+                     -
+                 {% endif %} 
+             </td>
+        <td>
+               {% if inst.bank %}
+            {{ inst.bank }}
+                {% else %}
+                     -
+                 {% endif %} 
+        </td>
+             <td>
+                 {% if inst.transaction_reference %}
+
+                 {{ inst.transaction_reference|to_persian_number }}
+                   {% else %}
+                     -
+                 {% endif %} 
+             </td>
+        <td>
+            {% if inst.is_paid %}
+                   	       <button 
+                class="btn btn-gradient-light px-3 py-2" disabled>
+            پرداخت
+        </button>
+                {% else %}
+            	       <a href="{% url 'user_pay_sewage_installment' inst.id %}"
+                class="btn btn-gradient-primary px-3 py-2">
+            پرداخت
+        </a>
+            {% endif %} 
+        
+
+
+
+
+
+
+        </td>
+             <div class="modal fade"  id="exampleModalLong2{{ inst.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ inst.id }}" aria-hidden="true">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="modalLabel{{ inst.id }}">عملیات پرداخت  </h5>
+                            </div>
+                          <hr/>
+                          
+                     <div class="row">
+        <div class="col-12 px-5">
+            <p class="badge-gradient-info text-center p-2">نام شارژ: {{ inst.sewage_manage.name|to_persian_number }}</p>
+            <p class="badge-gradient-warning text-center p-2"> 
+                     {% if inst.installment_number == 0 %}
+                پیش‌پرداخت
+                {% else %}
+                قسط {{ inst.installment_number|to_persian_number }}
+                {% endif %}
+            </p>
+              <p class="badge-gradient-danger text-center p-2">   مبلغ قابل پرداخت : {{ inst.amount|three_digit_currency }} تومان  </p>
+                
+        </div>
+    </div>       
+                              
+    <form  method="post" action="{% url 'user_pay_civil_charge' inst.id %}">
+    {% csrf_token %}
+
+   <div class="row">
+    <div class=" col-12 px-5 mb-3">
+        {{ form.payment_date.label_tag }}
+        {{ form.payment_date }}
+        {{ form.payment_date.errors }}
+    </div>
+
+    <div class=" col-12 px-5 mb-3">
+        {{ form.transaction_reference.label_tag }}
+        {{ form.transaction_reference }}
+        {{ form.transaction_reference.errors }}
+    </div>
+     <div class=" col-12 px-5 mb-3">
+        {{ form.bank.label_tag }}
+        {{ form.bank }}
+        {{ form.bank.errors }}
+    </div>
+</div>
+
+    <div class="text-center">
+        <button type="submit" class="btn btn-gradient-success w-50">ثبت پرداخت</button>
+    </div>
+</form>
+                     
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+        </tr>
+
+        {% endfor %}
+        {% else %}
+            <tr>
+                                <td colspan="11" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
+                            </tr>
+    {% endif %} 
+    </tbody>
+</table>
+            </div>
+    </div>
+        <!-- Pagination -->
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="pagination d-flex justify-content-center mt-5">
+            {% if page_obj.has_previous %}
+                <a href="?q={{ query }}&paginate={{ paginate }}&page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+            {% endif %}
+
+            {% for page_number in page_obj.paginator.page_range %}
+                <a href="?q={{ query }}&paginate={{ paginate }}&page={{ page_number }}"
+                   class="rounded mx-1 {% if page_number == page_obj.number %}active{% endif %}">
+                    {{ page_number }}
+                </a>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <a href="?q={{ query }}&paginate={{ paginate }}&page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+</div>
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+  const headlines = document.querySelectorAll('.headlines li');
+  let current = 0;
+
+  function showNext() {
+    headlines[current].classList.remove('active');
+    current = (current + 1) % headlines.length;
+    headlines[current].classList.add('active');
+  }
+
+  // هر 5 ثانیه عنوان بعدی نمایش داده شود
+  setInterval(showNext, 5000);
+});
+</script>
+    
+{% endblock main_content %}
