@@ -182,6 +182,7 @@ class UnitUpdateService:
         BankTransactionService.deposit(
             user=self.request.user,
             bank=self.form.cleaned_data.get('renter_bank'),
+            unit=self.unit,
             amount=Decimal(amount),
             description=f"شارژ اولیه مستاجر {self.unit.get_label}",
             content_object=self.unit,
@@ -215,6 +216,7 @@ class UnitUpdateService:
         )
         BankTransactionService.deposit(
             user=self.request.user,
+            unit=self.unit,
             bank=self.form.cleaned_data.get('owner_bank'),
             amount=Decimal(amount),
             description=f"شارژ اولیه مالک {self.unit.get_label}",

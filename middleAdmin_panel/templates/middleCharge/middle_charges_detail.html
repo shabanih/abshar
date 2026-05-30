@@ -180,11 +180,11 @@
                             
                        
 
-                                       {% if charge.civil %}
-                                <p><strong>شارژ عمرانی:</strong> {{ charge.civil|three_digit_currency }} تومان</p>
-                                           {% else %}
-                                <p><strong>شارژ عمرانی:</strong> -- </p>
-                            {% endif %}
+{#                                       {% if charge.civil %}#}
+{#                                <p><strong>شارژ عمرانی:</strong> {{ charge.civil|three_digit_currency }} تومان</p>#}
+{#                                           {% else %}#}
+{#                                <p><strong>شارژ عمرانی:</strong> -- </p>#}
+{#                            {% endif %}#}
 
                             {% if charge.other_cost_amount %}
                             	 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost_amount|three_digit_currency }} تومان</p>

@@ -7,7 +7,7 @@ from django.utils.safestring import mark_safe
 
 
 class ChargeMethod(models.Model):
-    code = models.PositiveSmallIntegerField(unique=True)
+    # code = models.PositiveSmallIntegerField(unique=True)
     name = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True, verbose_name='')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
@@ -17,6 +17,14 @@ class ChargeMethod(models.Model):
 
 
 class User(AbstractUser):
+    house = models.ForeignKey(
+        'MyHouse',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='house_users',
+        verbose_name='ساختمان'
+    )
     full_name = models.CharField(max_length=200, verbose_name='نام')
     mobile = models.CharField(max_length=11, unique=True, verbose_name='موبایل')
     username = models.CharField(max_length=150, unique=True, verbose_name='نام کاربری')
@@ -62,7 +70,7 @@ class User(AbstractUser):
         return list(
             self.charge_methods
             .filter(is_active=True)
-            .values_list('code', flat=True)
+            .values_list(flat=True)
         )
 
     @staticmethod
@@ -126,13 +134,17 @@ class Bank(models.Model):
 
 
 class MyHouse(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='managed_houses'
+    )
     residents = models.ManyToManyField(User, related_name='houses', blank=True, verbose_name='ساکنین')
     name = models.CharField(max_length=100, verbose_name='نام ساختمان')
     floor_counts = models.PositiveIntegerField(default=1)
     unit_counts = models.PositiveIntegerField(default=1)
     phone = models.CharField(max_length=11)
-    boss_mobile = models.CharField(max_length=11)
+    # boss_mobile = models.CharField(max_length=11)
     user_type = models.CharField(max_length=100, null=True, blank=True, verbose_name='نوع کاربری')
     city = models.CharField(max_length=100, null=True, blank=True, verbose_name='شهر')
     address = models.CharField(max_length=200, verbose_name='آدرس')
@@ -163,7 +175,7 @@ class Unit(models.Model):
     area = models.IntegerField()
     bedrooms_count = models.IntegerField()
     parking_number = models.CharField(max_length=10, null=True, blank=True)
-    parking_count = models.IntegerField()
+    # parking_count = models.IntegerField()
     parking_place = models.CharField(max_length=100, null=True, blank=True, verbose_name='موقعیت پارکینگ ')
     extra_parking_first = models.CharField(max_length=100, null=True, blank=True, verbose_name='موقعیت پارکینگ اول')
     extra_parking_second = models.CharField(max_length=100, null=True, blank=True, verbose_name='موقعیت پارکینگ دوم')

@@ -178,16 +178,23 @@
                 </ul>
               </div>
             </li>
+             <li class="nav-item border-top mt-0">
+                 {% url 'create_house' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title"> ایجاد ساختمان</i>
+                <i class="mdi mdi-home menu-icon"></i>
+              </a>
+            </li>
         
-               <li class="nav-item border-top mt-0">
-                 {% url 'manage_house' as address_url %}
+               <li class="nav-item mt-0">
+                 {% url 'house_list' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
                 <i class="menu-title"> مدیریت ساختمان</i>
                 <i class="mdi mdi-home menu-icon"></i>
               </a>
             </li>
-               <li class="nav-item mt-0">
-                 {% url 'create_middle_admin' as address_url %}
+               <li class="nav-item border-top mt-0">
+                 {% url 'middle_admin_list' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
                 <i class="menu-title"> مدیریت مدیران </i>
                 <i class="mdi mdi-account-star  menu-icon"></i>
@@ -200,7 +207,7 @@
                 <i class="mdi mdi-account-group  menu-icon"></i>
               </a>
             </li>
-                <li class="nav-item  mt-0">
+                <li class="nav-item border-top  mt-0">
                  {% url 'manage_bank' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
                 <i class="menu-title"> مدیریت حساب بانکی</i>

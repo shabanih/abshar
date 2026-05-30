@@ -136,7 +136,7 @@
                                  <p><strong>مبلغ شارژ ثابت هر واحد:</strong> {{ charge.fix_charge_amount|three_digit_currency }} تومان</p>
                                  <p><strong>مبلغ شارژ هر ازای هر متر:</strong> {{ charge.area_amount|three_digit_currency }} تومان</p>
                                  <p><strong>کل متراژ:</strong> {{ charge.total_area|to_persian_number }} متر</p>
-                                <p><strong>شارژ عمرانی:</strong> {{ charge.civil|three_digit_currency }} تومان</p>
+{#                                <p><strong>شارژ عمرانی:</strong> {{ charge.civil|three_digit_currency }} تومان</p>#}
                                 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost_amount|three_digit_currency }} تومان</p>
                                 <p><strong>تاریخ ثبت :</strong> {{ charge.created_at|show_jalali_date_only }} </p>
                                <p><strong>مهلت پرداخت :</strong>

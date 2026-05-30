@@ -130,7 +130,7 @@
                             <div class="modal-body text-end">
                                 <p><strong>عنوان:</strong> {{ charge.name|to_persian_number }}</p>
                                  <p><strong>مبلغ شارژ هر واحد:</strong> {{ charge.fix_amount|three_digit_currency }} تومان</p>
-                                <p><strong>شارژ عمرانی:</strong> {{ charge.civil|three_digit_currency }} تومان</p>
+{#                                <p><strong>شارژ عمرانی:</strong> {{ charge.civil|three_digit_currency }} تومان</p>#}
                                 <p><strong>سایر هزینه ها:</strong> {{ charge.other_cost_amount|three_digit_currency }} تومان</p>
                                 <p><strong>تاریخ ثبت :</strong> {{ charge.created_at|show_jalali_date_only }} </p>
                                 <p><strong>مهلت پرداخت :</strong> {{ charge.payment_deadline|show_jalali_date_only }} </p>

@@ -131,6 +131,10 @@ class ExpenseCategory(models.Model):
     title = models.CharField(max_length=100, verbose_name='نام')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='')
     is_active = models.BooleanField(default=True, verbose_name='')
+    is_default = models.BooleanField(
+        default=False,
+        verbose_name='دسته پیش‌فرض'
+    )
 
     def __str__(self):
         return self.title
@@ -149,7 +153,6 @@ class Expense(models.Model):
         verbose_name='ساختمان مرتبط'
     )
     receiver_name = models.CharField(max_length=400, null=True, blank=True)
-
     category = models.ForeignKey(ExpenseCategory, on_delete=models.CASCADE, verbose_name='گروه',
                                  related_name='expenses')
     date = models.DateField(verbose_name='تاریخ سند')
@@ -1297,6 +1300,8 @@ class SmsCredit(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=0, verbose_name='مبلغ شارژ')
     amount_with_tax = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='مبلغ با مالیات', default=0)
     is_paid = models.BooleanField(default=False, verbose_name='پرداخت شده؟')
+    payment_date = models.DateField(null=True, blank=True)
+    transaction_no = models.CharField(max_length=15, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     paid_at = models.DateTimeField(null=True, blank=True)
 

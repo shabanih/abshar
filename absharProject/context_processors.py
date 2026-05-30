@@ -1,3 +1,4 @@
+from datetime import timedelta
 from decimal import Decimal
 
 from django.core.cache import cache
@@ -8,7 +9,7 @@ from admin_panel.models import UnifiedCharge, Announcement, MessageToUser, Messa
     MiddleMessageReadStatus, SmsManagement, Subscription
 from home.models import FreeRequest, ContactUs
 from polls_app.models import Poll
-from user_app.models import MyHouse, Unit
+from user_app.models import MyHouse, Unit, Renter
 
 
 def user_unit_context(request):
@@ -49,7 +50,7 @@ def current_middle_house(request):
         return {}
 
     middle_house = MyHouse.objects.filter(
-        residents=request.user,
+        user=request.user,
         is_active=True
     ).order_by('-created_at').first()
 
@@ -89,7 +90,57 @@ def current_middle_house(request):
             context["sub_status"] = "inactive"
             context["subscription_warning"] = True
             context["progress_dashoffset"] = 345
+    today = timezone.now().date()
 
+    expire_warning_date = today + timedelta(days=1)
+
+    expiring_renters = (
+        Renter.objects
+        .select_related(
+            'unit',
+            'myhouse'
+        )
+        .filter(
+            myhouse__user=request.user,
+            renter_is_active=True,
+            end_date__isnull=False,
+            end_date__lte=expire_warning_date
+        )
+        .order_by('end_date')
+    )
+
+    renter_expire_notifications = []
+
+    for renter in expiring_renters:
+
+        remaining_days = (
+                renter.end_date - today
+        ).days
+
+        if remaining_days < 0:
+
+            status = "expired"
+
+        elif remaining_days == 0:
+
+            status = "today"
+
+        else:
+
+            status = "warning"
+
+        renter_expire_notifications.append({
+            "renter": renter,
+            "unit": renter.unit,
+            "remaining_days": remaining_days,
+            "status": status,
+        })
+
+    context["renter_expire_notifications"] = renter_expire_notifications
+
+    context["has_renter_expire_warning"] = bool(
+        renter_expire_notifications
+    )
     return context
 
 
@@ -175,6 +226,7 @@ def user_header_notifications(request):
             .filter(user=user.manager, is_active=True)
             .order_by('-created_at')[:5]
         )
+
 
     return {
         'new_user_charges_count': new_user_charges_count,

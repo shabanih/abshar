@@ -258,17 +258,42 @@ class UserRegistrationForm(forms.ModelForm):
         label='روش‌های شارژ قابل دسترسی'
     )
 
-    is_active = forms.ChoiceField(choices=MIDDLE_CHOICES, label='فعال باشد؟', widget=forms.Select(attrs=attr))
+    is_active = forms.TypedChoiceField(
+        choices=(
+            ('1', 'بله'),
+            ('0', 'خیر'),
+        ),
+        coerce=lambda x: x == '1',
+        widget=forms.Select(attrs=attr),
+        label='فعال باشد؟'
+    )
 
-    is_resident = forms.ChoiceField(choices=MIDDLE_CHOICES, label='ساکن ساختمان میباشد؟', initial=0,
-                                    widget=forms.Select(attrs=attr))
-    is_trial = forms.ChoiceField(choices=MIDDLE_CHOICES, label='اشتراک رایگان؟', initial=0,
-                                 widget=forms.Select(attrs=attr))
+    is_resident = forms.TypedChoiceField(
+        choices=(
+            ('1', 'بله'),
+            ('0', 'خیر'),
+        ),
+        coerce=lambda x: x == '1',
+        widget=forms.Select(attrs=attr),
+        label='ساکن ساختمان میباشد؟',
+        initial='0'
+    )
+
+    is_trial = forms.TypedChoiceField(
+        choices=(
+            ('1', 'بله'),
+            ('0', 'خیر'),
+        ),
+        coerce=lambda x: x == '1',
+        widget=forms.Select(attrs=attr),
+        label='اشتراک رایگان؟',
+        initial='0'
+    )
 
     class Meta:
         model = User
         fields = ['full_name', 'mobile', 'username', 'password', 'is_active', 'charge_methods', 'is_resident',
-                  'is_trial']
+                  'is_trial', 'is_active']
 
     def clean_mobile(self):
         mobile = self.cleaned_data.get('mobile')
@@ -415,27 +440,13 @@ USER_TYPE_CHOICES = [
 
 
 class MyHouseForm(forms.ModelForm):
-    user = forms.ModelChoiceField(
-        queryset=User.objects.none(),
-        empty_label="نام مدیر را انتخاب کنید",
-        error_messages=error_message,
-        required=True,
-        label=' نام مدیر ساختمان',
-        widget=forms.Select(
-            attrs={
-                'class': 'form-control-sm ',
-                'style': 'width:100%',
-                # 'data-placeholder': 'واحد / مالک یا مستاجر را انتخاب کنید1'
-            }
-        )
-    )
     name = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
                            label='نام ساختمان')
     phone = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
                             label='تلفن', max_length=11)
-    boss_mobile = forms.CharField(error_messages=error_message, max_length=11, required=True,
-                                  widget=forms.TextInput(attrs=attr),
-                                  label='موبایل مدیر')
+    # boss_mobile = forms.CharField(error_messages=error_message, max_length=11, required=True,
+    #                               widget=forms.TextInput(attrs=attr),
+    #                               label='موبایل مدیر')
     subdomain = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
                                 label='نام لاتین')
     user_type = forms.ChoiceField(error_messages=error_message, choices=USER_TYPE_CHOICES, required=True,
@@ -454,20 +465,39 @@ class MyHouseForm(forms.ModelForm):
     address = forms.CharField(error_messages=error_message, required=True,
                               widget=forms.TextInput(attrs=attr),
                               label='آدرس')
-    is_active = forms.BooleanField(initial=True, required=False, label='فعال/غیرفعال')
+    is_active = forms.TypedChoiceField(
+        choices=(
+            (1, 'بله'),
+            (0, 'خیر')
+        ),
+        coerce=lambda x: x == '1',
+        widget=forms.Select(attrs=attr),
+        label='فعال باشد؟'
+    )
+    enamad_code = forms.CharField(
+        required=False,
+        widget=forms.Textarea(
+            attrs={
+                'class': 'form-control',
+                'rows': 5,
+                'dir': 'ltr'
+            }
+        ),
+        label='کد اینماد'
+    )
 
     class Meta:
         model = MyHouse
         fields = ['name', 'address', 'user_type', 'city', 'is_active', 'floor_counts', 'unit_counts', 'subdomain',
-                  'user', 'phone', 'boss_mobile']
+                  'phone', 'enamad_code']
 
-    def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user', None)
-        super().__init__(*args, **kwargs)
-
-        if user:
-            self.fields['user'].queryset = User.objects.filter(is_active=True, is_middle_admin=True).order_by(
-                '-created_time')
+    # def __init__(self, *args, **kwargs):
+    #     user = kwargs.pop('user', None)
+    #     super().__init__(*args, **kwargs)
+    #
+    #     if user:
+    #         self.fields['user'].queryset = User.objects.filter(is_active=True, is_middle_admin=True).order_by(
+    #             '-created_time')
 
     def clean_subdomain(self):
         subdomain = self.cleaned_data.get('subdomain')
@@ -574,9 +604,9 @@ class UnitForm(forms.ModelForm):
         widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
         error_messages=error_message, required=False
     )
-    parking_count = forms.ChoiceField(error_messages=error_message, choices=PARKING_COUNT_CHOICES, required=True,
-                                      widget=forms.Select(attrs=attr0),
-                                      label='تعداد پارکینگ')
+    # parking_count = forms.ChoiceField(error_messages=error_message, choices=PARKING_COUNT_CHOICES, required=True,
+    #                                   widget=forms.Select(attrs=attr0),
+    #                                   label='تعداد پارکینگ')
     unit_details = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'rows': 8}), required=False,
                                    label='توضیحات واحد')
     owner_name = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
@@ -711,7 +741,7 @@ class UnitForm(forms.ModelForm):
         fields = ['unit', 'floor_number', 'area', 'unit_details',
                   'bedrooms_count', 'parking_place', 'owner_name', 'owner_mobile',
                   'owner_national_code', 'unit_phone', 'owner_details',
-                  'parking_number', 'parking_count', 'status_residence', 'purchase_date', 'renter_name',
+                  'parking_number', 'status_residence', 'purchase_date', 'renter_name',
                   'renter_national_code', 'renter_details', 'extra_parking_first', 'extra_parking_second',
                   'renter_mobile', 'is_renter', 'owner_people_count', 'renter_bank',
                   'renter_people_count', 'start_date', 'end_date', 'first_charge_owner', 'first_charge_renter',
@@ -961,12 +991,13 @@ class ExpenseForm(forms.ModelForm):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
 
-        default_categories = ['هزینه آب', 'هزینه برق', 'هزینه گاز', 'بیمه',
-                              'حقوق و دستمزد', 'هزینه نظافت', 'هزینه فضای سبز']
+        default_categories = ['هزینه آب', 'هزینه برق', 'هزینه گاز', 'هزینه بیمه', 'هزینه حقوق و دستمزد']
+
         if user:
             for title in default_categories:
                 ExpenseCategory.objects.get_or_create(
                     title=title,
+                    is_default=True,
                     user=user,
                     defaults={'is_active': True}
                 )

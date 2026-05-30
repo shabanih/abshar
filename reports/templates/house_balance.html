@@ -191,7 +191,7 @@
                               {% else %}
                               0
                           {% endif %} 
-                     <a href="" class="badge badge-info me-3"><i class="fa fa-eye text-white"></i></a>
+                     <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
                       </p>
                  
                   </div>
@@ -214,7 +214,7 @@
                               {% else %}
                               0
                           {% endif %} 
-                     <a href="" class="badge badge-info me-3"><i class="fa fa-eye text-white"></i></a>
+                     <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
                       </p>
                  
                   </div>
@@ -234,7 +234,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_civil %}
                           	  {{ total_civil |three_digit_currency }}  تومان  
-                                <a href="" class="badge badge-info me-3"><i class="fa fa-eye text-white"></i></a>
+                                <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
                               {% else %}
                               <span class="text-center p-3">0</span>
                           {% endif %} 
@@ -245,7 +245,7 @@
               </div>
           <div class="row mb-2">
                   <div class="col"  style="font-size: 14px">
-                     دریافتی از ساکنین
+                     کمک ساکنین به ساختمان
                                  <p class="card-text text-muted py-2 text-small">
                                 {% if not start_date %}
                                     از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
@@ -258,9 +258,9 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_unit_pay %}
                           	  {{ total_unit_pay |three_digit_currency }}  تومان  
-                              <a href="" class="badge badge-info me-3"><i class="fa fa-eye text-white"></i></a>
+                              <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
                               {% else %}
-                              <span class="text-center p-3">0</span>
+                              <span class="text-center p-3">-</span>
                           {% endif %} 
                       </p>
                  
@@ -283,9 +283,9 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_receive_money %}
                           	    {{ total_receive_money |three_digit_currency }}  تومان  
-                        <a href="" class="badge badge-info me-3"><i class="fa fa-eye text-white"></i></a>
+                        <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
                               {% else %}
-                              <span class="text-center p-3">0</span>
+                              <span class="text-center p-3">-</span>
                           {% endif %} 
                       </p>
                   </div>
@@ -303,7 +303,7 @@
 {#            <h5 class="card-title">Card title</h5>#}
                  <div class="row mb-2" style="font-size: 14px">
                   <div class="col">
-                      جمع کل هزینه ها
+                      جاری/هزینه ها(عنوان ثبتی)
                                 <p class="card-text text-muted py-2 text-small ">
     {% if not start_date %}
         از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
@@ -320,13 +320,13 @@
                               0
                           {% endif %} 
                       
-                             <a href="" class="badge badge-info me-3"><i class="fa fa-eye text-white"></i></a>
+                             <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
                       </p>
                   </div>
-              </div>
+                 </div>
                    <div class="row mb-2">
                   <div class="col" style="font-size: 14px">
-                      جمع اسناد پرداختی
+                      جاری/ اسناد پرداختی
                                <p class="card-text text-muted py-2 text-small">
                                 {% if not start_date %}
                                     از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
@@ -342,14 +342,14 @@
                               {% else %}
                           	0
                           {% endif %} 
-                         <a href="" class="badge badge-info me-3"><i class="fa fa-eye text-white"></i></a>
+                         <a href=""  class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
                       </p>
                      
                   </div>
               </div>
           <div class="row mb-2">
                   <div class="col" style="font-size: 14px">
-                      جمع هزینه تعمیرات و نگهداری
+                      جاری/ تعمیر و نگهداری 
                                <p class="card-text text-muted py-2 text-small">
                                 {% if not start_date %}
                                     از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
@@ -365,14 +365,38 @@
                               {% else %}
                           	0
                           {% endif %} 
-                         <a href="" class="badge badge-info me-3"><i class="fa fa-eye text-white"></i></a>
+                         <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
+                      </p>
+                     
+                  </div>
+              </div>
+             <div class="row mb-2">
+                  <div class="col" style="font-size: 14px">
+                      جاری/ بیمه 
+                               <p class="card-text text-muted py-2 text-small">
+                                {% if not start_date %}
+                                    از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
+                                {% else %}
+                                    از تاریخ {{ start_date }} تا {{ end_date }}
+                                {% endif %}
+                            </p>
+                  </div>
+                  <div class="col text-start">
+                      <p class="fw-bold" style="font-size: 14px">
+                          {% if insurance_expenses %}
+                               {{ insurance_expenses |three_digit_currency }}  تومان
+                               <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
+                              {% else %}
+                          <span class="d-flex justify-content-end me-4">---</span>
+                          {% endif %} 
+                        
                       </p>
                      
                   </div>
               </div>
           <div class="row mb-2">
                   <div class="col" style="font-size: 14px">
-                      جمع هزینه اموال
+                      جاری/ اموال
                                <p class="card-text text-muted py-2 text-small">
                                 {% if not start_date %}
                                     از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
@@ -388,60 +412,15 @@
                               {% else %}
                           	0
                           {% endif %} 
-                         <a href="" class="badge badge-info me-3"><i class="fa fa-eye text-white"></i></a>
+                         <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
                       </p>
                      
                   </div>
               </div>
-          <div class="row mb-2">
-                  <div class="col" style="font-size: 14px">
-                      جمع هزینه آب مشاع
-                               <p class="card-text text-muted py-2 text-small">
-                                {% if not start_date %}
-                                    از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
-                                {% else %}
-                                    از تاریخ {{ start_date }} تا {{ end_date }}
-                                {% endif %}
-                            </p>
-                  </div>
-                  <div class="col text-start">
-                      <p class="fw-bold" style="font-size: 14px">
-                          {% if total_pay_money %}
-                               {{ total_pay_money |three_digit_currency }}  تومان
-                              {% else %}
-                          	0
-                          {% endif %} 
-                         <a href="" class="badge badge-info me-3"><i class="fa fa-eye text-white"></i></a>
-                      </p>
-                     
-                  </div>
-              </div>
-          <div class="row mb-2">
-                  <div class="col" style="font-size: 14px">
-                      جمع هزینه برق مشاع
-                               <p class="card-text text-muted py-2 text-small">
-                                {% if not start_date %}
-                                    از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
-                                {% else %}
-                                    از تاریخ {{ start_date }} تا {{ end_date }}
-                                {% endif %}
-                            </p>
-                  </div>
-                  <div class="col text-start">
-                      <p class="fw-bold" style="font-size: 14px">
-                          {% if total_pay_money %}
-                               {{ total_pay_money |three_digit_currency }}  تومان
-                              {% else %}
-                          	0
-                          {% endif %} 
-                         <a href="" class="badge badge-info me-3"><i class="fa fa-eye text-white"></i></a>
-                      </p>
-                     
-                  </div>
-              </div>
+{#          # Utility#}
            <div class="row mb-2">
                   <div class="col" style="font-size: 14px">
-                      جمع هزینه گاز مشاع
+                      جاری/ آب، برق و گاز مشاع
                                <p class="card-text text-muted py-2 text-small">
                                 {% if not start_date %}
                                     از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
@@ -452,19 +431,20 @@
                   </div>
                   <div class="col text-start">
                       <p class="fw-bold" style="font-size: 14px">
-                          {% if total_pay_money %}
-                               {{ total_pay_money |three_digit_currency }}  تومان
+                          {% if utility_expenses %}
+                               {{ utility_expenses |three_digit_currency }}  تومان
                               {% else %}
                           	0
                           {% endif %} 
-                         <a href="" class="badge badge-info me-3"><i class="fa fa-eye text-white"></i></a>
+                         <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
                       </p>
                      
                   </div>
               </div>
+          {#          # salary#}
           <div class="row mb-2">
                   <div class="col" style="font-size: 14px">
-                      جمع هزینه حقوق و دستمزد
+                      جاری/ حقوق و دستمزد
                                <p class="card-text text-muted py-2 text-small">
                                 {% if not start_date %}
                                     از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
@@ -475,12 +455,12 @@
                   </div>
                   <div class="col text-start">
                       <p class="fw-bold" style="font-size: 14px">
-                          {% if total_pay_money %}
-                               {{ total_pay_money |three_digit_currency }}  تومان
+                          {% if salary_expenses %}
+                               {{ salary_expenses |three_digit_currency }}  تومان
                               {% else %}
                           	0
                           {% endif %} 
-                         <a href="" class="badge badge-info me-3"><i class="fa fa-eye text-white"></i></a>
+                         <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
                       </p>
                      
                   </div>

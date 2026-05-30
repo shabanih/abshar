@@ -46,6 +46,7 @@
   <link rel="stylesheet" href="{% static 'admin_panel/css/ckeditor_fa.css' %}">
    <link rel="stylesheet" href="{% static 'admin_panel/css/style.css' %}">
     <link rel="stylesheet" href="{% static 'admin_panel/css/custom_style.css' %}">
+    <link rel="shortcut icon" href="{% static 'home/images/favicon1.png' %}">
 
 
 
@@ -68,10 +69,10 @@
       <nav
               class="navbar default-layout-navbar col-lg-12 col-12 p-0 border border-primary border-bottom-3 fixed-top d-flex flex-row">
         <div class="text-center navbar-brand-wrapper d-flex align-items-center justify-content-center">
-          <a class="navbar-brand brand-logo" href=""><img src="{% static 'admin_panel/images/logo/logo3.png' %}"
-                                                                    alt="logo" width="15" height="30" />
+           <a class="navbar-brand brand-logo" href="{% url 'middle_admin_dashboard' %}"><img src="{% static 'home/images/img/logo2.png' %}"
+                                                                    alt="logo" width="15" height="25" />
           </a>
-          <a class="navbar-brand brand-logo-mini" href="#"><img src="{% static 'admin_panel/images/logo/logo.png' %}"
+          <a class="navbar-brand brand-logo-mini" href="{% url 'middle_admin_dashboard' %}"><img src="{% static 'home/images/favicon1.png' %}"
                                                                          alt="logo"  /></a>
         </div>
         <div class="navbar-menu-wrapper d-flex align-items-stretch">

@@ -54,16 +54,16 @@
 
        <div id="query-form" style="display: none;" class="row mt-2">
             <form method="get">
-               <div class="row mt-2">
+               <div class="row mt-2 g-1">
                      <div class="col-md-2">
                           <input type="text" name="unit" class="form-control" placeholder="شماره واحد"
                                value="{{ request.GET.unit }}">
                     </div>
-                     <div class="col-md-2">
+                     <div class="col-md-3">
                         <input type="text" name="owner_name" class="form-control" placeholder="نام مالک"
                                value="{{ request.GET.owner_name }}">
                     </div>
-                     <div class="col-md-2">
+                     <div class="col-md-3">
                         <input type="text" name="owner_mobile" class="form-control" placeholder="موبایل مالک"
                                value="{{ request.GET.owner_mobile }}">
                     </div>
@@ -76,30 +76,42 @@
                                value="{{ request.GET.bedrooms_count }}">
                         </div>
                </div>
-                <div class="row mt-2 mb-2">
+                <div class="row mt-2 mb-2 g-2">
                       <div class="col-md-2">
                 <input type="text" name="renter_name" class="form-control" placeholder=" نام مستاجر"
                        value="{{ request.GET.renter_name }}">
             </div>
-                      <div class="col-md-2">
+                      <div class="col-md-3">
                        <input type="text" name="renter_mobile" class="form-control" placeholder=" موبایل مستاجر"
                        value="{{ request.GET.renter_mobile }}">
                       </div>
-                     <div class="col-md-2">
+                     <div class="col-md-3">
                        <input type="text" name="people_count" class="form-control" placeholder=" تعداد نفرات"
                        value="{{ request.GET.people_count }}">
                       </div>
                      <div class="col-md-2">
-                       <input type="text" name="status_residence" class="form-control" placeholder="وضعیت سکونت"
-                       value="{{ request.GET.status_residence }}">
+{#                       <input type="text" name="status_residence" class="form-control" placeholder="وضعیت سکونت">#}
+                         <select name="status_residence" class="form-control form-control-sm">
+                            <option value="">--- انتخاب کنید ---</option>
+                            <option value="occupied"
+                                {% if request.GET.status_residence == 'occupied' %}selected{% endif %}>
+                                ساکن
+                            </option>
+                    
+                            <option value="empty"
+                                {% if request.GET.status_residence == 'empty' %}selected{% endif %}>
+                                خالی
+                            </option>
+                        </select>
                       </div>
                     
                      <div class="col-md-2 align-self-center text-center">
-                      <button type="submit" class="btn btn-facebook px-4 py-2">جستجوی پیشرفته</button>
+                      <button type="submit" class="btn btn-facebook px-4 py-2">جستجو </button>
+                         <a href="{% url 'middle_manage_unit' %}" class="btn btn-gradient-danger px-3 py-2">پاک‌کردن </a>
                     </div>
-                    <div class="col-md-2 align-self-center text-center ">
-                      <a href="{% url 'manage_unit' %}" class="btn btn-gradient-danger px-4 py-2">پاک‌کردن فیلتر</a>
-                    </div>
+{#                    <div class="col-md-2 align-self-center text-center ">#}
+{#                      #}
+{#                    </div>#}
                     </div>
                </form>
          </div>
@@ -196,7 +208,7 @@
                         {% endfor %}
                             {% else %}
                             <tr>
-                                <td colspan="13" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                <td colspan="13" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
                             </tr>
                  {% endif %}
                      <tbody>

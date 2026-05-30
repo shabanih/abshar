@@ -35,36 +35,35 @@ CallbackURLSub = 'http://127.0.0.1:8001/admin-payment/verify-subscription-pay/'
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def request_sms_pay(request):
+
     if request.method != 'POST':
-        return redirect('add_sms_credit')  # صفحه فرم شارژ پیامک
+        return redirect('add_sms_credit')
 
     amount = request.POST.get('amount')
+
     try:
-        # حذف کاما و تبدیل به عدد صحیح
         amount = int(amount.replace(',', ''))
+
         if amount <= 0:
             messages.error(request, "مبلغ وارد شده معتبر نیست")
             return redirect('add_sms_credit')
+
     except Exception:
         messages.error(request, "مبلغ وارد شده معتبر نیست")
         return redirect('add_sms_credit')
 
-    # محاسبه مالیات ۱۰٪
     amount_with_tax = round(amount * 1.1)
 
-    # ایجاد رکورد SmsCredit
-    credit = SmsCredit.objects.create(
-        user=request.user,
-        amount=Decimal(amount),  # مبلغ اصلی
-        amount_with_tax=Decimal(amount_with_tax),  # شامل مالیات
-        is_paid=False
+    callback_url = (
+        f"{CallbackURLSMS}"
+        f"?amount={amount}"
+        f"&amount_with_tax={amount_with_tax}"
     )
 
-    # آماده سازی داده برای درگاه (ریال و int)
     req_data = {
         "merchant_id": MERCHANT,
-        "amount": int(amount_with_tax * 10),  # تومان → ریال و int
-        "callback_url": f"{CallbackURLSMS}?credit_id={credit.id}",
+        "amount": int(amount_with_tax * 10),
+        "callback_url": callback_url,
         "description": "شارژ حساب پیامک",
     }
 
@@ -74,46 +73,71 @@ def request_sms_pay(request):
     }
 
     try:
-        req = requests.post(
+        response = requests.post(
             url=ZP_API_REQUEST,
-            data=json.dumps(req_data),  # هیچ Decimal ای وجود ندارد
-            headers=req_header
+            data=json.dumps(req_data),
+            headers=req_header,
+            timeout=10
         )
-        result = req.json()
 
-        if req.status_code == 200 and 'authority' in result.get('data', {}):
+        result = response.json()
+
+        if (
+            response.status_code == 200 and
+            result.get('data', {}).get('authority')
+        ):
+
             authority = result['data']['authority']
-            return redirect(ZP_API_STARTPAY.format(authority=authority))
 
-        # خطا در درخواست
-        e_code = result.get('errors', {}).get('code', '')
-        e_message = result.get('errors', {}).get('message', '')
-        return HttpResponse(f"{e_code} - {e_message}")
+            return redirect(
+                ZP_API_STARTPAY.format(authority=authority)
+            )
+
+        error_data = result.get('errors', {})
+
+        return HttpResponse(
+            f"{error_data.get('code')} - "
+            f"{error_data.get('message')}"
+        )
 
     except requests.RequestException as e:
-        return HttpResponse(f"خطا در ارتباط با درگاه: {e}", status=500)
+
+        return HttpResponse(
+            f"خطا در ارتباط با درگاه: {e}",
+            status=500
+        )
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def verify_sms_credit_pay(request):
-    credit_id = request.GET.get('credit_id')
+
     authority = request.GET.get('Authority')
     status = request.GET.get('Status')
+
+    amount = request.GET.get('amount')
+    amount_with_tax = request.GET.get('amount_with_tax')
+
     house = MyHouse.objects.filter(user=request.user).first()
 
-    if not credit_id:
-        return render(request, 'admin_payment_done.html', {'error': 'شناسه پرداخت ارسال نشده است'})
+    if not amount or not amount_with_tax:
+        messages.error(request, 'اطلاعات پرداخت ناقص است')
+        return redirect('add_sms_credit')
 
-    credit = get_object_or_404(SmsCredit, id=credit_id, is_paid=False)
+    try:
+        amount = int(amount)
+        amount_with_tax = int(amount_with_tax)
+
+    except ValueError:
+        messages.error(request, 'مبلغ نامعتبر است')
+        return redirect('add_sms_credit')
 
     if status != 'OK':
         messages.error(request, 'پرداخت لغو شد')
         return redirect('add_sms_credit')
 
-    # مبلغ شامل مالیات برای تأیید پرداخت
     req_data = {
         "merchant_id": MERCHANT,
-        "amount": int(credit.amount_with_tax * 10),  # تومان → ریال و int
+        "amount": int(amount_with_tax * 10),
         "authority": authority
     }
 
@@ -123,31 +147,46 @@ def verify_sms_credit_pay(request):
     }
 
     try:
-        req = requests.post(ZP_API_VERIFY, data=json.dumps(req_data), headers=req_header)
-        result = req.json()
+
+        response = requests.post(
+            ZP_API_VERIFY,
+            data=json.dumps(req_data),
+            headers=req_header,
+            timeout=10
+        )
+
+        result = response.json()
 
         if result.get('errors'):
+
             return render(request, 'admin_payment_done.html', {
-                'error': result['errors'].get('message'),
-                'credit': credit
+                'error': result['errors'].get('message')
             })
 
-        code = result['data'].get('code')
-        if code == 100:
-            ref_id = result['data'].get('ref_id')
+        data = result.get('data', {})
+        code = data.get('code')
 
-            # ثبت اطلاعات پرداخت
-            credit.is_paid = True
-            credit.house = house
-            credit.paid_at = timezone.now()
-            credit.transaction_reference = ref_id
-            credit.payment_gateway = 'پرداخت اینترنتی'
-            credit.save()
+        if code == 100:
+
+            ref_id = data.get('ref_id')
+
+            # ایجاد رکورد فقط بعد از پرداخت موفق
+            credit = SmsCredit.objects.create(
+                user=request.user,
+                house=house,
+                amount=amount,
+                amount_with_tax=amount_with_tax,
+                is_paid=True,
+                paid_at=timezone.now(),
+                payment_date=timezone.now(),
+                transaction_no=ref_id,
+            )
 
             content_type = ContentType.objects.get_for_model(SmsCredit)
+
             AdminFund.objects.create(
                 user=request.user,
-                bank=None,  # اگر بانک مربوط به درگاه داری می‌تونی اینجا بفرستی
+                bank=None,
                 content_type=content_type,
                 object_id=credit.id,
                 amount=credit.amount_with_tax,
@@ -155,26 +194,34 @@ def verify_sms_credit_pay(request):
                 payment_date=credit.paid_at,
                 transaction_no=ref_id,
                 house=credit.house,
-                payment_description=f"شارژ حساب پیامک ",
+                payment_description='شارژ حساب پیامک',
                 is_paid=True
             )
 
-            messages.success(request, f'پرداخت با موفقیت انجام شد. کد پیگیری: {ref_id}')
+            messages.success(
+                request,
+                f'پرداخت با موفقیت انجام شد. کد پیگیری: {ref_id}'
+            )
+
             return redirect('add_sms_credit')
 
         elif code == 101:
-            messages.info(request, 'این پرداخت قبلاً ثبت شده است')
+
+            messages.info(
+                request,
+                'این پرداخت قبلاً ثبت شده است'
+            )
+
             return redirect('add_sms_credit')
 
         return render(request, 'admin_payment_done.html', {
-            'error': result['data'].get('message'),
-            'credit': credit
+            'error': data.get('message')
         })
 
-    except Exception as e:
+    except requests.RequestException as e:
+
         return render(request, 'admin_payment_done.html', {
-            'error': f"خطا: {e}",
-            'credit': credit
+            'error': f'خطا در ارتباط با درگاه: {e}'
         })
 
 

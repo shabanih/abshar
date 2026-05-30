@@ -81,24 +81,27 @@
                                             </td>
 
                                                <td class="col-lg-1 col-xl-1 p-0">
-                                                     <a href="{% url 'middle_edit_category_expense' category.id %}" class="btn btn-gradient-info p-1">
+                                                   {% if category.is_default %}
+                                                       <span>پیش فرض</span>
+                                                   	{% else %}
+                                                            <a href="{% url 'middle_edit_category_expense' category.id %}" class="btn btn-gradient-info p-1">
                                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
                                                         </a>
                                                           <a href="{% url 'middle_delete_category_expense' category.id %}" class="btn btn-gradient-danger p-1"
                                                        onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
                                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
                                                             </a>
-
-                                        </td>
-                                        </tr>
-                                    {% endfor %}
-                                        {% else %}
-                                        <tr>
-                                            <td colspan="9" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
-                                        </tr>
-                                 <tbody>
-                                {% endif %}
-                            </table>
+                                                   {% endif %}
+                                                        </td>
+                                                        </tr>
+                                                    {% endfor %}
+                                                        {% else %}
+                                                        <tr>
+                                                            <td colspan="9" class="text-center">هیچ پیامی برای نمایش وجود ندارد.</td>
+                                                        </tr>
+                                                 <tbody>
+                                                {% endif %}
+                                            </table>
                </div>
            </div>
 

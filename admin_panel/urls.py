@@ -22,9 +22,21 @@ urlpatterns = [
 
     # middle admin urls
 
-    path('create-middle-admin/', views.MiddleAdminCreateView.as_view(), name='create_middle_admin'),
-    path('middle/edit/<int:pk>/', views.MiddleAdminUpdateView.as_view(), name='edit_middle_admin'),
-    path('middle/delete/<int:pk>/', views.middleAdmin_delete, name='delete_middle_admin'),
+    path('create-house/', views.CreateHouseAndManagerView.as_view(), name='create_house'),
+    path('house-list/', views.HouseListView.as_view(), name='house_list'),
+    path(
+        'house/update/<int:pk>/',
+        views.UpdateHouseAndManagerView.as_view(),
+        name='update_house'
+    ),
+    path(
+        'house/delete/<int:pk>/',
+        views.DeleteHouseView.as_view(),
+        name='delete_house'
+    ),
+    path('middle-admin-list/', views.MiddleAdminListView.as_view(), name='middle_admin_list'),
+    # path('middle/edit/<int:pk>/', views.MiddleAdminUpdateView.as_view(), name='edit_middle_admin'),
+    # path('middle/delete/<int:pk>/', views.middleAdmin_delete, name='delete_middle_admin'),
 
     path('conatct/management/', views.ContactUsManagement.as_view(), name='contact_management'),
     path('comment/approved/<str:comment_code>/', views.approved_comment, name='comment_approved'),
@@ -52,13 +64,13 @@ urlpatterns = [
     path('admin-announcement-delete/<int:pk>/', views.announcement_delete, name='admin_delete_announcement'),
 
     # House Urls
-    path('manage-house', views.AddMyHouseView.as_view(), name='manage_house'),
+    # path('manage-house', views.AddMyHouseView.as_view(), name='manage_house'),
     path(
         "banks/<int:house_id>/",
         views.HouseBanksDetailView.as_view(),
         name="house_banks"
     ),
-    path('house/edit/<int:pk>/', views.MyHouseUpdateView.as_view(), name='edit_house'),
+    # path('house/edit/<int:pk>/', views.MyHouseUpdateView.as_view(), name='edit_house'),
     # path('delete/house/<int:pk>/', views.house_delete, name='delete_house'),
 
     # Bank Urls

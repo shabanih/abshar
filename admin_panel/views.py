@@ -24,9 +24,10 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import get_template
 from django.urls import reverse_lazy, reverse
 from django.utils.decorators import method_decorator
+from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.views.generic import CreateView, UpdateView, DetailView, ListView
+from django.views.generic import CreateView, UpdateView, DetailView, ListView, TemplateView
 from django.views.generic.edit import FormMixin
 from openpyxl.styles import PatternFill, Font, Alignment
 from pypdf import PdfWriter
@@ -62,7 +63,7 @@ def admin_dashboard(request):
     announcements = Announcement.objects.filter(is_active=True).order_by('-created_at')[:4]
     tickets = AdminTicket.objects.filter(user__manager=request.user).order_by('-created_at')[:5]
     house_count = MyHouse.objects.all().count()
-    user_counts = User.objects.all().count()
+    user_counts = User.objects.all().exclude(is_superuser=True).count()
     tickets_count = AdminTicket.objects.all().count()
 
     user_type_stats = (
@@ -406,146 +407,500 @@ def stop_impersonation(request):
 
 
 # ==========================================================================
-@method_decorator(admin_required, name='dispatch')
-class MiddleAdminCreateView(CreateView):
-    model = User
-    template_name = 'admin_panel/add_middleAdmin.html'
-    form_class = UserRegistrationForm
-    success_url = reverse_lazy('create_middle_admin')
+class CreateHouseAndManagerView(TemplateView):
+    template_name = 'admin_panel/create_house_and_manager.html'
 
-    def form_valid(self, form):
-        # ایجاد کاربر
-        self.object = form.save(commit=False)
-        raw_password = form.cleaned_data.get('password')
-        if raw_password:
-            self.object.set_password(raw_password)
-        self.object.is_middle_admin = True
-        self.object.manager = self.request.user
-        self.object.save()
-
-        # ثبت charge_methods
-        charge_methods = form.cleaned_data.get('charge_methods')
-        if charge_methods:
-            self.object.charge_methods.set(charge_methods)
-
-        # اگر Trial فعال است
-        if form.cleaned_data.get('is_trial') == '1':
-            Subscription.objects.create(
-                user=self.object,
-                units_count=5,
-                is_trial=True,
-                start_date=timezone.now(),
-                end_date=timezone.now() + timedelta(days=20)
-            )
-            messages.success(
-                self.request,
-                'مدیر ساختمان با موفقیت ثبت شد!'
-            )
-        else:
-            messages.success(
-                self.request,
-                'مدیر ساختمان با موفقیت ثبت شد!!'
-            )
-
-        return redirect(self.success_url)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['middleAdmins'] = User.objects.filter(
-            is_middle_admin=True
-        ).order_by('-created_time')
-        context['users'] = User.objects.filter(is_active=True).order_by('created_time')
-
-        if self.request.user.charge_methods.exists():
-            context['allowed_methods'] = list(
-                self.request.user.charge_methods.values_list('id', flat=True)
-            )
-        else:
-            context['allowed_methods'] = []
-
-        return context
-
-
-@method_decorator(admin_required, name='dispatch')
-class MiddleAdminUpdateView(UpdateView):
-    model = User
-    template_name = 'admin_panel/add_middleAdmin.html'
-    form_class = UserRegistrationForm
-    success_url = reverse_lazy('create_middle_admin')
-
-    def form_valid(self, form):
-        obj = form.save(commit=False)
-
-        # گرفتن رمز جدید
-        raw_password = form.cleaned_data.get('password')
-        if raw_password:
-            obj.set_password(raw_password)
-        else:
-            old_user = User.objects.get(pk=obj.pk)
-            obj.password = old_user.password
-
-        obj.manager = self.request.user
-        obj.save()
-
-        # ست کردن روش‌های شارژ
-        charge_methods = form.cleaned_data.get('charge_methods')
-        if charge_methods is not None:
-            obj.charge_methods.set(charge_methods)
-
-        subscription, created = Subscription.objects.get_or_create(
-            user=obj,
-            defaults={
-                'units_count': 1,
-                'is_trial': True,
-                'start_date': timezone.now(),
-                'end_date': timezone.now() + timedelta(days=35)
-            }
-        )
-        if not created:
-            # اگر قبلا وجود داشت، فقط مقادیر فرم را آپدیت کن، تاریخ Trial را تغییر نده
-            subscription.units_count = 1
-            # فقط اگر خواستی اشتراک پولی یا روش‌های دیگر اضافه شود می‌توانی اینجا تغییر دهی
-            subscription.save()
-
-        messages.success(self.request, 'اطلاعات مدیر ساختمان با موفقیت ویرایش گردید!')
-        return super().form_valid(form)
-
-    def form_invalid(self, form):
-        # اگر فرم نامعتبر بود (مثلاً موبایل تکراری)، همان قالب را با خطا نمایش بده
-        middle_admins = User.objects.filter(is_middle_admin=True).order_by('-created_time')
-        for middle in middle_admins:
-            # ایجاد attribute موقت برای قالب
-            middle.charge_method_ids_list = list(middle.charge_methods.values_list('id', flat=True))
+    def get(self, request, *args, **kwargs):
 
         context = {
-            'form': form,
-            'middleAdmins': middle_admins,
-            'users': User.objects.filter(is_active=True).order_by('-created_time'),
+            'user_form': UserRegistrationForm(),
+            'house_form': MyHouseForm(),
         }
+
         return self.render_to_response(context)
 
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+
+        user_form = UserRegistrationForm(request.POST)
+
+        house_form = MyHouseForm(request.POST)
+
+        if user_form.is_valid() and house_form.is_valid():
+
+            # ساخت مدیر
+            user_obj = user_form.save(commit=False)
+
+            password = user_form.cleaned_data.get('password')
+
+            if password:
+                user_obj.set_password(password)
+
+            user_obj.is_middle_admin = True
+            user_obj.manager = request.user
+
+            user_obj.is_active = user_form.cleaned_data.get(
+                'is_active'
+            )
+
+            user_obj.is_resident = user_form.cleaned_data.get(
+                'is_resident'
+            )
+
+            user_obj.is_trial = user_form.cleaned_data.get(
+                'is_trial'
+            )
+
+            user_obj.save()
+
+            # روش‌های شارژ
+            charge_methods = user_form.cleaned_data.get(
+                'charge_methods'
+            )
+
+            if charge_methods:
+                user_obj.charge_methods.set(charge_methods)
+
+            # ساخت ساختمان
+            house = house_form.save(commit=False)
+
+            # اتصال مدیر ساختمان
+            house.user = user_obj
+
+            house.save()
+
+            # اتصال ساختمان به مدیر
+            user_obj.house = house
+            user_obj.save()
+
+            # اشتراک تست
+            if user_obj.is_trial:
+                Subscription.objects.create(
+                    user=user_obj,
+                    units_count=5,
+                    is_trial=True,
+                    house=house,
+                    start_date=timezone.now(),
+                    end_date=timezone.now() + timedelta(days=19)
+                )
+
+            messages.success(
+                request,
+                'مدیر ساختمان و ساختمان با موفقیت ثبت شدند.'
+            )
+
+            return redirect('house_list')
+
+        print(user_form.errors)
+        print(house_form.errors)
+
+        context = {
+            'user_form': user_form,
+            'house_form': house_form,
+        }
+
+        return self.render_to_response(context)
+
+
+class UpdateHouseAndManagerView(TemplateView):
+    template_name = 'admin_panel/create_house_and_manager.html'
+
+    def dispatch(self, request, *args, **kwargs):
+
+        self.house = get_object_or_404(
+            MyHouse,
+            id=kwargs['pk']
+        )
+
+        self.manager_user = self.house.user
+
+        return super().dispatch(
+            request,
+            *args,
+            **kwargs
+        )
+
+    def get(self, request, *args, **kwargs):
+
+        context = {
+
+            'user_form': UserRegistrationForm(
+                instance=self.manager_user
+            ),
+
+            'house_form': MyHouseForm(
+                instance=self.house
+            ),
+
+            'house': self.house,
+        }
+
+        return self.render_to_response(context)
+
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+
+        user_form = UserRegistrationForm(
+            request.POST,
+            instance=self.manager_user
+        )
+
+        house_form = MyHouseForm(
+            request.POST,
+            instance=self.house
+        )
+
+        if user_form.is_valid() and house_form.is_valid():
+
+            # ویرایش مدیر
+            user_obj = user_form.save(commit=False)
+
+            password = user_form.cleaned_data.get(
+                'password'
+            )
+
+            # فقط اگر رمز جدید وارد شد
+            if password:
+                user_obj.set_password(password)
+
+            user_obj.is_middle_admin = True
+
+            user_obj.is_active = user_form.cleaned_data.get(
+                'is_active'
+            )
+
+            user_obj.is_resident = user_form.cleaned_data.get(
+                'is_resident'
+            )
+
+            user_obj.is_trial = user_form.cleaned_data.get(
+                'is_trial'
+            )
+
+            user_obj.save()
+
+            # روش‌های شارژ
+            charge_methods = user_form.cleaned_data.get(
+                'charge_methods'
+            )
+
+            if charge_methods:
+
+                user_obj.charge_methods.set(
+                    charge_methods
+                )
+
+            else:
+
+                user_obj.charge_methods.clear()
+
+            # ویرایش ساختمان
+            house = house_form.save(commit=False)
+
+            house.user = user_obj
+
+            house.save()
+
+            # اتصال ساختمان
+            user_obj.house = house
+            user_obj.save()
+
+            messages.success(
+                request,
+                'اطلاعات با موفقیت ویرایش شد.'
+            )
+
+            return redirect('house_list')
+
+        print(user_form.errors)
+        print(house_form.errors)
+
+        context = {
+
+            'user_form': user_form,
+            'house_form': house_form,
+            'house': self.house,
+        }
+
+        return self.render_to_response(context)
+
+
+class HouseListView(ListView):
+    template_name = 'admin_panel/house_list.html'
+
+    context_object_name = 'houses'
+
+    def get_paginate_by(self, queryset):
+
+        paginate = self.request.GET.get('paginate')
+
+        if paginate == '1000':
+            return None
+
+        return int(paginate or 20)
+
+    def get_queryset(self):
+
+        query = self.request.GET.get('q', '')
+
+        queryset = MyHouse.objects.all()
+
+        if query:
+            queryset = queryset.filter(
+
+                Q(manager__full_name__icontains=query) |
+                Q(name__icontains=query) |
+                Q(user_type__icontains=query) |
+                Q(address__icontains=query) |
+                Q(city__icontains=query) |
+                Q(subdomain__icontains=query)
+
+            ).distinct()
+
+        return queryset.order_by('-created_at')
+
     def get_context_data(self, **kwargs):
+
         context = super().get_context_data(**kwargs)
-        middle_admins = User.objects.filter(is_middle_admin=True).order_by('-created_time')
-        for middle in middle_admins:
-            # ایجاد attribute موقت برای قالب
-            middle.charge_method_ids_list = list(middle.charge_methods.values_list('id', flat=True))
-        context['middleAdmins'] = middle_admins
-        context['users'] = User.objects.filter(is_active=True).order_by('-created_time')
+
+        context['query'] = self.request.GET.get('q', '')
+
+        context['paginate'] = self.request.GET.get(
+            'paginate',
+            '20'
+        )
+
         return context
 
 
-@login_required(login_url=settings.LOGIN_URL_ADMIN)
-def middleAdmin_delete(request, pk):
-    middleAdmin = get_object_or_404(User, id=pk)
-    print(middleAdmin.id)
+class DeleteHouseView(View):
 
-    try:
-        middleAdmin.delete()
-        messages.success(request, 'مدیر ساختمان با موفقیت حذف گردید!')
-    except ProtectedError:
-        messages.error(request, " امکان حذف وجود ندارد! ")
-    return redirect(reverse('create_middle_admin'))
+    def post(self, request, *args, **kwargs):
+        house = get_object_or_404(
+            MyHouse,
+            id=kwargs['pk']
+        )
+
+        # مدیر ساختمان
+        manager_user = house.user
+
+        # حذف ساختمان
+        house.delete()
+
+        # حذف مدیر
+        if manager_user:
+            manager_user.delete()
+
+        messages.success(
+            request,
+            'ساختمان با موفقیت حذف شد.'
+        )
+
+        return redirect('house_list')
+
+
+class MiddleAdminListView(ListView):
+    template_name = 'admin_panel/middleAdmin_list.html'
+
+    context_object_name = 'middleAdmins'
+
+    def get_paginate_by(self, queryset):
+
+        paginate = self.request.GET.get('paginate')
+
+        if paginate == '1000':
+            return None
+
+        return int(paginate or 20)
+
+    def get_queryset(self):
+
+        query = self.request.GET.get('q', '')
+
+        queryset = User.objects.filter(
+            is_middle_admin=True
+        )
+
+        if query:
+
+            filters = (
+
+                    Q(full_name__icontains=query) |
+                    Q(mobile__icontains=query)
+
+            )
+
+            # جستجوی وضعیت ساکن
+            if query in ['ساکن', 'بله', 'true', '1']:
+
+                filters |= Q(is_resident=True)
+
+            elif query in ['غیر ساکن', 'خیر', 'false', '0']:
+
+                filters |= Q(is_resident=False)
+
+            if query in ['رایگان', 'بله', 'true', '1']:
+
+                filters |= Q(is_trial=True)
+
+            queryset = queryset.filter(filters).distinct()
+
+        return queryset.order_by('-id')
+
+    def get_context_data(self, **kwargs):
+
+        context = super().get_context_data(**kwargs)
+
+        context['query'] = self.request.GET.get('q', '')
+
+        context['paginate'] = self.request.GET.get(
+            'paginate',
+            '20'
+        )
+
+        return context
+
+
+# @method_decorator(admin_required, name='dispatch')
+# class MiddleAdminCreateView(CreateView):
+#     model = User
+#     template_name = 'admin_panel/middleAdmin_list.html'
+#     form_class = UserRegistrationForm
+#     success_url = reverse_lazy('create_middle_admin')
+#
+#     def form_valid(self, form):
+#         # ایجاد کاربر
+#         self.object = form.save(commit=False)
+#         raw_password = form.cleaned_data.get('password')
+#         if raw_password:
+#             self.object.set_password(raw_password)
+#         self.object.is_middle_admin = True
+#         self.object.manager = self.request.user
+#         self.object.save()
+#
+#         # ثبت charge_methods
+#         charge_methods = form.cleaned_data.get('charge_methods')
+#         if charge_methods:
+#             self.object.charge_methods.set(charge_methods)
+#
+#         # اگر Trial فعال است
+#         if form.cleaned_data.get('is_trial') == '1':
+#             Subscription.objects.create(
+#                 user=self.object,
+#                 units_count=5,
+#                 is_trial=True,
+#                 start_date=timezone.now(),
+#                 end_date=timezone.now() + timedelta(days=20)
+#             )
+#             messages.success(
+#                 self.request,
+#                 'مدیر ساختمان با موفقیت ثبت شد!'
+#             )
+#         else:
+#             messages.success(
+#                 self.request,
+#                 'مدیر ساختمان با موفقیت ثبت شد!!'
+#             )
+#
+#         return redirect(self.success_url)
+#
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['middleAdmins'] = User.objects.filter(
+#             is_middle_admin=True
+#         ).order_by('-created_time')
+#         context['users'] = User.objects.filter(is_active=True).order_by('created_time')
+#
+#         if self.request.user.charge_methods.exists():
+#             context['allowed_methods'] = list(
+#                 self.request.user.charge_methods.values_list('id', flat=True)
+#             )
+#         else:
+#             context['allowed_methods'] = []
+#
+#         return context
+#
+#
+# @method_decorator(admin_required, name='dispatch')
+# class MiddleAdminUpdateView(UpdateView):
+#     model = User
+#     template_name = 'admin_panel/middleAdmin_list.html'
+#     form_class = UserRegistrationForm
+#     success_url = reverse_lazy('create_middle_admin')
+#
+#     def form_valid(self, form):
+#         obj = form.save(commit=False)
+#
+#         # گرفتن رمز جدید
+#         raw_password = form.cleaned_data.get('password')
+#         if raw_password:
+#             obj.set_password(raw_password)
+#         else:
+#             old_user = User.objects.get(pk=obj.pk)
+#             obj.password = old_user.password
+#
+#         obj.manager = self.request.user
+#         obj.save()
+#
+#         # ست کردن روش‌های شارژ
+#         charge_methods = form.cleaned_data.get('charge_methods')
+#         if charge_methods is not None:
+#             obj.charge_methods.set(charge_methods)
+#
+#         subscription, created = Subscription.objects.get_or_create(
+#             user=obj,
+#             defaults={
+#                 'units_count': 1,
+#                 'is_trial': True,
+#                 'start_date': timezone.now(),
+#                 'end_date': timezone.now() + timedelta(days=35)
+#             }
+#         )
+#         if not created:
+#             # اگر قبلا وجود داشت، فقط مقادیر فرم را آپدیت کن، تاریخ Trial را تغییر نده
+#             subscription.units_count = 1
+#             # فقط اگر خواستی اشتراک پولی یا روش‌های دیگر اضافه شود می‌توانی اینجا تغییر دهی
+#             subscription.save()
+#
+#         messages.success(self.request, 'اطلاعات مدیر ساختمان با موفقیت ویرایش گردید!')
+#         return super().form_valid(form)
+#
+#     def form_invalid(self, form):
+#         # اگر فرم نامعتبر بود (مثلاً موبایل تکراری)، همان قالب را با خطا نمایش بده
+#         middle_admins = User.objects.filter(is_middle_admin=True).order_by('-created_time')
+#         for middle in middle_admins:
+#             # ایجاد attribute موقت برای قالب
+#             middle.charge_method_ids_list = list(middle.charge_methods.values_list('id', flat=True))
+#
+#         context = {
+#             'form': form,
+#             'middleAdmins': middle_admins,
+#             'users': User.objects.filter(is_active=True).order_by('-created_time'),
+#         }
+#         return self.render_to_response(context)
+#
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         middle_admins = User.objects.filter(is_middle_admin=True).order_by('-created_time')
+#         for middle in middle_admins:
+#             # ایجاد attribute موقت برای قالب
+#             middle.charge_method_ids_list = list(middle.charge_methods.values_list('id', flat=True))
+#         context['middleAdmins'] = middle_admins
+#         context['users'] = User.objects.filter(is_active=True).order_by('-created_time')
+#         return context
+#
+#
+# @login_required(login_url=settings.LOGIN_URL_ADMIN)
+# def middleAdmin_delete(request, pk):
+#     middleAdmin = get_object_or_404(User, id=pk)
+#     print(middleAdmin.id)
+#
+#     try:
+#         middleAdmin.delete()
+#         messages.success(request, 'مدیر ساختمان با موفقیت حذف گردید!')
+#     except ProtectedError:
+#         messages.error(request, " امکان حذف وجود ندارد! ")
+#     return redirect(reverse('create_middle_admin'))
 
 
 # ====================== Slider Text  =================================
@@ -697,82 +1052,82 @@ def announcement_delete(request, pk):
 
 
 # ========================== My House Views ========================
-@method_decorator(admin_required, name='dispatch')
-class AddMyHouseView(FormMixin, ListView):
-    model = MyHouse
-    template_name = 'admin_panel/add_my_house.html'
-    context_object_name = 'houses'
-    form_class = MyHouseForm
-    success_url = reverse_lazy('manage_house')
+# @method_decorator(admin_required, name='dispatch')
+# class AddMyHouseView(FormMixin, ListView):
+#     model = MyHouse
+#     template_name = 'admin_panel/house_list.html'
+#     context_object_name = 'houses'
+#     form_class = MyHouseForm
+#     success_url = reverse_lazy('manage_house')
+#
+#     def get_paginate_by(self, queryset):
+#         paginate = self.request.GET.get('paginate')
+#         if paginate == '1000':
+#             return None
+#         return int(paginate or 20)
+#
+#     def get_queryset(self):
+#         query = self.request.GET.get('q', '')
+#         queryset = MyHouse.objects.all()
+#
+#         if query:
+#             queryset = queryset.filter(
+#                 Q(user__full_name__icontains=query) |
+#                 Q(name__icontains=query) |
+#                 Q(user_type__icontains=query) |
+#                 Q(address__icontains=query) |
+#                 Q(city__icontains=query)
+#             ).distinct()
+#
+#         return queryset.order_by('-created_at')
+#
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['query'] = self.request.GET.get('q', '')
+#         context['paginate'] = self.request.GET.get('paginate', '20')
+#         if 'form' not in context:
+#             context['form'] = self.get_form()
+#         return context
+#
+#     def get_form(self, form_class=None):
+#         if form_class is None:
+#             form_class = self.get_form_class()
+#         return form_class(**self.get_form_kwargs(), user=self.request.user)
+#
+#     def post(self, request, *args, **kwargs):
+#         form = self.get_form()
+#         if form.is_valid():
+#             form.save()
+#             return redirect(self.get_success_url())
+#         else:
+#             # اضافه کردن این خط برای آماده کردن object_list
+#             self.object_list = self.get_queryset()
+#             return self.render_to_response(self.get_context_data(form=form))
 
-    def get_paginate_by(self, queryset):
-        paginate = self.request.GET.get('paginate')
-        if paginate == '1000':
-            return None
-        return int(paginate or 20)
 
-    def get_queryset(self):
-        query = self.request.GET.get('q', '')
-        queryset = MyHouse.objects.all()
-
-        if query:
-            queryset = queryset.filter(
-                Q(user__full_name__icontains=query) |
-                Q(name__icontains=query) |
-                Q(user_type__icontains=query) |
-                Q(address__icontains=query) |
-                Q(city__icontains=query)
-            ).distinct()
-
-        return queryset.order_by('-created_at')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['query'] = self.request.GET.get('q', '')
-        context['paginate'] = self.request.GET.get('paginate', '20')
-        if 'form' not in context:
-            context['form'] = self.get_form()
-        return context
-
-    def get_form(self, form_class=None):
-        if form_class is None:
-            form_class = self.get_form_class()
-        return form_class(**self.get_form_kwargs(), user=self.request.user)
-
-    def post(self, request, *args, **kwargs):
-        form = self.get_form()
-        if form.is_valid():
-            form.save()
-            return redirect(self.get_success_url())
-        else:
-            # اضافه کردن این خط برای آماده کردن object_list
-            self.object_list = self.get_queryset()
-            return self.render_to_response(self.get_context_data(form=form))
-
-
-@method_decorator(admin_required, name='dispatch')
-class MyHouseUpdateView(UpdateView):
-    model = MyHouse
-    form_class = MyHouseForm
-    success_url = reverse_lazy('manage_house')
-    template_name = 'admin_panel/add_my_house.html'
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        return kwargs
-
-    def form_valid(self, form):
-        obj = form.save(commit=False)
-        obj.updated_by = self.request.user
-        obj.save()
-        messages.success(self.request, 'اطلاعات ساختمان با موفقیت ویرایش گردید!')
-        return super().form_valid(form)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['houses'] = MyHouse.objects.order_by('-created_at')
-        return context
+# @method_decorator(admin_required, name='dispatch')
+# class MyHouseUpdateView(UpdateView):
+#     model = MyHouse
+#     form_class = MyHouseForm
+#     success_url = reverse_lazy('manage_house')
+#     template_name = 'admin_panel/house_list.html'
+#
+#     def get_form_kwargs(self):
+#         kwargs = super().get_form_kwargs()
+#         kwargs['user'] = self.request.user
+#         return kwargs
+#
+#     def form_valid(self, form):
+#         obj = form.save(commit=False)
+#         obj.updated_by = self.request.user
+#         obj.save()
+#         messages.success(self.request, 'اطلاعات ساختمان با موفقیت ویرایش گردید!')
+#         return super().form_valid(form)
+#
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context['houses'] = MyHouse.objects.order_by('-created_at')
+#         return context
 
 
 # =============================== banks =========================
@@ -3088,17 +3443,19 @@ def export_maintenance_excel(request):
 @method_decorator(admin_required, name='dispatch')
 class ChargeCategoryCreateView(CreateView):
     model = ChargeMethod
-    template_name = 'charge/add_category_charge.html'
     form_class = ChargeCategoryForm
+    template_name = 'charge/add_category_charge.html'
     success_url = reverse_lazy('add_charge_category')
 
     def form_valid(self, form):
+        # اضافه کردن پیام موفقیت بدون نیاز به form.save() دستی
         messages.success(self.request, 'روش شارژ با موفقیت ثبت گردید!')
         return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['charges'] = ChargeMethod.objects.all().order_by('code')
+        # استفاده از یک نام گویاتر و مرتب‌سازی
+        context['charges'] = ChargeMethod.objects.all().order_by('id')
         return context
 
 

@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import time
+from collections import defaultdict
 from datetime import timezone, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from itertools import chain
@@ -12,6 +13,7 @@ from django.apps import apps
 from django.conf.urls.static import static
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.contenttypes.models import ContentType
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db.models.functions import ExtractMonth
@@ -259,163 +261,318 @@ def switch_to_resident(request):
 # ================================================================
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_admin_dashboard(request):
-    if not request.user.is_authenticated:
-        return redirect('login')
+
+    cache_key = f"middle_dashboard_{request.user.id}"
+    cached_context = cache.get(cache_key)
+
+    if cached_context:
+        return render(
+            request,
+            'middleShared/home_template.html',
+            cached_context
+        )
 
     now = timezone.now().date()
 
-    subscription = Subscription.objects.filter(
-        user=request.user
-    ).order_by('-created_at').first()
+    # =========================
+    # Subscription
+    # =========================
+    subscription = (
+        Subscription.objects
+        .filter(user=request.user)
+        .only(
+            'id',
+            'status',
+            'end_date',
+            'created_at'
+        )
+        .order_by('-created_at')
+        .first()
+    )
 
-    if subscription:
-        subscription.expire_if_needed()
-        subscription.refresh_from_db()
-
-        # بررسی امنیت فیلد تاریخ انقضا
-        if subscription.end_date:
-            days_after_expire = (now - subscription.end_date.date()).days
-
-            if subscription.status == "expired":
-                return redirect('buy_subscription')
-        else:
-            # اگر به هر دلیلی تاریخ انقضا ست نشده باشد ولی رکورد وجود دارد
-            return redirect('buy_subscription')
-    else:
-        # اگر کاربر اصلاً رکوردی برای اشتراک ندارد
+    if not subscription:
         return redirect('buy_subscription')
 
-    managed_users = request.user.managed_users.all()
-    resident_unit = get_single_resident_building(request.user)
-    announcements = Announcement.objects.filter(is_active=True, user=request.user).order_by('-created_at')[:3]
+    subscription.expire_if_needed()
+    subscription.refresh_from_db(fields=['status', 'end_date'])
 
-    units = Unit.objects.filter(
-        myhouse__user=request.user,
-        is_active=True
+    if (
+        subscription.status == "expired"
+        or not subscription.end_date
+        or subscription.end_date.date() < now
+    ):
+        return redirect('buy_subscription')
+
+    # =========================
+    # Managed Users
+    # =========================
+    managed_users = request.user.managed_users.values_list(
+        'id',
+        flat=True
     )
+
+    # =========================
+    # Resident Unit
+    # =========================
+    resident_unit = get_single_resident_building(request.user)
+
+    # =========================
+    # Announcements
+    # =========================
+    announcements = (
+        Announcement.objects
+        .filter(
+            is_active=True,
+            user=request.user
+        )
+        .only(
+            'id',
+            'title',
+            'created_at'
+        )
+        .order_by('-created_at')[:3]
+    )
+
+    # =========================
+    # Units
+    # =========================
+    units = (
+        Unit.objects
+        .filter(
+            myhouse__user=request.user,
+            is_active=True
+        )
+        .select_related('myhouse')
+        .distinct()
+    )
+
     unit_count = units.count()
-    # 1️⃣ خانه‌های خالی (اول جدا می‌کنیم)
-    empty_units = units.filter(status_residence='empty')
 
-    # 2️⃣ خانه‌های دارای مستاجر فعال
-    renter_units = units.filter(
-        renters__renter_is_active=True
-    ).exclude(
-        id__in=empty_units.values_list('id', flat=True)
-    ).distinct()
+    # =========================
+    # Unit Status Statistics
+    # =========================
+    empty_units_count = units.filter(
+        status_residence='empty'
+    ).count()
 
-    # 3️⃣ مالک (نه خالی و نه مستاجر)
-    owner_units = units.exclude(
-        id__in=empty_units.values_list('id', flat=True)
-    ).exclude(
-        id__in=renter_units.values_list('id', flat=True)
+    renter_units_count = (
+        units.filter(
+            renters__renter_is_active=True
+        )
+        .distinct()
+        .count()
+    )
+
+    owner_units_count = (
+        units.exclude(
+            status_residence='empty'
+        )
+        .exclude(
+            renters__renter_is_active=True
+        )
+        .distinct()
+        .count()
     )
 
     unit_status_stats = {
-        'owner': owner_units.count(),
-        'renter': renter_units.count(),
-        'empty': empty_units.count(),
+        'owner': owner_units_count,
+        'renter': renter_units_count,
+        'empty': empty_units_count,
     }
-    has_unit_chart_data = any([
-        unit_status_stats.get('owner', 0) > 0,
-        unit_status_stats.get('renter', 0) > 0,
-        unit_status_stats.get('empty', 0) > 0,
-    ])
 
+    has_unit_chart_data = any(unit_status_stats.values())
+
+    # =========================
+    # Expense Chart
+    # =========================
     category_expenses = (
         Expense.objects
         .filter(
             house__user=request.user,
             is_active=True,
-            is_paid=True  # اگر فقط پرداخت شده‌ها مدنظر است
+            is_paid=True
         )
         .values('category__title')
-        .annotate(total_amount=Sum('amount'))
+        .annotate(
+            total_amount=Sum('amount')
+        )
         .order_by('-total_amount')
     )
 
     expense_chart_data = {
-        "labels": [item['category__title'] for item in category_expenses] or [],
-        "data": [item['total_amount'] or 0 for item in category_expenses] or []
+        "labels": [
+            item['category__title']
+            for item in category_expenses
+        ],
+        "data": [
+            item['total_amount'] or 0
+            for item in category_expenses
+        ]
     }
 
+    # =========================
+    # Income Chart
+    # =========================
     income_by_category = (
         IncomeCategory.objects
-        .filter(user=request.user, is_active=True)
+        .filter(
+            user=request.user,
+            is_active=True
+        )
         .annotate(
-            paid_incomes=FilteredRelation(
+            total_amount=Sum(
+                'incomes__amount',
+                filter=Q(
+                    incomes__is_paid=True,
+                    incomes__is_active=True
+                )
+            ),
+            incomes_count=Count(
                 'incomes',
-                condition=Q(incomes__is_paid=True, incomes__is_active=True)
+                filter=Q(
+                    incomes__is_paid=True,
+                    incomes__is_active=True
+                )
             )
         )
-        .annotate(
-            incomes_count=Count('paid_incomes'),
-            total_amount=Sum('paid_incomes__amount')
+        .filter(
+            incomes_count__gt=0
         )
-        .filter(incomes_count__gt=0)  # فقط دسته‌هایی که درآمد دارند
     )
 
     income_chart_data = {
-        "labels": [cat.subject for cat in income_by_category],
-        "data": [cat.total_amount or 0 for cat in income_by_category]
+        "labels": [
+            cat.subject
+            for cat in income_by_category
+        ],
+        "data": [
+            cat.total_amount or 0
+            for cat in income_by_category
+        ]
     }
 
-    has_income_chart_data = any(amount > 0 for amount in income_chart_data["data"])
+    has_income_chart_data = any(
+        amount > 0
+        for amount in income_chart_data["data"]
+    )
 
-    tickets = SupportUser.objects.filter(Q(user=request.user) | Q(user__in=managed_users)).order_by('-created_at')[:5]
+    # =========================
+    # Tickets
+    # =========================
+    tickets = (
+        SupportUser.objects
+        .select_related('user')
+        .filter(
+            Q(user=request.user)
+            | Q(user__in=managed_users)
+        )
+        .order_by('-created_at')[:5]
+    )
 
-    funds = Fund.objects.select_related('bank', 'content_type').filter(
-        Q(user=request.user) | Q(user__in=managed_users)
-    ).order_by('-payment_date')
+    # =========================
+    # Fund Balance
+    # =========================
+    totals = (
+        Fund.objects
+        .filter(
+            Q(user=request.user)
+            | Q(user__in=managed_users)
+        )
+        .aggregate(
+            total_income=Sum('debtor_amount'),
+            total_expense=Sum('creditor_amount')
+        )
+    )
 
-    totals = funds.aggregate(total_income=Sum('debtor_amount'), total_expense=Sum('creditor_amount'))
-    balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
+    balance = (
+        (totals['total_income'] or 0)
+        - (totals['total_expense'] or 0)
+    )
 
-    unit_count_unpaid_charges = UnifiedCharge.objects.filter(
-        house__user=request.user,
-        send_notification=True,
-        is_paid=False,
-        unit__isnull=False
-    ).count()
+    # =========================
+    # Unpaid Charges Count
+    # =========================
+    unit_count_unpaid_charges = (
+        UnifiedCharge.objects
+        .filter(
+            house__user=request.user,
+            send_notification=True,
+            is_paid=False,
+            unit__isnull=False
+        )
+        .count()
+    )
 
-    def get_persian_month(g_date):
-        if g_date:
-            return jdatetime.date.fromgregorian(date=g_date).month
-        return None
+    # =========================
+    # Monthly Paid Charges
+    # =========================
+    paid_charges = (
+        UnifiedCharge.objects
+        .filter(
+            house__user=request.user,
+            send_notification=True,
+            unit__in=units,
+            is_paid=True,
+            payment_date__isnull=False
+        )
+        .annotate(
+            month=ExtractMonth('payment_date')
+        )
+        .values('month')
+        .annotate(
+            count=Count('id')
+        )
+    )
 
-    # شارژهای پرداخت‌شده
-    paid_charges_qs = UnifiedCharge.objects.filter(
-        house__user=request.user,
-        send_notification=True,
-        unit__in=units,
-        is_paid=True
+    # =========================
+    # Monthly Unpaid Charges
+    # =========================
+    unpaid_charges = (
+        UnifiedCharge.objects
+        .filter(
+            house__user=request.user,
+            send_notification=True,
+            unit__in=units,
+            is_paid=False,
+            send_notification_date__isnull=False
+        )
+        .annotate(
+            month=ExtractMonth('send_notification_date')
+        )
+        .values('month')
+        .annotate(
+            count=Count('id')
+        )
     )
 
     paid_counts = {i: 0 for i in range(1, 13)}
-    for charge in paid_charges_qs:
-        month = get_persian_month(charge.payment_date)
-        if month:
-            paid_counts[month] += 1
-
-    # شارژهای پرداخت‌نشده
-    unpaid_charges_qs = UnifiedCharge.objects.filter(
-        house__user=request.user,
-        send_notification=True,
-        unit__in=units,
-        is_paid=False
-    )
     unpaid_counts = {i: 0 for i in range(1, 13)}
-    for charge in unpaid_charges_qs:
-        month = get_persian_month(charge.send_notification_date)
-        if month:
-            unpaid_counts[month] += 1
+
+    for item in paid_charges:
+        if item['month']:
+            paid_counts[item['month']] = item['count']
+
+    for item in unpaid_charges:
+        if item['month']:
+            unpaid_counts[item['month']] = item['count']
 
     months = list(range(1, 13))
-    paid_data = [paid_counts[m] for m in months]
-    unpaid_data = [unpaid_counts[m] for m in months]
+
+    paid_data = [
+        paid_counts[m]
+        for m in months
+    ]
+
+    unpaid_data = [
+        unpaid_counts[m]
+        for m in months
+    ]
 
     has_charge_data = any(paid_data) or any(unpaid_data)
 
+    # =========================
+    # Context
+    # =========================
     context = {
         'announcements': announcements,
         'unit_count': unit_count,
@@ -431,10 +588,200 @@ def middle_admin_dashboard(request):
         'paid_data': paid_data,
         'unpaid_data': unpaid_data,
         'has_charge_data': has_charge_data,
-        'has_income_chart_data': has_income_chart_data
-
+        'has_income_chart_data': has_income_chart_data,
     }
-    return render(request, 'middleShared/home_template.html', context)
+
+    # =========================
+    # Cache
+    # =========================
+    cache.set(
+        cache_key,
+        context,
+        timeout=300
+    )
+
+    return render(
+        request,
+        'middleShared/home_template.html',
+        context
+    )
+# def middle_admin_dashboard(request):
+#     if not request.user.is_authenticated:
+#         return redirect('login')
+#
+#     now = timezone.now().date()
+#
+#     subscription = Subscription.objects.filter(
+#         user=request.user
+#     ).order_by('-created_at').first()
+#
+#     if subscription:
+#         subscription.expire_if_needed()
+#         subscription.refresh_from_db()
+#
+#         # بررسی امنیت فیلد تاریخ انقضا
+#         if subscription.end_date:
+#             days_after_expire = (now - subscription.end_date.date()).days
+#
+#             if subscription.status == "expired":
+#                 return redirect('buy_subscription')
+#         else:
+#             # اگر به هر دلیلی تاریخ انقضا ست نشده باشد ولی رکورد وجود دارد
+#             return redirect('buy_subscription')
+#     else:
+#         # اگر کاربر اصلاً رکوردی برای اشتراک ندارد
+#         return redirect('buy_subscription')
+#
+#     managed_users = request.user.managed_users.all()
+#     resident_unit = get_single_resident_building(request.user)
+#     announcements = Announcement.objects.filter(is_active=True, user=request.user).order_by('-created_at')[:3]
+#
+#     units = Unit.objects.filter(
+#         myhouse__manager=request.user,
+#         is_active=True
+#     )
+#     unit_count = units.count()
+#     # 1️⃣ خانه‌های خالی (اول جدا می‌کنیم)
+#     empty_units = units.filter(status_residence='empty')
+#
+#     # 2️⃣ خانه‌های دارای مستاجر فعال
+#     renter_units = units.filter(
+#         renters__renter_is_active=True
+#     ).exclude(
+#         id__in=empty_units.values_list('id', flat=True)
+#     ).distinct()
+#
+#     # 3️⃣ مالک (نه خالی و نه مستاجر)
+#     owner_units = units.exclude(
+#         id__in=empty_units.values_list('id', flat=True)
+#     ).exclude(
+#         id__in=renter_units.values_list('id', flat=True)
+#     )
+#
+#     unit_status_stats = {
+#         'owner': owner_units.count(),
+#         'renter': renter_units.count(),
+#         'empty': empty_units.count(),
+#     }
+#     has_unit_chart_data = any([
+#         unit_status_stats.get('owner', 0) > 0,
+#         unit_status_stats.get('renter', 0) > 0,
+#         unit_status_stats.get('empty', 0) > 0,
+#     ])
+#
+#     category_expenses = (
+#         Expense.objects
+#         .filter(
+#             house__user=request.user,
+#             is_active=True,
+#             is_paid=True  # اگر فقط پرداخت شده‌ها مدنظر است
+#         )
+#         .values('category__title')
+#         .annotate(total_amount=Sum('amount'))
+#         .order_by('-total_amount')
+#     )
+#
+#     expense_chart_data = {
+#         "labels": [item['category__title'] for item in category_expenses] or [],
+#         "data": [item['total_amount'] or 0 for item in category_expenses] or []
+#     }
+#
+#     income_by_category = (
+#         IncomeCategory.objects
+#         .filter(user=request.user, is_active=True)
+#         .annotate(
+#             paid_incomes=FilteredRelation(
+#                 'incomes',
+#                 condition=Q(incomes__is_paid=True, incomes__is_active=True)
+#             )
+#         )
+#         .annotate(
+#             incomes_count=Count('paid_incomes'),
+#             total_amount=Sum('paid_incomes__amount')
+#         )
+#         .filter(incomes_count__gt=0)  # فقط دسته‌هایی که درآمد دارند
+#     )
+#
+#     income_chart_data = {
+#         "labels": [cat.subject for cat in income_by_category],
+#         "data": [cat.total_amount or 0 for cat in income_by_category]
+#     }
+#
+#     has_income_chart_data = any(amount > 0 for amount in income_chart_data["data"])
+#
+#     tickets = SupportUser.objects.filter(Q(user=request.user) | Q(user__in=managed_users)).order_by('-created_at')[:5]
+#
+#     funds = Fund.objects.select_related('bank', 'content_type').filter(
+#         Q(user=request.user) | Q(user__in=managed_users)
+#     ).order_by('-payment_date')
+#
+#     totals = funds.aggregate(total_income=Sum('debtor_amount'), total_expense=Sum('creditor_amount'))
+#     balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
+#
+#     unit_count_unpaid_charges = UnifiedCharge.objects.filter(
+#         house__user=request.user,
+#         send_notification=True,
+#         is_paid=False,
+#         unit__isnull=False
+#     ).count()
+#
+#     def get_persian_month(g_date):
+#         if g_date:
+#             return jdatetime.date.fromgregorian(date=g_date).month
+#         return None
+#
+#     # شارژهای پرداخت‌شده
+#     paid_charges_qs = UnifiedCharge.objects.filter(
+#         house__user=request.user,
+#         send_notification=True,
+#         unit__in=units,
+#         is_paid=True
+#     )
+#
+#     paid_counts = {i: 0 for i in range(1, 13)}
+#     for charge in paid_charges_qs:
+#         month = get_persian_month(charge.payment_date)
+#         if month:
+#             paid_counts[month] += 1
+#
+#     # شارژهای پرداخت‌نشده
+#     unpaid_charges_qs = UnifiedCharge.objects.filter(
+#         house__user=request.user,
+#         send_notification=True,
+#         unit__in=units,
+#         is_paid=False
+#     )
+#     unpaid_counts = {i: 0 for i in range(1, 13)}
+#     for charge in unpaid_charges_qs:
+#         month = get_persian_month(charge.send_notification_date)
+#         if month:
+#             unpaid_counts[month] += 1
+#
+#     months = list(range(1, 13))
+#     paid_data = [paid_counts[m] for m in months]
+#     unpaid_data = [unpaid_counts[m] for m in months]
+#
+#     has_charge_data = any(paid_data) or any(unpaid_data)
+#
+#     context = {
+#         'announcements': announcements,
+#         'unit_count': unit_count,
+#         'fund_amount': balance,
+#         'tickets': tickets,
+#         'unit_count_unpaid_charges': unit_count_unpaid_charges,
+#         'resident_unit': resident_unit,
+#         'ownerRenterStats': unit_status_stats,
+#         'has_unit_chart_data': has_unit_chart_data,
+#         'expense_chart_data': expense_chart_data,
+#         'income_chart_data': income_chart_data,
+#         'months': months,
+#         'paid_data': paid_data,
+#         'unpaid_data': unpaid_data,
+#         'has_charge_data': has_charge_data,
+#         'has_income_chart_data': has_income_chart_data
+#
+#     }
+#     return render(request, 'middleShared/home_template.html', context)
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -501,61 +848,6 @@ def middle_profile(request):
         'password_form': password_form,
     }
     return render(request, 'middle_admin/middle_my_profile.html', context)
-
-
-# ========================== My House Views ========================
-@method_decorator(middle_admin_required, name='dispatch')
-class MiddleAddMyHouseView(CreateView):
-    model = MyHouse
-    template_name = 'middle_admin/middle_add_my_house.html'
-    form_class = MyHouseForm
-    success_url = reverse_lazy('middle_admin_dashboard')
-
-    def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.user = self.request.user
-        self.object.save()
-        self.object.residents.add(self.request.user)
-
-        messages.success(self.request, 'اطلاعات ساختمان با موفقیت ثبت گردید!')
-        return super().form_valid(form)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['houses'] = MyHouse.objects.filter(user=self.request.user)
-        return context
-
-
-@method_decorator(middle_admin_required, name='dispatch')
-class MiddleMyHouseUpdateView(UpdateView):
-    model = MyHouse
-    form_class = MyHouseForm
-    success_url = reverse_lazy('middle_manage_house')
-    template_name = 'middle_admin/middle_add_my_house.html'
-
-    def form_valid(self, form):
-        self.object = form.save(commit=False)
-        self.object.user = self.request.user
-        messages.success(self.request, 'اطلاعات ساختمان با موفقیت ویرایش گردید!')
-        return super().form_valid(form)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['houses'] = MyHouse.objects.filter(user=self.request.user)
-        return context
-
-
-@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
-def middle_house_delete(request, pk):
-    house = get_object_or_404(MyHouse, id=pk)
-    try:
-        house.delete()
-        messages.success(request, 'ساختمان با موفقیت حذف گردید!')
-        return redirect(reverse('middle_manage_house'))
-    except Bank.DoesNotExist:
-        messages.info(request, 'خطا در حذف')
-        return redirect(reverse('middle_manage_house'))
-
 
 # ============================= Announcement ====================
 @method_decorator(middle_admin_required, name='dispatch')
@@ -1118,6 +1410,7 @@ class MiddleUnitRegisterView(CreateView):
                     BankTransactionService.deposit(
                         user=self.request.user,
                         bank=owner_bank,
+                        unit=unit,
                         amount=Decimal(first_charge_owner),
                         description=f"شارژ اولیه مالک {unit.get_label}",
                         content_object=unit,
@@ -1152,6 +1445,7 @@ class MiddleUnitRegisterView(CreateView):
                     BankTransactionService.deposit(
                         user=self.request.user,
                         bank=renter_bank,
+                        unit=unit,
                         amount=Decimal(first_charge_renter),
                         description=f"شارژ اولیه مستاجر {unit.get_label}",
                         content_object=unit,
@@ -1296,6 +1590,7 @@ def add_renter_to_unit(request, unit_id):
                     BankTransactionService.deposit(
                         user=request.user,
                         bank=renter_bank,
+                        unit=unit,
                         amount=Decimal(first_charge_renter),
                         description=f"شارژ اولیه مستاجر {unit.get_label}",
                         content_object=unit,
@@ -1681,9 +1976,13 @@ class MiddleExpenseCategoryUpdate(UpdateView):
 
     def form_valid(self, form):
         form.instance.user = self.request.user
+
         try:
             edit_instance = form.instance
             self.object = form.save()
+            if self.object.is_default:
+                messages.error(self.request, f' موضوع هزینه پیش فرض قابل ویرایش نیست!')
+
             messages.success(self.request, f' موضوع هزینه با موفقیت ویرایش گردید!')
             return super().form_valid(form)
         except ProtectedError:
@@ -1699,6 +1998,10 @@ class MiddleExpenseCategoryUpdate(UpdateView):
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_expense_category_delete(request, pk):
     category = get_object_or_404(ExpenseCategory, id=pk)
+    if category.is_default:
+        messages.error(request, 'موضوع هزینه قابل حذف نیست!')
+        return redirect(reverse('middle_register_category_expense'))
+
     try:
         category.delete()
         messages.success(request, 'موضوع هزینه با موفقیت حذف گردید!')
@@ -3001,15 +3304,14 @@ class MiddleReceiveMoneyCreateView(CreateView):
         # فیلتر بر اساس date
         from_date_str = self.request.GET.get('from_date')
         to_date_str = self.request.GET.get('to_date')
-
         try:
             if from_date_str:
-                jalali_from = jdatetime.datetime.strptime(from_date_str, '%Y/%m/%d')
+                jalali_from = jdatetime.datetime.strptime(from_date_str, '%Y-%m-%d')
                 gregorian_from = jalali_from.togregorian().date()
                 queryset = queryset.filter(doc_date__gte=gregorian_from)
 
             if to_date_str:
-                jalali_to = jdatetime.datetime.strptime(to_date_str, '%Y/%m/%d')
+                jalali_to = jdatetime.datetime.strptime(to_date_str, '%Y-%m-%d')
                 gregorian_to = jalali_to.togregorian().date()
                 queryset = queryset.filter(doc_date__lte=gregorian_to)
         except ValueError:
@@ -3639,15 +3941,14 @@ class MiddlePaymentMoneyCreateView(CreateView):
         # فیلتر بر اساس date
         from_date_str = self.request.GET.get('from_date')
         to_date_str = self.request.GET.get('to_date')
-
         try:
             if from_date_str:
-                jalali_from = jdatetime.datetime.strptime(from_date_str, '%Y/%m/%d')
+                jalali_from = jdatetime.datetime.strptime(from_date_str, '%Y-%m-%d')
                 gregorian_from = jalali_from.togregorian().date()
                 queryset = queryset.filter(document_date__gte=gregorian_from)
 
             if to_date_str:
-                jalali_to = jdatetime.datetime.strptime(to_date_str, '%Y/%m/%d')
+                jalali_to = jdatetime.datetime.strptime(to_date_str, '%Y-%m-%d')
                 gregorian_to = jalali_to.togregorian().date()
                 queryset = queryset.filter(document_date__lte=gregorian_to)
         except ValueError:
@@ -3835,7 +4136,7 @@ def payment_pay_money_view(request, payment_id):
                         payment_date=payment_date,
                         payment_description=f"حسابهای پرداختنی: {payment.description[:50]}",
                         is_paid=True,
-                        is_received_money=True
+                        is_paid_money=True
                     )
 
                     BankTransactionService.withdraw(
@@ -4254,7 +4555,7 @@ class MiddlePropertyCreateView(CreateView):
             return super().form_valid(form)
 
     def get_queryset(self):
-        queryset = Property.objects.filter(user=self.request.user)
+        queryset = Property.objects.filter(user=self.request.user).order_by('-id')
 
         # فیلتر بر اساس amount
         property_name = self.request.GET.get('property_name')
@@ -4721,7 +5022,7 @@ class MiddleMaintenanceCreateView(CreateView):
         #     return self.form_invalid(form)
 
     def get_queryset(self):
-        queryset = Maintenance.objects.filter(user=self.request.user)
+        queryset = Maintenance.objects.filter(user=self.request.user).order_by('-id')
 
         # فیلتر بر اساس amount
         maintenance_description = self.request.GET.get('maintenance_description')
@@ -4786,10 +5087,6 @@ class MiddleMaintenanceCreateView(CreateView):
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def middle_maintenance_edit(request, pk):
     maintenance = get_object_or_404(Maintenance, pk=pk)
-
-    if maintenance.is_paid:
-        messages.warning(request, 'این سند بدلیل ثبت رکورد پرداخت قابل ویرایش نیست')
-        return redirect('middle_register_maintenance')
 
     if request.method == 'POST':
         # فرم با instance برای ویرایش
@@ -6075,7 +6372,19 @@ def middle_fix_charge_notification_view(request, pk):
     # -----------------------------
     # فیلتر جستجو
     # -----------------------------
+    # search_query = request.GET.get('search', '').strip()
+    # if search_query:
+    #     units = units.filter(
+    #         Q(unit__icontains=search_query) |
+    #         Q(owner_name__icontains=search_query) |
+    #         Q(renters__renter_name__icontains=search_query)
+    #     ).distinct()
     search_query = request.GET.get('search', '').strip()
+    resident_type = request.GET.get('resident_type', '').strip()
+
+    # -----------------------------
+    # Search
+    # -----------------------------
     if search_query:
         units = units.filter(
             Q(unit__icontains=search_query) |
@@ -6083,6 +6392,29 @@ def middle_fix_charge_notification_view(request, pk):
             Q(renters__renter_name__icontains=search_query)
         ).distinct()
 
+    # -----------------------------
+    # Filter Resident Type
+    # -----------------------------
+    if resident_type == 'owner':
+
+        # فقط مالک
+        units = units.exclude(
+            renters__renter_is_active=True
+        )
+
+    elif resident_type == 'renter':
+
+        # فقط مستاجر فعال
+        units = units.filter(
+            renters__renter_is_active=True
+        ).distinct()
+
+    elif resident_type == 'empty':
+
+        # واحد خالی
+        units = units.filter(
+            status_residence='empty'
+        )
     # -----------------------------
     # Pagination
     # -----------------------------
@@ -6109,6 +6441,21 @@ def middle_fix_charge_notification_view(request, pk):
 
         if not qs.exists():
             messages.info(request, 'اطلاعیه جدیدی برای ارسال وجود ندارد')
+            return redirect(request.path)
+
+        already_sent = qs.filter(send_notification=True)
+
+        if already_sent.exists():
+            sent_units = "، ".join(
+                str(item.unit.unit)
+                for item in already_sent[:10]
+            )
+
+            messages.warning(
+                request,
+                f"اطلاعیه شارژ قبلاً ارسال شده است."
+            )
+
             return redirect(request.path)
 
         with transaction.atomic():
@@ -6177,20 +6524,6 @@ def middle_fix_charge_notification_view(request, pk):
             'previous_debt': previous_debt_total,  # عددی
             'total_payable': total_payable,
         }
-
-    # page_units → Page object اصلی از Paginator
-    # for i, unit in enumerate(page_units):
-    #     uc = uc_dict.get(unit.id)
-    #     renter = unit.renters.filter(renter_is_active=True).first()
-    #     page_units.object_list[i] = {
-    #         'unit': unit,
-    #         'renter': renter,
-    #         'is_paid': uc.is_paid if uc else False,
-    #         'is_notified': uc.send_notification if uc else False,
-    #         'send_sms': uc.send_sms if uc else False,
-    #         'sms_date': uc.send_sms_date if uc else None,
-    #         'total_charge': uc.total_charge_month if uc else 0,
-    #     }
 
     return render(request, 'middleCharge/notify_fix_charge_template.html', {
         'charge': charge,
@@ -6571,13 +6904,42 @@ def middle_area_charge_notification_view(request, pk):
             )
 
     # ------------------ جستجو ------------------
-    q = request.GET.get('search', '').strip()
-    if q:
+    search_query = request.GET.get('search', '').strip()
+    resident_type = request.GET.get('resident_type', '').strip()
+
+    # -----------------------------
+    # Search
+    # -----------------------------
+    if search_query:
         units = units.filter(
-            Q(unit__icontains=q) |
-            Q(owner_name__icontains=q) |
-            Q(renters__renter_name__icontains=q)
+            Q(unit__icontains=search_query) |
+            Q(owner_name__icontains=search_query) |
+            Q(renters__renter_name__icontains=search_query)
         ).distinct()
+
+    # -----------------------------
+    # Filter Resident Type
+    # -----------------------------
+    if resident_type == 'owner':
+
+        # فقط مالک
+        units = units.exclude(
+            renters__renter_is_active=True
+        )
+
+    elif resident_type == 'renter':
+
+        # فقط مستاجر فعال
+        units = units.filter(
+            renters__renter_is_active=True
+        ).distinct()
+
+    elif resident_type == 'empty':
+
+        # واحد خالی
+        units = units.filter(
+            status_residence='empty'
+        )
 
     # ------------------ pagination ------------------
     try:
@@ -7042,13 +7404,42 @@ def middle_person_charge_notification_view(request, pk):
             )
 
     # ------------------ جستجو ------------------
-    q = request.GET.get('search', '').strip()
-    if q:
+    search_query = request.GET.get('search', '').strip()
+    resident_type = request.GET.get('resident_type', '').strip()
+
+    # -----------------------------
+    # Search
+    # -----------------------------
+    if search_query:
         units = units.filter(
-            Q(unit__icontains=q) |
-            Q(owner_name__icontains=q) |
-            Q(renters__renter_name__icontains=q)
+            Q(unit__icontains=search_query) |
+            Q(owner_name__icontains=search_query) |
+            Q(renters__renter_name__icontains=search_query)
         ).distinct()
+
+    # -----------------------------
+    # Filter Resident Type
+    # -----------------------------
+    if resident_type == 'owner':
+
+        # فقط مالک
+        units = units.exclude(
+            renters__renter_is_active=True
+        )
+
+    elif resident_type == 'renter':
+
+        # فقط مستاجر فعال
+        units = units.filter(
+            renters__renter_is_active=True
+        ).distinct()
+
+    elif resident_type == 'empty':
+
+        # واحد خالی
+        units = units.filter(
+            status_residence='empty'
+        )
 
     # ------------------ Pagination ------------------
     try:
@@ -7509,12 +7900,41 @@ def middle_show_fix_area_charge_notification_form(request, pk):
 
     # جستجو
     search_query = request.GET.get('search', '').strip()
+    resident_type = request.GET.get('resident_type', '').strip()
+
+    # -----------------------------
+    # Search
+    # -----------------------------
     if search_query:
         units = units.filter(
             Q(unit__icontains=search_query) |
             Q(owner_name__icontains=search_query) |
             Q(renters__renter_name__icontains=search_query)
         ).distinct()
+
+    # -----------------------------
+    # Filter Resident Type
+    # -----------------------------
+    if resident_type == 'owner':
+
+        # فقط مالک
+        units = units.exclude(
+            renters__renter_is_active=True
+        )
+
+    elif resident_type == 'renter':
+
+        # فقط مستاجر فعال
+        units = units.filter(
+            renters__renter_is_active=True
+        ).distinct()
+
+    elif resident_type == 'empty':
+
+        # واحد خالی
+        units = units.filter(
+            status_residence='empty'
+        )
 
     # ------------------ Pagination ------------------
     try:
@@ -7975,12 +8395,41 @@ def middle_show_fix_person_charge_notification_form(request, pk):
 
     # جستجو
     search_query = request.GET.get('search', '').strip()
+    resident_type = request.GET.get('resident_type', '').strip()
+
+    # -----------------------------
+    # Search
+    # -----------------------------
     if search_query:
         units = units.filter(
             Q(unit__icontains=search_query) |
             Q(owner_name__icontains=search_query) |
             Q(renters__renter_name__icontains=search_query)
         ).distinct()
+
+    # -----------------------------
+    # Filter Resident Type
+    # -----------------------------
+    if resident_type == 'owner':
+
+        # فقط مالک
+        units = units.exclude(
+            renters__renter_is_active=True
+        )
+
+    elif resident_type == 'renter':
+
+        # فقط مستاجر فعال
+        units = units.filter(
+            renters__renter_is_active=True
+        ).distinct()
+
+    elif resident_type == 'empty':
+
+        # واحد خالی
+        units = units.filter(
+            status_residence='empty'
+        )
 
         # ------------------ Pagination ------------------
     try:
@@ -8440,12 +8889,41 @@ def middle_show_person_area_charge_notification_form(request, pk):
 
     # جستجو
     search_query = request.GET.get('search', '').strip()
+    resident_type = request.GET.get('resident_type', '').strip()
+
+    # -----------------------------
+    # Search
+    # -----------------------------
     if search_query:
         units = units.filter(
             Q(unit__icontains=search_query) |
             Q(owner_name__icontains=search_query) |
             Q(renters__renter_name__icontains=search_query)
         ).distinct()
+
+    # -----------------------------
+    # Filter Resident Type
+    # -----------------------------
+    if resident_type == 'owner':
+
+        # فقط مالک
+        units = units.exclude(
+            renters__renter_is_active=True
+        )
+
+    elif resident_type == 'renter':
+
+        # فقط مستاجر فعال
+        units = units.filter(
+            renters__renter_is_active=True
+        ).distinct()
+
+    elif resident_type == 'empty':
+
+        # واحد خالی
+        units = units.filter(
+            status_residence='empty'
+        )
 
     # ------------------ Pagination ------------------
     try:
@@ -8904,12 +9382,41 @@ def middle_show_fix_person_area_charge_notification_form(request, pk):
 
     # جستجو
     search_query = request.GET.get('search', '').strip()
+    resident_type = request.GET.get('resident_type', '').strip()
+
+    # -----------------------------
+    # Search
+    # -----------------------------
     if search_query:
         units = units.filter(
             Q(unit__icontains=search_query) |
             Q(owner_name__icontains=search_query) |
             Q(renters__renter_name__icontains=search_query)
         ).distinct()
+
+    # -----------------------------
+    # Filter Resident Type
+    # -----------------------------
+    if resident_type == 'owner':
+
+        # فقط مالک
+        units = units.exclude(
+            renters__renter_is_active=True
+        )
+
+    elif resident_type == 'renter':
+
+        # فقط مستاجر فعال
+        units = units.filter(
+            renters__renter_is_active=True
+        ).distinct()
+
+    elif resident_type == 'empty':
+
+        # واحد خالی
+        units = units.filter(
+            status_residence='empty'
+        )
 
     # ------------------ Pagination ------------------
     try:
@@ -9380,12 +9887,41 @@ def middle_show_fix_variable_notification_form(request, pk):
 
     # جستجو
     search_query = request.GET.get('search', '').strip()
+    resident_type = request.GET.get('resident_type', '').strip()
+
+    # -----------------------------
+    # Search
+    # -----------------------------
     if search_query:
         units = units.filter(
             Q(unit__icontains=search_query) |
             Q(owner_name__icontains=search_query) |
             Q(renters__renter_name__icontains=search_query)
         ).distinct()
+
+    # -----------------------------
+    # Filter Resident Type
+    # -----------------------------
+    if resident_type == 'owner':
+
+        # فقط مالک
+        units = units.exclude(
+            renters__renter_is_active=True
+        )
+
+    elif resident_type == 'renter':
+
+        # فقط مستاجر فعال
+        units = units.filter(
+            renters__renter_is_active=True
+        ).distinct()
+
+    elif resident_type == 'empty':
+
+        # واحد خالی
+        units = units.filter(
+            status_residence='empty'
+        )
 
     # ------------------ Pagination ------------------
     try:
@@ -9420,6 +9956,21 @@ def middle_show_fix_variable_notification_form(request, pk):
             send_notification=True,
             send_notification_date=timezone.now().date()
         )
+
+        already_sent = qs.filter(send_notification=True)
+
+        if already_sent.exists():
+            sent_units = "، ".join(
+                str(item.unit.unit)
+                for item in already_sent[:10]
+            )
+
+            messages.warning(
+                request,
+                f"اطلاعیه شارژ قبلاً ارسال شده است."
+            )
+
+            return redirect(request.path)
 
         # ---------- ارسال پیامک ----------
         if send_type == "sms":
@@ -9665,7 +10216,12 @@ def get_all_base_charges(user):
         ChargeByFixPersonArea.objects.filter(user=user),
         ChargeFixVariable.objects.filter(user=user),
     )
-    return sorted(all_charges, key=lambda x: x.created_at, reverse=True)
+
+    return sorted(
+        all_charges,
+        key=lambda x: x.created_at,
+        reverse=True
+    )
 
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
@@ -9675,47 +10231,90 @@ def base_charge_list(request):
 
     charges = get_all_base_charges(request.user)
 
+    # سرچ
     if query:
+        query_lower = query.lower()
+
         charges = [
             c for c in charges
-            if (
-                    query.lower() in (c.name or '').lower()
-                    or query.lower() in (getattr(c, 'name', '') or '').lower()
-            )
+            if query_lower in (c.name or '').lower()
         ]
 
+    # -----------------------------
+    # آماده‌سازی object_id ها
+    # -----------------------------
+    grouped_ids = defaultdict(list)
+
+    for charge in charges:
+        content_type = ContentType.objects.get_for_model(charge.__class__)
+        grouped_ids[content_type.id].append(charge.id)
+
+    # -----------------------------
+    # گرفتن آمار همه charge ها یکجا
+    # -----------------------------
+    stats_map = {}
+
+    for content_type_id, object_ids in grouped_ids.items():
+
+        unified_stats = (
+            UnifiedCharge.objects
+            .filter(
+                content_type_id=content_type_id,
+                object_id__in=object_ids,
+                unit__isnull=False
+            )
+            .values('object_id')
+            .annotate(
+                notified_count=Count(
+                    'unit',
+                    filter=Q(
+                        send_notification=True,
+                        send_notification_date__isnull=False
+                    ),
+                    distinct=True
+                ),
+
+                total_count=Count(
+                    'unit',
+                    distinct=True
+                ),
+
+                paid_count=Count(
+                    'unit',
+                    filter=Q(is_paid=True),
+                    distinct=True
+                )
+            )
+        )
+
+        for item in unified_stats:
+            stats_map[(content_type_id, item['object_id'])] = item
+
+    # -----------------------------
+    # ساخت داده نهایی
+    # -----------------------------
     charges_data = []
 
     for charge in charges:
+
+        content_type = ContentType.objects.get_for_model(charge.__class__)
+
+        stats = stats_map.get(
+            (content_type.id, charge.id),
+            {}
+        )
+
         data = charge.to_dict()
 
-        # 🔔 تعداد واحدهای نوتیفای‌شده
-        data['notified_count'] = (
-            charge.unified_charges
-            .filter(
-                send_notification=True,
-                send_notification_date__isnull=False,
-                unit__isnull=False
-            )
-            .values_list('unit_id', flat=True)
-            .distinct()
-            .count()
-        )
-        data['paid_count'] = (
-            charge.unified_charges
-            .filter(
-                is_paid=True,
-                unit__isnull=False
-            )
-            .values_list('unit_id', flat=True)
-            .distinct()
-            .count()
-        )
+        data['notified_count'] = stats.get('notified_count', 0)
+        data['total_count'] = stats.get('total_count', 0)
+        data['paid_count'] = stats.get('paid_count', 0)
 
         charges_data.append(data)
 
-    # 📄 pagination
+    # pagination
     paginator = Paginator(charges_data, paginate)
+
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -9723,13 +10322,12 @@ def base_charge_list(request):
         request,
         'middleCharge/middle_charges_list.html',
         {
-            'charges': page_obj,  # 👈 مهم (برای loop)
+            'charges': page_obj,
             'query': query,
             'paginate': paginate,
             'page_obj': page_obj,
         }
     )
-
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def middle_base_charges_pdf(request):

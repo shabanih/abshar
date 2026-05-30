@@ -52,7 +52,7 @@ def middleAdmin_turnover(request):
         funds = funds.filter(
             Q(payment_description__icontains=query) |
             Q(transaction_no__icontains=query)
-        )
+        ).order_by('-id')
 
     total_fund = (
             AdminFund.objects
@@ -134,7 +134,7 @@ def fund_middle_turnover(request):
 
     funds = Fund.objects.select_related('bank', 'content_type', 'unit').filter(
         Q(unit__user=manager) | Q(unit__user__manager=manager) | Q(user=manager)
-    ).order_by('-payment_date')
+    ).order_by('-id')
 
     if query:
         funds = funds.filter(
@@ -481,7 +481,7 @@ class UnitReportsTurnOver(FormMixin, ListView):
 
         transactions = Fund.objects.filter(
             unit=unit
-        ).order_by('-payment_date')
+        ).order_by('-id')
 
         # ⚡ حتما object_list ست شود
         self.object_list = transactions
@@ -2240,17 +2240,37 @@ class ReportExpenseView(ListView):
         return queryset
 
     def get_context_data(self, **kwargs):
+
         context = super().get_context_data(**kwargs)
-        expenses = self.get_queryset()  # از get_queryset برای دریافت داده‌های فیلتر شده استفاده می‌کنیم
+
+        expenses = self.get_queryset()
+
         paginator = Paginator(expenses, 40)
+
         page_number = self.request.GET.get('page')
+
         page_obj = paginator.get_page(page_number)
+
         context['page_obj'] = page_obj
-        context['total_expense'] = Expense.objects.filter(user=self.request.user).count()
-        context['categories'] = ExpenseCategory.objects.filter(user=self.request.user)
-        context['total_amount'] = Expense.objects.filter(user=self.request.user).aggregate(total=Sum('amount'))[
-                                      'total'] or 0
-        context['banks'] = Bank.objects.filter(user=self.request.user)
+
+        # تعداد فیلتر شده
+        context['total_expense'] = expenses.count()
+
+        # جمع مبلغ فیلتر شده
+        context['total_amount'] = (
+                expenses.aggregate(
+                    total=Sum('amount')
+                )['total'] or 0
+        )
+
+        context['categories'] = ExpenseCategory.objects.filter(
+            user=self.request.user
+        )
+
+        context['banks'] = Bank.objects.filter(
+            user=self.request.user
+        )
+
         return context
 
 
@@ -2418,50 +2438,103 @@ def export_expense_report_excel(request):
 # =======================================================
 @method_decorator(middle_admin_required, name='dispatch')
 class ReportIncomeView(ListView):
+
     model = Income
     template_name = 'income_reports.html'
+    context_object_name = 'incomes'
+    paginate_by = 50
 
     def get_queryset(self):
-        queryset = Income.objects.filter(user=self.request.user).order_by('-created_at')
 
-        # فیلتر بر اساس category
+        queryset = Income.objects.filter(
+            user=self.request.user
+        ).select_related(
+            'bank',
+            'unit',
+            'category'
+        ).order_by('-created_at')
+
+        # -----------------------------
+        # category
+        # -----------------------------
         category_id = self.request.GET.get('category')
+
         if category_id:
-            queryset = queryset.filter(category__id=category_id)
+            queryset = queryset.filter(
+                category_id=category_id
+            )
 
-        # فیلتر بر اساس بانک
+        # -----------------------------
+        # bank
+        # -----------------------------
         bank_id = self.request.GET.get('bank')
+
         if bank_id:
-            queryset = queryset.filter(bank__id=bank_id)
+            queryset = queryset.filter(
+                bank_id=bank_id
+            )
 
-        # فیلتر بر اساس واحد
+        # -----------------------------
+        # unit
+        # -----------------------------
         unit_id = self.request.GET.get('unit')
+
         if unit_id:
-            queryset = queryset.filter(unit__id=unit_id)
+            queryset = queryset.filter(
+                unit_id=unit_id
+            )
 
-        # فیلتر بر اساس amount
+        # -----------------------------
+        # amount
+        # -----------------------------
         amount = self.request.GET.get('amount')
+
         if amount:
-            queryset = queryset.filter(amount__icontains=amount)
 
-        # فیلتر بر اساس description
+            amount = amount.replace(',', '').strip()
+
+            if amount.isdigit():
+
+                queryset = queryset.filter(
+                    amount=amount
+                )
+
+        # -----------------------------
+        # description
+        # -----------------------------
         description = self.request.GET.get('description')
+
         if description:
-            queryset = queryset.filter(description__icontains=description)
+            queryset = queryset.filter(
+                description__icontains=description
+            )
 
-        # فیلتر بر اساس doc_number
+        # -----------------------------
+        # doc_number
+        # -----------------------------
         doc_number = self.request.GET.get('doc_number')
+
         if doc_number:
-            queryset = queryset.filter(doc_number__icontains=doc_number)
+            queryset = queryset.filter(
+                doc_number__icontains=doc_number
+            )
 
-        # فیلتر بر اساس details
+        # -----------------------------
+        # details
+        # -----------------------------
         details = self.request.GET.get('details')
-        if details:
-            queryset = queryset.filter(details__icontains=details)
 
-        # فیلتر بر اساس تاریخ
+        if details:
+            queryset = queryset.filter(
+                details__icontains=details
+            )
+
+        # -----------------------------
+        # date filter
+        # -----------------------------
         from_date_str = self.request.GET.get('from_date')
         to_date_str = self.request.GET.get('to_date')
+
         try:
             if from_date_str:
                 jalali_from = jdatetime.datetime.strptime(from_date_str, '%Y/%m/%d')
@@ -2475,33 +2548,63 @@ class ReportIncomeView(ListView):
         except ValueError:
             messages.warning(self.request, 'فرمت تاریخ وارد شده صحیح نیست.')
 
+        # -----------------------------
+        # payment status
+        # -----------------------------
         is_paid = self.request.GET.get('is_paid')
+
         if is_paid == '1':
-            queryset = queryset.filter(is_paid=True)
+
+            queryset = queryset.filter(
+                is_paid=True
+            )
+
         elif is_paid == '0':
-            queryset = queryset.filter(is_paid=False)
+
+            queryset = queryset.filter(
+                is_paid=False
+            )
 
         return queryset
 
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs['user'] = self.request.user
-        return kwargs
-
     def get_context_data(self, **kwargs):
+
         context = super().get_context_data(**kwargs)
-        incomes = self.get_queryset()  # از get_queryset برای دریافت داده‌های فیلتر شده استفاده می‌کنیم
-        paginator = Paginator(incomes, 50)
-        page_number = self.request.GET.get('page')
-        page_obj = paginator.get_page(page_number)
-        context['page_obj'] = page_obj
-        context['total_incomes'] = Income.objects.filter(user=self.request.user).count()
-        context['categories'] = IncomeCategory.objects.filter(user=self.request.user)
-        context['banks'] = Bank.objects.filter(user=self.request.user)
-        managed_users = User.objects.filter(Q(manager=self.request.user) | Q(pk=self.request.user.pk))
-        context['units'] = Unit.objects.filter(is_active=True, user__in=managed_users)
-        context['total_amount'] = Income.objects.filter(user=self.request.user).aggregate(total=Sum('amount'))[
-                                      'total'] or 0
+
+        incomes = self.get_queryset()
+
+        # -----------------------------
+        # totals based on filtered qs
+        # -----------------------------
+        context['total_incomes'] = incomes.count()
+
+        context['total_amount'] = (
+            incomes.aggregate(
+                total=Sum('amount')
+            )['total'] or 0
+        )
+
+        # -----------------------------
+        # filters
+        # -----------------------------
+        context['categories'] = IncomeCategory.objects.filter(
+            user=self.request.user
+        )
+
+        context['banks'] = Bank.objects.filter(
+            user=self.request.user
+        )
+
+        managed_users = User.objects.filter(
+            Q(manager=self.request.user)
+            |
+            Q(pk=self.request.user.pk)
+        )
+
+        context['units'] = Unit.objects.filter(
+            is_active=True,
+            user__in=managed_users
+        )
 
         return context
 
@@ -2666,7 +2769,7 @@ class ReportPropertyView(ListView):
     template_name = 'report_property.html'
 
     def get_queryset(self):
-        queryset = Property.objects.filter(user=self.request.user)
+        queryset = Property.objects.filter(user=self.request.user).order_by('-id')
 
         # فیلتر بر اساس amount
         property_name = self.request.GET.get('property_name')
@@ -2893,7 +2996,7 @@ class ReportMaintenanceView(ListView):
     template_name = 'report_maintenance.html'
 
     def get_queryset(self):
-        queryset = Maintenance.objects.filter(user=self.request.user)
+        queryset = Maintenance.objects.filter(user=self.request.user).order_by('-id')
 
         # فیلتر بر اساس amount
         maintenance_description = self.request.GET.get('maintenance_description')
@@ -2912,25 +3015,21 @@ class ReportMaintenanceView(ListView):
         if service_company:
             queryset = queryset.filter(service_company__icontains=service_company)
 
-        maintenance_document_no = self.request.GET.get('maintenance_document_no')
-        if maintenance_document_no:
-            queryset = queryset.filter(maintenance_document_no__icontains=maintenance_document_no)
-
         maintenance_start_date = self.request.GET.get('maintenance_start_date')
         if maintenance_start_date and isinstance(maintenance_start_date, str):
             try:
-                j_start = jdatetime.date.fromisoformat(maintenance_start_date)
-                g_start = j_start.togregorian()
-                queryset = queryset.filter(maintenance_start_date__gte=g_start)
+                jalali_from = jdatetime.datetime.strptime(maintenance_start_date, '%Y/%m/%d')
+                gregorian_from = jalali_from.togregorian().date()
+                queryset = queryset.filter(maintenance_start_date__gte=gregorian_from)
             except (ValueError, TypeError) as e:
                 print("Invalid date format:", maintenance_start_date, e)
 
         maintenance_end_date = self.request.GET.get('maintenance_end_date')
         if maintenance_end_date and isinstance(maintenance_end_date, str):
             try:
-                j_start = jdatetime.date.fromisoformat(maintenance_end_date)
-                g_start = j_start.togregorian()
-                queryset = queryset.filter(maintenance_end_date__lte=g_start)
+                jalali_from = jdatetime.datetime.strptime(maintenance_end_date, '%Y/%m/%d')
+                gregorian_from = jalali_from.togregorian().date()
+                queryset = queryset.filter(maintenance_end_date__lte=gregorian_from)
             except (ValueError, TypeError) as e:
                 print("Invalid date format:", maintenance_end_date, e)
 
@@ -3149,6 +3248,7 @@ class PayReceiveReportView(ListView):
             qs = qs.filter(details__icontains=details)
 
         transaction_type = self.request.GET.get('transaction_type')
+        print(transaction_type)
 
         if transaction_type == 'received':
             qs = qs.filter(is_received_money=True)
@@ -3432,8 +3532,11 @@ def house_balance_view(request):
         UnifiedCharge.objects.filter(is_paid=True, user=request.user, **payment_filter).aggregate(Sum('civil'))[
             'civil__sum']
 
-    total_assets = ((total_incomes or 0) + (total_receive_money or 0) + (total_unit_pay or 0)
-                    + (total_charges or 0) + (total_civil or 0))
+    total_assets = (
+            (balance or 0)
+            + (total_charge_unpaid or 0)
+            + (total_incomes_exclude_unpaid or 0)
+    )
 
     # ----------------------------------------- part 4 -----------------------
 
@@ -3448,8 +3551,43 @@ def house_balance_view(request):
     total_properties = \
         Property.objects.filter(user=request.user, **payment_filter, is_paid=True).aggregate(Sum('property_price'))[
             'property_price__sum']
-    # total_gas_expenses = (Expense.objects.filter(user=request.user, **payment_filter, is_paid=True).
-    #                       aggregate(Sum('gas_expenses')))
+    utility_expenses = Expense.objects.filter(
+        user=request.user,
+        is_paid=True,
+        category__title__in=[
+            'هزینه آب',
+            'هزینه برق',
+            'هزینه گاز'
+        ],
+        **payment_filter
+    ).aggregate(
+        total=Sum('amount')
+    )['total'] or 0
+
+    salary_expenses = Expense.objects.filter(
+        user=request.user,
+        is_paid=True,
+        category__title__in=[
+            'هزینه آب',
+            'هزینه برق',
+            'هزینه گاز'
+        ],
+        **payment_filter
+    ).aggregate(
+        total=Sum('amount')
+    )['total'] or 0
+
+    insurance_expenses = Expense.objects.filter(
+        user=request.user,
+        is_paid=True,
+        category__title__in=[
+            'هزینه بیمه',
+        ],
+        **payment_filter
+    ).aggregate(
+        total=Sum('amount')
+    )['total'] or 0
+
 
     total_debts = (total_pay_money or 0) + (total_expenses or 0) + (total_maintenances or 0) + (total_properties or 0)
 
@@ -3479,7 +3617,11 @@ def house_balance_view(request):
         'total_charges': total_charges,
         'total_civil': total_civil,
         'total_maintenances': total_maintenances,
-        'total_properties': total_properties
+        'total_properties': total_properties,
+        'utility_expenses': utility_expenses,
+        'salary_expenses': salary_expenses,
+        'insurance_expenses': insurance_expenses
+
     }
     return render(request, 'house_balance.html', context)
 

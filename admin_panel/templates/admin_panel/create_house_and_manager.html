@@ -1,0 +1,285 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+
+
+{% block page_title %}
+{% if house %}
+    ویرایش ساختمان
+{% else %}
+    ثبت ساختمان
+{% endif %}
+{% endblock %}
+
+{% block main_content %}
+
+<div class="container-fluid mt-4">
+
+    <div class="row justify-content-center py-4">
+
+        <div class="col-lg-12">
+
+            <div class="card shadow border-0 rounded-4">
+            
+                <div class="card-body">
+
+                    <form method="post">
+
+                        {% csrf_token %}
+
+                        <div class="row">
+
+                            <!-- اطلاعات مدیر ساختمان -->
+                            <div class="col-md-6">
+
+                                <div class="border rounded-4 p-3 h-100">
+
+                                    <h5 class="mb-4 text-primary">
+                                        اطلاعات مدیر ساختمان
+                                    </h5>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            نام و نام خانوادگی
+                                        </label>
+
+                                        {{ user_form.full_name }}
+
+                                        {% if user_form.full_name.errors %}
+                                            <small class="text-danger">
+                                                {{ user_form.full_name.errors.0 }}
+                                            </small>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            موبایل
+                                        </label>
+
+                                        {{ user_form.mobile }}
+
+                                        {% if user_form.mobile.errors %}
+                                            <small class="text-danger">
+                                                {{ user_form.mobile.errors.0 }}
+                                            </small>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            نام کاربری
+                                        </label>
+
+                                        {{ user_form.username}}
+
+                                        {% if user_form.username.errors %}
+                                            <small class="text-danger">
+                                                {{ user_form.username.errors.0 }}
+                                            </small>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            رمز عبور
+                                        </label>
+
+                                        {{ user_form.password }}
+
+                                        {% if user_form.password.errors %}
+                                            <small class="text-danger">
+                                                {{ user_form.password.errors.0 }}
+                                            </small>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="mb-3">
+                                    <div class="card-body bg-light">
+                                        <label class="form-label fw-bold">
+                                            <i class="fas fa-gear"></i>
+                                            دسترسی به روش محاسبه شارژ
+                                        </label>
+
+                                        {{ user_form.charge_methods}}
+
+                                        {% if user_form.charge_methods.errors %}
+                                            <small class="text-danger">
+                                                {{ user_form.charge_methods.errors.0 }}
+                                            </small>
+                                        {% endif %}
+                                    </div>
+                                    </div>
+
+                                    <div class="mt-4">
+                                        <label class="form-label">
+                                            فعال‌سازی اشتراک آزمایشی
+                                        </label>
+                                        {{ user_form.is_trial }}
+
+                                        
+                                    </div>
+                                        <div class="mt-4">
+                                             <label class="form-label">
+                                            مدیر ساکن ساختمان است؟
+                                        </label>
+                                        {{ user_form.is_resident }}
+
+                                       
+                                    </div>
+                                       <div class="mb-3">
+                                        <label class="form-label">
+                                            فعال/غیرفعال
+                                        </label>
+
+                                        {{ house_form.is_active }}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <!-- اطلاعات ساختمان -->
+                            <div class="col-md-6">
+
+                                <div class="border rounded-4 p-3 h-100">
+
+                                    <h5 class="mb-4 text-success">
+                                        اطلاعات ساختمان
+                                    </h5>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            نام ساختمان
+                                        </label>
+
+                                        {{ house_form.name }}
+
+                                        {% if house_form.name.errors %}
+                                            <small class="text-danger">
+                                                {{ house_form.name.errors.0 }}
+                                            </small>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="row">
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">
+                                                تعداد طبقات
+                                            </label>
+
+                                            {{ house_form.floor_counts}}
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">
+                                                تعداد واحدها
+                                            </label>
+
+                                            {{ house_form.unit_counts }}
+                                        </div>
+
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            تلفن ساختمان
+                                        </label>
+
+                                        {{ house_form.phone}}
+                                    </div>
+
+{#                                    <div class="mb-3">#}
+{#                                        <label class="form-label">#}
+{#                                            موبایل مدیر#}
+{#                                        </label>#}
+{##}
+{#                                        {{ house_form.boss_mobile}}#}
+{#                                    </div>#}
+
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            نوع کاربری
+                                        </label>
+
+                                        {{ house_form.user_type }}
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            شهر
+                                        </label>
+
+                                        {{ house_form.city }}
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            آدرس
+                                        </label>
+
+                                        {{ house_form.address }}
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            زیردامنه
+                                        </label>
+
+                                        {{ house_form.subdomain }}
+                                    </div>
+                                <div class="mb-3">
+                                        <label class="form-label">
+                                            کد اینماد
+                                        </label>
+                                    
+                                        {{ house_form.enamad_code }}
+                                    
+                                        {% if house_form.enamad_code.errors %}
+                                            <small class="text-danger">
+                                                {{ house_form.enamad_code.errors.0 }}
+                                            </small>
+                                        {% endif %}
+                                    
+                                    </div>
+                                       <div class="mb-3">
+                                        <label class="form-label">
+                                            فعال/غیرفعال
+                                        </label>
+
+                                        {{ house_form.is_active }}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="text-center">
+
+                            <button type="submit"
+                                    class="btn btn-primary px-5 py-2 rounded-pill">
+
+                                <i class="fas fa-save me-1"></i>
+                                ثبت اطلاعات
+
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

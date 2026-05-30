@@ -22,9 +22,9 @@ urlpatterns = [
 
     # House Urls
 
-    path('middle-house/', views.MiddleAddMyHouseView.as_view(), name='middle_manage_house'),
-    path('middle/house/edit/<int:pk>/', views.MiddleMyHouseUpdateView.as_view(), name='middle_edit_house'),
-    path('middle/delete/house/<int:pk>/', views.middle_house_delete, name='middle_delete_house'),
+    # path('middle-house/', views.MiddleAddMyHouseView.as_view(), name='middle_manage_house'),
+    # path('middle/house/edit/<int:pk>/', views.MiddleMyHouseUpdateView.as_view(), name='middle_edit_house'),
+    # path('middle/delete/house/<int:pk>/', views.middle_house_delete, name='middle_delete_house'),
 
     # Bank Urls
     path('middle-manage-bank', views.middleAddBankView.as_view(), name='middle_manage_bank'),

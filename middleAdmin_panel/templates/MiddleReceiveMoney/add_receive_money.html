@@ -43,7 +43,7 @@
        <div id="query-form" style="display: none;" class="row mt-2">
             <form method="get">
                <div class="row g-2 mt-2">
-                     <div class="col-md-3">
+                     <div class="col-md-2">
                         <select name="bank" class="form-control form-control-sm">
                 <option value="">بانک را انتخاب کنید</option>
                 {% for bank in banks %}
@@ -53,7 +53,7 @@
                 {% endfor %}
             </select>
                     </div>
-                     <div class="col-md-3">
+                     <div class="col-md-2">
                         <input type="text" name="amount" class="form-control" placeholder="مبلغ"
                                value="{{ request.GET.amount }}">
                     </div>
@@ -72,11 +72,13 @@
                     </option>
                 </select>
                </div>
-                     <div class="col-md-1">
-                            <input type="text" id="from_date" name="from_date" class="form-control" placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
+                    <div class="col-md-2">
+                            <input type="text"  name="from_date" data-jdp data-jdp-only-date  class="form-control" 
+                                   placeholder="شروع تاریخ" value="{{ request.GET.from_date }}">
                           </div>
-                     <div class="col-md-1">
-                        <input type="text" id="to_date" name="to_date" class="form-control" placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
+                     <div class="col-md-2">
+                        <input type="text"  name="to_date" data-jdp data-jdp-only-date class="form-control" 
+                               placeholder="پایان تاریخ" value="{{ request.GET.to_date }}">
                         </div>
                </div>
                 <div class="row mt-2 g-2 mb-2">

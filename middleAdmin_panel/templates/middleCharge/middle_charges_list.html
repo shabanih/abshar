@@ -102,7 +102,7 @@
                                              
                                             </td>
                                               <td class="bg-gradient-light">
-                                                <span>{{ charge.notified_count|to_persian_number  }} از {{ charge.unit_count|to_persian_number }} واحد</span>
+                                                <span>{{ charge.notified_count|to_persian_number  }} از {{ charge.total_count|to_persian_number }} واحد</span>
                                                 </td>
                                            <td>
                                                 <span>{{ charge.paid_count|to_persian_number  }} از {{ charge.notified_count|to_persian_number }} واحد</span>
@@ -144,21 +144,31 @@
                           <hr/>
                             <div class="modal-body text-end">
                                 <p><strong>عنوان:</strong> {{ charge.name|to_persian_number }}</p>
-                                {% for key, value in charge.items %}
-                                    {% if key not in 'id name charge_type created_at unit_count app_label model_name civil other_cost_amount payment_deadline payment_penalty_amount details notified_count' %}
-                                        {% if value %}
-                                            <p><strong>{{ key }}:</strong> {{ value|three_digit_currency }} تومان</p>
-                                        {% endif %}
-                                    {% endif %}
-                                {% endfor %}   
+                        {% with excluded_keys="id,name,charge_type,created_at,unit_count,app_label,model_name,civil,other_cost_amount,payment_deadline,payment_penalty_amount,details,notified_count,total_count,paid_count" %}
+    {% for key, value in charge.items %}
+        {% if key not in excluded_keys %}
+            {% if value %}
+                <p>
+                    <strong>{{ key }}:</strong>
+
+                    {% if value|floatformat >= 0 %}
+                        {{ value|three_digit_currency }} تومان
+                    {% else %}
+                        {{ value|three_digit_currency }} تومان
+                    {% endif %}
+                </p>
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+{% endwith %} 
                             
-                                <p><strong>شارژ عمرانی:</strong> 
-                                    {% if charge.civil %}
-                                    {{ charge.civil|three_digit_currency }} تومان
-                                         {% else %}
-                                               ---
-                                            {% endif %} 
-                                </p>
+{#                                <p><strong>شارژ عمرانی:</strong> #}
+{#                                    {% if charge.civil %}#}
+{#                                    {{ charge.civil|three_digit_currency }} تومان#}
+{#                                         {% else %}#}
+{#                                               ---#}
+{#                                            {% endif %} #}
+{#                                </p>#}
                             
                                 <p><strong>سایر هزینه ها:</strong>
                                     {% if charge.other_cost_amount %}

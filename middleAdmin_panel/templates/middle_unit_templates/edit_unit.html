@@ -37,15 +37,21 @@
                                           {{ form.bedrooms_count }}
                                           {{ form.bedrooms_count.errors }}
                                       </div>
-                                          <div class="col-4 col-lg-2 col-xl-2">
-                                          {{ form.parking_count.label_tag }}
-                                          {{ form.parking_count }}
-                                          {{ form.parking_count.errors }}
-                                      </div>
+{#                                          <div class="col-4 col-lg-2 col-xl-2">#}
+{#                                          {{ form.parking_count.label_tag }}#}
+{#                                          {{ form.parking_count }}#}
+{#                                          {{ form.parking_count.errors }}#}
+{#                                      </div>#}
+                                        
                                       <div class="col-4 col-lg-2 col-xl-2">
                                           {{ form.status_residence.label_tag }}
                                           {{ form.status_residence }}
                                           {{ form.status_residence.errors }}
+                                      </div>
+                                               <div class="col-4 col-lg-2 col-xl-2">
+                                          {{ form.parking_number.label_tag }}
+                                          {{ form.parking_number }}
+                                          {{ form.parking_number.errors }}
                                       </div>
                                     </div>
                                          <div class="row">
@@ -54,11 +60,7 @@
                                           {{ form.parking_place }}
                                           {{ form.parking_place.errors }}
                                       </div>
-                                        <div class="col-4 col-lg-2 col-xl-2">
-                                          {{ form.parking_number.label_tag }}
-                                          {{ form.parking_number }}
-                                          {{ form.parking_number.errors }}
-                                      </div>
+                                 
                                      <div class="col-4 col-lg-2 col-xl-2">
                                           {{ form.extra_parking_first.label_tag }}
                                           {{ form.extra_parking_first }}

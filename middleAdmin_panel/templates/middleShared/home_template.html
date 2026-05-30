@@ -20,7 +20,40 @@
 {#    <script src="{% static 'admin_panel/vendors/js/vendor.bundle.base.js' %}"></script>#}
 {#<script src="{% static 'admin_panel/js/sweetalert2@11.js' %}"></script>#}
    <div class="container">
+{% if has_renter_expire_warning %}
+<div id="renter-warning-box" class="badge-danger shadow-lg p-2 position-relative">
 
+    {% for item in renter_expire_notifications %}
+        <div class="mb-2 p-2 me-2">
+
+            {% if item.status == 'expired' %}
+                قرارداد {{ item.renter.renter_name }}
+                واحد {{ item.unit }}
+                به پایان رسیده است.
+
+            {% elif item.status == 'today' %}
+                قرارداد {{ item.renter.renter_name }}
+                امروز به پایان می‌رسد.
+
+            {% else %}
+                {{ item.remaining_days }}
+                روز تا پایان قرارداد
+                واحد شماره {{ item.unit.unit }}
+                {{ item.renter.renter_name }}
+                باقی مانده است.
+            {% endif %}
+
+        </div>
+    {% endfor %}
+    <button type="button"
+            class="btn btn-sm btn-light position-absolute top-0 start-0 m-2"
+            onclick="document.getElementById('renter-warning-box').style.display='none'">
+        متوجه شدم
+    </button>
+
+
+</div>
+{% endif %}
 
 {#<script>#}
 {##}
