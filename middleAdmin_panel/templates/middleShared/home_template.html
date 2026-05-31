@@ -27,12 +27,14 @@
         <div class="mb-2 p-2 me-2">
 
             {% if item.status == 'expired' %}
-                قرارداد {{ item.renter.renter_name }}
-                واحد {{ item.unit }}
+                 قرارداد واحد {{ item.unit.unit }} -
+                {{ item.renter.renter_name }}
                 به پایان رسیده است.
 
             {% elif item.status == 'today' %}
-                قرارداد {{ item.renter.renter_name }}
+                قرارداد واحد {{ item.unit.unit }} -
+                {{ item.renter.renter_name }}
+
                 امروز به پایان می‌رسد.
 
             {% else %}

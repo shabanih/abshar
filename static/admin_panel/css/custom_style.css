@@ -1146,3 +1146,6 @@ body.sidebar-icon-only .sidebar-subscription-box {
     display: none !important;
 }
 /*==========================*/
+.zero-bill{
+    margin: 0 20px;
+}

@@ -12,7 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.core.paginator import Paginator
 from django.db import models
-from django.db.models import Q, Sum, F, Count
+from django.db.models import Q, Sum, F, Count, OuterRef, Subquery
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse, Http404
 from django.shortcuts import render, get_object_or_404, redirect
@@ -2438,7 +2438,6 @@ def export_expense_report_excel(request):
 # =======================================================
 @method_decorator(middle_admin_required, name='dispatch')
 class ReportIncomeView(ListView):
-
     model = Income
     template_name = 'income_reports.html'
     context_object_name = 'incomes'
@@ -2494,7 +2493,6 @@ class ReportIncomeView(ListView):
             amount = amount.replace(',', '').strip()
 
             if amount.isdigit():
-
                 queryset = queryset.filter(
                     amount=amount
                 )
@@ -2579,9 +2577,9 @@ class ReportIncomeView(ListView):
         context['total_incomes'] = incomes.count()
 
         context['total_amount'] = (
-            incomes.aggregate(
-                total=Sum('amount')
-            )['total'] or 0
+                incomes.aggregate(
+                    total=Sum('amount')
+                )['total'] or 0
         )
 
         # -----------------------------
@@ -3443,6 +3441,7 @@ def export_pay_receive_report_excel(request):
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def house_balance_view(request):
     house = MyHouse.objects.filter(user=request.user).first()
+
     bank_id = request.GET.get('bank')
     start_date_j = request.GET.get('start_date')
     end_date_j = request.GET.get('end_date')
@@ -3477,6 +3476,19 @@ def house_balance_view(request):
         doc_expense_filter['date__lte'] = end_date
 
     # ================================= part 1 =========================
+    last_balance = BankFund.objects.filter(
+        bank=OuterRef('pk'),
+        is_paid=True,
+        **payment_filter
+    ).order_by('-payment_date', '-id')
+
+    banks_balance = Bank.objects.filter(
+        user=request.user,
+        is_active=True,
+
+    ).annotate(
+        balance=Subquery(last_balance.values('balance_after')[:1])
+    )
 
     funds = (
         Fund.objects
@@ -3529,28 +3541,35 @@ def house_balance_view(request):
             'total_charge_month__sum']
 
     total_civil = \
-        UnifiedCharge.objects.filter(is_paid=True, user=request.user, **payment_filter).aggregate(Sum('civil'))[
-            'civil__sum']
+        CivilInstallment.objects.filter(is_paid=True, house=house, **payment_filter).aggregate(Sum('amount'))[
+            'amount__sum']
 
     total_assets = (
-            (balance or 0)
-            + (total_charge_unpaid or 0)
-            + (total_incomes_exclude_unpaid or 0)
+            (total_incomes or 0)
+            + (total_receive_money or 0)
+            + (total_unit_pay or 0)
+            + (total_charges or 0)
+            + (total_civil or 0)
     )
 
     # ----------------------------------------- part 4 -----------------------
 
-    total_expenses = Expense.objects.filter(user=request.user, **payment_filter, is_paid=True).aggregate(Sum('amount'))[
-        'amount__sum']
+    total_expenses = \
+        Expense.objects.filter(user=request.user, category__is_default=False, **payment_filter, is_paid=True).aggregate(
+            Sum('amount'))[
+            'amount__sum']
+
     total_pay_money = PayMoney.objects.filter(user=request.user, **payment_filter, ).aggregate(Sum('amount'))[
         'amount__sum']
     total_maintenances = \
         Maintenance.objects.filter(user=request.user, **payment_filter, is_paid=True).aggregate(
             Sum('maintenance_price'))[
             'maintenance_price__sum']
+
     total_properties = \
         Property.objects.filter(user=request.user, **payment_filter, is_paid=True).aggregate(Sum('property_price'))[
             'property_price__sum']
+
     utility_expenses = Expense.objects.filter(
         user=request.user,
         is_paid=True,
@@ -3568,9 +3587,7 @@ def house_balance_view(request):
         user=request.user,
         is_paid=True,
         category__title__in=[
-            'هزینه آب',
-            'هزینه برق',
-            'هزینه گاز'
+            'هزینه حقوق و دستمزد',
         ],
         **payment_filter
     ).aggregate(
@@ -3588,8 +3605,20 @@ def house_balance_view(request):
         total=Sum('amount')
     )['total'] or 0
 
+    total_sewage = \
+        SewageInstallment.objects.filter(is_paid=True, house=house, **payment_filter).aggregate(Sum('amount'))[
+            'amount__sum']
 
-    total_debts = (total_pay_money or 0) + (total_expenses or 0) + (total_maintenances or 0) + (total_properties or 0)
+    total_debts = (
+            (total_pay_money or 0)
+            + (total_expenses or 0)
+            + (total_maintenances or 0)
+            + (total_properties or 0)
+            + (utility_expenses or 0)
+            + (salary_expenses or 0)
+            + (insurance_expenses or 0)
+            + (total_sewage or 0)
+    )
 
     # ----------------------------------------- part 5 --------------------------
 
@@ -3616,11 +3645,13 @@ def house_balance_view(request):
         'total_unit_pay': total_unit_pay,
         'total_charges': total_charges,
         'total_civil': total_civil,
+        'total_sewage': total_sewage,
         'total_maintenances': total_maintenances,
         'total_properties': total_properties,
         'utility_expenses': utility_expenses,
         'salary_expenses': salary_expenses,
-        'insurance_expenses': insurance_expenses
+        'insurance_expenses': insurance_expenses,
+        'banks_balance': banks_balance
 
     }
     return render(request, 'house_balance.html', context)
