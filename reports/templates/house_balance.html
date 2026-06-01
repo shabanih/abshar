@@ -2,7 +2,7 @@
 {% load static %}
 {% load poll_extras %}
 {% block page_title %}
-  بیلان ساختمان       <span class="text-center text-small font-weight-bold "> (    {% if not start_date %}
+  بیلان ساختمان<span class="text-center text-small font-weight-bold "> (    {% if not start_date %}
         از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
     {% else %}
         از تاریخ {{ start_date }} تا {{ end_date }}
@@ -66,27 +66,17 @@
     {% endif %})</h5>
           </div>
           <div class="card-body py-1">
-               <div class="row mt-2">
-                  <div class="col"  style="font-size: 14px; font-weight: 500">موجودی صندوق</div>
-                  <div class="col text-start">
-                      <p class="fw-bold" style="font-size: 14px">
-                          {% if balance %}
-                      {{ balance |three_digit_currency }}  تومان  
-                              {% else %}
-                          	 <span class="zero-bill">۰</span>
-                          {% endif %}
-                      </p>
-                  </div>
-              </div>
+             
 {% for bank in banks_balance %}
 <div class="row mt-2">
     <div class="col" style="font-size:14px;font-weight:500">
-        {{ bank.bank_name }}
+          بانک  {{ bank.bank_name }}
     </div>
     <div class="col text-start">
         <p class="fw-bold" style="font-size:14px">
             {% if bank.balance %}
                 {{ bank.balance|default:0|three_digit_currency }}تومان 
+                 <a href="" class="me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
             {% else %}
                 <span class="zero-bill">۰</span>
             {% endif %}
@@ -94,6 +84,20 @@
     </div>
 </div>
 {% endfor %}
+              <hr class="p-0">
+            <div class="row mt-1">
+                  <div class="col"  style="font-size: 14px; font-weight: 500">موجودی صندوق</div>
+                  <div class="col text-start">
+                      <p class="fw-bold" style="font-size: 14px">
+                          {% if balance %}
+                      {{ balance |three_digit_currency }}  تومان  
+                               <a class=" me-4"><i ></i></a>
+                              {% else %}
+                          	 <span class="zero-bill">۰</span>
+                          {% endif %}
+                      </p>
+                  </div>
+              </div>
           
 {#               <div class="row">#}
 {#                  <div class="col"  style="font-size: 14px; font-weight: 500">شارژ پرداخت نشده</div>#}
@@ -214,7 +218,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_incomes %}
                           	  {{ total_incomes |three_digit_currency }}  تومان  
-                              <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
+                              <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                               <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -238,7 +242,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_charges %}
                           	  {{ total_charges |three_digit_currency }}  تومان  
-                              <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
+                              <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                                <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -262,7 +266,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_civil %}
                           	  {{ total_civil |three_digit_currency }}  تومان  
-                                <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
+                                <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                                <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -286,7 +290,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_unit_pay %}
                           	  {{ total_unit_pay |three_digit_currency }}  تومان  
-                              <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
+                              <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                                <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -311,7 +315,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_receive_money %}
                           	    {{ total_receive_money |three_digit_currency }}  تومان  
-                        <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
+                        <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                               <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -350,7 +354,7 @@
                       <p class="text-lg fw-bold" style="font-size: 14px">
                           {% if total_expenses %}
                           	{{ total_expenses |three_digit_currency }}  تومان 
-                              <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
+                              <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                                <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -374,7 +378,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_pay_money %}
                                {{ total_pay_money |three_digit_currency }}  تومان
-                                   <a href=""  class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
+                                   <a href=""  class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                           	 <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -398,7 +402,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_maintenances %}
                                {{ total_maintenances |three_digit_currency }}  تومان
-                               <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
+                               <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
 
                               {% else %}
                           	 <span class="zero-bill">۰</span>
@@ -422,7 +426,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if insurance_expenses %}
                                {{ insurance_expenses |three_digit_currency }}  تومان
-                               <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
+                               <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                          <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -446,7 +450,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_properties %}
                                {{ total_properties |three_digit_currency }}  تومان
-                               <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
+                               <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
 
                               {% else %}
                           	 <span class="zero-bill">۰</span>
@@ -472,7 +476,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if utility_expenses %}
                                {{ utility_expenses |three_digit_currency }}  تومان
-                               <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
+                               <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                           	 <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -497,7 +501,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if salary_expenses %}
                                {{ salary_expenses |three_digit_currency }}  تومان
-                              <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
+                              <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                           	 <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -521,7 +525,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_sewage %}
                                {{ total_sewage |three_digit_currency }}  تومان
-                                  <a href="" class=" me-3"><i class="fa fa-eye text-primary" title="مشاهده"></i></a>
+                                  <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
 
                               {% else %}
                           	 <span class="zero-bill">۰</span>
@@ -540,12 +544,15 @@
       <div class="col">
        <div class="card h-100 shadow-lg py-1">
           <div class="card-body py-1">
-               <div class="row mt-2">
-                  <div class="col fw-bold"  style="font-size: 14px">جمع کل </div>
-                  <div class="col text-start">
+               <div class="row g-1 mt-2">
+                  <div class="col-12 col-md-1 text-center fw-bold"  style="font-size: 14px">جمع کل </div>
+                  <div class="col-12 col-md-9 text-center"  style="font-size: 14px">
+                      وضعیت کلی ساختمان = موجودی صندوق + درآمد دریافت نشده + بدهکاری ساکنین - هزینه پرداخت نشده
+                  </div>
+                  <div class="col-12 col-md-2 text-center">
                       <p class="fw-bold" style="font-size: 14px">
-                          {% if total_amount_assets_debts %}
-                          	{{ total_amount_assets_debts |three_digit_currency }}  تومان  
+                          {% if total_status %}
+                          	{{ total_status |three_digit_currency }}  تومان  
                             {% else %}
                           	 <span class="zero-bill">۰</span>
                           {% endif %}

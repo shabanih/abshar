@@ -83,114 +83,280 @@
                                       
                                     </tr>
                             </thead>
-        <tbody>
-            {% for unit in units_with_debt %}
-            <tr>
-                <td>{{ forloop.counter|to_persian_number }}</td>
-                <td>{{ unit.label|to_persian_number }}</td>
-                <td>{{ unit.total_debt|three_digit_currency }}</td>
-            <td>
-                               <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ unit.id }}"
-                        class="btn btn-gradient-info text-dark px-2 py-1"><i class="mdi mdi-eye"></i>
-                </button> 
-            </td>
+    <tbody>
+
 {% for unit in units_with_debt %}
+<tr>
+    <td>{{ forloop.counter|to_persian_number }}</td>
+    <td>{{ unit.label|to_persian_number }}</td>
+
+    <td>
+        {{ unit.total_debt|three_digit_currency }}
+    </td>
+
+    <td>
+        <button
+                data-bs-toggle="modal"
+                data-bs-target="#exampleModalLong2{{ unit.id }}"
+                class="btn btn-gradient-info text-dark px-2 py-1">
+            <i class="mdi mdi-eye"></i>
+        </button>
+    </td>
+</tr>
+
+{% empty %}
+<tr>
+    <td colspan="4" class="text-center">
+        هیچ واحد بدکاری وجود ندارد.
+    </td>
+</tr>
+{% endfor %}
+
+</tbody>
+
+    </table>
+{% for unit in units_with_debt %}
+
 <div class="modal fade"
      id="exampleModalLong2{{ unit.id }}"
      tabindex="-1"
      aria-hidden="true">
 
-  <div class="modal-dialog modal-xl">
-    <div class="modal-content">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
 
-      <div class="modal-header">
-        <h5 class="modal-title">
-            سوابق بدهی {{ unit.label|to_persian_number }}
-        </h5>
-      </div>
+        <div class="modal-content">
 
-      <hr class="m-0">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    سوابق بدهی
+                    {{ unit.label|to_persian_number }}
+                </h5>
+            </div>
 
-      <div class="modal-body">
+            <div class="modal-body">
 
-        <!-- Header row -->
-        <div class="row g-0 text-center fw-bold bg-light">
-          <div class="col-1 border">#</div>
-          <div class="col-3 border">شرح</div>
-          <div class="col-2 border">شارژ ماهیانه</div>
-          <div class="col-2 border">جریمه</div>
-          <div class="col-2 border">قابل پرداخت</div>
-          <div class="col-2 border">مهلت پرداخت</div>
+                <!-- خلاصه -->
+                <div class="row text-center mb-4">
+
+                    <div class="col-md-3">
+                        <div class="badge-primary">
+                            شارژ ماهیانه
+                            <br>
+                            {{ unit.monthly_debt|three_digit_currency }}
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="badge-warning">
+                            بدهی عمرانی
+                            <br>
+                            {{ unit.civil_debt|three_digit_currency }}
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="badge-info">
+                            بدهی فاضلاب
+                            <br>
+                            {{ unit.sewage_debt|three_digit_currency }}
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="badge-danger">
+                            جمع کل
+                            <br>
+                            {{ unit.total_debt|three_digit_currency }}
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- شارژ ماهیانه -->
+
+                <h5 class="mb-3">شارژهای پرداخت نشده</h5>
+
+                <table class="table table-bordered">
+
+                    <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>شرح</th>
+                        <th>اصل شارژ</th>
+                        <th>جریمه</th>
+                        <th>قابل پرداخت</th>
+                        <th>سررسید</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+
+                    {% for charge in unit.charges %}
+                    <tr>
+
+                        <td>{{ forloop.counter|to_persian_number }}</td>
+
+                        <td>
+                            {{ charge.title|default:"شارژ ماهیانه"|to_persian_number }}
+                        </td>
+
+                        <td>
+                            {{ charge.base_charge|three_digit_currency }}
+                        </td>
+
+                        <td class="text-danger">
+                            {{ charge.penalty_amount|default:0|three_digit_currency }}
+                        </td>
+
+                        <td class="fw-bold text-danger">
+                            {{ charge.total_charge_month|three_digit_currency }}
+                        </td>
+
+                        <td>
+                            {{ charge.payment_deadline_date|show_jalali }}
+                        </td>
+
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">
+                            بدهی شارژ ماهیانه وجود ندارد
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+                <!-- عمرانی -->
+
+                <h5 class="mt-5 mb-3">
+                    اقساط عمرانی پرداخت نشده
+                </h5>
+
+                <table class="table table-bordered">
+
+                    <thead class="table-warning">
+                    <tr>
+                        <th>#</th>
+                        <th>عنوان</th>
+                        <th>شماره قسط</th>
+                        <th>مبلغ</th>
+                        <th>سررسید</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+
+                    {% for item in unit.civil_installments %}
+                    <tr>
+
+                        <td>{{ forloop.counter|to_persian_number }}</td>
+
+                        <td>
+                            {{ item.civil_manage.name|to_persian_number }}
+                        </td>
+
+                        <td>
+                            {{ item.installment_number|to_persian_number }}
+                        </td>
+
+                        <td>
+                            {{ item.amount|three_digit_currency }}
+                        </td>
+
+                        <td>
+                            {{ item.due_date|show_jalali }}
+                        </td>
+
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">
+                            بدهی عمرانی ثبت نشده است
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+                <!-- فاضلاب -->
+
+                <h5 class="mt-5 mb-3">
+                    اقساط فاضلاب پرداخت نشده
+                </h5>
+
+                <table class="table table-bordered">
+
+                    <thead class="table-info">
+                    <tr>
+                        <th>#</th>
+                        <th>عنوان</th>
+                        <th>شماره قسط</th>
+                        <th>مبلغ</th>
+                        <th>سررسید</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+
+                    {% for item in unit.sewage_installments %}
+                    <tr>
+
+                        <td>{{ forloop.counter|to_persian_number }}</td>
+
+                        <td>
+                            {{ item.sewage_manage.name|to_persian_number }}
+                        </td>
+
+                        <td>
+                            {{ item.installment_number|to_persian_number }}
+                        </td>
+
+                        <td>
+                            {{ item.amount|three_digit_currency }}
+                        </td>
+
+                        <td>
+                            {{ item.due_date|show_jalali }}
+                        </td>
+
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">
+                            بدهی فاضلاب ثبت نشده است
+                        </td>
+                    </tr>
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button
+                        type="button"
+                        class="btn btn-gradient-danger"
+                        data-bs-dismiss="modal">
+                    بستن
+                </button>
+
+            </div>
+
         </div>
-
-        <!-- Data rows -->
-        {% for charge in unit.charges %}
-        <div class="row g-0 text-center">
-          <div class="col-1 border">
-              {{ forloop.counter|to_persian_number }}
-          </div>
-          <div class="col-3 border">
-              {{ charge.title|to_persian_number }}
-          </div>
-          <div class="col-2 border">
-              {{ charge.total_charge_month|three_digit_currency }}
-          </div>
-          <div class="col-2 border text-danger">
-              {{ charge.penalty_amount|default:0|three_digit_currency }}
-          </div>
-          <div class="col-2 border fw-bold text-danger">
-              {{ charge.total_charge_month|three_digit_currency }}
-          </div>
-          <div class="col-2 border">
-              {{ charge.payment_deadline_date|show_jalali }}
-          </div>
-        </div>
-        {% empty %}
-        <div class="row g-0 text-center">
-          <div class="col-12 border py-3">
-              بدهی ثبت نشده است
-          </div>
-        </div>
-        {% endfor %}
-
-        <!-- Total -->
-        <div class="row g-0 text-center fw-bold bg-light mt-2">
-          <div class="col-8 border py-2">
-              جمع کل بدهی
-          </div>
-          <div class="col-4 border py-2 text-danger">
-              {{ unit.total_debt|three_digit_currency }} تومان
-          </div>
-        </div>
-
-      </div>
-
-      <div class="modal-footer">
-        <button type="button"
-                class="btn btn-gradient-danger"
-                data-bs-dismiss="modal">
-            بستن
-        </button>
-      </div>
 
     </div>
-  </div>
+
 </div>
+
 {% endfor %}
-
-            </tr>
-
-            {% empty %}
-            <tr>
-                <td colspan="3" class="text-center">هیچ واحد بدکاری وجود ندارد.</td>
-            </tr>
-
-            {% endfor %}
-
-        </tbody>
-
-    </table>
-
 
 
    <!-- Pagination -->

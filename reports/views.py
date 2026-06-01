@@ -1738,83 +1738,235 @@ def middle_sewage_installments_report_pdf(request, sewage_id, unit_id):
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def debtor_units_report(request):
     query = request.GET.get('q', '').strip()
-    # -------------------------
-    # Unpaid charges
-    # -------------------------
+
+    # ------------------------------------
+    # شارژهای پرداخت نشده
+    # ------------------------------------
     charges = (
         UnifiedCharge.objects
-        .filter(is_paid=False, unit__isnull=False, user=request.user)
+        .filter(
+            is_paid=False,
+            unit__isnull=False,
+            user=request.user
+        )
         .select_related('unit')
         .order_by('-created_at')
     )
 
-    # -------------------------
-    # Update penalties for unpaid charges
-    # -------------------------
+    # ------------------------------------
+    # اقساط عمرانی پرداخت نشده
+    # ------------------------------------
+    civil_installments = (
+        CivilInstallment.objects
+        .filter(
+            is_paid=False,
+            unit__isnull=False,
+            civil_manage__user=request.user
+        )
+        .select_related(
+            'unit',
+            'civil_manage'
+        )
+    )
+
+    # ------------------------------------
+    # اقساط فاضلاب پرداخت نشده
+    # ------------------------------------
+    sewage_installments = (
+        SewageInstallment.objects
+        .filter(
+            is_paid=False,
+            unit__isnull=False,
+            sewage_manage__user=request.user
+        )
+        .select_related(
+            'unit',
+            'sewage_manage'
+        )
+    )
+
+    # ------------------------------------
+    # جستجو
+    # ------------------------------------
     if query:
-        charges = charges.filter(
+        search_filter = (
             Q(unit__unit__icontains=query) |
             Q(unit__owner_name__icontains=query) |
             Q(unit__renters__renter_name__icontains=query)
-        ).distinct()
+        )
 
-    charges = charges.order_by('-created_at')
+        charges = charges.filter(search_filter).distinct()
 
-    # -------------------------
-    # Update penalties for unpaid charges
-    # -------------------------
+        civil_installments = (
+            civil_installments
+            .filter(search_filter)
+            .distinct()
+        )
+
+        sewage_installments = (
+            sewage_installments
+            .filter(search_filter)
+            .distinct()
+        )
+
+    # ------------------------------------
+    # بروزرسانی جریمه شارژها
+    # ------------------------------------
     for charge in charges:
         charge.update_penalty()
-        charge.save(update_fields=['total_charge_month', 'penalty_amount'])
 
-    # -------------------------
-    # Organize charges per unit
-    # -------------------------
+        charge.save(
+            update_fields=[
+                'total_charge_month',
+                'penalty_amount'
+            ]
+        )
+
+    # ------------------------------------
+    # ساخت دیکشنری واحدها
+    # ------------------------------------
     units = defaultdict(lambda: {
         'id': None,
         'label': '',
+
+        'monthly_debt': 0,
+        'civil_debt': 0,
+        'sewage_debt': 0,
         'total_debt': 0,
-        'charges': []
+
+        'charges': [],
+        'civil_installments': [],
+        'sewage_installments': [],
     })
 
+    # ------------------------------------
+    # بدهی شارژ ماهیانه
+    # ------------------------------------
     for charge in charges:
         unit = charge.unit
+
         renter = unit.get_active_renter()
+
         label = (
-            f"واحد {unit.unit} - {renter.renter_name}" if renter
-            else f"واحد {unit.unit} - {unit.owner_name}"
+            f"واحد {unit.unit} - {renter.renter_name}"
+            if renter else
+            f"واحد {unit.unit} - {unit.owner_name}"
         )
 
         data = units[unit.id]
+
         data['id'] = unit.id
         data['label'] = label
-        data['total_debt'] += charge.total_charge_month or 0
+
+        data['monthly_debt'] += (
+            charge.total_charge_month or 0
+        )
+
         data['charges'].append(charge)
 
-    # -------------------------
-    # Sort units by total debt
-    # -------------------------
+    # ------------------------------------
+    # بدهی عمرانی
+    # ------------------------------------
+    for installment in civil_installments:
+        unit = installment.unit
+
+        renter = unit.get_active_renter()
+
+        label = (
+            f"واحد {unit.unit} - {renter.renter_name}"
+            if renter else
+            f"واحد {unit.unit} - {unit.owner_name}"
+        )
+
+        data = units[unit.id]
+
+        data['id'] = unit.id
+        data['label'] = label
+
+        data['civil_debt'] += installment.amount
+
+        data['civil_installments'].append(
+            installment
+        )
+
+    # ------------------------------------
+    # بدهی فاضلاب
+    # ------------------------------------
+    for installment in sewage_installments:
+        unit = installment.unit
+
+        renter = unit.get_active_renter()
+
+        label = (
+            f"واحد {unit.unit} - {renter.renter_name}"
+            if renter else
+            f"واحد {unit.unit} - {unit.owner_name}"
+        )
+
+        data = units[unit.id]
+
+        data['id'] = unit.id
+        data['label'] = label
+
+        data['sewage_debt'] += installment.amount
+
+        data['sewage_installments'].append(
+            installment
+        )
+
+    # ------------------------------------
+    # محاسبه جمع کل بدهی هر واحد
+    # ------------------------------------
+    for data in units.values():
+        data['total_debt'] = (
+            data['monthly_debt']
+            + data['civil_debt']
+            + data['sewage_debt']
+        )
+
+    # ------------------------------------
+    # مرتب سازی بر اساس بیشترین بدهی
+    # ------------------------------------
 
     units_with_debt = sorted(
         units.values(),
         key=lambda x: x['id'],
         reverse=True
     )
-    total_debt_all_units = sum(unit['total_debt'] for unit in units_with_debt)
 
-    # Pagination
-    # -------------------------
-    paginate_by = int(request.GET.get('paginate', 20))
+    total_debt_all_units = sum(
+        unit['total_debt']
+        for unit in units_with_debt
+    )
+
+    # ------------------------------------
+    # صفحه بندی
+    # ------------------------------------
+    paginate_by = int(
+        request.GET.get('paginate', 20)
+    )
+
     page_number = request.GET.get('page', 1)
-    paginator = Paginator(units_with_debt, paginate_by)
-    page_obj = paginator.get_page(page_number)
 
-    return render(request, 'debtor_creditor_report.html', {
-        'units_with_debt': page_obj.object_list,
-        'total_debt_all_units': total_debt_all_units,
-        'page_obj': page_obj,
-        'query': query,
-    })
+    paginator = Paginator(
+        units_with_debt,
+        paginate_by
+    )
+
+    page_obj = paginator.get_page(
+        page_number
+    )
+
+    return render(
+        request,
+        'debtor_creditor_report.html',
+        {
+            'units_with_debt': page_obj.object_list,
+            'total_debt_all_units': total_debt_all_units,
+            'page_obj': page_obj,
+            'query': query,
+        }
+    )
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -3509,6 +3661,31 @@ def house_balance_view(request):
             Sum('total_charge_month'))[
             'total_charge_month__sum']
 
+    # اقساط عمرانی پرداخت نشده
+    total_civil_unpaid = (
+                             CivilInstallment.objects.filter(
+                                 is_paid=False,
+                                 civil_manage__user=request.user
+                             )
+                             .aggregate(total=Sum('amount'))
+                         )['total'] or 0
+
+    # اقساط فاضلاب پرداخت نشده
+    total_sewage_unpaid = (
+                              SewageInstallment.objects.filter(
+                                  is_paid=False,
+                                  sewage_manage__user=request.user
+                              )
+                              .aggregate(total=Sum('amount'))
+                          )['total'] or 0
+
+    # جمع کل بدهی واحدها
+    total_units_debt = (
+            total_charge_unpaid
+            + total_civil_unpaid
+            + total_sewage_unpaid
+    )
+
     # =================================== part 2 =====================
 
     total_incomes_exclude_unpaid = Income.objects.filter(is_paid=False,
@@ -3623,6 +3800,12 @@ def house_balance_view(request):
     # ----------------------------------------- part 5 --------------------------
 
     total_amount_assets_debts = (total_assets or 0) - (total_debts or 0)
+    total_status = (
+            (balance or 0)
+            + (total_incomes_exclude_unpaid or 0)
+            + (total_units_debt or 0)
+            - (total_expenses_exclude_unpaid or 0)
+    )
 
     context = {
         'house': house,
@@ -3651,7 +3834,9 @@ def house_balance_view(request):
         'utility_expenses': utility_expenses,
         'salary_expenses': salary_expenses,
         'insurance_expenses': insurance_expenses,
-        'banks_balance': banks_balance
+        'banks_balance': banks_balance,
+        'total_status': total_status,
+        'total_units_debt': total_units_debt
 
     }
     return render(request, 'house_balance.html', context)

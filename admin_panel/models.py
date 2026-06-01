@@ -15,6 +15,8 @@ from django.utils.functional import cached_property
 from django.utils.safestring import mark_safe
 from datetime import date, timedelta
 
+from jalali_date import date2jalali
+
 from user_app.models import Unit, User, Bank, MyHouse
 
 
@@ -1515,3 +1517,31 @@ class Subscription(models.Model):
                 self.status = "expired"
                 self.is_trial = False
                 self.save(update_fields=["status", "is_trial"])
+
+
+class Coupon(models.Model):
+    code = models.CharField(max_length=50, unique=True)
+    valid_from = models.DateTimeField()
+    valid_to = models.DateTimeField()
+    discount = models.IntegerField()
+    active = models.BooleanField()
+
+    def __str__(self):
+        return self.code
+
+    def clean(self):
+        """
+        Validate that valid_to is greater than valid_from.
+        """
+        if self.valid_to <= self.valid_from:
+            raise ValidationError("تاریخ پایان باید پس از تاریخ شروع باشد.")
+
+    def is_valid(self):
+        now = timezone.now()
+        return (
+                self.active
+                and self.valid_from <= now <= self.valid_to
+        )
+
+    def get_jalali_date(self):
+        return date2jalali(self.valid_from)
