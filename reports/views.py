@@ -3588,6 +3588,35 @@ def export_pay_receive_report_excel(request):
     wb.save(response)
     return response
 
+# =========================================================
+@method_decorator(middle_admin_required, name='dispatch')
+class UserHelpMoneyView(ListView):
+    model = UserPayMoney
+    template_name = 'report_user_pay_money.html'
+    context_object_name = 'payments'
+    paginate_by = 50
+
+    def get_queryset(self):
+        print(UserPayMoney.objects.filter(user=self.request.user).count())
+        house = MyHouse.objects.filter(user=self.request.user).first()
+        return (
+            UserPayMoney.objects
+            .filter(house=house)
+            .select_related('unit', 'bank', 'house')
+            .order_by('-id')
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context['total_amount'] = (
+            self.object_list.aggregate(
+                total=Sum('amount')
+            )['total'] or 0
+        )
+
+        return context
+
 
 # ==============================================================
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -3636,8 +3665,7 @@ def house_balance_view(request):
 
     banks_balance = Bank.objects.filter(
         user=request.user,
-        is_active=True,
-
+        is_active=True
     ).annotate(
         balance=Subquery(last_balance.values('balance_after')[:1])
     )
@@ -3655,6 +3683,7 @@ def house_balance_view(request):
     )
     # موجودی صندوق
     balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
+
 
     total_charge_unpaid = \
         UnifiedCharge.objects.filter(is_paid=False, user=request.user, **payment_filter).aggregate(
@@ -3681,9 +3710,9 @@ def house_balance_view(request):
 
     # جمع کل بدهی واحدها
     total_units_debt = (
-            total_charge_unpaid
-            + total_civil_unpaid
-            + total_sewage_unpaid
+            total_charge_unpaid or 0
+            + total_civil_unpaid or 0
+            + total_sewage_unpaid or 0
     )
 
     # =================================== part 2 =====================
@@ -3958,3 +3987,6 @@ def middleFund_report_pdf(request):
     response = HttpResponse(pdf_file, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="fund_middle_report.pdf"'
     return response
+
+
+

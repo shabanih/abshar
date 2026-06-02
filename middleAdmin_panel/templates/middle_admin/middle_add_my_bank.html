@@ -36,7 +36,7 @@
                                         <th>شماره شبا</th>
                                         <th>شماره کارت</th>
                                         <th> اول دوره</th>
-                                        <th>مانده کنونی</th>
+                                        <th>تاریخ افتتاح</th>
                                         <th>فعال/حساب پیش فرض</th>
                                         <th>دستورات</th>
                                     </tr>
@@ -52,7 +52,7 @@
                                             <td>{{bank.sheba_number|to_persian_number }}</td>
                                             <td>{{bank.cart_number|four_digit_cart }}</td>
                                             <td>{{bank.initial_fund|three_digit_currency }}</td>
-                                            <td>{{bank.current_balance|three_digit_currency }}</td>
+                                            <td>{{bank.create_at|show_jalali }}</td>
                                               <td>
                                                {% if bank.is_active == True %}
                                                 <button class="btn btn-primary bg-gradient-success p-1">فعال</button>
@@ -74,7 +74,7 @@
                                            data-account_no="{{ bank.account_no }}"
                                            data-sheba_number="{{ bank.sheba_number }}"
                                            data-cart_number="{{ bank.cart_number }}"
-                                           data-initial_fund="{{ bank.initial_fund|three_digit_currency }}"
+                                           data-initial_fund="{{ bank.initial_fund }}"
                                            data-is_active="{{ bank.is_active|yesno:'1,0' }}"
                                            data-is_default="{{ bank.is_default|yesno:'1,0' }}"
                                            data-is_gateway="{{ bank.is_gateway|yesno:'1,0' }}"

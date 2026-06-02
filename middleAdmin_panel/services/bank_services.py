@@ -1,5 +1,8 @@
 import uuid
 from decimal import Decimal
+
+import jdatetime
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.contrib.contenttypes.models import ContentType
 
@@ -129,3 +132,21 @@ class BankTransactionService:
 
         return True
 
+
+def validate_bank_transaction_date(bank, payment_date):
+    """
+    جلوگیری از ثبت تراکنش قبل از تاریخ افتتاح حساب
+    """
+
+    if not bank or not payment_date:
+        return
+
+    opening_date = bank.create_at.date()
+
+    if payment_date < opening_date:
+        opening_date_jalali = jdatetime.date.fromgregorian(date=opening_date)
+
+        raise ValidationError(
+            f'تاریخ تراکنش نمی‌تواند قبل از تاریخ افتتاح حساب '
+            f'({opening_date_jalali.strftime("%Y/%m/%d")}) باشد.'
+        )

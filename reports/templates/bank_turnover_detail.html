@@ -18,6 +18,7 @@
 <table class="table table-bordered">
     <thead>
         <tr>
+            <th>#</th>
             <th>تاریخ</th>
             <th>شرح</th>
             <th>بدهکار</th>
@@ -28,6 +29,7 @@
     <tbody>
         {% for t in bank_funds %}
         <tr>
+            <td>{{ forloop.counter|to_persian_number}}</td>
             <td>{{ t.payment_date|show_jalali }}</td>
             <td>{{ t.payment_description|to_persian_number }}</td>
             <td>

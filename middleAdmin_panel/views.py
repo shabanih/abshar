@@ -1127,6 +1127,7 @@ class middleBankUpdateView(UpdateView):
             BankTransactionService.deposit(
                 user=self.request.user,
                 bank=bank,
+                unit=None,
                 amount=delta,
                 description=f"افزایش موجودی افتتاحیه بانک {bank.bank_name}",
                 content_object=bank,
@@ -2773,18 +2774,20 @@ class MiddleIncomeView(CreateView):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def income_pay_view(request, income_id):
+
+    income = get_object_or_404(
+        Income,
+        id=income_id,
+        is_paid=False,
+        is_active=True
+    )
+
     if request.method == 'POST':
         form = IncomePayForm(request.POST, user=request.user)
 
         if form.is_valid():
             try:
                 with transaction.atomic():
-
-                    income = Income.objects.select_for_update().get(
-                        id=income_id,
-                        is_paid=False,
-                        is_active=True
-                    )
 
                     bank = form.cleaned_data['bank']
                     reference = form.cleaned_data.get('transaction_reference')
@@ -2810,6 +2813,7 @@ def income_pay_view(request, income_id):
                         payment_description=f'درآمد: {income.category.subject}',
                         is_paid=True,
                     )
+
                     BankTransactionService.deposit(
                         user=request.user,
                         bank=bank,
@@ -2844,27 +2848,17 @@ def income_pay_view(request, income_id):
                 return redirect('middle_register_income')
 
             except ValidationError as e:
-                messages.error(request, e.message)
+                messages.error(request, str(e))
             except Exception as e:
                 messages.error(request, f'خطا در دریافت: {e}')
 
     else:
         form = IncomePayForm(user=request.user)
-        income = get_object_or_404(
-            Income,
-            id=income_id,
-            is_paid=False,
-            is_active=True
-        )
 
-    return render(
-        request,
-        'middle_income_templates/income_pay.html',
-        {
-            'income': income,
-            'form': form
-        }
-    )
+    return render(request, 'middle_income_templates/income_pay.html', {
+        'income': income,
+        'form': form
+    })
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)

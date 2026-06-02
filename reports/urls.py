@@ -18,6 +18,7 @@ urlpatterns = [
     path('history/property/', views.ReportPropertyView.as_view(), name='property_history_report'),
     path('history/maintenance/', views.ReportMaintenanceView.as_view(), name='maintenance_history_report'),
     path('pay/receive/', views.PayReceiveReportView.as_view(), name='pay_receive_report'),
+    path('user/pay/report/', views.UserHelpMoneyView.as_view(), name='user_pay_report'),
 
     path('middle-charge/report/pdf/', views.charge_units_list_report_pdf, name='charge_units_list_report_pdf'),
     path('middle-charge-report/excel/', views.charge_units_list_report_excel, name='charge_units_list_report_excel'),

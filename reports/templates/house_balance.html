@@ -5,7 +5,7 @@
   بیلان ساختمان<span class="text-center text-small font-weight-bold "> (    {% if not start_date %}
         از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
     {% else %}
-        از تاریخ {{ start_date }} تا {{ end_date }}
+        از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
     {% endif %})</span>
 {% endblock page_title %}
 
@@ -22,7 +22,7 @@
                        data-jdp-only-date
                        class="form-control"
                        placeholder="شروع تاریخ"
-                       value="{{ start_date|default_if_none:'' }}">                              
+                       value="{{ start_date|default_if_none:''|to_persian_number }}">                              
             </div>
             <div class="col-12 col-xl-3 col-md-3">
                 <input type="text"
@@ -31,7 +31,7 @@
                    data-jdp-only-date
                    class="form-control"
                    placeholder="پایان تاریخ"
-                   value="{{ end_date|default_if_none:'' }}">
+                   value="{{ end_date|default_if_none:''|to_persian_number }}">
             </div>
             <div class="col-12 col-xl-3 col-md-3">
                 <select class="form-control form-control-sm" name="bank">
@@ -59,10 +59,10 @@
       <div class="col">
         <div class="card h-100 shadow-lg">
                <div class="card-footer text-center bg-gradient-success">
-            <h5 class="fw-bold shadow_lg text-white mt-2 ">وضعیت کلی ساختمان (    {% if not start_date %}
+            <h5 class="fw-bold shadow_lg text-white mt-2 ">آخرین وضعیت حساب های بانکی ساختمان (    {% if not start_date %}
         از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
     {% else %}
-        از تاریخ {{ start_date }} تا {{ end_date }}
+        از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
     {% endif %})</h5>
           </div>
           <div class="card-body py-1">
@@ -75,8 +75,8 @@
     <div class="col text-start">
         <p class="fw-bold" style="font-size:14px">
             {% if bank.balance %}
-                {{ bank.balance|default:0|three_digit_currency }}تومان 
-                 <a href="" class="me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
+                     {{ bank.balance|default:0|three_digit_currency }}  تومان  
+                 <a href="{% url 'middle_bank_list' %}" class="me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
             {% else %}
                 <span class="zero-bill">۰</span>
             {% endif %}
@@ -128,7 +128,7 @@
                         {% if not start_date %}
                             از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
                         {% else %}
-                            از تاریخ {{ start_date }} تا {{ end_date }}
+                            از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
                         {% endif %}
                        </p>
                         <p class="card-text text-danger fw-bold">
@@ -138,7 +138,7 @@
                                 --
                             {% endif %} 
                         </p>
-            <a href="" class="btn btn-primary px-3 py-2 mt-3">مشاهده جزئیات</a>
+            <a href="{% url 'income_history_report' %}" class="btn btn-primary px-3 py-2 mt-3">مشاهده جزئیات</a>
           </div>
         </div>
       </div>
@@ -150,7 +150,7 @@
     {% if not start_date %}
         از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
     {% else %}
-        از تاریخ {{ start_date }} تا {{ end_date }}
+        از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
     {% endif %}
 </p>
             <p class="card-text text-danger fw-bold">
@@ -160,7 +160,7 @@
               --
                 {% endif %}
             </p>
-            <a href="" class="btn btn-primary px-3 py-2 mt-3">مشاهده جزئیات</a>
+            <a href="{% url 'expense_history_report' %}" class="btn btn-primary px-3 py-2 mt-3">مشاهده جزئیات</a>
           </div>
         </div>
       </div>
@@ -172,7 +172,7 @@
     {% if not start_date %}
         از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
     {% else %}
-        از تاریخ {{ start_date }} تا {{ end_date }}
+        از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
     {% endif %}
 </p>
             <p class="card-text text-danger fw-bold">
@@ -182,7 +182,7 @@
                              --
                           {% endif %} 
             </p>
-            <a href="" class="btn btn-primary px-3 py-2 mt-3">مشاهده جزئیات</a>
+            <a href="{% url 'charge_notify_report_list' %}" class="btn btn-primary px-3 py-2 mt-3">مشاهده جزئیات</a>
           </div>
         </div>
       </div>
@@ -210,7 +210,7 @@
     {% if not start_date %}
         از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
     {% else %}
-        از تاریخ {{ start_date }} تا {{ end_date }}
+        از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
     {% endif %}
 </p>
                   </div>
@@ -218,7 +218,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_incomes %}
                           	  {{ total_incomes |three_digit_currency }}  تومان  
-                              <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
+                              <a href="{% url 'income_history_report' %}" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                               <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -234,7 +234,7 @@
     {% if not start_date %}
         از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
     {% else %}
-        از تاریخ {{ start_date }} تا {{ end_date }}
+        از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
     {% endif %}
 </p>
                   </div>
@@ -242,7 +242,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_charges %}
                           	  {{ total_charges |three_digit_currency }}  تومان  
-                              <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
+                              <a href="{% url 'charge_notify_report_list' %}" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                                <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -258,7 +258,7 @@
     {% if not start_date %}
         از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
     {% else %}
-        از تاریخ {{ start_date }} تا {{ end_date }}
+        از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
     {% endif %}
 </p>
                   </div>
@@ -266,7 +266,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_civil %}
                           	  {{ total_civil |three_digit_currency }}  تومان  
-                                <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
+                                <a href="{% url 'middle_charge_civil_report_list' %}" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                                <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -282,7 +282,7 @@
                                 {% if not start_date %}
                                     از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
                                 {% else %}
-                                    از تاریخ {{ start_date }} تا {{ end_date }}
+                                    از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
                                 {% endif %}
                             </p>
                   </div>
@@ -290,7 +290,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_unit_pay %}
                           	  {{ total_unit_pay |three_digit_currency }}  تومان  
-                              <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
+                              <a href="{% url 'user_pay_report' %}" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                                <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -306,7 +306,7 @@
                                     {% if not start_date %}
                                         از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
                                     {% else %}
-                                        از تاریخ {{ start_date }} تا {{ end_date }}
+                                        از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
                                     {% endif %}
                                                                 
                                 </p>
@@ -315,7 +315,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_receive_money %}
                           	    {{ total_receive_money |three_digit_currency }}  تومان  
-                        <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
+                        <a href="{% url 'pay_receive_report' %}" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                               <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -346,7 +346,7 @@
                         {% if not start_date %}
                             از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
                         {% else %}
-                            از تاریخ {{ start_date }} تا {{ end_date }}
+                          از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
                         {% endif %}
                     </p>
                   </div>
@@ -354,7 +354,7 @@
                       <p class="text-lg fw-bold" style="font-size: 14px">
                           {% if total_expenses %}
                           	{{ total_expenses |three_digit_currency }}  تومان 
-                              <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
+                              <a href="{% url 'expense_history_report' %}" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                                <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -370,7 +370,7 @@
                                 {% if not start_date %}
                                     از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
                                 {% else %}
-                                    از تاریخ {{ start_date }} تا {{ end_date }}
+                                   از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
                                 {% endif %}
                             </p>
                   </div>
@@ -378,7 +378,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_pay_money %}
                                {{ total_pay_money |three_digit_currency }}  تومان
-                                   <a href=""  class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
+                                   <a href="{% url 'pay_receive_report' %}"  class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                           	 <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -394,7 +394,7 @@
                                 {% if not start_date %}
                                     از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
                                 {% else %}
-                                    از تاریخ {{ start_date }} تا {{ end_date }}
+                                    از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
                                 {% endif %}
                             </p>
                   </div>
@@ -402,7 +402,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_maintenances %}
                                {{ total_maintenances |three_digit_currency }}  تومان
-                               <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
+                               <a href="{% url 'maintenance_history_report' %}" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
 
                               {% else %}
                           	 <span class="zero-bill">۰</span>
@@ -418,7 +418,7 @@
                                 {% if not start_date %}
                                     از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
                                 {% else %}
-                                    از تاریخ {{ start_date }} تا {{ end_date }}
+                                    از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
                                 {% endif %}
                             </p>
                   </div>
@@ -426,7 +426,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if insurance_expenses %}
                                {{ insurance_expenses |three_digit_currency }}  تومان
-                               <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
+                               <a href="{% url 'expense_history_report' %}" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                          <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -442,7 +442,7 @@
                                 {% if not start_date %}
                                     از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
                                 {% else %}
-                                    از تاریخ {{ start_date }} تا {{ end_date }}
+                                    از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
                                 {% endif %}
                             </p>
                   </div>
@@ -450,7 +450,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_properties %}
                                {{ total_properties |three_digit_currency }}  تومان
-                               <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
+                               <a href="{% url 'property_history_report' %}" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
 
                               {% else %}
                           	 <span class="zero-bill">۰</span>
@@ -468,7 +468,7 @@
                                 {% if not start_date %}
                                     از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
                                 {% else %}
-                                    از تاریخ {{ start_date }} تا {{ end_date }}
+                                    از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
                                 {% endif %}
                             </p>
                   </div>
@@ -476,7 +476,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if utility_expenses %}
                                {{ utility_expenses |three_digit_currency }}  تومان
-                               <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
+                               <a href="{% url 'expense_history_report' %}" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                           	 <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -493,7 +493,7 @@
                                 {% if not start_date %}
                                     از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
                                 {% else %}
-                                    از تاریخ {{ start_date }} تا {{ end_date }}
+                                    از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
                                 {% endif %}
                             </p>
                   </div>
@@ -501,7 +501,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if salary_expenses %}
                                {{ salary_expenses |three_digit_currency }}  تومان
-                              <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
+                              <a href="{% url 'expense_history_report' %}" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
                               {% else %}
                           	 <span class="zero-bill">۰</span>
                           {% endif %} 
@@ -517,7 +517,7 @@
                                 {% if not start_date %}
                                     از تاریخ {{ house.created_at|show_jalali_admin }}    تا امروز 
                                 {% else %}
-                                    از تاریخ {{ start_date }} تا {{ end_date }}
+                                    از تاریخ {{ start_date|to_persian_number }} تا {{ end_date|to_persian_number }}
                                 {% endif %}
                             </p>
                   </div>
@@ -525,7 +525,7 @@
                       <p class="fw-bold" style="font-size: 14px">
                           {% if total_sewage %}
                                {{ total_sewage |three_digit_currency }}  تومان
-                                  <a href="" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
+                                  <a href="{% url 'middle_sewage_report_list' %}" class=" me-3"><i class="fa fa-eye" title="مشاهده"></i></a>
 
                               {% else %}
                           	 <span class="zero-bill">۰</span>

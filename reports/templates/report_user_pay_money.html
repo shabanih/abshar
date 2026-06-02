@@ -1,0 +1,213 @@
+{% extends 'middleShared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% block page_title %}
+گزارش کمک ساکنین
+{% endblock page_title %}
+
+{% block main_content %}
+    <hr/>
+<div class="container p-0">
+ 
+      <div class="row align-self-center mb-2">
+      
+          <div class="col-12 col-md-6 col-xl-6">
+              <input type="text" id="searchInput" placeholder="جستجوی سریع در جدول..." onkeyup="searchTableExpense()" class="form-control mb-2 mt-2 p-2">
+          </div>
+          </div>
+
+      <div class="table-responsive">
+                <table class="table table-bordered " id="incomeTable">
+                      <thead>
+                                    <tr class="fw-bold sticky-summary">
+                                        <th class="bg-body text-dark fw-bold" colspan="9">جمع کل</th>
+                                          <th class="bg-light text-dark fw-bold">
+                                            {{ total_amount|three_digit_currency }}
+                                        </th>
+                                  
+                                      
+                                    </tr>
+                            </thead>
+                    <thead class="text-center">
+                    
+                        <tr>
+                            <th>#</th>
+                            <th>واحد</th>
+                            <th>شرح پرداخت</th>
+                         
+                            <th>تاریخ پرداخت</th>
+                            <th>کد رهگیری</th>
+                             <th>توضیحات </th>
+                            <th>تصویر سند</th>
+                             <th>وضعیت پرداخت</th>
+                             <th>حساب بانکی</th>
+                               <th>مبلغ</th>
+{#                            <th>مشاهده جزئیات</th>#}
+                        </tr>
+                    </thead>
+                {% if payments %}
+               {% for pay in payments %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ forloop.counter|to_persian_number }}</td>
+                                <td>{{pay.unit|to_persian_number }}</td>
+                                <td>{{pay.description|to_persian_number }}</td>
+                              
+                                 <td>{{pay.payment_date|show_jalali }}</td>
+                                 <td>{{pay.transaction_reference|to_persian_number }}</td>
+                               <td>
+                                   {% if pay.details %}
+                                       {{ pay.details }}
+                                   	{% else %}
+                                       ندارد
+                                   {% endif %} 
+                             
+                               </td>
+                                 <td class="d-flex justify-content-center align-self-center">
+                                  {% for doc in pay.documents.all %}
+                                        <a href="{{ doc.document.url }}" target="_blank" 
+                                           > 
+                                            <i class="fas fa-image fa-2x me-2"></i></a>
+                                    {% empty %}
+                                     !No File
+                                    {% endfor %}
+                                </td>
+                                 <td>
+                                {% if pay.is_paid %}
+                                	<span class="text-success fw-bold">پرداخت شده</span>
+                                    {% else %}
+                                	<span class="text-danger fw-bold">پرداخت نشده</span>
+                                {% endif %} 
+                              
+                            </td>
+                                 <td>{{ pay.bank.bank_name|to_persian_number }}</td>
+                              <td>{{pay.amount|three_digit_currency }}</td>
+                         
+{#                            {% if not pay.is_paid %}#}
+{##}
+{##}
+{#                                   <td class="col-lg-2 col-xl-2 p-0">#}
+{#                                      <a#}
+{#                                           class="btn btn-gradient-warning p-1 edit-user-pay"#}
+{#                                           data-pay-id="{{ pay.id }}"#}
+{#                                           data-amount="{{ pay.amount }}"#}
+{#                                           data-register_date="{{ pay.register_date|show_jalali}}"#}
+{#                                           data-description="{{ pay.description }}"#}
+{#                                           data-details="{{ pay.details }}"#}
+{#                                           data-images='{{ pay.get_document_urls_json|default:"[]" }}'#}
+{#                                           data-bs-toggle="modal"#}
+{#                                           data-bs-target="#exampleModalLong2">#}
+{#                                           <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>#}
+{#                                        </a>#}
+{##}
+{#                                              <a href="{% url 'user_pay_delete' pay.id %}" class="btn btn-danger p-1"#}
+{#                                           onclick="return confirmDeleteWithSweetAlert(event)">#}
+{#                                                  <i class="mdi mdi-delete" aria-hidden="true"></i>#}
+{#                                                </a>#}
+{#                                    <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ pay.id }}" title="مشاهده جزئیات"#}
+{#                                                        class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>#}
+{#                                                </button>#}
+{#                                    <a href="{% url 'user_pay_money' pay.id %}"#}
+{#                                        class="btn btn-gradient-success px-2 py-2"#}
+{#                                        >#}
+{#                                        پرداخت#}
+{#                                    </a>#}
+                               
+
+{#                            </td>#}
+{#                                {% else %}#}
+{#                                        <td class="col-lg-2 col-xl-2 p-0">#}
+{#                                    <button data-bs-toggle="modal" data-bs-target="#exampleModalLong2{{ pay.id }}" title="نمایش جزئیات"#}
+{#                                                        class="btn btn-gradient-info text-dark px-2 py-1" ><i class="mdi mdi-eye"></i>#}
+{#                                                </button>#}
+{#                            </td>#}
+{#                               {% endif %}#}
+{#                       <div class="modal fade"  id="exampleModalLong2{{ pay.id }}" tabindex="-1" role="dialog" aria-labelledby="modalLabel{{ pay.id }}" aria-hidden="true">#}
+{#                      <div class="modal-dialog" role="document">#}
+{#                        <div class="modal-content">#}
+{#                            <div class="modal-header">#}
+{#                                <h5 class="modal-title" id="modalLabel{{ pay.id }}">مشاهده جزئیات </h5>#}
+{#                            </div>#}
+{#                          <hr/>#}
+{#                            <div class="modal-body text-end">#}
+{#                                 <p><strong>شرح درآمد:</strong> {{ pay.description|to_persian_number }}</p>#}
+{#                                <p><strong>مبلغ:</strong> {{ pay.amount|three_digit_currency }} تومان</p>#}
+{#                                <p><strong>تاریخ ثبت :</strong> {{ pay.register_date|show_jalali_date_only}} </p>#}
+{#                                <p><strong>توضیحات:</strong>#}
+{#                                    {% if pay.details %}#}
+{#                                        <span class="badge bg-warning">{{ pay.details|to_persian_number }} </span>#}
+{#                                        {% else %}#}
+{#                                         ثبت نشده است#}
+{#                                    {% endif %}#}
+{##}
+{#                                </p>#}
+{#                                <hr>#}
+{#                             {% if pay.transaction_reference %} #}
+{#                                <p><strong>تاریخ پرداخت:</strong> {{ pay.payment_date|show_jalali_date_only }}</p>#}
+{#                                <p><strong> کد پیگیری:</strong> {{ pay.transaction_reference|to_persian_number }}</p>#}
+{#                                <p><strong> بانک واریز کننده:</strong> {{ pay.bank.bank_name|to_persian_number }}</p>#}
+{#                                  <p><strong> روش پرداخت:</strong> {{ pay.payment_gateway|to_persian_number }}</p>#}
+{#                            {% endif %}#}
+{#                            #}
+{#                                    <p><strong>وضعیت:</strong> #}
+{#                                    {% if pay.is_paid %}#}
+{#                                    	<span class="badge bg-success">پرداخت شده</span>#}
+{#                                        {% else %}#}
+{#                                        <span class="badge bg-danger">پرداخت نشده</span></p>#}
+{#                                    {% endif %} #}
+{#                            #}
+{#                              #}
+{##}
+{#                            </div>#}
+{#                            <hr/>#}
+{#                            <div class="modal-footer">#}
+{#                                <button type="button" class="btn btn-danger p-2" data-bs-dismiss="modal">بستن</button>#}
+{#                            </div>#}
+{#                        </div>#}
+{#                    </div>#}
+{#                </div>#}
+                            
+                            </tr>
+                        {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
+                            </tr>
+                     <tbody>
+                    {% endif %}
+                </table>
+                   <div class="col-12">
+                    <div class="pagination d-flex justify-content-center mt-5">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="rounded mx-1">قبلی</a>
+                        {% endif %}
+                
+                        {% for page_number in page_obj.paginator.page_range %}
+                            {% if page_number == page_obj.number %}
+                                <a href="?page={{ page_number }}" class="{% if page_obj.number == page_number %}active{% endif %}">{{ page_number }}</a>
+                            {% else %}
+                                <a href="?page={{ page_number }}" class="rounded mx-1">{{ page_number }}</a>
+                            {% endif %}
+                        {% endfor %}
+                
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="rounded mx-1">بعدی</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    <script type="text/javascript" src="https://unpkg.com/@majidh1/jalalidatepicker/dist/jalalidatepicker.min.js"></script>
+
+{% endblock %}
+
+
+
+
+
+
+
+
+
+

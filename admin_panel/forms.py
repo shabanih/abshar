@@ -18,6 +18,7 @@ from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, 
                                 MessageToUser, SmsCredit, AdminMessageToMiddle, AdminSmsManagement, Subscription,
                                 SubscriptionPlan, CivilManage, SewageManage, BankFund)
 from home.models import SliderText
+from middleAdmin_panel.services.bank_services import validate_bank_transaction_date
 
 from user_app.models import Unit, Bank, User, MyHouse, ChargeMethod, Renter
 
@@ -734,6 +735,49 @@ class UnitForm(forms.ModelForm):
             for field in required_fields_if_rented:
                 if not cleaned_data.get(field):
                     self.add_error(field, 'این فیلد الزامی است.')
+
+        # ------------------------------
+        # بررسی تاریخ افتتاح حساب مالک
+        # ------------------------------
+        owner_bank = cleaned_data.get('owner_bank')
+        owner_payment_date = cleaned_data.get('owner_payment_date')
+        if owner_payment_date:
+            if owner_payment_date > datetime.date.today():
+                self.add_error(
+                    "renter_payment_date",
+                    "تاریخ پرداخت نباید از تاریخ امروز بیشتر باشد."
+                )
+
+        if owner_bank and owner_payment_date:
+            try:
+                validate_bank_transaction_date(
+                    owner_bank,
+                    owner_payment_date
+                )
+            except ValidationError as e:
+                self.add_error('owner_payment_date', e.message)
+
+        # ------------------------------
+        # بررسی تاریخ افتتاح حساب مستاجر
+        # ------------------------------
+        renter_bank = cleaned_data.get('renter_bank')
+        renter_payment_date = cleaned_data.get('renter_payment_date')
+
+        if renter_payment_date:
+            if renter_payment_date > datetime.date.today():
+                self.add_error(
+                    "renter_payment_date",
+                    "تاریخ پرداخت نباید از تاریخ امروز بیشتر باشد."
+                )
+
+        if renter_bank and renter_payment_date:
+            try:
+                validate_bank_transaction_date(
+                    renter_bank,
+                    renter_payment_date
+                )
+            except ValidationError as e:
+                self.add_error('renter_payment_date', e.message)
         return cleaned_data
 
     class Meta:
@@ -936,6 +980,37 @@ class RenterAddForm(forms.ModelForm):
         if password or confirm_password:
             if password != confirm_password:
                 self.add_error('confirm_password', "کلمه عبور و تکرار آن باید یکسان باشند.")
+
+            # -------------------------
+            # بررسی تاریخ پرداخت مستاجر
+            # -------------------------
+        renter_bank = cleaned_data.get('renter_bank')
+        renter_payment_date = cleaned_data.get('renter_payment_date')
+
+        if renter_bank and renter_payment_date:
+            validate_bank_transaction_date(renter_bank, renter_payment_date)
+
+        if renter_payment_date:
+            if renter_payment_date > datetime.date.today():
+                self.add_error(
+                    "renter_payment_date",
+                    "تاریخ پرداخت نباید از تاریخ امروز بیشتر باشد."
+                )
+
+
+        # -------------------------
+        # بررسی تاریخ اجاره (اختیاری ولی پیشنهاد میشه)
+        # -------------------------
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+
+        if start_date and end_date:
+            if start_date > end_date:
+                self.add_error('start_date', 'تاریخ شروع نباید بعد از پایان باشد.')
+
+            if renter_bank:
+                validate_bank_transaction_date(renter_bank, start_date)
+
         return cleaned_data
 
     def __init__(self, *args, **kwargs):
@@ -1113,6 +1188,13 @@ class ExpensePayForm(forms.ModelForm):
 
     def clean_payment_date(self):
         date = self.cleaned_data.get('payment_date')
+
+        bank = self.cleaned_data.get('bank')
+        payment_date = self.cleaned_data.get('payment_date')
+
+        if bank and payment_date:
+            validate_bank_transaction_date(bank, payment_date)
+
         if date:
             # تاریخ امروز به شمسی
             today = jdatetime.date.today()
@@ -1325,13 +1407,30 @@ class IncomePayForm(forms.ModelForm):
         return cleaned_data
 
     def clean_payment_date(self):
-        date = self.cleaned_data.get('payment_date')
-        if date:
-            # تاریخ امروز به شمسی
-            today = jdatetime.date.today()
-            if date > today:
-                raise ValidationError("تاریخ پرداخت نمی‌تواند بعد از امروز باشد.")
-        return date
+        doc_date = getattr(self.instance, "doc_date", None)
+        payment_date = self.cleaned_data.get('payment_date')
+        bank = self.cleaned_data.get('bank')
+
+        if not payment_date:
+            return payment_date
+
+            # نباید قبل از تاریخ ثبت سند باشد
+        if doc_date and payment_date < doc_date:
+            raise ValidationError("تاریخ پرداخت نمی‌تواند قبل از تاریخ ثبت سند باشد.")
+
+        # 1️⃣ بررسی تاریخ آینده
+        today = jdatetime.date.today()
+        if payment_date > today:
+            raise ValidationError("تاریخ پرداخت نمی‌تواند بعد از امروز باشد.")
+
+        # 2️⃣ بررسی تاریخ افتتاح بانک
+        if bank:
+            try:
+                validate_bank_transaction_date(bank, payment_date)
+            except ValidationError as e:
+                raise ValidationError(e.message)
+
+        return payment_date
 
 
 class IncomeCategoryForm(forms.ModelForm):
@@ -2766,6 +2865,7 @@ class TransferMoneyForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+
         from_bank = cleaned_data.get('from_bank')
         to_bank = cleaned_data.get('to_bank')
         amount = cleaned_data.get('amount')
@@ -2775,15 +2875,42 @@ class TransferMoneyForm(forms.ModelForm):
         if from_bank and to_bank and from_bank == to_bank:
             raise ValidationError("بانک مبدا و مقصد نمی‌تواند یکسان باشد.")
 
-        # ۲. بررسی موجودی بانک مبدا
+        # ۲. بررسی تاریخ افتتاح بانک مبدا
+        if from_bank and payment_date:
+            bank_open_date = from_bank.create_at.date()
+
+            if payment_date < bank_open_date:
+                self.add_error(
+                    'payment_date',
+                    f'تاریخ انتقال نمی‌تواند قبل از تاریخ افتتاح حساب بانک مبدا باشد.'
+                )
+
+        # ۳. بررسی تاریخ افتتاح بانک مقصد
+        if to_bank and payment_date:
+            bank_open_date = to_bank.create_at.date()
+
+            if payment_date < bank_open_date:
+                self.add_error(
+                    'payment_date',
+                    f'تاریخ انتقال نمی‌تواند قبل از تاریخ افتتاح حساب بانک مقصد باشد.'
+                )
+
+        # ۴. بررسی موجودی بانک مبدا
         if from_bank and amount:
             if from_bank.current_balance < amount:
-                self.add_error('amount', f"موجودی حساب مبدا کافی نیست. (موجودی فعلی: {from_bank.current_balance:,})")
+                self.add_error(
+                    'amount',
+                    f"موجودی حساب مبدا کافی نیست. (موجودی فعلی: {from_bank.current_balance:,})"
+                )
 
-        # ۳. بررسی تاریخ
+        # ۵. بررسی تاریخ آینده
         if payment_date:
-            today = jdatetime.date.today()
+            today = jdatetime.date.today().togregorian()
+
             if payment_date > today:
-                self.add_error('payment_date', "تاریخ انتقال نمی‌تواند بعد از امروز باشد.")
+                self.add_error(
+                    'payment_date',
+                    "تاریخ انتقال نمی‌تواند بعد از امروز باشد."
+                )
 
         return cleaned_data
