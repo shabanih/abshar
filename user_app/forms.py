@@ -9,6 +9,7 @@ from jalali_date.fields import JalaliDateField
 from jalali_date.widgets import AdminJalaliDateWidget
 
 from admin_panel.models import CivilInstallment, SewageInstallment
+from middleAdmin_panel.services.bank_services import validate_bank_transaction_date
 from notifications.models import SupportUser, SupportMessage, AdminTicket, AdminTicketMessage
 from user_app.models import User, Unit, UserPayMoney, Bank
 
@@ -412,16 +413,30 @@ class MiddlePayCivilForm(forms.ModelForm):
             self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.cart_number}" + (
                 " (پیش‌فرض)" if obj.is_default else "")
 
-    def clean_payment_date(self):
-        date = self.cleaned_data.get('payment_date')
-        if date:
-            # تبدیل Jalali به Gregorian
-            gregorian_date = date.togregorian().date() if isinstance(date, jdatetime.date) else date
+    def clean(self):
+        cleaned_data = super().clean()
 
-            today = timezone.now().date()
-            if gregorian_date > today:
-                raise ValidationError("تاریخ پرداخت نمی‌تواند از امروز بیشتر باشد.")
-        return date
+        payment_date = cleaned_data.get('payment_date')
+        bank = cleaned_data.get('bank')
+
+        # 2️⃣ بررسی افتتاح حساب بانک
+        if bank and payment_date:
+            try:
+                validate_bank_transaction_date(bank, payment_date)
+            except ValidationError as e:
+                self.add_error('payment_date', e)
+
+        return cleaned_data
+
+    def clean_payment_date(self):
+        payment_date = self.cleaned_data.get('payment_date')
+
+        if payment_date:
+            today = jdatetime.date.today()
+            if payment_date > today:
+                raise ValidationError("تاریخ پرداخت نمی‌تواند بعد از امروز باشد.")
+
+        return payment_date
 
 
 class MiddlePaySewageForm(forms.ModelForm):
@@ -469,13 +484,27 @@ class MiddlePaySewageForm(forms.ModelForm):
             self.fields['bank'].label_from_instance = lambda obj: f"{obj.bank_name} - {obj.cart_number}" + (
                 " (پیش‌فرض)" if obj.is_default else "")
 
-    def clean_payment_date(self):
-        date = self.cleaned_data.get('payment_date')
-        if date:
-            # تبدیل Jalali به Gregorian
-            gregorian_date = date.togregorian().date() if isinstance(date, jdatetime.date) else date
+    def clean(self):
+        cleaned_data = super().clean()
 
-            today = timezone.now().date()
-            if gregorian_date > today:
-                raise ValidationError("تاریخ پرداخت نمی‌تواند از امروز بیشتر باشد.")
-        return date
+        payment_date = cleaned_data.get('payment_date')
+        bank = cleaned_data.get('bank')
+
+        # 2️⃣ بررسی افتتاح حساب بانک
+        if bank and payment_date:
+            try:
+                validate_bank_transaction_date(bank, payment_date)
+            except ValidationError as e:
+                self.add_error('payment_date', e)
+
+        return cleaned_data
+
+    def clean_payment_date(self):
+        payment_date = self.cleaned_data.get('payment_date')
+
+        if payment_date:
+            today = jdatetime.date.today()
+            if payment_date > today:
+                raise ValidationError("تاریخ پرداخت نمی‌تواند بعد از امروز باشد.")
+
+        return payment_date

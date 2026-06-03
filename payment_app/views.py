@@ -1013,7 +1013,7 @@ def middle_pay_sewage(request, pk):
     house = installment.unit.myhouse
 
     if request.method == 'POST':
-        form = MiddlePayCivilForm(request.POST, instance=installment, house=house)
+        form = MiddlePaySewageForm(request.POST, instance=installment, house=house)
 
         if installment.installment_number > 0:
             prev_installment = SewageInstallment.objects.filter(

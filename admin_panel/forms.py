@@ -1584,32 +1584,50 @@ class ReceivePayForm(forms.ModelForm):
 
             self.fields['unit'].label_from_instance = get_unit_label
 
-    def clean(self):
-        cleaned_data = super().clean()
-
-        payment_date = cleaned_data.get('payment_date')
+    def clean_payment_date(self):
         doc_date = getattr(self.instance, "doc_date", None)
 
-        # تبدیل میلادی به جلالی
+        payment_date = self.cleaned_data.get('payment_date')
+        bank = self.cleaned_data.get('bank')
+
+        if not payment_date:
+            return payment_date
+
+        # تبدیل تاریخ سند به جلالی
         if doc_date:
             doc_date = jdatetime.date.fromgregorian(date=doc_date)
 
-        if payment_date:
-            today = jdatetime.date.today()
+            if payment_date < doc_date:
+                raise ValidationError(
+                    "تاریخ پرداخت نمی‌تواند قبل از تاریخ ثبت سند باشد."
+                )
 
-            # نباید بعد از امروز باشد
-            if payment_date > today:
-                raise ValidationError("تاریخ پرداخت نمی‌تواند بعد از امروز باشد.")
+        # بررسی تاریخ آینده
+        today = jdatetime.date.today()
+        if payment_date > today:
+            raise ValidationError(
+                "تاریخ پرداخت نمی‌تواند بعد از امروز باشد."
+            )
 
-            # نباید قبل از تاریخ ثبت سند باشد
-            if doc_date and payment_date < doc_date:
-                raise ValidationError("تاریخ پرداخت نمی‌تواند قبل از تاریخ ثبت سند باشد.")
+        # بررسی تاریخ افتتاح حساب بانکی
+        if bank:
+            try:
+                validate_bank_transaction_date(bank, payment_date)
+            except ValidationError as e:
+                raise ValidationError(e.message)
+
+        return payment_date
+
+    def clean(self):
+        cleaned_data = super().clean()
 
         unit = cleaned_data.get('unit')
         payer_name = cleaned_data.get('payer_name')
 
         if not unit and not payer_name:
-            raise ValidationError("لطفا یا واحد را انتخاب کنید یا نام پرداخت کننده را وارد نمایید.")
+            raise ValidationError(
+                "لطفا یا واحد را انتخاب کنید یا نام پرداخت کننده را وارد نمایید."
+            )
 
         return cleaned_data
 
@@ -1721,32 +1739,50 @@ class PayMoneyForm(forms.ModelForm):
 
             self.fields['unit'].label_from_instance = get_unit_label
 
+    def clean_payment_date(self):
+        doc_date = getattr(self.instance, "document_date", None)
+
+        payment_date = self.cleaned_data.get('payment_date')
+        bank = self.cleaned_data.get('bank')
+
+        if not payment_date:
+            return payment_date
+
+        # تبدیل تاریخ سند به جلالی
+        if doc_date:
+            doc_date = jdatetime.date.fromgregorian(date=doc_date)
+
+            if payment_date < doc_date:
+                raise ValidationError(
+                    "تاریخ پرداخت نمی‌تواند قبل از تاریخ ثبت سند باشد."
+                )
+
+        # بررسی تاریخ آینده
+        today = jdatetime.date.today()
+        if payment_date > today:
+            raise ValidationError(
+                "تاریخ پرداخت نمی‌تواند بعد از امروز باشد."
+            )
+
+        # بررسی تاریخ افتتاح حساب بانکی
+        if bank:
+            try:
+                validate_bank_transaction_date(bank, payment_date)
+            except ValidationError as e:
+                raise ValidationError(e.message)
+
+        return payment_date
+
     def clean(self):
         cleaned_data = super().clean()
-
-        payment_date = cleaned_data.get('payment_date')
-        document_date = getattr(self.instance, "document_date", None)
-
-        # تبدیل میلادی به جلالی
-        if document_date:
-            document_date = jdatetime.date.fromgregorian(date=document_date)
-
-        if payment_date:
-            today = jdatetime.date.today()
-
-            # نباید بعد از امروز باشد
-            if payment_date > today:
-                raise ValidationError("تاریخ پرداخت نمی‌تواند بعد از امروز باشد.")
-
-            # نباید قبل از تاریخ ثبت سند باشد
-            if document_date and payment_date < document_date:
-                raise ValidationError("تاریخ پرداخت نمی‌تواند قبل از تاریخ ثبت سند باشد.")
 
         unit = cleaned_data.get('unit')
         receiver_name = cleaned_data.get('receiver_name')
 
         if not unit and not receiver_name:
-            raise ValidationError("لطفا یا واحد را انتخاب کنید یا نام دریافت کننده را وارد نمایید.")
+            raise ValidationError(
+                "لطفا یا واحد را انتخاب کنید یا نام دریافت کننده را وارد نمایید."
+            )
 
         return cleaned_data
 
@@ -1873,6 +1909,7 @@ class PropertyPayForm(forms.ModelForm):
 
         payment_date = cleaned_data.get('payment_date')
         property_purchase_date = getattr(self.instance, "property_purchase_date", None)
+        bank = self.cleaned_data.get('bank')
 
         # تبدیل میلادی به جلالی
         if property_purchase_date:
@@ -1888,6 +1925,13 @@ class PropertyPayForm(forms.ModelForm):
             # نباید قبل از تاریخ ثبت سند باشد
             if property_purchase_date and payment_date < property_purchase_date:
                 raise ValidationError("تاریخ پرداخت نمی‌تواند قبل از تاریخ ثبت سند باشد.")
+
+            # بررسی تاریخ افتتاح حساب بانکی
+        if bank:
+            try:
+                validate_bank_transaction_date(bank, payment_date)
+            except ValidationError as e:
+                raise ValidationError(e.message)
 
         return cleaned_data
 
@@ -2003,6 +2047,7 @@ class MaintenancePayForm(forms.ModelForm):
 
         payment_date = cleaned_data.get('payment_date')
         maintenance_start_date = getattr(self.instance, "maintenance_start_date", None)
+        bank = self.cleaned_data.get('bank')
 
         # تبدیل میلادی به جلالی
         if maintenance_start_date:
@@ -2018,6 +2063,13 @@ class MaintenancePayForm(forms.ModelForm):
             # نباید قبل از تاریخ ثبت سند باشد
             if maintenance_start_date and payment_date < maintenance_start_date:
                 raise ValidationError("تاریخ پرداخت نمی‌تواند قبل از تاریخ شروع باشد.")
+
+         # بررسی تاریخ افتتاح حساب بانکی
+        if bank:
+            try:
+                validate_bank_transaction_date(bank, payment_date)
+            except ValidationError as e:
+                raise ValidationError(e.message)
 
         return cleaned_data
 

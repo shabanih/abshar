@@ -253,6 +253,7 @@ Middle_REPORT_PREFIXES = [
     "pay_receive_report",
     "property_history_report",
     "maintenance_history_report",
+    "user_pay_report",
     "house_balance_view",
 
 
