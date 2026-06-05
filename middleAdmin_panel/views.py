@@ -265,7 +265,7 @@ def switch_to_resident(request):
 
     unit = get_single_resident_building(user)
     if not unit:
-        messages.error(request, 'شما یا ساکن واحد نیستید یا بیش از یک ساختمان دارید.')
+        messages.error(request, 'جهت ورود به پنل ابتدا باید واحد خود را ثبت کنید.')
         return redirect('middle_admin_dashboard')
 
     # ✅ تنظیم session
@@ -1136,13 +1136,19 @@ class MiddleUnitRegisterView(CreateView):
                 # -----------------------
                 # 1️⃣ ساخت User مالک
                 # -----------------------
+                house = MyHouse.objects.filter(
+                    user=self.request.user,
+                    is_active=True
+                ).first()
                 owner_mobile = form.cleaned_data.get('owner_mobile')
                 owner_name = form.cleaned_data.get('owner_name')
 
                 owner_user, owner_created = User.objects.get_or_create(
                     mobile=owner_mobile,
                     defaults={
+                        'username': owner_mobile,
                         'full_name': owner_name,
+                        'house' : house,
                         'is_active': True,
                         'manager': self.request.user,
                         'is_unit': True,
@@ -1153,8 +1159,9 @@ class MiddleUnitRegisterView(CreateView):
                 if not owner_created:
                     owner_user.is_unit = True
                     owner_user.manager = self.request.user
+                    owner_user.house = house  # ✅ درست شد
                     owner_user.full_name = owner_name
-                    owner_user.save()
+                    owner_user.save(update_fields=['house', 'full_name', 'manager', 'is_unit'])
 
                 # اگر تازه ساخته شده → پسورد ست شود
                 owner_password = form.cleaned_data.get('owner_password')
@@ -1185,6 +1192,7 @@ class MiddleUnitRegisterView(CreateView):
                     renter_user, renter_created = User.objects.get_or_create(
                         mobile=renter_mobile,
                         defaults={
+                            'username': renter_mobile,
                             'full_name': renter_name,
                             'is_active': True,
                             'manager': self.request.user,
@@ -6297,11 +6305,6 @@ def middle_fix_charge_notification_view(request, pk):
             return redirect(request.path)
 
         with transaction.atomic():
-            # ثبت اعلان سیستمی
-            qs.update(
-                send_notification=True,
-                send_notification_date=timezone.now().date()
-            )
 
             if send_type == 'sms':
                 result = SmsService.send_for_unified_charges(
@@ -6316,16 +6319,33 @@ def middle_fix_charge_notification_view(request, pk):
                     )
                 )
 
-                if result.success:
-                    messages.success(
-                        request,
-                        f'اطلاعیه سیستمی و پیامکی برای {qs.count()} واحد ارسال شد'
-                    )
-                else:
+                # ❗ اگر SMS ناموفق بود => هیچ چیزی ثبت نکن
+                if not result.success:
                     messages.error(request, result.message)
+                    return redirect(request.path)
+
+                # ✅ فقط در صورت موفقیت SMS
+                qs.update(
+                    send_notification=True,
+                    send_notification_date=timezone.now().date()
+                )
+
+                messages.success(
+                    request,
+                    f'اطلاعیه سیستمی و پیامکی برای {qs.count()} واحد ارسال شد'
+                )
 
             else:
-                messages.success(request, f'اطلاعیه سیستمی برای {qs.count()} واحد ثبت شد')
+                # فقط سیستمی
+                qs.update(
+                    send_notification=True,
+                    send_notification_date=timezone.now().date()
+                )
+
+                messages.success(
+                    request,
+                    f'اطلاعیه سیستمی برای {qs.count()} واحد ثبت شد'
+                )
 
         return redirect(request.path)
 

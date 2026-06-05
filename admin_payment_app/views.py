@@ -12,7 +12,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 
-from admin_panel.models import SmsCredit, AdminFund, SubscriptionPlan, Subscription, Coupon, CouponUsage
+from admin_panel.models import SmsCredit, AdminFund, SubscriptionPlan, Subscription
 from payment_app.views import ZP_API_STARTPAY, ZP_API_REQUEST
 from user_app.models import Bank, MyHouse
 

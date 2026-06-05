@@ -237,8 +237,8 @@ class UserRegistrationForm(forms.ModelForm):
                              label='شماره تلفن ')
     full_name = forms.CharField(error_messages=error_message, required=True,
                                 widget=forms.TextInput(attrs=attr3), label='نام ')
-    # username = forms.CharField(error_messages=error_message, required=True,
-    #                            widget=forms.TextInput(attrs=attr3), label='نام کاربری ')
+    username = forms.CharField(error_messages=error_message, required=True,
+                               widget=forms.TextInput(attrs=attr3), label='نام کاربری ')
 
     password = forms.CharField(
         required=False,
@@ -293,7 +293,7 @@ class UserRegistrationForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['full_name', 'mobile', 'password', 'is_active', 'charge_methods', 'is_resident',
+        fields = ['full_name', 'username', 'mobile', 'password', 'is_active', 'charge_methods', 'is_resident',
                   'is_trial', 'is_active']
 
     def clean_mobile(self):
@@ -632,10 +632,12 @@ class UnitForm(forms.ModelForm):
     status_residence = forms.ChoiceField(error_messages=error_message, choices=RESIDENCE_STATUS_CHOICES, required=True,
                                          widget=forms.Select(attrs=attr0),
                                          label='وضعیت سکونت')
-    is_renter = forms.ChoiceField(
-        choices=[('', '--- انتخاب کنید ---'), ('True', 'بله'), ('False', 'خیر')],
-        widget=forms.Select(attrs={'id': 'id_is_renter', 'class': 'form-control'}),
-        label='واحد دارای مستاجر است؟', initial='False'
+    is_renter = forms.TypedChoiceField(
+        choices=((True, 'بله'), (False, 'خیر')),
+        coerce=lambda x: x == 'True',
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label='واحد دارای مستاجر است؟',
+        initial=False
     )
     owner_details = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'rows': 8}), required=False,
                                     label='توضیحات مالک')
@@ -863,7 +865,7 @@ class UnitForm(forms.ModelForm):
     def save(self, commit=True):
         instance = super().save(commit=False)
 
-        is_renter = str(self.cleaned_data.get('is_renter')).lower() == 'true'
+        is_renter = self.cleaned_data.get('is_renter')
 
         if not is_renter:
             # Owner is resident, clear renter fields

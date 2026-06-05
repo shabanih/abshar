@@ -87,10 +87,7 @@
     </div>
   </div>
 </div>
-</li>
-
-<li class="nav-item text-center mb-1">
-    <div class="row d-flex justify-content-between">
+ <div class="row d-flex justify-content-between">
                 {% if user.is_resident %}
   <a href="{% url 'switch_to_resident' %}"
      class="btn btn-gradient-primary px-3 py-2">
@@ -102,8 +99,8 @@
 {#      افزودن اعتبار#}
 {#  </a>#}
 </div>
-
 </li>
+
             <li class="nav-item border-top">
                {% url 'middle_admin_dashboard' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
@@ -123,7 +120,7 @@
                      aria-controls="general66">
                     <i class="menu-title"> مدیریت اطلاعیه ها </i>
                     <i class="menu-arrow"></i>
-                    <i class="mdi mdi-bell-alert menu-icon"></i>
+                    <i class="fas fa-bullhorn fa-flip-horizontal menu-icon"></i>
                   </a>
 
                   <div class="collapse {% if request.path == url_middle_send or request.path == url_middle_list %}show{% endif %}" id="general66">
@@ -157,7 +154,7 @@
       aria-expanded="{% if charge_open %}true{% else %}false{% endif %}">
     <i class="menu-title"> مدیریت پیام ها </i>
     <i class="menu-arrow"></i>
-    <i class="fas fa-bullhorn fa-flip-horizontal menu-icon"></i>
+    <i class="mdi mdi-bell-alert menu-icon"></i>
   </a>
 
   <div class="collapse {% if Message %}show{% endif %}" id="general145">

@@ -478,6 +478,7 @@ class CreateHouseAndManagerView(TemplateView):
                 Subscription.objects.create(
                     user=user_obj,
                     units_count=5,
+                    final_amount=0,
                     is_trial=True,
                     house=house,
                     start_date=timezone.now(),
@@ -6161,6 +6162,7 @@ def article_delete(request, pk):
     return redirect(reverse('manage_articles'))
 
 # ===================== Coupon ==============================
+
 @method_decorator(admin_required, name='dispatch')
 class CouponListView(CreateView):
     model = Coupon
@@ -6168,7 +6170,7 @@ class CouponListView(CreateView):
     form_class = CouponApplyForm
     success_url = reverse_lazy('register_coupon')
     paginate_by = 10
-    copen_count = Coupon.objects.count()
+    # copen_count = Coupon.objects.count()
 
     def form_valid(self, form):
         messages.success(self.request, 'کوپن با موفقیت ثبت گردید.')

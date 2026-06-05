@@ -10,13 +10,6 @@
 <div class="container mt-4 p-0">
       <div class="row mb-4 ">
               <div class="col-9 col-md-10 col-xl-10 align-self-center ">
-{#         <form method="get" action="">#}
-{#    <input type="text" class="p-2 w-50" name="search" id="searchInput" autocomplete="off"#}
-{#           value="{{ request.GET.search|default_if_none:'' }}"#}
-{#           placeholder="جستجوی واحد مسکونی..." dir="rtl"#}
-{#           oninput="if(this.value === '') this.form.submit();">#}
-{#    <button type="submit" class="btn btn-info px-3 py-2">جستجو</button>#}
-{#</form>   #}
                   <form method="get" action="" class="row g-1">
 
     <div class="col-md-4">
@@ -32,9 +25,9 @@
                 class="form-select form-control-sm"
                 onchange="this.form.submit()">
 
-            <option value="">همه ساکنین</option>
+            <option class="text-facebook" value="">همه ساکنین</option>
 
-            <option value="owner"
+            <option value="owner" 
                 {% if request.GET.resident_type == 'owner' %}
                     selected
                 {% endif %}
@@ -42,7 +35,7 @@
                 فقط مالک
             </option>
 
-            <option value="renter"
+            <option value="renter" class="text-warning"
                 {% if request.GET.resident_type == 'renter' %}
                     selected
                 {% endif %}
@@ -50,7 +43,7 @@
                 فقط مستاجر
             </option>
 
-            <option value="empty"
+            <option value="empty" class="text-danger"
                 {% if request.GET.resident_type == 'empty' %}
                     selected
                 {% endif %}
@@ -63,8 +56,8 @@
 
     <div class="col-md-2">
         <button type="submit"
-                class="btn btn-info w-75">
-            فیلتر
+                class="btn btn-gradient-info">
+            فیلتر واحدها
         </button>
     </div>
 
@@ -111,7 +104,8 @@
             <div class="col-12 col-md-4 col-xl-4 text-md-start align-self-center p-1">
                         <button type="submit" onclick="return confirmWithSweetAlert(event)" 
                         class="btn btn-gradient-success px-3 shadow_style m-1">ارسال اطلاعیه شارژ </button>
-                  <button type="button" id="remove-all-btn" class="btn btn-dark px-2 shadow_style">
+                
+                  <button type="button" id="remove-all-btn" class="btn btn-dark px-2 shadow_style m-1">
                     حذف اطلاعیه واحدها
                 </button>
                
@@ -120,47 +114,35 @@
         </div>
     
   
-<div class="row g-2 mt-3">
-   {% for item in page_obj %}
-{% with unit=item.unit renter=item.renter %}
-<div class="col-6 col-lg-2 col-md-2 col-xl-2 mb-3">
-<div class="card fixChargeTable p-0 mt-3"
-
-style="
-border:0.1rem solid
-
-{% if renter %}
-    orange
-
-{% elif unit.status_residence == 'empty' %}
-    red
-
-{% else %}
-      #00000090
-
-{% endif %} !important;
-
-{% if item.is_notified %}
-    {% if item.is_paid %}
-        background-color:#8fef88;
-    {% else %}
-        background-color:#fff3cd;
-    {% endif %}
-{% endif %}
-"
->
-{#   <div class="card fixChargeTable p-0 mt-3"#}
-{#        {% if item.is_notified %}#}
-{#            {% if item.is_paid %}#}
-{#                style="background-color: #8fef88;"#}
-{#            {% else %}#}
-{#                style="background-color: #fff3cd;"#}
-{#            {% endif %}#}
-{#        {% endif %}#}
-{#   #}
-{#   >#}
-   
-  
+            <div class="row g-2 mt-5">
+               {% for item in page_obj %}
+            {% with unit=item.unit renter=item.renter %}
+            <div class="col-6 col-lg-2 col-md-2 col-xl-2">
+            <div class="card fixChargeTable p-0"
+            
+            style="
+            border:0.1rem solid
+            
+            {% if renter %}
+                orange
+            
+            {% elif unit.status_residence == 'empty' %}
+                red
+            
+            {% else %}
+                  #00000090
+            
+            {% endif %} !important;
+            
+            {% if item.is_notified %}
+                {% if item.is_paid %}
+                    background-color:#8fef88;
+                {% else %}
+                    background-color:#fff3cd;
+                {% endif %}
+            {% endif %}
+            "
+            >
 
         <div class="card-body text-center d-flex px-1 py-1 mt-3">
              <p class="card-charge-title"
@@ -206,9 +188,6 @@ border:0.1rem solid
 {% endfor %}
 
 </div>
-                    
-
-        <hr>
       
   
     </form>

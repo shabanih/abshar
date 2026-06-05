@@ -96,7 +96,7 @@ class UnitUpdateService:
     def _update_unit(self, owner_changed=False):
         if not owner_changed:
             # فقط وقتی مالک تغییر نکرده، مقدار فرم را اعمال کن
-            self.unit.is_renter = bool(self.form.cleaned_data.get('is_renter', False))
+            self.unit.is_renter = self.form.cleaned_data.get('is_renter')
         self.unit.owner_bank = self.form.cleaned_data.get('owner_bank')
         self.unit.save(update_fields=['is_renter', 'owner_bank'])
 
