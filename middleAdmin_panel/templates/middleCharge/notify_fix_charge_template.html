@@ -107,13 +107,14 @@
                     <span class="circlePayment"></span>
                   پرداخت موفق شارژ
                 </div>
-         
+  
             <div class="col-12 col-md-4 col-xl-4 text-md-start align-self-center p-1">
+                        <button type="submit" onclick="return confirmWithSweetAlert(event)" 
+                        class="btn btn-gradient-success px-3 shadow_style m-1">ارسال اطلاعیه شارژ </button>
                   <button type="button" id="remove-all-btn" class="btn btn-dark px-2 shadow_style">
                     حذف اطلاعیه واحدها
                 </button>
-                <button type="submit" onclick="return confirmWithSweetAlert(event)" 
-                        class="btn btn-gradient-success px-2 shadow_style m-1">ارسال اطلاعیه شارژ </button>
+               
                 <a href="{% url 'middle_add_fixed_charge' %}" class="btn btn-gradient-danger shadow_style px-3"> بازگشت</a>
              </div>
         </div>

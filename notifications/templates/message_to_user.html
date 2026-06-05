@@ -142,13 +142,13 @@
 {#                           <td>{{ sms.notified_units_count }}</td>#}
 
                                <td class="col-1 p-0">
-                                   <a href="{% url 'edit_message_to_user' message.id %}" class="btn btn-primary p-1">
+                                   <a href="{% url 'message_middle_to_user_edit' message.id %}" class="btn btn-primary p-1">
                               <i class="mdi mdi-lead-pencil" aria-hidden="true"></i></a>
                                      <a href="{% url 'delete_message_to_user' message.id %}" class="btn btn-gradient-danger p-1"
                                         onclick="return confirmDeleteWithSweetAlert(event)">
                                               <i class="mdi mdi-delete" aria-hidden="true"></i>
                                             </a>
-                             <a href="{% url 'middle_show_message_form' message.id %}" class="btn btn-gradient-success p-1"
+                             <a href="{% url 'message_middle_show_form' message.id %}" class="btn btn-gradient-success p-1"
                                    data-bs-toggle="tooltip" title="ارسال پیامک">
                                    <i class="fas fa-sms"></i>
                                 </a>

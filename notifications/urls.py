@@ -37,13 +37,13 @@ urlpatterns = [
     path('admin/ticket/waiting/<int:pk>/', views.admin_is_waiting, name='admin_waiting_ticket'),
     path('admin/ticket/continue/<int:pk>/', views.admin_is_continue, name='admin_continue_ticket'),
 
-    path('message/to/user/', views.MessageToUserListCreateView.as_view(), name='message_to_user'),
-    path('edit/message/to/user/<int:pk>/', views.MiddleMessageUpdateView.as_view(), name='edit_message_to_user'),
+    path('message/to/user/', views.MessageToUserListCreateView.as_view(), name='message_middle_to_user'),
+    path('edit/message/to/user/<int:pk>/', views.MiddleMessageUpdateView.as_view(), name='message_middle_to_user_edit'),
     path('message-to-user-delete/<int:pk>/', views.message_user_delete, name='delete_message_to_user'),
     path('message-to-user-list-delete/<int:pk>/', views.message_user_delete_list, name='delete_message_to_user_list'),
-    path('middle/message/send/form/<int:pk>/', views.middle_show_message_form, name='middle_show_message_form'),
+    path('middle/message/send/form/<int:pk>/', views.middle_show_message_form, name='message_middle_show_form'),
     path('middle-send-message/<int:pk>/', views.middle_send_message, name='middle_send_message'),
-    path('middle/message/management/', views.MiddleMessageToUserListView.as_view(), name='middle_message_management'),
+    path('middle/message/management/', views.MiddleMessageToUserListView.as_view(), name='message_management_for_middle'),
 
     path('message//admin/to/middle/', views.AdminMessageToMiddleListCreateView.as_view(), name='message_admin_to_middle'),
     path('edit/message/admin/to/middle/<int:pk>/', views.AdminMessageToMiddleUpdateView.as_view(),

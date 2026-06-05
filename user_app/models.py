@@ -27,7 +27,7 @@ class User(AbstractUser):
     )
     full_name = models.CharField(max_length=200, verbose_name='نام')
     mobile = models.CharField(max_length=11, unique=True, verbose_name='موبایل')
-    username = models.CharField(max_length=150, unique=True, verbose_name='نام کاربری')
+    # username = models.CharField(max_length=150, unique=True, verbose_name='نام کاربری')
 
     otp = models.PositiveIntegerField(null=True, blank=True, verbose_name='کد فعالسازی')
     otp_create_time = models.DateTimeField(null=True, blank=True, verbose_name='زمان ارسال کد')

@@ -2,15 +2,41 @@
 {% load static %}
 {% load poll_extras %}
 
-{% block page_title %}مدیریت پیامک‌ها{% endblock %}
+{% block page_title %}ارسال پیامک‌{% endblock %}
 
 {% block main_content %}
 <div class="container mt-3">
+ <div class="row mb-2">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="text-center">
+                        <tr>
+                            <th>عنوان </th>
+                            <th>متن پیامک </th>
+                            <th>تاریخ ایجاد</th>
+                        </tr>
+                    </thead>
+                    {% if all_sms %}
+                        {% for sms in all_sms %}
+                        <tbody class="text-center">
+                            <tr>
+                                <td>{{ sms.subject }}</td>
+                                <td class="col-4">{{ sms.message }}</td>
+                                <td>{{ sms.created_at|show_jalali}}</td>
+                            </tr>
+                        </tbody>
+                        {% endfor %}
+                    {% else %}
+                        <tbody>
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ پیامکی ثبت نشده است.</td>
+                            </tr>
+                        </tbody>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
     <div class="card shadow-lg border-0 rounded-4">
-{#        <div class="card-header bg-gradient-secondary text-white text-center py-3 rounded-top-4">#}
-{#            <h4 class="mb-0"><i class="fas fa-sms me-2"></i>مدیریت ارسال پیامک‌ها</h4>#}
-{#        </div>#}
-
         <div class="card-body p-4">
             <form method="POST" action="{% url 'middle_send_sms' sms.id %}">
                 {% csrf_token %}
@@ -28,7 +54,7 @@
                                 <select id="availableUnits" multiple size="15" class="form-select rounded-3">
                                     {% for item in units_with_details %}
                                         {% with unit=item.unit active_renter=item.active_renter %}
-                                        <option value="{{ unit.id }}">
+                                        <option style="font-size: 14px" value="{{ unit.id }}">
                                             واحد {{ unit.unit|to_persian_number  }} -
                                             {% if unit.is_renter %}
                                                 مستاجر: {% if active_renter %}{{ active_renter.renter_name }}{% else %}ندارد{% endif %}

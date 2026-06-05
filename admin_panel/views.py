@@ -39,14 +39,14 @@ from admin_panel.forms import announcementForm, UnitForm, ExpenseForm, ExpenseCa
     IncomeForm, IncomeCategoryForm, BankForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, \
     MaintenanceForm, FixChargeForm, PersonAreaChargeForm, AreaChargeForm, PersonChargeForm, FixAreaChargeForm, \
     FixPersonChargeForm, PersonAreaFixChargeForm, VariableFixChargeForm, UserRegistrationForm, SmsForm, MyHouseForm, \
-    ChargeCategoryForm, AdminSmsForm, SubscriptionPlanForm, SliderForm, SubscriptionUpdateForm
+    ChargeCategoryForm, AdminSmsForm, SubscriptionPlanForm, SliderForm, SubscriptionUpdateForm, CouponApplyForm
 from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDocument, Income, IncomeDocument, \
     IncomeCategory, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, ChargeByPersonArea, \
     ChargeByFixPersonArea, FixCharge, AreaCharge, PersonCharge, \
     FixPersonCharge, FixAreaCharge, ChargeFixVariable, \
     SmsManagement, Fund, UnifiedCharge, AdminSmsManagement, SmsCredit, ImpersonationLog, SubscriptionPlan, Subscription, \
-    AdminFund
+    AdminFund, Coupon
 from home.forms import ArticleForm
 from home.models import SliderText, ContactUs, FreeRequest, Articles
 from notifications.models import AdminTicket
@@ -4228,10 +4228,17 @@ class ApprovedSmsDetailView(ListView):
 
 def approve_sms(request, pk):
     sms = get_object_or_404(SmsManagement, pk=pk)
+    user = request.user
 
     sms.is_approved = True
     sms.approved_at = timezone.now()
     sms.save()
+
+    helper.send_approved_sms(
+        mobile=sms.user.mobile,
+        message='پیامک شما توسط ادمین تایید شد',
+        full_name=sms.user.full_name
+    )
 
     messages.success(request, "پیامک تایید شد.")
     return redirect("sms_approved_list", house_id=sms.house.id)
@@ -5864,7 +5871,7 @@ class AdminBillanReport(ListView):
         # ).first()
         return context
 
-
+@method_decorator(admin_required, name='dispatch')
 def admin_house_balance(request, house_id):
     house = get_object_or_404(MyHouse, id=house_id)
     bank_id = request.GET.get('bank')
@@ -5992,7 +5999,7 @@ def admin_house_balance(request, house_id):
 # def contact_management(request):
 #     comments = ContactUs.objects.all()
 #     return render(request, 'admin_panel/conatct_us_management.html', {'comments': comments})
-
+@method_decorator(admin_required, name='dispatch')
 class ContactUsManagement(ListView):
     model = ContactUs
     template_name = 'admin_panel/conatct_us_management.html'
@@ -6000,7 +6007,7 @@ class ContactUsManagement(ListView):
     ordering = ['-created_at']
     paginate_by = 50
 
-
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def approved_comment(request: HttpRequest, comment_code: str):
     comment = get_object_or_404(ContactUs, id=comment_code)
     if comment.is_read:
@@ -6013,7 +6020,7 @@ def approved_comment(request: HttpRequest, comment_code: str):
 
     return redirect(reverse('contact_management'))
 
-
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def disapproved_comment(request: HttpRequest, comment_code: str):
     comment = get_object_or_404(ContactUs, id=comment_code)
     if not comment.is_read:
@@ -6030,7 +6037,7 @@ def disapproved_comment(request: HttpRequest, comment_code: str):
 # def free_request_management(request):
 #     consultants = FreeRequest.objects.all()
 #     return render(request, 'admin_panel/consultants_management.html', {'consultants': consultants})
-
+@method_decorator(admin_required, name='dispatch')
 class FreeRequestManagement(ListView):
     model = FreeRequest
     template_name = 'admin_panel/consultants_management.html'
@@ -6038,7 +6045,7 @@ class FreeRequestManagement(ListView):
     ordering = ['-created']
     paginate_by = 50
 
-
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def approved_request_management(request: HttpRequest, cons_code: str):
     consultant = get_object_or_404(FreeRequest, id=cons_code)
     if consultant.is_call:
@@ -6051,7 +6058,7 @@ def approved_request_management(request: HttpRequest, cons_code: str):
 
     return redirect(reverse('consultant_management'))
 
-
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def disapproved_request_management(request: HttpRequest, cons_code: str):
     consultant = get_object_or_404(FreeRequest, id=cons_code)
     if not consultant.is_call:
@@ -6064,7 +6071,7 @@ def disapproved_request_management(request: HttpRequest, cons_code: str):
 
     return redirect(reverse('consultant_management'))
 
-
+@method_decorator(admin_required, name='dispatch')
 class ArticleCreateView(CreateView):
     model = Articles
     template_name = 'admin_panel/add_articles.html'
@@ -6094,7 +6101,7 @@ class ArticleCreateView(CreateView):
     #     context['articles'] = page_obj.object_list
     #     return context
 
-
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def manage_articles(request):
     articles = Articles.objects.all()
     paginator = Paginator(articles, 50)
@@ -6105,7 +6112,7 @@ def manage_articles(request):
     articles = page_obj.object_list
     return render(request, 'admin_panel/manage_articles.html', {'articles': articles, 'page_obj': page_obj})
 
-
+@method_decorator(admin_required, name='dispatch')
 class ArticleUpdateView(UpdateView):
     model = Articles
     form_class = ArticleForm
@@ -6143,7 +6150,7 @@ class ArticleUpdateView(UpdateView):
 #         # If the request is not POST, redirect to the appropriate page
 #         return redirect('manage_articles')
 
-
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
 def article_delete(request, pk):
     article = get_object_or_404(Articles, id=pk)
     try:
@@ -6152,3 +6159,55 @@ def article_delete(request, pk):
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
     return redirect(reverse('manage_articles'))
+
+# ===================== Coupon ==============================
+@method_decorator(admin_required, name='dispatch')
+class CouponListView(CreateView):
+    model = Coupon
+    template_name = 'admin_panel/admin_coupon.html'
+    form_class = CouponApplyForm
+    success_url = reverse_lazy('register_coupon')
+    paginate_by = 10
+    copen_count = Coupon.objects.count()
+
+    def form_valid(self, form):
+        messages.success(self.request, 'کوپن با موفقیت ثبت گردید.')
+        return super(CouponListView, self).form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['coupons'] = Coupon.objects.all().order_by('-valid_to')  # Add all histories to the context
+        context['coupons_count'] = Coupon.objects.all().count()  # Add all histories to the context
+        return context
+
+
+@method_decorator(admin_required, name='dispatch')
+class CouponEditView(UpdateView):
+    model = Coupon
+    template_name = 'admin_panel/admin_coupon.html'
+    form_class = CouponApplyForm
+    success_url = reverse_lazy('register_coupon')
+
+    def form_valid(self, form):
+        # Access the instance being edited
+        edited_instance = form.instance
+        # Add a success message with the title of the historical record
+        messages.success(self.request, f" کوپن{edited_instance.code} با موفقیت ویرایش گردید!")
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['coupons'] = Coupon.objects.all().order_by('-valid_to')  # Add all histories to the context
+        context['coupons_count'] = Coupon.objects.all().count()  # Add all histories to the context
+        return context
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def delete_coupon(request, pk):
+    coupon = get_object_or_404(Coupon, id=pk)
+    try:
+        coupon.delete()
+        messages.success(request, " کوپن با موفقیت حذف گردید!")
+    except ProtectedError:
+        messages.error(request, " امکان حذف وجود ندارد! ")
+    return redirect(reverse('register_coupon'))

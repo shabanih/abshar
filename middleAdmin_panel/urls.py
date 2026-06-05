@@ -11,6 +11,7 @@ urlpatterns = [
     path('switch-to-resident/', views.switch_to_resident, name='switch_to_resident'),
 
     path('buy-subscription/', views.buy_subscription, name='buy_subscription'),
+    path("ajax/check-coupon/", views.check_coupon, name="check_coupon"),
 
     path('middle/profile/', views.middle_profile, name='middle_profile'),
 
@@ -306,11 +307,11 @@ urlpatterns = [
     # Sms_Management
     path('middle/sms/credit/', views.add_sms_credit, name='add_sms_credit'),
 
-    path('middle/sms/register/', views.MiddleSmsManagementView.as_view(), name='middle_register_sms'),
+    path('middle/sms/register/', views.MiddleSmsManagementView.as_view(), name='sms_middle_sms'),
     path('middle/sms/management/', views.MiddleSmsListView.as_view(), name='middle_sms_management'),
-    path('middle/edit/sms/<int:pk>/', views.MiddleSmsUpdateView.as_view(), name='middle_edit_sms'),
+    path('middle/edit/sms/<int:pk>/', views.MiddleSmsUpdateView.as_view(), name='sms_middle_edit'),
     path('middle-sms-delete/<int:pk>/', views.middle_sms_delete, name='middle_delete_sms'),
-    path('middle/sms/send/form/<int:pk>/', views.middle_show_send_sms_form, name='middle_show_send_sms_form'),
+    path('middle/sms/send/form/<int:pk>/', views.middle_show_send_sms_form, name='sms_middle_show_send_form'),
     path('middle-send-sms/<int:pk>/', views.middle_send_sms, name='middle_send_sms')
 ]
 if settings.DEBUG:

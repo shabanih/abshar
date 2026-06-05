@@ -7,7 +7,6 @@ from collections import defaultdict
 from datetime import timezone, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from itertools import chain
-
 from dateutil.relativedelta import relativedelta
 from django.apps import apps
 from django.conf.urls.static import static
@@ -53,7 +52,7 @@ from admin_panel.models import Announcement, ExpenseCategory, Expense, Fund, Exp
     FixAreaCharge, FixPersonCharge, ChargeByPersonArea, \
     ChargeByFixPersonArea, ChargeFixVariable, SmsManagement, \
     UnifiedCharge, SmsCredit, SubscriptionPlan, Subscription, CivilManage, CivilDocument, CivilInstallment, \
-    SewageManage, SewageDocument, SewageInstallment, BankFund
+    SewageManage, SewageDocument, SewageInstallment, BankFund, Coupon, CouponUsage
 from admin_panel.services.calculators import CALCULATORS
 from middleAdmin_panel.services.bank_services import BankTransactionService
 from middleAdmin_panel.services.unit_services import UnitUpdateService
@@ -73,8 +72,31 @@ def middle_admin_required(view_func):
 
 # ========================== Subscription =====================
 
+def check_coupon(request):
+    code = request.GET.get("code", "").strip()
+
+    if not code:
+        return JsonResponse({"valid": False, "discount": 0, "message": "کد وارد نشده است"})
+
+    try:
+        coupon = Coupon.objects.get(code__iexact=code)
+
+        if not coupon.is_valid():
+            return JsonResponse({"valid": False, "discount": 0, "message": "کد منقضی یا غیرفعال است"})
+
+        return JsonResponse({
+            "valid": True,
+            "discount": coupon.discount,  # درصد
+            "message": "کد معتبر است"
+        })
+
+    except Coupon.DoesNotExist:
+        return JsonResponse({"valid": False, "discount": 0, "message": "کد نامعتبر است"})
+
+
 def buy_subscription(request):
     plans = SubscriptionPlan.objects.filter(is_active=True).order_by('duration')
+    house = MyHouse.objects.filter(user=request.user).first()
 
     managed_users = request.user.managed_users.all()
     unit_count = Unit.objects.filter(
@@ -122,7 +144,57 @@ def buy_subscription(request):
             messages.error(request, "پلن انتخابی نامعتبر است.")
             return redirect("buy_subscription")
 
-        total = units * plan.price_per_unit
+        # total = units * plan.price_per_unit
+        total_amount = units * plan.price_per_unit
+        discount_amount = 0
+        coupon = None
+
+        coupon_code = request.POST.get("coupon")
+
+        discount_amount = 0
+        coupon = None
+
+        if coupon_code:
+            try:
+                coupon = Coupon.objects.get(code__iexact=coupon_code)
+
+                # بررسی استفاده قبلی
+                already_used = CouponUsage.objects.filter(
+                    user=request.user,
+                    coupon=coupon
+                ).exists()
+
+                if already_used:
+                    messages.error(
+                        request,
+                        "شما قبلاً از این کد تخفیف استفاده کرده‌اید."
+                    )
+                    return redirect("buy_subscription")
+
+                if not coupon.is_valid():
+                    messages.error(
+                        request,
+                        "کد تخفیف منقضی یا غیرفعال است."
+                    )
+                    return redirect("buy_subscription")
+
+                if coupon.discount > total_amount:
+                    messages.error(
+                        request,
+                        "مبلغ کد تخفیف بیشتر از مبلغ کل سفارش است و قابل استفاده نیست."
+                    )
+                    return redirect("buy_subscription")
+
+                discount_amount = coupon.discount
+
+            except Coupon.DoesNotExist:
+                messages.error(
+                    request,
+                    "کد تخفیف نامعتبر است."
+                )
+                return redirect("buy_subscription")
+
+        final_amount = total_amount - discount_amount
 
         # تعیین تاریخ شروع
         if active_sub and active_sub.end_date:
@@ -134,11 +206,18 @@ def buy_subscription(request):
 
         Subscription.objects.create(
             user=request.user,
+            house=house,  # اگر داری
             units_count=units,
             plan=plan,
+
+            coupon=coupon,
+            total_amount=total_amount,
+            discount_amount=discount_amount,
+            final_amount=final_amount,
+
             start_date=start_date,
             end_date=end_date,
-            total_amount=total,
+
             is_paid=False,
             status='active'
         )
@@ -150,68 +229,7 @@ def buy_subscription(request):
         "unit_count": unit_count,
     })
 
-# def buy_subscription(request):
-#     plans = SubscriptionPlan.objects.filter(is_active=True).order_by('duration')
-#
-#     managed_users = request.user.managed_users.all()
-#     unit_count = Unit.objects.filter(
-#         Q(user=request.user) | Q(user__in=managed_users),
-#         is_active=True,
-#     ).count()
-#
-#     # 🔹 چک اشتراک فعال
-#     active_subscription = Subscription.objects.filter(
-#         house__user=request.user,
-#         status='active',  # اگر فیلد status اضافه کردی
-#         end_date__gt=timezone.now()
-#     ).exists()
-#
-#     if active_subscription:
-#         messages.warning(request, "شما در حال حاضر اشتراک فعال دارید.")
-#         return redirect("middle_admin_dashboard")  # یا هر صفحه مناسب
-#
-#     if request.method == "POST":
-#         try:
-#             units = int(request.POST.get("units_count"))
-#         except (ValueError, TypeError):
-#             messages.error(request, "تعداد واحد نامعتبر است.")
-#             return redirect("buy_subscription")
-#
-#         if units < unit_count:
-#             messages.error(
-#                 request,
-#                 f"تعداد واحد وارد شده نمی‌تواند کمتر از تعداد ثبت‌شده ({unit_count}) باشد."
-#             )
-#             return redirect("buy_subscription")
-#
-#         try:
-#             plan_id = int(request.POST.get("plan"))
-#             plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
-#         except (ValueError, SubscriptionPlan.DoesNotExist):
-#             messages.error(request, "پلن انتخابی نامعتبر است.")
-#             return redirect("buy_subscription")
-#
-#         total = units * plan.price_per_unit
-#
-#         Subscription.objects.create(
-#             user=request.user,
-#             house__user=request.user,
-#             units_count=units,
-#             plan=plan,
-#             total_amount=total,
-#             is_paid=False,
-#             status='active'  # مهم
-#         )
-#
-#         return redirect("subscription_success")
-#
-#     return render(request, "middle_admin/middle_add_subscription.html", {
-#         "plans": plans,
-#         "unit_count": unit_count,
-#     })
 
-
-# ==============================================================
 def get_single_resident_building(user):
     units = Unit.objects.filter(
         Q(user=user) |
@@ -261,7 +279,6 @@ def switch_to_resident(request):
 # ================================================================
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_admin_dashboard(request):
-
     cache_key = f"middle_dashboard_{request.user.id}"
     cached_context = cache.get(cache_key)
 
@@ -297,9 +314,9 @@ def middle_admin_dashboard(request):
     subscription.refresh_from_db(fields=['status', 'end_date'])
 
     if (
-        subscription.status == "expired"
-        or not subscription.end_date
-        or subscription.end_date.date() < now
+            subscription.status == "expired"
+            or not subscription.end_date
+            or subscription.end_date.date() < now
     ):
         return redirect('buy_subscription')
 
@@ -485,8 +502,8 @@ def middle_admin_dashboard(request):
     )
 
     balance = (
-        (totals['total_income'] or 0)
-        - (totals['total_expense'] or 0)
+            (totals['total_income'] or 0)
+            - (totals['total_expense'] or 0)
     )
 
     # =========================
@@ -605,183 +622,6 @@ def middle_admin_dashboard(request):
         'middleShared/home_template.html',
         context
     )
-# def middle_admin_dashboard(request):
-#     if not request.user.is_authenticated:
-#         return redirect('login')
-#
-#     now = timezone.now().date()
-#
-#     subscription = Subscription.objects.filter(
-#         user=request.user
-#     ).order_by('-created_at').first()
-#
-#     if subscription:
-#         subscription.expire_if_needed()
-#         subscription.refresh_from_db()
-#
-#         # بررسی امنیت فیلد تاریخ انقضا
-#         if subscription.end_date:
-#             days_after_expire = (now - subscription.end_date.date()).days
-#
-#             if subscription.status == "expired":
-#                 return redirect('buy_subscription')
-#         else:
-#             # اگر به هر دلیلی تاریخ انقضا ست نشده باشد ولی رکورد وجود دارد
-#             return redirect('buy_subscription')
-#     else:
-#         # اگر کاربر اصلاً رکوردی برای اشتراک ندارد
-#         return redirect('buy_subscription')
-#
-#     managed_users = request.user.managed_users.all()
-#     resident_unit = get_single_resident_building(request.user)
-#     announcements = Announcement.objects.filter(is_active=True, user=request.user).order_by('-created_at')[:3]
-#
-#     units = Unit.objects.filter(
-#         myhouse__manager=request.user,
-#         is_active=True
-#     )
-#     unit_count = units.count()
-#     # 1️⃣ خانه‌های خالی (اول جدا می‌کنیم)
-#     empty_units = units.filter(status_residence='empty')
-#
-#     # 2️⃣ خانه‌های دارای مستاجر فعال
-#     renter_units = units.filter(
-#         renters__renter_is_active=True
-#     ).exclude(
-#         id__in=empty_units.values_list('id', flat=True)
-#     ).distinct()
-#
-#     # 3️⃣ مالک (نه خالی و نه مستاجر)
-#     owner_units = units.exclude(
-#         id__in=empty_units.values_list('id', flat=True)
-#     ).exclude(
-#         id__in=renter_units.values_list('id', flat=True)
-#     )
-#
-#     unit_status_stats = {
-#         'owner': owner_units.count(),
-#         'renter': renter_units.count(),
-#         'empty': empty_units.count(),
-#     }
-#     has_unit_chart_data = any([
-#         unit_status_stats.get('owner', 0) > 0,
-#         unit_status_stats.get('renter', 0) > 0,
-#         unit_status_stats.get('empty', 0) > 0,
-#     ])
-#
-#     category_expenses = (
-#         Expense.objects
-#         .filter(
-#             house__user=request.user,
-#             is_active=True,
-#             is_paid=True  # اگر فقط پرداخت شده‌ها مدنظر است
-#         )
-#         .values('category__title')
-#         .annotate(total_amount=Sum('amount'))
-#         .order_by('-total_amount')
-#     )
-#
-#     expense_chart_data = {
-#         "labels": [item['category__title'] for item in category_expenses] or [],
-#         "data": [item['total_amount'] or 0 for item in category_expenses] or []
-#     }
-#
-#     income_by_category = (
-#         IncomeCategory.objects
-#         .filter(user=request.user, is_active=True)
-#         .annotate(
-#             paid_incomes=FilteredRelation(
-#                 'incomes',
-#                 condition=Q(incomes__is_paid=True, incomes__is_active=True)
-#             )
-#         )
-#         .annotate(
-#             incomes_count=Count('paid_incomes'),
-#             total_amount=Sum('paid_incomes__amount')
-#         )
-#         .filter(incomes_count__gt=0)  # فقط دسته‌هایی که درآمد دارند
-#     )
-#
-#     income_chart_data = {
-#         "labels": [cat.subject for cat in income_by_category],
-#         "data": [cat.total_amount or 0 for cat in income_by_category]
-#     }
-#
-#     has_income_chart_data = any(amount > 0 for amount in income_chart_data["data"])
-#
-#     tickets = SupportUser.objects.filter(Q(user=request.user) | Q(user__in=managed_users)).order_by('-created_at')[:5]
-#
-#     funds = Fund.objects.select_related('bank', 'content_type').filter(
-#         Q(user=request.user) | Q(user__in=managed_users)
-#     ).order_by('-payment_date')
-#
-#     totals = funds.aggregate(total_income=Sum('debtor_amount'), total_expense=Sum('creditor_amount'))
-#     balance = (totals['total_income'] or 0) - (totals['total_expense'] or 0)
-#
-#     unit_count_unpaid_charges = UnifiedCharge.objects.filter(
-#         house__user=request.user,
-#         send_notification=True,
-#         is_paid=False,
-#         unit__isnull=False
-#     ).count()
-#
-#     def get_persian_month(g_date):
-#         if g_date:
-#             return jdatetime.date.fromgregorian(date=g_date).month
-#         return None
-#
-#     # شارژهای پرداخت‌شده
-#     paid_charges_qs = UnifiedCharge.objects.filter(
-#         house__user=request.user,
-#         send_notification=True,
-#         unit__in=units,
-#         is_paid=True
-#     )
-#
-#     paid_counts = {i: 0 for i in range(1, 13)}
-#     for charge in paid_charges_qs:
-#         month = get_persian_month(charge.payment_date)
-#         if month:
-#             paid_counts[month] += 1
-#
-#     # شارژهای پرداخت‌نشده
-#     unpaid_charges_qs = UnifiedCharge.objects.filter(
-#         house__user=request.user,
-#         send_notification=True,
-#         unit__in=units,
-#         is_paid=False
-#     )
-#     unpaid_counts = {i: 0 for i in range(1, 13)}
-#     for charge in unpaid_charges_qs:
-#         month = get_persian_month(charge.send_notification_date)
-#         if month:
-#             unpaid_counts[month] += 1
-#
-#     months = list(range(1, 13))
-#     paid_data = [paid_counts[m] for m in months]
-#     unpaid_data = [unpaid_counts[m] for m in months]
-#
-#     has_charge_data = any(paid_data) or any(unpaid_data)
-#
-#     context = {
-#         'announcements': announcements,
-#         'unit_count': unit_count,
-#         'fund_amount': balance,
-#         'tickets': tickets,
-#         'unit_count_unpaid_charges': unit_count_unpaid_charges,
-#         'resident_unit': resident_unit,
-#         'ownerRenterStats': unit_status_stats,
-#         'has_unit_chart_data': has_unit_chart_data,
-#         'expense_chart_data': expense_chart_data,
-#         'income_chart_data': income_chart_data,
-#         'months': months,
-#         'paid_data': paid_data,
-#         'unpaid_data': unpaid_data,
-#         'has_charge_data': has_charge_data,
-#         'has_income_chart_data': has_income_chart_data
-#
-#     }
-#     return render(request, 'middleShared/home_template.html', context)
 
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
@@ -848,6 +688,7 @@ def middle_profile(request):
         'password_form': password_form,
     }
     return render(request, 'middle_admin/middle_my_profile.html', context)
+
 
 # ============================= Announcement ====================
 @method_decorator(middle_admin_required, name='dispatch')
@@ -1301,7 +1142,6 @@ class MiddleUnitRegisterView(CreateView):
                 owner_user, owner_created = User.objects.get_or_create(
                     mobile=owner_mobile,
                     defaults={
-                        'username': owner_mobile,
                         'full_name': owner_name,
                         'is_active': True,
                         'manager': self.request.user,
@@ -1345,7 +1185,6 @@ class MiddleUnitRegisterView(CreateView):
                     renter_user, renter_created = User.objects.get_or_create(
                         mobile=renter_mobile,
                         defaults={
-                            'username': renter_mobile,
                             'full_name': renter_name,
                             'is_active': True,
                             'manager': self.request.user,
@@ -2774,7 +2613,6 @@ class MiddleIncomeView(CreateView):
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def income_pay_view(request, income_id):
-
     income = get_object_or_404(
         Income,
         id=income_id,
@@ -5765,7 +5603,7 @@ def civil_charge_edit(request, pk):
             if len(files) > 2:
                 messages.error(request,
                                "حداکثر دو فایل مجاز است. در صورت لزوم فایل را بصورت pdf یا zip آپلود کنید")
-                return redirect('middle_register_sewage')
+                return redirect('middle_c')
 
             civil = form.save(commit=False)
             civil.user = request.user  # اختصاص کاربر فعال
@@ -5780,18 +5618,18 @@ def civil_charge_edit(request, pk):
             #     CivilDocument.objects.create(civil=civil, document=f)
 
             messages.success(request, 'رکورد با موفقیت ویرایش گردید.')
-            return redirect(reverse('middle_register_sewage'))  # Adjust redirect as necessary
+            return redirect(reverse('civil_charge_manage'))  # Adjust redirect as necessary
 
         else:
             messages.error(request, 'خطا در ویرایش فرم . لطفا دوباره تلاش کنید.')
-            return render(request, 'middelSewage/sewage_register.html', {
+            return render(request, 'middleCharge/civil_charge_manage.html', {
                 'form': form,
                 'civil': civil,
                 'open_modal': True,
             })
     else:
         form = CivilForm(instance=civil)
-        return render(request, 'middelSewage/sewage_register.html',
+        return render(request, 'middleCharge/civil_charge_manage.html',
                       {'form': form,
                        'civil': civil,
                        'open_modal': True,
@@ -6312,9 +6150,15 @@ def middle_fix_charge_notification_view(request, pk):
     charge = get_object_or_404(FixCharge, id=pk, user=request.user)
 
     # واحدهای تحت مدیریت یا متعلق به خود کاربر
-    manager_units = Unit.objects.filter(is_active=True, user=request.user)
-    managed_units = Unit.objects.filter(is_active=True, user__manager=request.user)
-    units = (manager_units | managed_units).distinct().order_by('unit')
+    house = MyHouse.objects.filter(user=request.user).first()
+    # manager_units = Unit.objects.filter(is_active=True, user=request.user)
+    # managed_units = Unit.objects.filter(is_active=True, user__manager=request.user)
+    units = Unit.objects.filter(
+        Q(user=request.user) |
+        Q(user__manager=request.user),
+        is_active=True,
+        myhouse=house
+    ).distinct().order_by('unit')
 
     # -----------------------------
     # ساخت UnifiedCharge فقط برای واحدهای جدید
@@ -10290,7 +10134,6 @@ def base_charge_list(request):
     charges_data = []
 
     for charge in charges:
-
         content_type = ContentType.objects.get_for_model(charge.__class__)
 
         stats = stats_map.get(
@@ -10322,6 +10165,7 @@ def base_charge_list(request):
             'page_obj': page_obj,
         }
     )
+
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def middle_base_charges_pdf(request):
@@ -10908,7 +10752,9 @@ def middle_sms_delete(request, pk):
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_show_send_sms_form(request, pk):
     sms = get_object_or_404(SmsManagement, id=pk, user=request.user)
-    units = Unit.objects.filter(is_active=True, user__manager=request.user).prefetch_related('renters').order_by('unit')
+    house = MyHouse.objects.filter(user=request.user)
+    units = (Unit.objects.filter(is_active=True, user__manager=request.user, myhouse__in=house)
+             .prefetch_related('renters').order_by('unit'))
 
     units_with_details = []
     for unit in units:
@@ -10917,11 +10763,13 @@ def middle_show_send_sms_form(request, pk):
             'unit': unit,
             'active_renter': active_renter
         })
+    all_sms = SmsManagement.objects.filter(user=request.user, send_notification=False, pk=pk).order_by(
+        '-created_at')
 
     return render(request, 'middle_admin/middle_send_sms.html', {
         'sms': sms,
         'units_with_details': units_with_details,
-        # 'units_to_notify': units_to_notify
+        'all_sms': all_sms
     })
 
 
@@ -10977,7 +10825,7 @@ def middle_send_sms(request, pk):
                 request,
                 f'شارژ پیامکی کافی نیست. مبلغ مورد نیاز: {total_price:,} تومان'
             )
-            return redirect('middle_register_sms')
+            return redirect('add_sms_credit')
 
         # 4️⃣ عملیات اتمیک
         notified_units = []

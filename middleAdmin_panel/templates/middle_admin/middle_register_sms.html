@@ -3,7 +3,7 @@
 {% load poll_extras %}
 
 {% block page_title %}
-مدیریت پیامک ها
+ثبت پیامک
 {% endblock page_title %}
 
 {% block main_content %}
@@ -111,7 +111,7 @@
 {#                                        onclick="return confirmDeleteWithSweetAlert(event)">#}
 {#                                              <i class="mdi mdi-delete" aria-hidden="true"></i>#}
 {#                                            </a>#}
-                           <a href="{% url 'middle_show_send_sms_form' sms.id %}" class="btn btn-gradient-primary p-2">
+                           <a href="{% url 'sms_middle_show_send_form' sms.id %}" class="btn btn-gradient-primary p-2">
                                  ارسال پیامک
 {#                                   <i class="fas fa-sms"></i>#}
                                 </a>
@@ -119,7 +119,7 @@
                             </td>
                                 {% else %}
                                       <td class="col-1 p-0">
-                                   <a href="{% url 'middle_edit_sms' sms.id %}" class="btn btn-primary p-1">
+                                   <a href="{% url 'sms_middle_edit' sms.id %}" class="btn btn-primary p-1">
                               <i class="mdi mdi-lead-pencil" aria-hidden="true"></i></a>
                                      <a href="{% url 'middle_delete_sms' sms.id %}" class="btn btn-gradient-danger p-1"
                                         onclick="return confirmDeleteWithSweetAlert(event)">

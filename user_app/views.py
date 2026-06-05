@@ -332,11 +332,17 @@ def unit_civil_charge_list(request):
             filter=Q(installments__send_notification=True),
             distinct=True
         ),
+
+        # ✅ تعداد پرداخت شده فقط برای همین واحد
         paid_installments_count=Count(
             'installments',
-            filter=Q(installments__is_paid=True),
+            filter=Q(
+                installments__unit=unit,
+                installments__is_paid=True
+            ),
             distinct=True
         ),
+
         total_installments=Case(
             When(prepayment__gt=0, then=F('installment_count') + 1),
             default=F('installment_count'),
@@ -637,41 +643,58 @@ def unit_sewage_list(request):
         myhouse=house
     ).distinct().first()
 
-    sewages = SewageManage.objects.filter(
-        house=house
-    ).annotate(
-        sent_units_count=Count(
-            'sewage_installments__unit',
-            filter=Q(sewage_installments__send_notification=True),
-            distinct=True
-        ),
-        paid_installments_count=Count(
-            'sewage_installments',
-            filter=Q(sewage_installments__is_paid=True),
-            distinct=True
-        ),
-        total_installments=Case(
-            When(prepayment__gt=0, then=F('installment_count') + 1),
-            default=F('installment_count'),
-            output_field=IntegerField()
-        )
-    ).filter(
-        sent_units_count__gt=0
-    ).order_by('id')
-
     search = request.GET.get('q', '').strip()
 
+    sewages = SewageManage.objects.filter(
+        house=house
+    )
+
+    # 🔍 سرچ
     if search:
         q_obj = Q(name__icontains=search) | Q(details__icontains=search)
 
         if search.isdigit():
             q_obj = (
-                    Q(amount__icontains=search) |
-                    Q(prepayment__icontains=search) |
-                    Q(installment_count__icontains=search)
+                Q(amount__icontains=search) |
+                Q(prepayment__icontains=search) |
+                Q(installment_count__icontains=search)
             )
 
         sewages = sewages.filter(q_obj)
+
+    # 🔥 وضعیت پرداخت فقط برای همین واحد
+    paid_subquery = SewageInstallment.objects.filter(
+        sewage_manage=OuterRef('pk'),
+        unit=unit,
+        is_paid=True
+    )
+
+    sent_subquery = SewageInstallment.objects.filter(
+        sewage_manage=OuterRef('pk'),
+        unit=unit,
+        send_notification=True
+    )
+
+    sewages = sewages.annotate(
+        is_paid=Exists(paid_subquery),
+        is_sent=Exists(sent_subquery),
+
+        total_installments=Case(
+            When(prepayment__gt=0, then=F('installment_count') + 1),
+            default=F('installment_count'),
+            output_field=IntegerField()
+        ),
+        paid_installments_count=Count(
+            'sewage_installments',
+            filter=Q(
+                sewage_installments__unit=unit,
+                sewage_installments__is_paid=True
+            ),
+            distinct=True
+        )
+    ).filter(
+        is_sent=True  # فقط شارژهایی که برای این واحد ارسال شده
+    ).order_by('-id')
 
     # 📄 pagination
     paginate = request.GET.get('paginate', '20')

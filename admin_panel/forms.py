@@ -16,7 +16,7 @@ from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, 
                                 PersonCharge,
                                 FixPersonCharge, FixAreaCharge, ChargeFixVariable, SmsManagement, UnifiedCharge,
                                 MessageToUser, SmsCredit, AdminMessageToMiddle, AdminSmsManagement, Subscription,
-                                SubscriptionPlan, CivilManage, SewageManage, BankFund)
+                                SubscriptionPlan, CivilManage, SewageManage, BankFund, Coupon)
 from home.models import SliderText
 from middleAdmin_panel.services.bank_services import validate_bank_transaction_date
 
@@ -237,8 +237,8 @@ class UserRegistrationForm(forms.ModelForm):
                              label='شماره تلفن ')
     full_name = forms.CharField(error_messages=error_message, required=True,
                                 widget=forms.TextInput(attrs=attr3), label='نام ')
-    username = forms.CharField(error_messages=error_message, required=True,
-                               widget=forms.TextInput(attrs=attr3), label='نام کاربری ')
+    # username = forms.CharField(error_messages=error_message, required=True,
+    #                            widget=forms.TextInput(attrs=attr3), label='نام کاربری ')
 
     password = forms.CharField(
         required=False,
@@ -293,7 +293,7 @@ class UserRegistrationForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['full_name', 'mobile', 'username', 'password', 'is_active', 'charge_methods', 'is_resident',
+        fields = ['full_name', 'mobile', 'password', 'is_active', 'charge_methods', 'is_resident',
                   'is_trial', 'is_active']
 
     def clean_mobile(self):
@@ -302,11 +302,11 @@ class UserRegistrationForm(forms.ModelForm):
             raise ValidationError("شماره موبایل قبلاً ثبت شده است.")
         return mobile
 
-    def clean_username(self):
-        username = self.cleaned_data.get('username')
-        if User.objects.filter(username=username).exclude(pk=self.instance.pk).exists():
-            raise ValidationError("نام کاربری قبلاً ثبت شده است.")
-        return username
+    # def clean_username(self):
+    #     username = self.cleaned_data.get('username')
+    #     if User.objects.filter(username=username).exclude(pk=self.instance.pk).exists():
+    #         raise ValidationError("نام کاربری قبلاً ثبت شده است.")
+    #     return username
 
     def clean_password2(self):
         password = self.cleaned_data.get("password")
@@ -635,7 +635,7 @@ class UnitForm(forms.ModelForm):
     is_renter = forms.ChoiceField(
         choices=[('', '--- انتخاب کنید ---'), ('True', 'بله'), ('False', 'خیر')],
         widget=forms.Select(attrs={'id': 'id_is_renter', 'class': 'form-control'}),
-        label='واحد دارای مستاجر است؟'
+        label='واحد دارای مستاجر است؟', initial='False'
     )
     owner_details = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'rows': 8}), required=False,
                                     label='توضیحات مالک')
@@ -709,6 +709,38 @@ class UnitForm(forms.ModelForm):
 
         renter_password = cleaned_data.get("renter_password")
         confirm_renter_password = cleaned_data.get("confirm_renter_password")
+
+        owner_mobile = cleaned_data.get('owner_mobile')
+        renter_mobile = cleaned_data.get('renter_mobile')
+
+        instance = getattr(self, 'instance', None)
+
+        # ------------------------
+        # OWNER MOBILE CHECK
+        # ------------------------
+        if owner_mobile:
+            qs = User.objects.filter(mobile=owner_mobile)
+
+            if instance and instance.pk:
+                qs = qs.exclude(pk=instance.user.pk)
+
+            if qs.exists():
+                self.add_error('owner_mobile', 'این شماره موبایل قبلاً ثبت شده است.')
+
+        # ------------------------
+        # RENTER MOBILE CHECK
+        # ------------------------
+        if renter_mobile:
+            qs = User.objects.filter(mobile=renter_mobile)
+
+            if instance and instance.pk:
+                active_renter = instance.get_active_renter()
+                if active_renter:
+                    qs = qs.exclude(pk=active_renter.user.pk)
+
+            if qs.exists():
+                self.add_error('renter_mobile', 'این شماره موبایل قبلاً ثبت شده است.')
+
 
         if owner_password or confirm_owner_password:
             if owner_password != confirm_owner_password:
@@ -976,6 +1008,12 @@ class RenterAddForm(forms.ModelForm):
         cleaned_data = super().clean()
         password = cleaned_data.get("password")
         confirm_password = cleaned_data.get("confirm_password")
+
+        renter_mobile = cleaned_data.get('renter_mobile')
+
+        if renter_mobile:
+            if User.objects.filter(mobile=renter_mobile).exists():
+                self.add_error('renter_mobile', 'این شماره موبایل قبلاً ثبت شده است.')
 
         if password or confirm_password:
             if password != confirm_password:
@@ -2966,3 +3004,41 @@ class TransferMoneyForm(forms.ModelForm):
                 )
 
         return cleaned_data
+
+
+class CouponApplyForm(forms.ModelForm):
+    error_message = {
+        'required': 'این فیلد الزامی است.',
+        'invalid': 'لطفا مقدار معتبری وارد کنید.'
+    }
+
+    code = forms.CharField(
+        required=True,
+        error_messages=error_message,
+        widget=forms.TextInput(attrs={'class': 'form-control'}),
+        label='کد تخفیف'
+    )
+    valid_from = JalaliDateField(
+        label='تاریخ شروع',
+        required=True,
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+    )
+    valid_to = JalaliDateField(
+        label='تاریخ پایان',
+        required=True,
+        widget=AdminJalaliDateWidget(attrs={'class': 'form-control'}),
+    )
+    discount = forms.CharField(
+        required=True,
+        error_messages=error_message,
+        widget=forms.TextInput(attrs={'class': 'form-control'}),
+        label='مبلغ تخفیف'
+    )
+    active = forms.ChoiceField(label='فعال /غیرفعال  ', required=True,
+                                  error_messages=error_message, choices=CHOICES,
+                               widget=forms.Select(attrs={'class': 'form-control form-control-sm'}))
+
+    class Meta:
+        model = Coupon
+        fields = ['code', 'valid_from', 'valid_to', 'discount', 'active']
+

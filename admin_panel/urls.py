@@ -17,6 +17,10 @@ urlpatterns = [
     path('edit-article/<int:pk>/', views.ArticleUpdateView.as_view(), name='edit_article'),
     path('delete-article/<int:pk>/', views.article_delete, name='delete_article'),
 
+    path('register-coupon', views.CouponListView.as_view(), name='register_coupon'),
+    path('edit/coupon/<int:pk>', views.CouponEditView.as_view(), name='edit_coupon'),
+    path('delete/coupon/<int:pk>', views.delete_coupon, name='delete_coupon'),
+
     path('admin/finance/by/house/', views.AdminFinanceByHouse.as_view(), name='admin_finance_by_house'),
     path('admin-finance/<int:house_id>/', views.AdminFinanceList.as_view(), name='admin_finance_list'),
 

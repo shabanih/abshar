@@ -65,30 +65,28 @@ class UnitUpdateService:
     def _update_owner_user(self):
         user = self.unit.user
 
-        mobile = self.form.cleaned_data.get('owner_mobile')
-        name = self.form.cleaned_data.get('owner_name')
+        new_mobile = self.form.cleaned_data.get('owner_mobile')
+        new_name = self.form.cleaned_data.get('owner_name')
 
-        if mobile and mobile != user.mobile:
-            existing_user = User.objects.filter(mobile=mobile).exclude(pk=user.pk).first()
-            if existing_user:
-                self.form.add_error('owner_mobile', 'این شماره موبایل قبلاً ثبت شده است.')
-                raise ValueError('duplicate_mobile')
+        # ----------------------------
+        # CASE 1: موبایل تغییر نکرده
+        # ----------------------------
+        if new_mobile == user.mobile:
+            if new_name and new_name != user.full_name:
+                user.full_name = new_name
+                user.save(update_fields=['full_name'])
+            return  # 🚨 مهم: خروج کامل
 
-            user.mobile = mobile
-            user.username = mobile
+        # ----------------------------
+        # CASE 2: موبایل تغییر کرده
+        # ----------------------------
+        if User.objects.filter(mobile=new_mobile).exclude(pk=user.pk).exists():
+            self.form.add_error('owner_mobile', 'این شماره موبایل قبلاً ثبت شده است.')
+            raise ValueError('duplicate_mobile')
 
-        if name:
-            user.full_name = name
-
-        owner_password = self.form.cleaned_data.get('owner_password')
-        if owner_password:
-            user.set_password(owner_password)
-
-        user.is_unit = True
+        user.mobile = new_mobile
+        user.full_name = new_name
         user.save()
-
-        if owner_password and user.pk == self.request.user.pk:
-            update_session_auth_hash(self.request, user)
 
     # def _update_unit(self):
     #     self.unit.is_renter = self.form.cleaned_data.get('is_renter', False)
@@ -104,43 +102,63 @@ class UnitUpdateService:
 
     def _update_or_create_renter(self):
         renter_mobile = self.form.cleaned_data.get('renter_mobile')
+        renter_name = self.form.cleaned_data.get('renter_name')
+
         if not renter_mobile:
-            # اگر موبایل مستاجر خالی بود، مستاجر جدید ایجاد نکن
             return
+
         active_renter = self.unit.get_active_renter()
-        renter_mobile = self.form.cleaned_data.get('renter_mobile')
 
+        # ----------------------------
+        # اگر مستاجر فعلی وجود دارد
+        # ----------------------------
         if active_renter:
-            r = active_renter
-            renter_user = r.user
-        else:
-            renter_user, created = User.objects.get_or_create(
-                mobile=renter_mobile,
-                defaults={
-                    'username': renter_mobile,
-                    'full_name': self.form.cleaned_data.get('renter_name'),
-                    'is_active': True,
-                    'manager': self.request.user,
-                    'is_unit': True
-                }
-            )
-            r = Renter.objects.filter(unit=self.unit, user=renter_user).first() or Renter(unit=self.unit,
-                                                                                          user=renter_user)
-            if not created and renter_user.manager is None:
-                renter_user.manager = self.request.user
-                renter_user.save(update_fields=['manager'])
+            renter_user = active_renter.user
 
-            r = Renter.objects.filter(unit=self.unit, user=renter_user).first()
-            if not r:
-                r = Renter(unit=self.unit, user=renter_user)
+            # بررسی تغییر موبایل
+            if renter_mobile != renter_user.mobile:
+                existing_user = User.objects.filter(
+                    mobile=renter_mobile
+                ).exclude(pk=renter_user.pk).first()
 
-                # ✅ این قسمت باید بیرون از شرط created باشد
-        renter_password = self.form.cleaned_data.get('renter_password')
-        if renter_password:
-            renter_user.set_password(renter_password)
+                if existing_user:
+                    self.form.add_error('renter_mobile', 'این شماره موبایل قبلاً ثبت شده است.')
+                    raise ValueError('duplicate_mobile')
+
+                renter_user.mobile = renter_mobile
+
+            renter_user.full_name = renter_name
+            renter_user.is_unit = True
+            renter_user.manager = self.request.user
             renter_user.save()
 
-        r.renter_name = self.form.cleaned_data.get('renter_name')
+            r = active_renter
+
+        # ----------------------------
+        # اگر مستاجر جدید است
+        # ----------------------------
+        else:
+            renter_user = User.objects.filter(mobile=renter_mobile).first()
+
+            if not renter_user:
+                renter_user = User.objects.create(
+                    mobile=renter_mobile,
+                    username=f"user_{renter_mobile}",
+                    full_name=renter_name,
+                    is_active=True,
+                    manager=self.request.user,
+                    is_unit=True
+                )
+
+            r = Renter.objects.create(
+                unit=self.unit,
+                user=renter_user
+            )
+
+        # ----------------------------
+        # آپدیت اطلاعات مستاجر
+        # ----------------------------
+        r.renter_name = renter_name
         r.renter_mobile = renter_mobile
         r.renter_national_code = self.form.cleaned_data.get('renter_national_code')
         r.renter_people_count = self.form.cleaned_data.get('renter_people_count')
@@ -148,13 +166,16 @@ class UnitUpdateService:
         r.end_date = self.form.cleaned_data.get('end_date')
         r.contract_number = self.form.cleaned_data.get('contract_number')
         r.estate_name = self.form.cleaned_data.get('estate_name')
-        r.renter_details = self.form.cleaned_data.get('renter_details')
-        r.first_charge_renter = self.form.cleaned_data.get('first_charge_renter') or 0
-        r.renter_payment_date = self.form.cleaned_data.get('renter_payment_date')
-        r.renter_transaction_no = self.form.cleaned_data.get('renter_transaction_no')
         r.renter_is_active = True
         r.renter_bank = self.form.cleaned_data.get('renter_bank')
+
         r.save()
+
+        # پسورد (اختیاری)
+        renter_password = self.form.cleaned_data.get('renter_password')
+        if renter_password:
+            renter_user.set_password(renter_password)
+            renter_user.save()
 
     def _handle_renter_charge(self):
         renter = self.unit.get_active_renter()

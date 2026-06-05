@@ -90,17 +90,33 @@
 {% endfor %}
 
 </div>
+<!-- کد تخفیف -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <label class="form-label">کد تخفیف</label>
 
+        <input type="text"
+               name="code"
+               class="form-control form-control-lg"
+               placeholder="مثلاً SUMMER20">
+
+        <div id="coupon_message" class="mt-2"></div>
+    </div>
+</div>
 <!-- مبلغ نهایی -->
-<div class="card shadow mt-4">
+<div class="card mt-3">
     <div class="card-body text-center">
+
+        <h5>تخفیف:</h5>
+        <span id="discount_amount">۰ تومان</span>
+
+        <hr>
 
         <h4>
             مبلغ نهایی:
-            <span id="final_price" class="text-success">0</span>
+            <span id="final_price" class="text-success">۰</span>
             تومان
         </h4>
-
         <button type="submit"
                 class="btn btn-primary btn-lg mt-3 px-5">
             ادامه و پرداخت
@@ -116,7 +132,7 @@
 
 <!-- ✅ JS -->
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+{#<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>#}
     <script src="/static/js/jquery.min.js"></script>
     <script src="/static/js/Bootstrap.min.js"></script>
     <script src="/static/js/bootstrap.bundle.min.js"></script>
@@ -124,72 +140,74 @@
     <script src="/static/js/sweetalert2@11.js"></script>
     <script src="/static/js/jquery-3.5.1.slim.min.js"></script>
     <script src="/static/js/custom.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
-const unitsInput = document.getElementById("units");
-const radios = document.querySelectorAll('input[name="plan"]');
-const finalPrice = document.getElementById("final_price");
-const cards = document.querySelectorAll(".plan-card");
-const unitsError = document.getElementById("units_error");
-
-// مقدار حداقل ثبت‌شده از backend
-const minUnits = parseInt(unitsInput.min);
-
-// ✅ تابع سه‌رقمی کردن عدد
-function formatNumber(num){
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-
-// ✅ تابع تبدیل اعداد به فارسی
-function toPersianNumber(num){
-    return num.toString().replace(/\d/g, d => "۰۱۲۳۴۵۶۷۸۹"[d]);
-}
-
-// انتخاب کارت با کلیک
-cards.forEach(card=>{
-    card.addEventListener("click", ()=>{
-        let radio = card.parentElement.querySelector("input");
-        radio.checked = true;
-        calculate();
-    });
-});
-
-// محاسبه مبلغ کل
-function calculate(){
-    let units = parseInt(unitsInput.value) || 0;
-
-    // بررسی تعداد واحد
-    if(units < minUnits){
-        unitsError.style.display = "block";
-        unitsError.innerText = `با توجه به تعداد واحد ثبتی، تعداد واحد نمی‌تواند کمتر از ${toPersianNumber(minUnits)} باشد.`;
-        finalPrice.innerText = "۰";
-        return;
-    } else {
-        unitsError.style.display = "none";
-    }
-
-    radios.forEach(radio=>{
-        let price = parseInt(radio.dataset.price);
-        let total = units * price;
-
-        let span = document.getElementById("total_" + radio.value);
-        if(span){
-            span.innerText = toPersianNumber(formatNumber(total)) + " تومان";
-        }
-
-        if(radio.checked){
-            finalPrice.innerText = toPersianNumber(formatNumber(total));
-        }
-    });
-}
-
-// محاسبه هنگام تغییر تعداد واحد
-unitsInput.addEventListener("input", calculate);
-
-// محاسبه اولیه در صفحه
-calculate();
+const couponUrl = "{% url 'check_coupon' %}";
 </script>
+{#<script>#}
+{#const unitsInput = document.getElementById("units");#}
+{#const radios = document.querySelectorAll('input[name="plan"]');#}
+{#const finalPrice = document.getElementById("final_price");#}
+{#const cards = document.querySelectorAll(".plan-card");#}
+{#const unitsError = document.getElementById("units_error");#}
+{##}
+{#// مقدار حداقل ثبت‌شده از backend#}
+{#const minUnits = parseInt(unitsInput.min);#}
+{##}
+{#// ✅ تابع سه‌رقمی کردن عدد#}
+{#function formatNumber(num){#}
+{#    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");#}
+{#}#}
+{##}
+{#// ✅ تابع تبدیل اعداد به فارسی#}
+{#function toPersianNumber(num){#}
+{#    return num.toString().replace(/\d/g, d => "۰۱۲۳۴۵۶۷۸۹"[d]);#}
+{#}#}
+{##}
+{#// انتخاب کارت با کلیک#}
+{#cards.forEach(card=>{#}
+{#    card.addEventListener("click", ()=>{#}
+{#        let radio = card.parentElement.querySelector("input");#}
+{#        radio.checked = true;#}
+{#        calculate();#}
+{#    });#}
+{#});#}
+{##}
+{#// محاسبه مبلغ کل#}
+{#function calculate(){#}
+{#    let units = parseInt(unitsInput.value) || 0;#}
+{##}
+{#    // بررسی تعداد واحد#}
+{#    if(units < minUnits){#}
+{#        unitsError.style.display = "block";#}
+{#        unitsError.innerText = `با توجه به تعداد واحد ثبتی، تعداد واحد نمی‌تواند کمتر از ${toPersianNumber(minUnits)} باشد.`;#}
+{#        finalPrice.innerText = "۰";#}
+{#        return;#}
+{#    } else {#}
+{#        unitsError.style.display = "none";#}
+{#    }#}
+{##}
+{#    radios.forEach(radio=>{#}
+{#        let price = parseInt(radio.dataset.price);#}
+{#        let total = units * price;#}
+{##}
+{#        let span = document.getElementById("total_" + radio.value);#}
+{#        if(span){#}
+{#            span.innerText = toPersianNumber(formatNumber(total)) + " تومان";#}
+{#        }#}
+{##}
+{#        if(radio.checked){#}
+{#            finalPrice.innerText = toPersianNumber(formatNumber(total));#}
+{#        }#}
+{#    });#}
+{#}#}
+{##}
+{#// محاسبه هنگام تغییر تعداد واحد#}
+{#unitsInput.addEventListener("input", calculate);#}
+{##}
+{#// محاسبه اولیه در صفحه#}
+{#calculate();#}
+{#</script>#}
 
 </body>
 </html>

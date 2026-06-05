@@ -62,6 +62,8 @@
                             <th>نوع اشتراک</th>
                             <th>تعداد واحد </th>
                             <th>مبلغ اشتراک </th>
+                            <th>مبلغ تخفیف </th>
+                            <th>مبلغ کل </th>
                             <th>تاریخ شروع </th>
                             <th>تاریخ پایان</th>
                             <th>تاریخ پرداخت</th>
@@ -82,18 +84,26 @@
                                 {% endif %} 
                                 </td>
                                 <td>{{ sub.user.full_name }}</td>
-                                <td>{{ sub.user.mobile }}</td>
+                                <td>{{ sub.user.mobile|to_persian_number }}</td>
                                 <td>
                                     {% if sub.plan.duration %}
-                                    	    {{sub.plan.duration }}ماهه
+                                    	    {{sub.plan.duration|to_persian_number }}ماهه
                                         {% else %}
                                         <button class="badge badge-info">اشتراک رایگان</button>
                                     {% endif %} 
                                 
                                 </td>
-                                <td>{{ sub.units_count }}</td>
+                                <td>{{ sub.units_count|to_persian_number }}</td>
                                 <td>{% if sub.total_amount %}
                                     {{ sub.total_amount|three_digit_currency }}
+                                         {% else %}
+                                    ---
+                                {% endif %} 
+                                </td>
+                         
+                             <td>{{ sub.discount_amount|three_digit_currency }} </td>
+                                <td>{% if sub.final_amount %}
+                                    {{ sub.final_amount|three_digit_currency }}
                                          {% else %}
                                     ---
                                 {% endif %} 
@@ -108,7 +118,7 @@
                                 {% endif %} 
                                 </td>
                                 <td>{% if sub.transaction_id %}
-                                	      {{ sub.transaction_id }}
+                                	      {{ sub.transaction_id |to_persian_number}}
                                     {% else %}
                                     ---
                                 {% endif %} 

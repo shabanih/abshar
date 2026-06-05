@@ -300,6 +300,16 @@ CHARGE_PREFIXES = [
     "middle_main_charges",
     "civil_charge_manage",
 ]
+SMS_PREFIXES = [
+    "add_sms_credit",
+    "sms_middle",
+    "middle_sms_management",
+]
+MESSAGE_PREFIXES = [
+    "message_middle",
+    "message_management_for_middle",
+    "middle_message_management_from_admin",
+]
 
 
 @register.simple_tag
@@ -309,17 +319,19 @@ def is_charge_section(url_name):
         return False
     return any(url_name.startswith(p) for p in CHARGE_PREFIXES)
 
+@register.simple_tag
+def is_message_section(url_name):
+    """بررسی می‌کند که URL با پیشوند شارژ شروع شده باشد"""
+    if not url_name:
+        return False
+    return any(url_name.startswith(p) for p in MESSAGE_PREFIXES)
 
-# @register.filter
-# def to_persian_number(value):
-#     if not value:
-#         return value
-#
-#     persian_digits = '۰۱۲۳۴۵۶۷۸۹'
-#     english_digits = '0123456789'
-#
-#     translation_table = str.maketrans(english_digits, persian_digits)
-#     return str(value).translate(translation_table)
+@register.simple_tag
+def is_sms_section(url_name):
+    """بررسی می‌کند که URL با پیشوند شارژ شروع شده باشد"""
+    if not url_name:
+        return False
+    return any(url_name.startswith(p) for p in SMS_PREFIXES)
 
 @register.filter
 def to_persian_number(value):

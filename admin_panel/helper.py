@@ -30,6 +30,37 @@ def send_notify_user_by_sms(mobile, name, amount):
         return {"error": str(e)}
 
 
+def send_approved_sms(mobile, message, full_name, otp=None):
+    mobile = [mobile]  # مطمئن شو عدد به رشته تبدیل شده
+    full_name = full_name
+    message = message
+
+    try:
+        api = KavenegarAPI(Kavenegar_API)
+
+        params = {
+            'receptor': mobile,  # List of strings for mobile numbers
+            'token10': full_name,
+            'token': message,
+            'template': 'approvedSms',
+            'type': 'sms'
+        }
+        print(params)
+
+        # Send the message
+        response = api.verify_lookup(params)
+        return response
+    except User.DoesNotExist:
+        print("User not found.")
+        return {"error": "User not found"}
+    except APIException as e:
+        print(f"APIException: {e}")
+        return {"error": "APIException", "message": str(e)}
+    except HTTPException as e:
+        print(f"HTTPException: {e}")
+        return {"error": "HTTPException", "message": str(e)}
+
+
 def send_sms_to_user(mobile, message, full_name, otp=None):
     mobile = [mobile]  # مطمئن شو عدد به رشته تبدیل شده
     full_name = full_name

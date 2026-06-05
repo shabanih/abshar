@@ -20,6 +20,8 @@
 
 
 
+
+
 <li class="nav-item text-center mb-1 sidebar-subscription-box">
 <div class="row py-2">
   <div class="col-12 text-center">
@@ -87,7 +89,21 @@
 </div>
 </li>
 
+<li class="nav-item text-center mb-1">
+    <div class="row d-flex justify-content-between">
+                {% if user.is_resident %}
+  <a href="{% url 'switch_to_resident' %}"
+     class="btn btn-gradient-primary px-3 py-2">
+      ورود به پنل ساکنین
+  </a>
+{% endif %}
+{#  <a href="" class="btn btn-gradient-info px-3 py-1 mt-2">#}
+{#       <img src="/static/admin_panel/icone8/icons8-plus.gif" class="mx-2" width="20" alt="">#}
+{#      افزودن اعتبار#}
+{#  </a>#}
+</div>
 
+</li>
             <li class="nav-item border-top">
                {% url 'middle_admin_dashboard' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
@@ -131,46 +147,89 @@
                   </div>
                 </li>
 
-                       {% url 'message_to_user' as url_message_to_user %}
-            {% url 'middle_message_management' as url_middle_message_list %}
-            {% url 'middle_message_management_from_admin' as url_middle_message_from_admin_list %}
+{% with url=request.resolver_match.url_name %}
+{% is_message_section url as Message %}
 
-            <li class="nav-item border-top mt-0">
-              <a class="nav-link" data-bs-toggle="collapse"
-                 href="#general145"
-                 aria-expanded="true"
-                 aria-controls="general145">
-                <i class="menu-title"> مدیریت پیام ها </i>
-                <i class="menu-arrow"></i>
-                <i class="fas fa-bullhorn fa-flip-horizontal menu-icon"></i>
-              </a>
+<li class="nav-item mt-0 border-top">
 
-              <div class="collapse {% if request.path == url_message_to_user or request.path == url_middle_message_list or request.path == url_middle_message_from_admin_list %}show{% endif %}" id="general145">
-                <ul class="nav flex-column sub-menu">
+   <a class="nav-link" data-bs-toggle="collapse"
+     href="#general145"
+      aria-expanded="{% if charge_open %}true{% else %}false{% endif %}">
+    <i class="menu-title"> مدیریت پیام ها </i>
+    <i class="menu-arrow"></i>
+    <i class="fas fa-bullhorn fa-flip-horizontal menu-icon"></i>
+  </a>
 
-                  <li class="nav-item mt-0">
-                    <a class="nav-link {% if request.path == url_message_to_user %}active{% endif %}"
-                       href="{{ url_message_to_user }}">
-                       ثبت پیام
-                    </a>
-                  </li>
+  <div class="collapse {% if Message %}show{% endif %}" id="general145">
+    <ul class="nav flex-column sub-menu">
 
-                  <li class="nav-item mt-0">
-                    <a class="nav-link {% if request.path == url_middle_message_list %}active{% endif %}"
-                       href="{{ url_middle_message_list }}">
-                       پیام های ارسالی
-                    </a>
-                  </li>
-                    <li class="nav-item mt-0">
-                    <a class="nav-link {% if request.path == url_middle_message_from_admin_list %}active{% endif %}"
-                       href="{{ url_middle_message_from_admin_list }}">
-                       پیام های ادمین
-                    </a>
-                  </li>
+      <li class="nav-item">
+      <a class="nav-link {% if 'message_middle' in url %}active{% endif %}"
+   href="{% url 'message_middle_to_user' %}">
+   ثبت پیام
+</a>
+      </li>
 
-                </ul>
-              </div>
-            </li>
+      <li class="nav-item">
+       <a class="nav-link {% if 'message_management_for_middle' in url %}active{% endif %}"
+   href="{% url 'message_management_for_middle' %}">
+    پیام های ارسالی
+</a>
+      </li>
+          <li class="nav-item">
+       <a class="nav-link {% if 'middle_message_management_from_admin' in url %}active{% endif %}"
+   href="{% url 'middle_message_management_from_admin' %}">
+   پیام های ادمین
+</a>
+      </li>
+
+
+    </ul>
+  </div>
+
+</li>
+
+{% endwith %}
+{#            {% url 'message_to_user' as url_message_to_user %}#}
+{#            {% url 'middle_message_management' as url_middle_message_list %}#}
+{#            {% url 'middle_message_management_from_admin' as url_middle_message_from_admin_list %}#}
+{##}
+{#            <li class="nav-item border-top mt-0">#}
+{#              <a class="nav-link" data-bs-toggle="collapse"#}
+{#                 href="#general145"#}
+{#                 aria-expanded="true"#}
+{#                 aria-controls="general145">#}
+{#                <i class="menu-title"> مدیریت پیام ها </i>#}
+{#                <i class="menu-arrow"></i>#}
+{#                <i class="fas fa-bullhorn fa-flip-horizontal menu-icon"></i>#}
+{#              </a>#}
+{##}
+{#              <div class="collapse {% if request.path == url_message_to_user or request.path == url_middle_message_list or request.path == url_middle_message_from_admin_list %}show{% endif %}" id="general145">#}
+{#                <ul class="nav flex-column sub-menu">#}
+{##}
+{#                  <li class="nav-item mt-0">#}
+{#                    <a class="nav-link {% if request.path == url_message_to_user %}active{% endif %}"#}
+{#                       href="{{ url_message_to_user }}">#}
+{#                       ثبت پیام#}
+{#                    </a>#}
+{#                  </li>#}
+{##}
+{#                  <li class="nav-item mt-0">#}
+{#                    <a class="nav-link {% if request.path == url_middle_message_list %}active{% endif %}"#}
+{#                       href="{{ url_middle_message_list }}">#}
+{#                       پیام های ارسالی#}
+{#                    </a>#}
+{#                  </li>#}
+{#                    <li class="nav-item mt-0">#}
+{#                    <a class="nav-link {% if request.path == url_middle_message_from_admin_list %}active{% endif %}"#}
+{#                       href="{{ url_middle_message_from_admin_list }}">#}
+{#                       پیام های ادمین#}
+{#                    </a>#}
+{#                  </li>#}
+{##}
+{#                </ul>#}
+{#              </div>#}
+{#            </li>#}
 
                  <li class="nav-item border-top mt-0">
                  {% url 'middle_manage_bank' as address_url %}
@@ -326,48 +385,92 @@
                <i class="mdi mdi-headset menu-icon"></i>
           </a>
         </li>
+{% with url=request.resolver_match.url_name %}
+{% is_sms_section url as sms %}
 
-            {% url 'add_sms_credit' as url_middle_credit_sms %}
-            {% url 'middle_register_sms' as url_middle_register_sms %}
-            {% url 'middle_sms_management' as url_middle_sms_list %}
+<li class="nav-item mt-0 border-top">
 
-            <li class="nav-item border-top mt-0">
-              <a class="nav-link" data-bs-toggle="collapse"
-                 href="#general77"
-                 aria-expanded="true"
-                 aria-controls="general77">
-                <i class="menu-title"> مدیریت پیامک ها </i>
-                <i class="menu-arrow"></i>
-                <i class="fas fa-comment-dots menu-icon"></i>
-              </a>
+  <a class="nav-link"
+     data-bs-toggle="collapse"
+     href="#general77"
+     aria-expanded="{% if sms %}true{% else %}false{% endif %}">
 
-              <div class="collapse {% if request.path == url_middle_register_sms or request.path == url_middle_sms_list or request.path == url_middle_credit_sms  %}show{% endif %}" id="general77">
-                <ul class="nav flex-column sub-menu">
+    <i class="menu-title"> مدیریت پیامک ها </i>
+    <i class="menu-arrow"></i>
+    <i class="fas fa-comment-dots menu-icon"></i>
+  </a>
 
-                    <li class="nav-item mt-0">
-                    <a class="nav-link {% if request.path == url_middle_credit_sms %}active{% endif %}"
-                       href="{{ url_middle_credit_sms }}">
-                       شارژ حساب پیامک
-                    </a>
-                  </li>
+  <div class="collapse {% if sms %}show{% endif %}" id="general77">
+    <ul class="nav flex-column sub-menu">
 
-                  <li class="nav-item mt-0">
-                    <a class="nav-link {% if request.path == url_middle_register_sms %}active{% endif %}"
-                       href="{{ url_middle_register_sms }}">
-                       ثبت و ارسال پیامک
-                    </a>
-                  </li>
+      <li class="nav-item">
+      <a class="nav-link {% if 'add_sms_credit' in url %}active{% endif %}"
+   href="{% url 'add_sms_credit' %}">
+    شارژ حساب پیامک
+</a>
+      </li>
 
-                  <li class="nav-item mt-0">
-                    <a class="nav-link {% if request.path == url_middle_sms_list %}active{% endif %}"
-                       href="{{ url_middle_sms_list }}">
-                       پیامک های من
-                    </a>
-                  </li>
+      <li class="nav-item">
+       <a class="nav-link {% if 'sms_middle' in url %}active{% endif %}"
+   href="{% url 'sms_middle_sms' %}">
+   ثبت و ارسال پیامک
+</a>
+      </li>
+          <li class="nav-item">
+       <a class="nav-link {% if 'middle_sms_management' in url %}active{% endif %}"
+   href="{% url 'middle_sms_management' %}">
+    پیامک های من
+</a>
+      </li>
 
-                </ul>
-              </div>
-            </li>
+
+    </ul>
+  </div>
+
+</li>
+
+{% endwith %}
+{#            {% url 'add_sms_credit' as url_middle_credit_sms %}#}
+{#            {% url 'middle_register_sms' as url_middle_register_sms %}#}
+{#            {% url 'middle_sms_management' as url_middle_sms_list %}#}
+{##}
+{#            <li class="nav-item border-top mt-0">#}
+{#              <a class="nav-link" data-bs-toggle="collapse"#}
+{#                 href="#general77"#}
+{#                 aria-expanded="true"#}
+{#                 aria-controls="general77">#}
+{#                <i class="menu-title"> مدیریت پیامک ها </i>#}
+{#                <i class="menu-arrow"></i>#}
+{#                <i class="fas fa-comment-dots menu-icon"></i>#}
+{#              </a>#}
+{##}
+{#              <div class="collapse {% if request.path == url_middle_register_sms or request.path == url_middle_sms_list or request.path == url_middle_credit_sms  %}show{% endif %}" id="general77">#}
+{#                <ul class="nav flex-column sub-menu">#}
+{##}
+{#                    <li class="nav-item mt-0">#}
+{#                    <a class="nav-link {% if request.path == url_middle_credit_sms %}active{% endif %}"#}
+{#                       href="{{ url_middle_credit_sms }}">#}
+{#                       شارژ حساب پیامک#}
+{#                    </a>#}
+{#                  </li>#}
+{##}
+{#                  <li class="nav-item mt-0">#}
+{#                    <a class="nav-link {% if request.path == url_middle_register_sms %}active{% endif %}"#}
+{#                       href="{{ url_middle_register_sms }}">#}
+{#                       ثبت و ارسال پیامک#}
+{#                    </a>#}
+{#                  </li>#}
+{##}
+{#                  <li class="nav-item mt-0">#}
+{#                    <a class="nav-link {% if request.path == url_middle_sms_list %}active{% endif %}"#}
+{#                       href="{{ url_middle_sms_list }}">#}
+{#                       پیامک های من#}
+{#                    </a>#}
+{#                  </li>#}
+{##}
+{#                </ul>#}
+{#              </div>#}
+{#            </li>#}
 
             {% url 'create_poll' as url_create_poll %}
             {% url 'poll_list' as url_poll_list %}

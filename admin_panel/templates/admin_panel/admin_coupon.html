@@ -1,0 +1,136 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+{% block page_title %}
+مدیریت کوپن ها
+{% endblock page_title %}
+
+{% block main_content %}
+<section class="content mt-3">
+    <div class="container-fluid">
+
+    <div class="col-12">
+{#                <div class="card">#}
+{#                  <div class="card-body pb-0">#}
+ {{ form.non_field_errors }}
+                    <form class="forms-sample" action="" method="post" novalidate>
+                        {% csrf_token%}
+                 <div class="row g-2">
+                     <div class="col-md-3">
+                         {{ form.code.label_tag }}
+                         {{ form.code}}
+                         {{ form.code.errors }}
+                     </div>
+                 
+                    <div class="col-md-3">
+                            {{ form.valid_from.label_tag }}
+                            {{ form.valid_from }}
+                            {{ form.valid_from.errors }}
+                     </div>
+                   <div class="col-md-3">
+                          {{ form.valid_to.label_tag }}
+                          {{ form.valid_to }}
+                          {{ form.valid_to.errors }}
+                     </div>
+                      <div class="col-md-3">
+                          {{ form.discount.label_tag }}
+                          {{ form.discount  }}
+                          {{ form.discount.errors }}
+
+                     </div>
+                      <div class="col-md-3">
+                          {{ form.active.label_tag }}
+                          {{ form.active }}
+                          {{ form.active.errors }}
+
+                     </div>
+                     
+                        <div class="col-md-12 d-flex justify-content-end">
+                            {% if form.instance.id %}
+                            	   <button type="submit" class="btn btn-gradient-primary">
+                            ذخیره
+                         </button>
+                                {% else %}
+                                   <button type="submit" class="btn btn-gradient-primary">
+                            افزودن
+                         </button>
+                            {% endif %} 
+                     
+                             </div>
+                               
+                    
+                 </div>
+                    </form>
+                  </div>
+                </div>
+{#                </div>#}
+{#              </div>#}
+
+
+
+    <h5 class="m-3"><i class="mdi mdi-clipboard-text text-secondary"></i>تعداد کل ثبت شده :  {{ coupons_count }}</h5>
+
+        <div class="col-md-12">
+{#                <div class="card mt-0">#}
+                  <div class="card-body mt-0">
+                    <table class="table table-striped mt-1">
+                      <thead>
+                        <tr>
+                            <th>ردیف</th>
+                          <th> کد تخفیف </th>
+                          <th> تاریخ شروع </th>
+                          <th>تاریخ پایان </th>
+                          <th>مقدار تخفیف</th>
+                          <th>فعال/غیرفعال </th>
+                          <th> دستورات </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                      {% if coupons %}
+                      {% for coupon in coupons %}
+                      	  <tr>
+                          <td>{{ forloop.counter }}</td>
+                          <td class="py-1">{{ coupon.code }}    </td>
+                  
+                          <td class="py-1">{{ coupon.valid_from | show_jalali }}  </td>
+                          <td>{{ coupon.valid_to | show_jalali}}</td>
+                          <td>{{ coupon.discount| three_digit_currency }} تومان</td>
+                            <td>
+                              {% if coupon.active %}
+                              	<span class="btn btn-gradient-success btn-sm">فعال</span>
+                                  {% else %}
+                                  <span class="btn btn-gradient-danger btn-sm">غیرفعال</span>
+                              {% endif %}
+
+                          </td>
+                          <td>
+                                     <a href="{% url 'edit_coupon' pk=coupon.id %}" class="btn btn-primary p-1">
+                                  <i class="mdi mdi-lead-pencil" aria-hidden="true"></i>
+                                </a>
+                                  <a href="{% url 'delete_coupon' pk=coupon.id %}" class="btn btn-danger p-1"
+                                   onclick="return confirm('آیا نسبت به حذف این آیتم اطمینان دارید؟')">
+                                          <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                      </a>
+                          </td>
+
+                        </tr>
+                      {% endfor %}
+                                {% else %}
+                    <tr>
+                        <td colspan="7" class="p-4 text-center text-info">
+                            <h6>هیچ رکوردی برای نمایش وجود ندارد!</h6></td>
+                    </tr>
+                {% endif %}
+                      </tbody>
+                    </table>
+                  </div>
+{#                </div>#}
+              </div>
+</section>
+
+{% endblock main_content %}
+
+
+
+
+

@@ -629,13 +629,14 @@ def admin_is_continue(request, pk):
     ticket.save()
     return redirect('admin_ticket_detail', pk=ticket.id)
 
+
 # ========================= Message To User ======
 @method_decorator(login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN), name='dispatch')
 class MessageToUserListCreateView(CreateView):
     model = MessageToUser
     form_class = MessageToUserForm
     template_name = 'message_to_user.html'
-    success_url = reverse_lazy('message_to_user')
+    success_url = reverse_lazy('message_middle_to_user')
 
     def form_valid(self, form):
         message = form.save(commit=False)
@@ -674,7 +675,7 @@ class MiddleMessageUpdateView(UpdateView):
     model = MessageToUser
     form_class = MessageToUserForm
     template_name = 'message_to_user.html'
-    success_url = reverse_lazy('message_to_user')
+    success_url = reverse_lazy('message_middle_to_user')
 
     def form_valid(self, form):
         edit_instance = form.instance
@@ -700,7 +701,7 @@ def message_user_delete(request, pk):
         messages.success(request, 'پیام با موفقیت حذف گردید!')
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
-    return redirect(reverse('message_to_user'))
+    return redirect(reverse('message_middle_to_user'))
 
 
 @login_required
@@ -711,15 +712,16 @@ def message_user_delete_list(request, pk):
         messages.success(request, 'پیام با موفقیت حذف گردید!')
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
-    return redirect(reverse('middle_message_management'))
+    return redirect(reverse('message_management_for_middle'))
 
 
 @login_required
 def middle_show_message_form(request, pk):
     managed_users = request.user.managed_users.all()
     message = get_object_or_404(MessageToUser, id=pk, user=request.user)
+    house = MyHouse.objects.filter(user=request.user).first()
     units = Unit.objects.filter(Q(user=request.user) | Q(user__in=managed_users),
-                                is_active=True).prefetch_related('renters').order_by('unit')
+                                is_active=True, myhouse=house).prefetch_related('renters').order_by('unit')
     units_with_details = []
     for unit in units:
         active_renter = unit.renters.filter(renter_is_active=True).first()
@@ -727,10 +729,14 @@ def middle_show_message_form(request, pk):
             'unit': unit,
             'active_renter': active_renter
         })
+    all_messages = MessageToUser.objects.filter(user=request.user,
+                                                send_notification=False, pk=pk).order_by(
+        '-created_at')
 
     return render(request, 'middle_send_message.html', {
         'message': message,
         'units_with_details': units_with_details,
+        'all_messages': all_messages
     })
 
 
@@ -743,7 +749,7 @@ def middle_send_message(request, pk):
         selected_units = request.POST.getlist('units')
         if not selected_units:
             messages.warning(request, 'هیچ واحدی انتخاب نشده است.')
-            return redirect('message_to_user')
+            return redirect('message_middle_to_user')
 
         units_qs = Unit.objects.filter(Q(user=request.user) | Q(user__in=managed_users),
                                        is_active=True)
@@ -758,7 +764,7 @@ def middle_send_message(request, pk):
 
         if not units_to_notify.exists():
             messages.warning(request, 'هیچ واحد معتبری برای ارسال پیامک پیدا نشد.')
-            return redirect('message_to_user')
+            return redirect('message_middle_to_user')
 
         with transaction.atomic():
             notified_units = list(units_to_notify)
@@ -781,7 +787,7 @@ def middle_send_message(request, pk):
                 f"پیام برای {len(notified_units)} واحد ارسال شد."
             )
 
-        return redirect('middle_message_management')
+        return redirect('message_management_for_middle')
 
     units_with_details = Unit.objects.filter(is_active=True)
     return render(request, 'middle_send_message.html', {

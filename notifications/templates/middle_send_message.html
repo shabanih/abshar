@@ -6,11 +6,51 @@
 
 {% block main_content %}
 <div class="container mt-3">
+<div class="row mb-2">
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead class="text-center">
+                        <tr>
+                       
+                            <th>عنوان پیام</th>
+                            <th>متن پیام </th>
+                            <th>تاریخ ایجاد</th>
+{#                            <th>فعال/غیرفعال</th>#}
+{#                            <th>وضعیت</th>#}
+{#                            <th>تاریخ ارسال</th>#}
+{#                            <th>تعداد پیامک ارسالی</th>#}
+{#                            <th>دستورات</th>#}
+                        </tr>
+                    </thead>
+                    {% if all_messages %}
+                        {% for message in all_messages %}
+                        <tbody class="text-center">
+                            <tr>
+                            
+                                <td>{{message.title|to_persian_number  }}</td>
+                                <td>{{ message.message|to_persian_number  }}</td>
+
+                                <td>{{ message.created_at|show_jalali}}</td>
+                                
+
+                            </tr>
+                        </tbody>
+                        {% endfor %}
+                    {% else %}
+                        <tbody>
+                            <tr>
+                                <td colspan="11" class="text-center">هیچ پیامکی ثبت نشده است.</td>
+                            </tr>
+                        </tbody>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
     <div class="card shadow-lg border-0 rounded-4">
 {#        <div class="card-header bg-gradient-secondary text-white text-center py-3 rounded-top-4">#}
 {#            <h4 class="mb-0"><i class="fas fa-sms me-2"></i>مدیریت ارسال پیامک‌ها</h4>#}
 {#        </div>#}
-
+ 
         <div class="card-body p-4">
             <form method="POST" action="{% url 'middle_send_message' message.id %}">
                 {% csrf_token %}

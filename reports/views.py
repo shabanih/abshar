@@ -635,57 +635,52 @@ def fund_turnover_user(request):
     query = request.GET.get('q', '').strip()
     paginate = request.GET.get('paginate', '20')
 
-    # واحدهایی که کاربر به آن دسترسی دارد
-    user_units = Unit.objects.filter(
-        Q(user=user) |  # مالک
-        Q(renters__user=user, renters__renter_is_active=True)  # مستاجر فعال
+    base_units = Unit.objects.filter(
+        Q(user=user) |
+        Q(renters__user=user, renters__renter_is_active=True)
     ).distinct()
 
-    # مدیر ساختمان → همه واحدهای ساختمان
     if user.is_middle_admin:
-        user_units = Unit.objects.filter(
+        admin_units = Unit.objects.filter(
             myhouse__residents=user,
             is_active=True
         ).distinct()
 
+        user_units = (base_units | admin_units).distinct()
+    else:
+        user_units = base_units
+
     funds = Fund.objects.filter(
         unit__in=user_units,
-        user=request.user,  # پرداخت‌کننده خود کاربر
-        is_initial=False  # حذف افتتاحیه‌ها
+        user=user,
+        is_initial=False
     )
 
-    # جستجو
     if query:
         funds = funds.filter(
             Q(payment_description__icontains=query) |
             Q(payment_gateway__icontains=query) |
             Q(transaction_no__icontains=query) |
-            Q(payment_date__icontains=query) |
             Q(amount__icontains=query)
         )
 
     funds = funds.order_by('-created_at')
 
-    # مجموع
     total_amount = funds.aggregate(total=Sum('amount'))['total'] or 0
 
-    # پیجینیشن
     try:
-        paginate = int(paginate)
-        if paginate <= 0:
-            paginate = 20
+        paginate = max(int(paginate), 1)
     except ValueError:
         paginate = 20
 
     paginator = Paginator(funds, paginate)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    page_obj = paginator.get_page(request.GET.get('page'))
 
     return render(request, 'fund_turnover_user.html', {
         'funds': page_obj,
+        'page_obj': page_obj,
         'query': query,
         'paginate': paginate,
-        'page_obj': page_obj,
         'total_amount': total_amount,
     })
 
@@ -1091,8 +1086,18 @@ def civil_sent_units(request, pk):
 
     units = Unit.objects.filter(
         user__manager=request.user,
-        is_active=True
-    )
+        is_active=True,
+        civilinstallment__civil_manage=civil,
+        civilinstallment__send_notification=True
+    ).annotate(
+        paid_count=Count(
+            'civilinstallment',
+            filter=Q(
+                civilinstallment__civil_manage=civil,
+                civilinstallment__is_paid=True
+            )
+        )
+    ).distinct()
 
     # 🔍 جستجو
     search = request.GET.get('q', '').strip()
@@ -1104,15 +1109,15 @@ def civil_sent_units(request, pk):
         )
         units = units.filter(q_obj)
 
-    units = units.annotate(
-        paid_count=Count(
-            'civilinstallment',
-            filter=Q(
-                civilinstallment__civil_manage=civil,
-                civilinstallment__is_paid=True
-            )
-        )
-    )
+    # units = units.annotate(
+    #     paid_count=Count(
+    #         'civilinstallment',
+    #         filter=Q(
+    #             civilinstallment__civil_manage=civil,
+    #             civilinstallment__is_paid=True
+    #         )
+    #     )
+    # )
 
     units_with_info = []
 
@@ -1438,8 +1443,18 @@ def sewage_sent_units(request, pk):
 
     units = Unit.objects.filter(
         user__manager=request.user,
-        is_active=True
-    )
+        is_active=True,
+        sewageinstallment__sewage_manage=sewage,
+        sewageinstallment__send_notification=True
+    ).annotate(
+        paid_count=Count(
+            'sewageinstallment',
+            filter=Q(
+                sewageinstallment__sewage_manage=sewage,
+                sewageinstallment__is_paid=True
+            )
+        )
+    ).distinct()
 
     # 🔍 جستجو
     search = request.GET.get('q', '').strip()
@@ -1451,15 +1466,15 @@ def sewage_sent_units(request, pk):
         )
         units = units.filter(q_obj)
 
-    units = units.annotate(
-        paid_count=Count(
-            'sewageinstallment',
-            filter=Q(
-                sewageinstallment__sewage_manage=sewage,
-                sewageinstallment__is_paid=True
-            )
-        )
-    )
+    # units = units.annotate(
+    #     paid_count=Count(
+    #         'sewageinstallment',
+    #         filter=Q(
+    #             sewageinstallment__sewage_manage=sewage,
+    #             sewageinstallment__is_paid=True
+    #         )
+    #     )
+    # )
 
     units_with_info = []
 
@@ -1520,7 +1535,7 @@ def sewage_unit_installments(request, sewage_id, unit_id):
 
     installments = SewageInstallment.objects.filter(
         sewage_manage=sewage,
-        unit=unit
+        unit=unit,
     ).order_by('installment_number')
 
     return render(request, "sewage_installments.html", {

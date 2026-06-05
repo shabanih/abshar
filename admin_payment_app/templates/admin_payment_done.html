@@ -1,14 +1,16 @@
-{% extends 'middleShared/base_template.html' %}
-{% load poll_extras %}
+<html lang="fa">
 
-{% block page_title %}
-{#مدیریت شارژ واحد {{ unit.unit }}#}
-{% endblock page_title %}
-
-{% block main_content %}
-     <div class="container py-2 mt-2"   dir="rtl">
-     <div class="row text-center">
-         <div class="col-12">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>رایا شارژ | خطا در پرداخت</title>
+</head>
+<body>
+  <div class="container py-2 mt-2"   dir="rtl">
+     <div class="row ">
+         <div class="col-12 text-center">
              <img src="/static/img/pay-charge.png" width="350" alt="">
          </div>
      </div>
@@ -37,6 +39,5 @@
 {#     </div>#}
 {#     </div>#}
     </div>
-
-
-{% endblock main_content %}
+</body>
+</html>

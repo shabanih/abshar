@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models, transaction
 from django.db.models import Count
 from django.utils import timezone
@@ -1441,9 +1442,54 @@ class SubscriptionPlan(models.Model):
         return self.duration * 1
 
 
+class Coupon(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="coupon_user"
+    )
+    code = models.CharField(max_length=50, unique=True)
+    valid_from = models.DateTimeField()
+    valid_to = models.DateTimeField()
+    discount = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(0), MaxValueValidator(10000000)]
+    )
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ('user', 'coupon')
+
+    def __str__(self):
+        return self.code
+
+    def clean(self):
+        if self.valid_to <= self.valid_from:
+            raise ValidationError("تاریخ پایان باید پس از تاریخ شروع باشد.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def is_valid(self):
+        now = timezone.now()
+        return self.active and self.valid_from <= now < self.valid_to
+
+    def get_jalali_date(self):
+        return date2jalali(self.valid_from)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['code']),
+            models.Index(fields=['active', 'valid_from', 'valid_to']),
+        ]
+
+
 class Subscription(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     house = models.ForeignKey(MyHouse, on_delete=models.CASCADE, null=True, blank=True)
+    coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE, null=True, blank=True)
+    discount_amount = models.PositiveIntegerField(default=0)
+    final_amount = models.PositiveIntegerField()
     STATUS_CHOICES = (
         ('active', 'فعال'),
         ('expired', 'منقضی شده'),
@@ -1519,29 +1565,10 @@ class Subscription(models.Model):
                 self.save(update_fields=["status", "is_trial"])
 
 
-class Coupon(models.Model):
-    code = models.CharField(max_length=50, unique=True)
-    valid_from = models.DateTimeField()
-    valid_to = models.DateTimeField()
-    discount = models.IntegerField()
-    active = models.BooleanField()
+class CouponUsage(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE)
+    used_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return self.code
-
-    def clean(self):
-        """
-        Validate that valid_to is greater than valid_from.
-        """
-        if self.valid_to <= self.valid_from:
-            raise ValidationError("تاریخ پایان باید پس از تاریخ شروع باشد.")
-
-    def is_valid(self):
-        now = timezone.now()
-        return (
-                self.active
-                and self.valid_from <= now <= self.valid_to
-        )
-
-    def get_jalali_date(self):
-        return date2jalali(self.valid_from)
+    class Meta:
+        unique_together = ('user', 'coupon')
