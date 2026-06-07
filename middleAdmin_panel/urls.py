@@ -312,7 +312,13 @@ urlpatterns = [
     path('middle/edit/sms/<int:pk>/', views.MiddleSmsUpdateView.as_view(), name='sms_middle_edit'),
     path('middle-sms-delete/<int:pk>/', views.middle_sms_delete, name='middle_delete_sms'),
     path('middle/sms/send/form/<int:pk>/', views.middle_show_send_sms_form, name='sms_middle_show_send_form'),
-    path('middle-send-sms/<int:pk>/', views.middle_send_sms, name='middle_send_sms')
+    path('middle-send-sms/<int:pk>/', views.middle_send_sms, name='middle_send_sms'),
+
+    path(
+        'charge/<int:pk>/toggle-unit/',
+        views.toggle_unit_selection,
+        name='toggle_unit_selection'
+    )
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
