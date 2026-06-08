@@ -1148,7 +1148,7 @@ class MiddleUnitRegisterView(CreateView):
                     defaults={
                         'username': owner_mobile,
                         'full_name': owner_name,
-                        'house' : house,
+                        'house': house,
                         'is_active': True,
                         'manager': self.request.user,
                         'is_unit': True,
@@ -5681,7 +5681,7 @@ def middle_delete_civil_document(request):
 
     return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
 
-
+@login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_civil_delete(request, pk):
     civil = get_object_or_404(CivilManage, id=pk)
     if civil.count_sent_units() > 0:
@@ -6183,6 +6183,7 @@ def toggle_unit_selection(request, pk):
         "saved": True
     })
 
+
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_fix_charge_notification_view(request, pk):
     charge = get_object_or_404(FixCharge, id=pk, user=request.user)
@@ -6278,72 +6279,64 @@ def middle_fix_charge_notification_view(request, pk):
     # -----------------------------
     # POST: SEND NOTIFICATION / SMS
     # -----------------------------
-    if request.method == 'POST':
+    if request.method == "POST":
 
-        send_type = request.POST.get('send_type', 'notify')
+        send_type = request.POST.get("send_type", "notify")
+        selected = request.POST.getlist("units")
 
-        if not selected_units:
-            messages.warning(request, 'هیچ واحدی انتخاب نشده است')
+        if not selected:
+            messages.warning(request, 'هیچ واحدی انتخاب نشده')
             return redirect(request.path)
 
         qs = UnifiedCharge.objects.filter(
             content_type=content_type,
             object_id=charge.id,
-            unit_id__in=selected_units
-        ).select_related('unit', 'unit__user')
+            unit_id__in=selected
+        ).select_related("unit")
 
         if not qs.exists():
-            messages.info(request, 'اطلاعیه جدیدی برای ارسال وجود ندارد')
+            messages.info(request, 'اطلاعیه‌ای برای ارسال وجود ندارد')
             return redirect(request.path)
 
-        if qs.filter(send_notification=True).exists():
-            messages.warning(request, 'این اطلاعیه قبلاً ارسال شده است')
-            return redirect(request.path)
+        # ثبت اعلان سیستمی
+        qs.update(
+            send_notification=True,
+            send_notification_date=timezone.now().date()
+        )
 
-        with transaction.atomic():
+        # ---------- ارسال SMS ----------
+        if send_type == "sms":
 
-            if send_type == 'sms':
-                result = SmsService.send_for_unified_charges(
-                    user=request.user,
-                    unified_charges=qs,
-                    meta_callback=lambda total_sms, total_price: qs.update(
-                        send_sms=True,
-                        send_sms_date=timezone.now().date(),
-                        sms_count=total_sms,
-                        sms_price=Decimal(settings.SMS_PRICE),
-                        sms_total_price=total_price
-                    )
+            result = SmsService.send_for_unified_charges(
+                user=request.user,
+                unified_charges=qs,
+                meta_callback=lambda total_sms, total_price: qs.update(
+                    send_sms=True,
+                    send_sms_date=timezone.now().date(),
+                    sms_count=total_sms,
+                    sms_price=Decimal(settings.SMS_PRICE),
+                    sms_total_price=total_price
                 )
+            )
 
-                if not result.success:
-                    messages.error(request, result.message)
-                    return redirect(request.path)
-
-                qs.update(
-                    send_notification=True,
-                    send_notification_date=timezone.now().date()
-                )
-
+            if result.success:
                 messages.success(
                     request,
-                    f'پیامک و اطلاعیه برای {qs.count()} واحد ارسال شد'
+                    f'اطلاعیه سیستمی و پیامکی برای {qs.count()} واحد ارسال شد'
                 )
-
             else:
-                qs.update(
-                    send_notification=True,
-                    send_notification_date=timezone.now().date()
-                )
+                messages.error(request, result.message)
 
-                messages.success(
-                    request,
-                    f'اطلاعیه برای {qs.count()} واحد ثبت شد'
-                )
+        else:
+            messages.success(
+                request,
+                f'اطلاعیه سیستمی برای {qs.count()} واحد ثبت شد'
+            )
 
-        # پاکسازی انتخاب‌ها بعد از ارسال موفق
-        request.session[session_key] = []
-        request.session.modified = True
-        return redirect(request.path)
+            # پاکسازی انتخاب‌ها بعد از ارسال موفق
+            request.session[session_key] = []
+            request.session.modified = True
+            return redirect(request.path)
 
     # -----------------------------
     # BUILD CONTEXT DATA
@@ -6389,6 +6382,12 @@ def middle_remove_send_notification_fix(request, pk):
 
     charge = get_object_or_404(FixCharge, id=pk, user=request.user)
     selected_units = request.POST.getlist('units[]')
+
+    # -----------------------------
+    # SESSION SELECTION STATE
+    # -----------------------------
+    # session_key = f"charge_{pk}_selected_units"
+    # selected_units = set(request.session.get(session_key, []))
 
     if not selected_units:
         return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
@@ -6437,8 +6436,16 @@ def middle_remove_send_notification_fix(request, pk):
                 charge.send_notification = False
                 charge.save()
 
+        session_key = f"charge_{pk}_selected_units"
+
         if updated_count:
-            return JsonResponse({'success': f'{updated_count} اطلاعیه غیرفعال شد.'})
+            request.session.pop(session_key, None)
+            request.session.modified = True
+
+            return JsonResponse({
+                'success': f'{updated_count} اطلاعیه غیرفعال شد.'
+            })
+
         else:
             return JsonResponse({'info': 'رکوردی برای غیرفعال کردن یافت نشد.'})
 
@@ -6862,8 +6869,6 @@ def middle_area_charge_notification_view(request, pk):
                 f'اطلاعیه سیستمی برای {qs.count()} واحد ثبت شد'
             )
 
-
-
             # پاکسازی انتخاب‌ها بعد از ارسال موفق
             request.session[session_key] = []
             request.session.modified = True
@@ -6922,6 +6927,7 @@ def middle_remove_send_notification_area(request, pk):
     charge = get_object_or_404(AreaCharge, id=pk, user=request.user)
     selected_units = request.POST.getlist('units[]')
 
+
     if not selected_units:
         return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
 
@@ -6965,8 +6971,16 @@ def middle_remove_send_notification_area(request, pk):
                 charge.send_notification = False
                 charge.save()
 
+        session_key = f"charge_{pk}_selected_units"
+
         if updated_count:
-            return JsonResponse({'success': f'{updated_count} اطلاعیه غیرفعال شد.'})
+            request.session.pop(session_key, None)
+            request.session.modified = True
+
+            return JsonResponse({
+                'success': f'{updated_count} اطلاعیه غیرفعال شد.'
+            })
+
         else:
             return JsonResponse({'info': 'رکوردی برای غیرفعال کردن یافت نشد.'})
 
@@ -7314,6 +7328,12 @@ def middle_person_charge_notification_view(request, pk):
     paginator = Paginator(units, per_page)
     page_units = paginator.get_page(request.GET.get('page'))
 
+    # -----------------------------
+    # SESSION SELECTION STATE
+    # -----------------------------
+    session_key = f"charge_{pk}_selected_units"
+    selected_units = set(request.session.get(session_key, []))
+
     # ------------------ POST: ارسال اطلاعیه یا پیامک ------------------
     if request.method == "POST":
         send_type = request.POST.get("send_type", "notify")
@@ -7367,22 +7387,35 @@ def middle_person_charge_notification_view(request, pk):
                 f"اطلاعیه سیستمی برای {qs.count()} واحد ثبت شد"
             )
 
+        # پاکسازی انتخاب‌ها بعد از ارسال موفق
+        request.session[session_key] = []
+        request.session.modified = True
         return redirect(request.path)
 
-    # ------------------ آماده‌سازی داده‌ها برای قالب ------------------
+    # ------------------ آماده‌سازی template ------------------
+    unit_ids = [unit.id for unit in page_units.object_list]
+
     uc_map = {
         uc.unit_id: uc
         for uc in UnifiedCharge.objects.filter(
             content_type=content_type,
             object_id=charge.id,
-            unit__in=page_units
-        )
+            unit_id__in=unit_ids
+        ).select_related('unit', 'unit__user')
     }
 
-    # دیگه نیازی به uc_dict نیست
+    # حالا uc_map همان uc_dict است
     for i, unit in enumerate(page_units):
-        uc = uc_map.get(unit.id)  # ← همینجا درست شد
+        uc = uc_map.get(unit.id)
         renter = unit.renters.filter(renter_is_active=True).first()
+
+        current_charge = uc.total_charge_month if uc else 0
+
+        # جمع عددی بدهی‌های معوقه
+        previous_debt_total = sum(uc.get_previous_debt_by_type().values()) if uc else 0
+
+        total_payable = current_charge + previous_debt_total
+
         page_units.object_list[i] = {
             'unit': unit,
             'renter': renter,
@@ -7390,12 +7423,15 @@ def middle_person_charge_notification_view(request, pk):
             'is_notified': uc.send_notification if uc else False,
             'send_sms': uc.send_sms if uc else False,
             'sms_date': uc.send_sms_date if uc else None,
-            'total_charge': uc.total_charge_month if uc else 0,
+            'current_charge': current_charge,
+            'previous_debt': previous_debt_total,  # عددی
+            'total_payable': total_payable,
         }
 
     return render(request, "middleCharge/notify_person_charge_template.html", {
         "charge": charge,
         "page_obj": page_units,
+        "selected_units": selected_units
         # "paginator": paginator,
     })
 
@@ -7407,6 +7443,7 @@ def middle_remove_send_notification_person(request, pk):
 
     charge = get_object_or_404(PersonCharge, id=pk, user=request.user)
     selected_units = request.POST.getlist('units[]')
+
 
     if not selected_units:
         return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
@@ -7451,8 +7488,15 @@ def middle_remove_send_notification_person(request, pk):
                 charge.send_notification = False
                 charge.save()
 
+        session_key = f"charge_{pk}_selected_units"
+
         if updated_count:
-            return JsonResponse({'success': f'{updated_count} اطلاعیه غیرفعال شد.'})
+            request.session.pop(session_key, None)
+            request.session.modified = True
+
+            return JsonResponse({
+                'success': f'{updated_count} اطلاعیه غیرفعال شد.'
+            })
         else:
             return JsonResponse({'info': 'رکوردی برای غیرفعال کردن یافت نشد.'})
 
@@ -7809,6 +7853,12 @@ def middle_show_fix_area_charge_notification_form(request, pk):
     paginator = Paginator(units, per_page)
     page_units = paginator.get_page(request.GET.get('page'))
 
+    # -----------------------------
+    # SESSION SELECTION STATE
+    # -----------------------------
+    session_key = f"charge_{pk}_selected_units"
+    selected_units = set(request.session.get(session_key, []))
+
     # ------------------ POST: ارسال اطلاعیه یا پیامک ------------------
     if request.method == "POST":
         send_type = request.POST.get("send_type", "notify")
@@ -7862,22 +7912,35 @@ def middle_show_fix_area_charge_notification_form(request, pk):
                 f"اطلاعیه سیستمی برای {qs.count()} واحد ثبت شد"
             )
 
+            # پاکسازی انتخاب‌ها بعد از ارسال موفق
+        request.session[session_key] = []
+        request.session.modified = True
         return redirect(request.path)
 
-    # آماده‌سازی داده‌ها برای قالب
+        # ------------------ آماده‌سازی template ------------------
+    unit_ids = [unit.id for unit in page_units.object_list]
+
     uc_map = {
         uc.unit_id: uc
         for uc in UnifiedCharge.objects.filter(
             content_type=content_type,
             object_id=charge.id,
-            unit__in=page_units
-        )
+            unit_id__in=unit_ids
+        ).select_related('unit', 'unit__user')
     }
 
-    # دیگه نیازی به uc_dict نیست
+    # حالا uc_map همان uc_dict است
     for i, unit in enumerate(page_units):
-        uc = uc_map.get(unit.id)  # ← همینجا درست شد
+        uc = uc_map.get(unit.id)
         renter = unit.renters.filter(renter_is_active=True).first()
+
+        current_charge = uc.total_charge_month if uc else 0
+
+        # جمع عددی بدهی‌های معوقه
+        previous_debt_total = sum(uc.get_previous_debt_by_type().values()) if uc else 0
+
+        total_payable = current_charge + previous_debt_total
+
         page_units.object_list[i] = {
             'unit': unit,
             'renter': renter,
@@ -7885,12 +7948,15 @@ def middle_show_fix_area_charge_notification_form(request, pk):
             'is_notified': uc.send_notification if uc else False,
             'send_sms': uc.send_sms if uc else False,
             'sms_date': uc.send_sms_date if uc else None,
-            'total_charge': uc.total_charge_month if uc else 0,
+            'current_charge': current_charge,
+            'previous_debt': previous_debt_total,  # عددی
+            'total_payable': total_payable,
         }
 
     context = {
         'charge': charge,
         'page_obj': page_units,
+        "selected_units": selected_units
         # 'paginator': paginator,
     }
 
@@ -7904,6 +7970,7 @@ def middle_remove_send_notification_fix_area(request, pk):
 
     charge = get_object_or_404(FixAreaCharge, id=pk, user=request.user)
     selected_units = request.POST.getlist('units[]')
+
 
     if not selected_units:
         return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
@@ -7948,8 +8015,15 @@ def middle_remove_send_notification_fix_area(request, pk):
                 charge.send_notification = False
                 charge.save()
 
+        session_key = f"charge_{pk}_selected_units"
+
         if updated_count:
-            return JsonResponse({'success': f'{updated_count} اطلاعیه غیرفعال شد.'})
+            request.session.pop(session_key, None)
+            request.session.modified = True
+
+            return JsonResponse({
+                'success': f'{updated_count} اطلاعیه غیرفعال شد.'
+            })
         else:
             return JsonResponse({'info': 'رکوردی برای غیرفعال کردن یافت نشد.'})
 
@@ -8303,6 +8377,11 @@ def middle_show_fix_person_charge_notification_form(request, pk):
 
     paginator = Paginator(units, per_page)
     page_units = paginator.get_page(request.GET.get('page'))
+    # -----------------------------
+    # SESSION SELECTION STATE
+    # -----------------------------
+    session_key = f"charge_{pk}_selected_units"
+    selected_units = set(request.session.get(session_key, []))
 
     # ------------------ POST: ارسال اطلاعیه یا پیامک ------------------
     if request.method == "POST":
@@ -8357,22 +8436,35 @@ def middle_show_fix_person_charge_notification_form(request, pk):
                 f"اطلاعیه سیستمی برای {qs.count()} واحد ثبت شد"
             )
 
+            # پاکسازی انتخاب‌ها بعد از ارسال موفق
+        request.session[session_key] = []
+        request.session.modified = True
         return redirect(request.path)
 
-    # آماده‌سازی داده‌ها برای قالب
+        # ------------------ آماده‌سازی template ------------------
+    unit_ids = [unit.id for unit in page_units.object_list]
+
     uc_map = {
         uc.unit_id: uc
         for uc in UnifiedCharge.objects.filter(
             content_type=content_type,
             object_id=charge.id,
-            unit__in=page_units
-        )
+            unit_id__in=unit_ids
+        ).select_related('unit', 'unit__user')
     }
 
-    # دیگه نیازی به uc_dict نیست
+    # حالا uc_map همان uc_dict است
     for i, unit in enumerate(page_units):
-        uc = uc_map.get(unit.id)  # ← همینجا درست شد
+        uc = uc_map.get(unit.id)
         renter = unit.renters.filter(renter_is_active=True).first()
+
+        current_charge = uc.total_charge_month if uc else 0
+
+        # جمع عددی بدهی‌های معوقه
+        previous_debt_total = sum(uc.get_previous_debt_by_type().values()) if uc else 0
+
+        total_payable = current_charge + previous_debt_total
+
         page_units.object_list[i] = {
             'unit': unit,
             'renter': renter,
@@ -8380,12 +8472,15 @@ def middle_show_fix_person_charge_notification_form(request, pk):
             'is_notified': uc.send_notification if uc else False,
             'send_sms': uc.send_sms if uc else False,
             'sms_date': uc.send_sms_date if uc else None,
-            'total_charge': uc.total_charge_month if uc else 0,
+            'current_charge': current_charge,
+            'previous_debt': previous_debt_total,  # عددی
+            'total_payable': total_payable,
         }
 
     context = {
         'charge': charge,
         'page_obj': page_units,  # حالا فقط واحدهای دارای UnifiedCharge هستند
+        "selected_units": selected_units
         # 'paginator': paginator,
     }
     return render(request, 'middleCharge/notify_person_fix_charge_template.html', context)
@@ -8398,6 +8493,7 @@ def middle_remove_send_notification_fix_person(request, pk):
 
     charge = get_object_or_404(FixPersonCharge, id=pk, user=request.user)
     selected_units = request.POST.getlist('units[]')
+
 
     if not selected_units:
         return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
@@ -8442,8 +8538,15 @@ def middle_remove_send_notification_fix_person(request, pk):
                 charge.send_notification = False
                 charge.save()
 
+        session_key = f"charge_{pk}_selected_units"
+
         if updated_count:
-            return JsonResponse({'success': f'{updated_count} اطلاعیه غیرفعال شد.'})
+            request.session.pop(session_key, None)
+            request.session.modified = True
+
+            return JsonResponse({
+                'success': f'{updated_count} اطلاعیه غیرفعال شد.'
+            })
         else:
             return JsonResponse({'info': 'رکوردی برای غیرفعال کردن یافت نشد.'})
 
@@ -8798,6 +8901,12 @@ def middle_show_person_area_charge_notification_form(request, pk):
     paginator = Paginator(units, per_page)
     page_units = paginator.get_page(request.GET.get('page'))
 
+    # -----------------------------
+    # SESSION SELECTION STATE
+    # -----------------------------
+    session_key = f"charge_{pk}_selected_units"
+    selected_units = set(request.session.get(session_key, []))
+
     # ------------------ POST: ارسال اطلاعیه یا پیامک ------------------
     if request.method == "POST":
         send_type = request.POST.get("send_type", "notify")
@@ -8851,22 +8960,35 @@ def middle_show_person_area_charge_notification_form(request, pk):
                 f"اطلاعیه سیستمی برای {qs.count()} واحد ثبت شد"
             )
 
+            # پاکسازی انتخاب‌ها بعد از ارسال موفق
+        request.session[session_key] = []
+        request.session.modified = True
         return redirect(request.path)
 
-    # آماده‌سازی داده‌ها برای قالب
+        # ------------------ آماده‌سازی template ------------------
+    unit_ids = [unit.id for unit in page_units.object_list]
+
     uc_map = {
         uc.unit_id: uc
         for uc in UnifiedCharge.objects.filter(
             content_type=content_type,
             object_id=charge.id,
-            unit__in=page_units
-        )
+            unit_id__in=unit_ids
+        ).select_related('unit', 'unit__user')
     }
 
-    # دیگه نیازی به uc_dict نیست
+    # حالا uc_map همان uc_dict است
     for i, unit in enumerate(page_units):
-        uc = uc_map.get(unit.id)  # ← همینجا درست شد
+        uc = uc_map.get(unit.id)
         renter = unit.renters.filter(renter_is_active=True).first()
+
+        current_charge = uc.total_charge_month if uc else 0
+
+        # جمع عددی بدهی‌های معوقه
+        previous_debt_total = sum(uc.get_previous_debt_by_type().values()) if uc else 0
+
+        total_payable = current_charge + previous_debt_total
+
         page_units.object_list[i] = {
             'unit': unit,
             'renter': renter,
@@ -8874,11 +8996,14 @@ def middle_show_person_area_charge_notification_form(request, pk):
             'is_notified': uc.send_notification if uc else False,
             'send_sms': uc.send_sms if uc else False,
             'sms_date': uc.send_sms_date if uc else None,
-            'total_charge': uc.total_charge_month if uc else 0,
+            'current_charge': current_charge,
+            'previous_debt': previous_debt_total,  # عددی
+            'total_payable': total_payable,
         }
     context = {
         'charge': charge,
         'page_obj': page_units,  # حالا فقط واحدهای دارای UnifiedCharge هستند
+        "selected_units": selected_units
         # 'paginator': paginator,
     }
     return render(request, 'middleCharge/notify_person_area_charge_template.html', context)
@@ -8891,6 +9016,7 @@ def middle_remove_send_notification_person_area(request, pk):
 
     charge = get_object_or_404(ChargeByPersonArea, id=pk, user=request.user)
     selected_units = request.POST.getlist('units[]')
+
 
     if not selected_units:
         return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
@@ -8935,8 +9061,15 @@ def middle_remove_send_notification_person_area(request, pk):
                 charge.send_notification = False
                 charge.save()
 
+        session_key = f"charge_{pk}_selected_units"
+
         if updated_count:
-            return JsonResponse({'success': f'{updated_count} اطلاعیه غیرفعال شد.'})
+            request.session.pop(session_key, None)
+            request.session.modified = True
+
+            return JsonResponse({
+                'success': f'{updated_count} اطلاعیه غیرفعال شد.'
+            })
         else:
             return JsonResponse({'info': 'رکوردی برای غیرفعال کردن یافت نشد.'})
 
@@ -9291,6 +9424,12 @@ def middle_show_fix_person_area_charge_notification_form(request, pk):
     paginator = Paginator(units, per_page)
     page_units = paginator.get_page(request.GET.get('page'))
 
+    # -----------------------------
+    # SESSION SELECTION STATE
+    # -----------------------------
+    session_key = f"charge_{pk}_selected_units"
+    selected_units = set(request.session.get(session_key, []))
+
     # ------------------ POST: ارسال اطلاعیه یا پیامک ------------------
     if request.method == "POST":
         send_type = request.POST.get("send_type", "notify")
@@ -9344,22 +9483,35 @@ def middle_show_fix_person_area_charge_notification_form(request, pk):
                 f"اطلاعیه سیستمی برای {qs.count()} واحد ثبت شد"
             )
 
+            # پاکسازی انتخاب‌ها بعد از ارسال موفق
+        request.session[session_key] = []
+        request.session.modified = True
         return redirect(request.path)
 
-    # آماده‌سازی داده‌ها برای قالب
+        # ------------------ آماده‌سازی template ------------------
+    unit_ids = [unit.id for unit in page_units.object_list]
+
     uc_map = {
         uc.unit_id: uc
         for uc in UnifiedCharge.objects.filter(
             content_type=content_type,
             object_id=charge.id,
-            unit__in=page_units
-        )
+            unit_id__in=unit_ids
+        ).select_related('unit', 'unit__user')
     }
 
-    # دیگه نیازی به uc_dict نیست
+    # حالا uc_map همان uc_dict است
     for i, unit in enumerate(page_units):
-        uc = uc_map.get(unit.id)  # ← همینجا درست شد
+        uc = uc_map.get(unit.id)
         renter = unit.renters.filter(renter_is_active=True).first()
+
+        current_charge = uc.total_charge_month if uc else 0
+
+        # جمع عددی بدهی‌های معوقه
+        previous_debt_total = sum(uc.get_previous_debt_by_type().values()) if uc else 0
+
+        total_payable = current_charge + previous_debt_total
+
         page_units.object_list[i] = {
             'unit': unit,
             'renter': renter,
@@ -9367,12 +9519,15 @@ def middle_show_fix_person_area_charge_notification_form(request, pk):
             'is_notified': uc.send_notification if uc else False,
             'send_sms': uc.send_sms if uc else False,
             'sms_date': uc.send_sms_date if uc else None,
-            'total_charge': uc.total_charge_month if uc else 0,
+            'current_charge': current_charge,
+            'previous_debt': previous_debt_total,  # عددی
+            'total_payable': total_payable,
         }
 
     context = {
         'charge': charge,
         'page_obj': page_units,  # حالا فقط واحدهای دارای UnifiedCharge هستند
+        "selected_units": selected_units
         # 'paginator': paginator,
     }
     return render(request, 'middleCharge/notify_fix_person_area_charge_template.html', context)
@@ -9385,6 +9540,7 @@ def middle_remove_send_notification_fix_person_area(request, pk):
 
     charge = get_object_or_404(ChargeByFixPersonArea, id=pk, user=request.user)
     selected_units = request.POST.getlist('units[]')
+
 
     if not selected_units:
         return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
@@ -9429,8 +9585,15 @@ def middle_remove_send_notification_fix_person_area(request, pk):
                 charge.send_notification = False
                 charge.save()
 
+        session_key = f"charge_{pk}_selected_units"
+
         if updated_count:
-            return JsonResponse({'success': f'{updated_count} اطلاعیه غیرفعال شد.'})
+            request.session.pop(session_key, None)
+            request.session.modified = True
+
+            return JsonResponse({
+                'success': f'{updated_count} اطلاعیه غیرفعال شد.'
+            })
         else:
             return JsonResponse({'info': 'رکوردی برای غیرفعال کردن یافت نشد.'})
 
@@ -9796,6 +9959,12 @@ def middle_show_fix_variable_notification_form(request, pk):
     paginator = Paginator(units, per_page)
     page_units = paginator.get_page(request.GET.get('page'))
 
+    # -----------------------------
+    # SESSION SELECTION STATE
+    # -----------------------------
+    session_key = f"charge_{pk}_selected_units"
+    selected_units = set(request.session.get(session_key, []))
+
     # ------------------ POST: ارسال اطلاعیه یا پیامک ------------------
     if request.method == "POST":
         send_type = request.POST.get("send_type", "notify")
@@ -9820,21 +9989,6 @@ def middle_show_fix_variable_notification_form(request, pk):
             send_notification=True,
             send_notification_date=timezone.now().date()
         )
-
-        already_sent = qs.filter(send_notification=True)
-
-        if already_sent.exists():
-            sent_units = "، ".join(
-                str(item.unit.unit)
-                for item in already_sent[:10]
-            )
-
-            messages.warning(
-                request,
-                f"اطلاعیه شارژ قبلاً ارسال شده است."
-            )
-
-            return redirect(request.path)
 
         # ---------- ارسال پیامک ----------
         if send_type == "sms":
@@ -9864,22 +10018,35 @@ def middle_show_fix_variable_notification_form(request, pk):
                 f"اطلاعیه سیستمی برای {qs.count()} واحد ثبت شد"
             )
 
+            # پاکسازی انتخاب‌ها بعد از ارسال موفق
+        request.session[session_key] = []
+        request.session.modified = True
         return redirect(request.path)
 
-    # آماده‌سازی داده‌ها برای قالب
+        # ------------------ آماده‌سازی template ------------------
+    unit_ids = [unit.id for unit in page_units.object_list]
+
     uc_map = {
         uc.unit_id: uc
         for uc in UnifiedCharge.objects.filter(
             content_type=content_type,
             object_id=charge.id,
-            unit__in=page_units
-        )
+            unit_id__in=unit_ids
+        ).select_related('unit', 'unit__user')
     }
 
-    # دیگه نیازی به uc_dict نیست
+    # حالا uc_map همان uc_dict است
     for i, unit in enumerate(page_units):
-        uc = uc_map.get(unit.id)  # ← همینجا درست شد
+        uc = uc_map.get(unit.id)
         renter = unit.renters.filter(renter_is_active=True).first()
+
+        current_charge = uc.total_charge_month if uc else 0
+
+        # جمع عددی بدهی‌های معوقه
+        previous_debt_total = sum(uc.get_previous_debt_by_type().values()) if uc else 0
+
+        total_payable = current_charge + previous_debt_total
+
         page_units.object_list[i] = {
             'unit': unit,
             'renter': renter,
@@ -9887,12 +10054,15 @@ def middle_show_fix_variable_notification_form(request, pk):
             'is_notified': uc.send_notification if uc else False,
             'send_sms': uc.send_sms if uc else False,
             'sms_date': uc.send_sms_date if uc else None,
-            'total_charge': uc.total_charge_month if uc else 0,
+            'current_charge': current_charge,
+            'previous_debt': previous_debt_total,  # عددی
+            'total_payable': total_payable,
         }
 
     context = {
         'charge': charge,
         'page_obj': page_units,  # حالا فقط واحدهای دارای UnifiedCharge هستند
+        "selected_units": selected_units
         # 'paginator': paginator,
     }
     return render(request, 'middleCharge/notify_fix_variable_charge_template.html', context)
@@ -9949,8 +10119,15 @@ def middle_remove_send_notification_fix_variable(request, pk):
                 charge.send_notification = False
                 charge.save()
 
+        session_key = f"charge_{pk}_selected_units"
+
         if updated_count:
-            return JsonResponse({'success': f'{updated_count} اطلاعیه غیرفعال شد.'})
+            request.session.pop(session_key, None)
+            request.session.modified = True
+
+            return JsonResponse({
+                'success': f'{updated_count} اطلاعیه غیرفعال شد.'
+            })
         else:
             return JsonResponse({'info': 'رکوردی برای غیرفعال کردن یافت نشد.'})
 

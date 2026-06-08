@@ -80,43 +80,44 @@
 <form method="post" action="" id="notifyForm">
         {% csrf_token %}
        
-        <hr>
+       
 <input type="hidden" name="send_type" id="sendTypeInput" value="notify">
-      <div class="row g-3">
-            <div class="col-12 col-md-2 col-xl-2 form-check align-self-center">
-            <button type="button" id="toggle-select-btn" class="btn btn-gradient-info shadow_style px-3">
+      <div class="row g-3 mt-3">
+            <div class="col-12 col-md-3 col-xl-3 form-check align-self-center">
+                  <button type="button" id="toggle-select-btn" class="btn btn-gradient-info shadow_style px-3">
                 انتخاب همه واحدها
             </button>
-            </div>
-              <div class="col-6 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
-                    <span class="circleSendNotify"></span>
-                  ارسال موفق اطلاعیه شارژ 
-                </div>
-            <div class="col-6 col-md-2 col-xl-2 align-self-center mt-4" style="font-size: 13px;">
-                <i class="fa fa-envelope text-info"></i>
-                 ارسال موفق پیامک شارژ 
-                </div>
-             <div class="col-6 col-md-2 col-xl-2 align-self-center" style="font-size: 13px;">
-                    <span class="circlePayment"></span>
-                  پرداخت موفق شارژ
-                </div>
-  
-            <div class="col-12 col-md-4 col-xl-4 text-md-start align-self-center p-1">
-                        <button type="submit" onclick="return confirmWithSweetAlert(event)" 
+                <button type="submit" onclick="return confirmWithSweetAlert(event)" 
                         class="btn btn-gradient-success px-3 shadow_style m-1">ارسال اطلاعیه شارژ </button>
                 
+          
+            </div>
+              <div class="col-4 col-md-2 col-xl-2 text-md-start mt-4 p-0" style="font-size: 12px;">
+                    <span class="circleSendNotify"></span>
+                  ارسال موفق اطلاعیه  
+                </div>
+            <div class="col-4 col-md-2 col-xl-2 text-md-center align-items-center pt-3" style="font-size: 12px;">
+                <i class="fa fa-envelope text-info"></i>
+                 ارسال موفق پیامک  
+                </div>
+             <div class="col-4 col-md-2 col-xl-2 text-md-end mt-4" style="font-size: 12px;">
+                    <span class="circlePayment"></span>
+                  پرداخت موفق 
+                </div>
+  
+            <div class="col-12 col-md-3 col-xl-3 form-check text-md-start align-self-center p-1">
                 <button 
                     id="remove-all-btn" class="btn btn-dark px-3 shadow_style"
                     data-url="{% url 'middle_remove_send_notification_ajax' pk=charge.id %}">
-                    حذف اطلاعیه
+                    حذف اطلاعیه شارژ
                 </button>
                
-                <a href="{% url 'middle_add_fixed_charge' %}" class="btn btn-gradient-danger shadow_style px-3"> بازگشت</a>
+                <a href="{% url 'middle_add_fixed_charge' %}" class="btn btn-gradient-danger shadow_style px-3"> بازگشت به لیست</a>
              </div>
         </div>
     
-  
-            <div class="row g-2 mt-5">
+   <hr class="mt-4"/>
+            <div class="row g-2 py-3">
                {% for item in page_obj %}
             {% with unit=item.unit renter=item.renter %}
             <div class="col-6 col-lg-2 col-md-2 col-xl-2">
@@ -146,7 +147,7 @@
             "
             >
 
-        <div class="card-body text-center d-flex px-1 py-1 mt-2">
+       <div class="card-body text-center  d-flex justify-content-center align-items-center px-2 py-1 mt-2">
              <p class="card-charge-title"
                 data-bs-toggle="popover"
                 data-bs-html="true"
@@ -159,14 +160,14 @@
                     مالک: {{ unit.owner_name }}
                 {% endif %}
                 <br>
-{#                مبلغ شارژ: {{ item.total_charge|three_digit_currency }} تومان#}
-شارژ این ماه: {{ item.current_charge|three_digit_currency }}
-{% if item.previous_debt > 0 %}
-<br>
-<span style='color:#dc3545;'>بدهی معوقه: {{ item.previous_debt|three_digit_currency }}</span>
-{% endif %}
-<br>
-<b>جمع کل قابل پرداخت: {{ item.total_payable|three_digit_currency }}</b>
+                {#                مبلغ شارژ: {{ item.total_charge|three_digit_currency }} تومان#}
+                شارژ این ماه: {{ item.current_charge|three_digit_currency }} تومان 
+                {% if item.previous_debt > 0 %}
+                <br>
+                <span style='color:#dc3545;'>بدهی معوقه: {{ item.previous_debt|three_digit_currency }}تومان </span> 
+                {% endif %}
+                <br>
+                <b>جمع کل : {{ item.total_payable|three_digit_currency }}  تومان </b> 
                 ">
                 <input class="form-check-input unit-checkbox mx-3"
                        type="checkbox"

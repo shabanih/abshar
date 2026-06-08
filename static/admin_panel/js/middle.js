@@ -1492,7 +1492,7 @@ document.addEventListener('DOMContentLoaded', function () {
         checkboxes.forEach(cb => cb.checked = !allSelected);
 
         allSelected = !allSelected;
-        toggleBtn.textContent = allSelected ? 'لغو انتخاب همه واحدها' : 'انتخاب همه واحدها';
+        toggleBtn.textContent = allSelected ? 'لغو انتخاب همه ' : 'انتخاب همه واحدها';
     });
 });
 
@@ -1743,6 +1743,12 @@ select.addEventListener('change', () => {
     window.location.search = urlParams.toString();
 });
 
+document.addEventListener('DOMContentLoaded', function () {
+  const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+  const popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+    return new bootstrap.Popover(popoverTriggerEl);
+  });
+});
 
 function confirmWithSweetAlert(event) {
     event.preventDefault();
