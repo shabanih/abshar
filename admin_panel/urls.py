@@ -17,9 +17,9 @@ urlpatterns = [
     path('edit-article/<int:pk>/', views.ArticleUpdateView.as_view(), name='edit_article'),
     path('delete-article/<int:pk>/', views.article_delete, name='delete_article'),
 
-    # path('register-coupon', views.CouponListView.as_view(), name='register_coupon'),
-    # path('edit/coupon/<int:pk>', views.CouponEditView.as_view(), name='edit_coupon'),
-    # path('delete/coupon/<int:pk>', views.delete_coupon, name='delete_coupon'),
+    path('register-coupon', views.CouponListView.as_view(), name='register_coupon'),
+    path('edit/coupon/<int:pk>', views.CouponEditView.as_view(), name='edit_coupon'),
+    path('delete/coupon/<int:pk>', views.delete_coupon, name='delete_coupon'),
 
     path('admin/finance/by/house/', views.AdminFinanceByHouse.as_view(), name='admin_finance_by_house'),
     path('admin-finance/<int:house_id>/', views.AdminFinanceList.as_view(), name='admin_finance_list'),
@@ -37,6 +37,34 @@ urlpatterns = [
         'house/delete/<int:pk>/',
         views.DeleteHouseView.as_view(),
         name='delete_house'
+    ),
+
+    path('house/<int:house_id>/license/add/', views.add_house_license, name='add_house_license'),
+    path(
+        'house-license/update/<int:pk>/',
+        views.update_house_license,
+        name='update_house_license'
+    ),
+    path(
+        'house-license/delete/<int:pk>/',
+        views.delete_house_license,
+        name='delete_house_license'
+    ),
+    path(
+        'house/<int:house_id>/gateway/',
+        views.add_house_gateway,
+        name='add_house_gateway'
+    ),
+
+    path(
+        'house-gateway/update/<int:pk>/',
+        views.update_house_gateway,
+        name='update_house_gateway'
+    ),
+    path(
+        'house-gateway/delete/<int:pk>/',
+        views.delete_house_gateway,
+        name='delete_house_gateway'
     ),
     path('middle-admin-list/', views.MiddleAdminListView.as_view(), name='middle_admin_list'),
     # path('middle/edit/<int:pk>/', views.MiddleAdminUpdateView.as_view(), name='edit_middle_admin'),

@@ -39,7 +39,8 @@ from admin_panel.forms import announcementForm, UnitForm, ExpenseForm, ExpenseCa
     IncomeForm, IncomeCategoryForm, BankForm, ReceiveMoneyForm, PayerMoneyForm, PropertyForm, \
     MaintenanceForm, FixChargeForm, PersonAreaChargeForm, AreaChargeForm, PersonChargeForm, FixAreaChargeForm, \
     FixPersonChargeForm, PersonAreaFixChargeForm, VariableFixChargeForm, UserRegistrationForm, SmsForm, MyHouseForm, \
-    ChargeCategoryForm, AdminSmsForm, SubscriptionPlanForm, SliderForm, SubscriptionUpdateForm, CouponApplyForm
+    ChargeCategoryForm, AdminSmsForm, SubscriptionPlanForm, SliderForm, SubscriptionUpdateForm, CouponApplyForm, \
+    HouseLicenseForm, HousePaymentGatewayForm
 from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDocument, Income, IncomeDocument, \
     IncomeCategory, ReceiveMoney, ReceiveDocument, PayMoney, PayDocument, Property, PropertyDocument, Maintenance, \
     MaintenanceDocument, ChargeByPersonArea, \
@@ -51,7 +52,8 @@ from home.forms import ArticleForm
 from home.models import SliderText, ContactUs, FreeRequest, Articles
 from notifications.models import AdminTicket
 from polls.templatetags.poll_extras import jalali_to_gregorian
-from user_app.models import Unit, Bank, Renter, User, MyHouse, ChargeMethod, CalendarNote, UnitResidenceHistory
+from user_app.models import Unit, Bank, Renter, User, MyHouse, ChargeMethod, CalendarNote, UnitResidenceHistory, \
+    HouseLicense, HousePaymentGateway
 
 
 def admin_required(view_func):
@@ -762,149 +764,162 @@ class MiddleAdminListView(ListView):
         return context
 
 
-# @method_decorator(admin_required, name='dispatch')
-# class MiddleAdminCreateView(CreateView):
-#     model = User
-#     template_name = 'admin_panel/middleAdmin_list.html'
-#     form_class = UserRegistrationForm
-#     success_url = reverse_lazy('create_middle_admin')
-#
-#     def form_valid(self, form):
-#         # ایجاد کاربر
-#         self.object = form.save(commit=False)
-#         raw_password = form.cleaned_data.get('password')
-#         if raw_password:
-#             self.object.set_password(raw_password)
-#         self.object.is_middle_admin = True
-#         self.object.manager = self.request.user
-#         self.object.save()
-#
-#         # ثبت charge_methods
-#         charge_methods = form.cleaned_data.get('charge_methods')
-#         if charge_methods:
-#             self.object.charge_methods.set(charge_methods)
-#
-#         # اگر Trial فعال است
-#         if form.cleaned_data.get('is_trial') == '1':
-#             Subscription.objects.create(
-#                 user=self.object,
-#                 units_count=5,
-#                 is_trial=True,
-#                 start_date=timezone.now(),
-#                 end_date=timezone.now() + timedelta(days=20)
-#             )
-#             messages.success(
-#                 self.request,
-#                 'مدیر ساختمان با موفقیت ثبت شد!'
-#             )
-#         else:
-#             messages.success(
-#                 self.request,
-#                 'مدیر ساختمان با موفقیت ثبت شد!!'
-#             )
-#
-#         return redirect(self.success_url)
-#
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         context['middleAdmins'] = User.objects.filter(
-#             is_middle_admin=True
-#         ).order_by('-created_time')
-#         context['users'] = User.objects.filter(is_active=True).order_by('created_time')
-#
-#         if self.request.user.charge_methods.exists():
-#             context['allowed_methods'] = list(
-#                 self.request.user.charge_methods.values_list('id', flat=True)
-#             )
-#         else:
-#             context['allowed_methods'] = []
-#
-#         return context
-#
-#
-# @method_decorator(admin_required, name='dispatch')
-# class MiddleAdminUpdateView(UpdateView):
-#     model = User
-#     template_name = 'admin_panel/middleAdmin_list.html'
-#     form_class = UserRegistrationForm
-#     success_url = reverse_lazy('create_middle_admin')
-#
-#     def form_valid(self, form):
-#         obj = form.save(commit=False)
-#
-#         # گرفتن رمز جدید
-#         raw_password = form.cleaned_data.get('password')
-#         if raw_password:
-#             obj.set_password(raw_password)
-#         else:
-#             old_user = User.objects.get(pk=obj.pk)
-#             obj.password = old_user.password
-#
-#         obj.manager = self.request.user
-#         obj.save()
-#
-#         # ست کردن روش‌های شارژ
-#         charge_methods = form.cleaned_data.get('charge_methods')
-#         if charge_methods is not None:
-#             obj.charge_methods.set(charge_methods)
-#
-#         subscription, created = Subscription.objects.get_or_create(
-#             user=obj,
-#             defaults={
-#                 'units_count': 1,
-#                 'is_trial': True,
-#                 'start_date': timezone.now(),
-#                 'end_date': timezone.now() + timedelta(days=35)
-#             }
-#         )
-#         if not created:
-#             # اگر قبلا وجود داشت، فقط مقادیر فرم را آپدیت کن، تاریخ Trial را تغییر نده
-#             subscription.units_count = 1
-#             # فقط اگر خواستی اشتراک پولی یا روش‌های دیگر اضافه شود می‌توانی اینجا تغییر دهی
-#             subscription.save()
-#
-#         messages.success(self.request, 'اطلاعات مدیر ساختمان با موفقیت ویرایش گردید!')
-#         return super().form_valid(form)
-#
-#     def form_invalid(self, form):
-#         # اگر فرم نامعتبر بود (مثلاً موبایل تکراری)، همان قالب را با خطا نمایش بده
-#         middle_admins = User.objects.filter(is_middle_admin=True).order_by('-created_time')
-#         for middle in middle_admins:
-#             # ایجاد attribute موقت برای قالب
-#             middle.charge_method_ids_list = list(middle.charge_methods.values_list('id', flat=True))
-#
-#         context = {
-#             'form': form,
-#             'middleAdmins': middle_admins,
-#             'users': User.objects.filter(is_active=True).order_by('-created_time'),
-#         }
-#         return self.render_to_response(context)
-#
-#     def get_context_data(self, **kwargs):
-#         context = super().get_context_data(**kwargs)
-#         middle_admins = User.objects.filter(is_middle_admin=True).order_by('-created_time')
-#         for middle in middle_admins:
-#             # ایجاد attribute موقت برای قالب
-#             middle.charge_method_ids_list = list(middle.charge_methods.values_list('id', flat=True))
-#         context['middleAdmins'] = middle_admins
-#         context['users'] = User.objects.filter(is_active=True).order_by('-created_time')
-#         return context
-#
-#
-# @login_required(login_url=settings.LOGIN_URL_ADMIN)
-# def middleAdmin_delete(request, pk):
-#     middleAdmin = get_object_or_404(User, id=pk)
-#     print(middleAdmin.id)
-#
-#     try:
-#         middleAdmin.delete()
-#         messages.success(request, 'مدیر ساختمان با موفقیت حذف گردید!')
-#     except ProtectedError:
-#         messages.error(request, " امکان حذف وجود ندارد! ")
-#     return redirect(reverse('create_middle_admin'))
+def add_house_license(request, house_id):
+    house = get_object_or_404(MyHouse, id=house_id)
+    licenses = HouseLicense.objects.filter(house=house)
+
+    if request.method == 'POST':
+        form = HouseLicenseForm(request.POST)
+        if form.is_valid():
+            license_obj = form.save(commit=False)
+            license_obj.house = house
+            license_obj.save()
+            messages.success(
+                request,
+                'مجوز با موفقیت ثبت شد.'
+            )
+            return redirect('house_list')  # یا هر صفحه لیستت
+    else:
+        form = HouseLicenseForm()
+
+    return render(request, 'admin_panel/add_house_license.html', {
+        'form': form,
+        'house': house,
+        'licenses': licenses
+    })
 
 
-# ====================== Slider Text  =================================
+def update_house_license(request, pk):
+    license_obj = get_object_or_404(HouseLicense, id=pk)
+    licenses = HouseLicense.objects.filter(
+        house=license_obj.house
+    )
+
+    if request.method == 'POST':
+        form = HouseLicenseForm(request.POST, instance=license_obj)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                'مجوز با موفقیت ویرایش شد.'
+            )
+            return redirect('add_house_license', house_id=license_obj.house.id)
+    else:
+        form = HouseLicenseForm(instance=license_obj)
+
+    return render(request, 'admin_panel/add_house_license.html', {
+        'form': form,
+        'license': license_obj,
+        'house': license_obj.house,
+        'licenses': licenses
+    })
+
+def delete_house_license(request, pk):
+    license_obj = get_object_or_404(HouseLicense, id=pk)
+    house_id = license_obj.house.id
+
+    license_obj.delete()
+    messages.success(
+                request,
+                'مجوز با موفقیت حذف شد.'
+            )
+
+    return redirect('add_house_license', house_id=house_id)
+
+# views.py
+
+def add_house_gateway(request, house_id):
+    house = get_object_or_404(MyHouse, id=house_id)
+
+    gateways = HousePaymentGateway.objects.filter(
+        house=house
+    )
+
+    if request.method == 'POST':
+        form = HousePaymentGatewayForm(request.POST)
+
+        if form.is_valid():
+            gateway = form.save(commit=False)
+            gateway.house = house
+            gateway.save()
+
+            messages.success(
+                request,
+                'درگاه پرداخت با موفقیت ثبت گردید.'
+            )
+            return redirect(
+                'add_house_gateway',
+                house_id=house.id
+            )
+    else:
+        form = HousePaymentGatewayForm()
+
+    return render(
+        request,
+        'admin_panel/add_house_gateway.html',
+        {
+            'house': house,
+            'form': form,
+            'gateways': gateways,
+        }
+    )
+
+def update_house_gateway(request, pk):
+    gateway = get_object_or_404(
+        HousePaymentGateway,
+        id=pk
+    )
+
+    gateways = HousePaymentGateway.objects.filter(
+        house=gateway.house
+    )
+
+    if request.method == 'POST':
+        form = HousePaymentGatewayForm(
+            request.POST,
+            instance=gateway
+        )
+
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                'درگاه پرداخت با موفقیت ویرایش گردید.'
+            )
+            return redirect(
+                'add_house_gateway',
+                house_id=gateway.house.id
+            )
+    else:
+        form = HousePaymentGatewayForm(
+            instance=gateway
+        )
+
+    return render(
+        request,
+        'admin_panel/add_house_gateway.html',
+        {
+            'house': gateway.house,
+            'form': form,
+            'gateway': gateway,
+            'gateways': gateways,
+        }
+    )
+
+
+def delete_house_gateway(request, pk):
+    gateway_obj = get_object_or_404(HousePaymentGateway, id=pk)
+    house_id = gateway_obj.house.id
+
+    gateway_obj.delete()
+    messages.success(
+                request,
+                'درگاه پرداخت با موفقیت حذف شد.'
+            )
+
+    return redirect('add_house_gateway', house_id=house_id)
+
+# ============================================================
 class SliderTextCreateView(CreateView):
     model = SliderText
     template_name = 'admin_panel/slider_text.html'

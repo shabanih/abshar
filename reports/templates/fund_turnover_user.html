@@ -30,6 +30,7 @@
 
         <!-- خروجی -->
         <div class="col-12 col-md-3 d-flex gap-1">
+            {% if page_obj %}
             <a href="{% url 'export_user_report_excel' %}"
                class="btn btn-gradient-success w-50">
                 Excel
@@ -38,6 +39,11 @@
                class="btn btn-gradient-danger w-50">
                 PDF
             </a>
+                      {% else %}
+                <button class="btn btn-gradient-success w-50" disabled> Excel</button>
+            	            <button class="btn btn-gradient-danger w-50" disabled> PDF</button>
+                    
+            {% endif %} 
         </div>
 
         <!-- تعداد نمایش -->

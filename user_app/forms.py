@@ -56,36 +56,31 @@ class LoginForm(forms.Form):
         fields = ['mobile', 'password']
 
 
-class MobileLoginForm(forms.ModelForm):
+class MobileLoginForm(forms.Form):
     mobile = forms.CharField(
         widget=forms.TextInput(attrs={
             'class': 'form-control w-50 text-center border-1 mb-2',
             'placeholder': 'شماره همراه خود را وارد کنید',
-            # 'style': 'font-size: 13px;'  # Inline style for placeholder font size
         }),
         required=True,
         max_length=11,
         min_length=11,
         error_messages={
             'required': 'لطفا شماره موبایل را وارد نمایید',
-            'min_length': 'تعداد کاراکترهای وارد شده کمتر از حد مجاز است!',
-            'max_length': 'تعداد کاراکترهای وارد شده بیشتر از حد مجاز است!',
+            'min_length': 'کمتر از حد مجاز',
+            'max_length': 'بیشتر از حد مجاز',
         },
     )
 
-    class Meta:
-        model = User
-        fields = ['mobile', ]
 
-
-class VerifyForm(forms.ModelForm):
+class VerifyForm(forms.Form):
     otp = forms.CharField(
-        widget=forms.NumberInput(attrs={'placeholder': 'رمز یکبار مصرف'})
+        widget=forms.NumberInput(attrs={
+            'placeholder': 'رمز یکبار مصرف'
+        }),
+        required=True,
+        max_length=6
     )
-
-    class Meta:
-        model = User
-        fields = ['otp']
 
 
 CALL_CHOICES = [

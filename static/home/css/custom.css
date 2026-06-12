@@ -1957,14 +1957,15 @@ form input[type="submit"]:focus {
 .service .service-box h3{
    font-weight: 600;
     font-size: 20px;
-    text-shadow: 1px 10px 8px #00ACC1;
+    /*text-shadow: 1px 10px 8px #00ACC1;*/
     font-family: "VazirB1", 'sans-serif';
+    text-align: center;
 }
 .service .service-box p {
       font-size: 14px;
     /*text-shadow: 1px 10px 8px #975AF8CC;*/
     font-family: "VazirB1", 'sans-serif';
-    text-align: justify;
+    text-align: center;
     direction: rtl;
 }
 .choose_bg .white_bg {

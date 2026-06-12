@@ -20,7 +20,7 @@ from admin_panel.models import (Announcement, Expense, ExpenseCategory, Income, 
 from home.models import SliderText
 from middleAdmin_panel.services.bank_services import validate_bank_transaction_date
 
-from user_app.models import Unit, Bank, User, MyHouse, ChargeMethod, Renter
+from user_app.models import Unit, Bank, User, MyHouse, ChargeMethod, Renter, HouseLicense, HousePaymentGateway
 
 attr = {'class': 'form-control border-1 py-2 mb-4 '}
 attr0 = {'class': 'form-control form-control-sm border-1 py-1 mb-4 '}
@@ -475,30 +475,23 @@ class MyHouseForm(forms.ModelForm):
         widget=forms.Select(attrs=attr),
         label='فعال باشد؟'
     )
-    enamad_code = forms.CharField(
-        required=False,
-        widget=forms.Textarea(
-            attrs={
-                'class': 'form-control',
-                'rows': 5,
-                'dir': 'ltr'
-            }
-        ),
-        label='کد اینماد'
-    )
+    # enamad_code = forms.CharField(
+    #     required=False,
+    #     widget=forms.Textarea(
+    #         attrs={
+    #             'class': 'form-control',
+    #             'rows': 5,
+    #             'dir': 'ltr'
+    #         }
+    #     ),
+    #     label='کد اینماد'
+    # )
 
     class Meta:
         model = MyHouse
         fields = ['name', 'address', 'user_type', 'city', 'is_active', 'floor_counts', 'unit_counts', 'subdomain',
-                  'phone', 'enamad_code']
+                  'phone']
 
-    # def __init__(self, *args, **kwargs):
-    #     user = kwargs.pop('user', None)
-    #     super().__init__(*args, **kwargs)
-    #
-    #     if user:
-    #         self.fields['user'].queryset = User.objects.filter(is_active=True, is_middle_admin=True).order_by(
-    #             '-created_time')
 
     def clean_subdomain(self):
         subdomain = self.cleaned_data.get('subdomain')
@@ -506,24 +499,47 @@ class MyHouseForm(forms.ModelForm):
         if not subdomain:
             return subdomain
 
-        # تبدیل خودکار به lowercase
         subdomain = subdomain.lower()
 
-        # فقط حروف کوچک انگلیسی و عدد - بدون فاصله
         if not re.match(r'^[a-z0-9]+$', subdomain):
-            raise ValidationError(
-                "نام لاتین فقط می‌تواند شامل حروف کوچک انگلیسی و عدد و بدون فاصله باشد."
-            )
+            raise ValidationError("فقط حروف کوچک انگلیسی و عدد مجاز است.")
 
-        # کلمات رزرو شده
         RESERVED = ["admin", "www", "panel", "api"]
         if subdomain in RESERVED:
-            raise ValidationError(
-                "این نام قابل استفاده نیست."
-            )
+            raise ValidationError("این نام قابل استفاده نیست.")
+
+        # 🔥 مهم: چک دیتابیس
+        if MyHouse.objects.filter(subdomain=subdomain).exclude(pk=self.instance.pk).exists():
+            raise ValidationError("این زیردامنه قبلاً استفاده شده است.")
 
         return subdomain
 
+class HouseLicenseForm(forms.ModelForm):
+    html_code = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 10, 'cols':6 }), required=False,
+                                   )
+    class Meta:
+        model = HouseLicense
+        fields = ['license_type', 'html_code', 'is_active']
+
+class HousePaymentGatewayForm(forms.ModelForm):
+    api_key = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 10, 'cols': 6}),
+                                required=False,
+                                )
+    merchant_id = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
+                         )
+    class Meta:
+        model = HousePaymentGateway
+        fields = [
+            'gateway_type',
+            'merchant_id',
+            'api_key',
+            'is_active',
+            'is_sandbox',
+        ]
+
+        widgets = {
+            'api_key': forms.Textarea(attrs={'rows': 8}),
+        }
 
 class UnitForm(forms.ModelForm):
     unit = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr0),
@@ -723,11 +739,22 @@ class UnitForm(forms.ModelForm):
         if owner_mobile:
             qs = User.objects.filter(mobile=owner_mobile)
 
-            if instance and instance.pk:
+            if instance and instance.pk and instance.user:
                 qs = qs.exclude(pk=instance.user.pk)
 
+            # مدیر ساکن ساختمان است
+            if (
+                    self.current_user
+                    and self.current_user.mobile == owner_mobile
+                    and self.current_user.is_resident
+            ):
+                qs = qs.exclude(pk=self.current_user.pk)
+
             if qs.exists():
-                self.add_error('owner_mobile', 'این شماره موبایل قبلاً ثبت شده است.')
+                self.add_error(
+                    'owner_mobile',
+                    'این شماره موبایل قبلاً ثبت شده است.'
+                )
 
         # ------------------------
         # RENTER MOBILE CHECK
@@ -829,6 +856,7 @@ class UnitForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
+        self.current_user = user
         super().__init__(*args, **kwargs)
 
         # بانک‌ها

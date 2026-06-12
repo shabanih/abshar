@@ -84,7 +84,7 @@
                             <tr>
                                 <td>{{ forloop.counter }}</td>
                                 <td>{{announcement.user.full_name }}</td>
-                                <td>{{ announcement.user.myhouse_set.first.name }}</td>
+                                <td>{{ announcement.user.house.name }}</td>
                                 <td>{{ announcement.title|safe }}</td>
                                 <td>{{ announcement.created_at|show_jalali}}</td>
 

@@ -139,6 +139,7 @@ class MyHouse(models.Model):
         on_delete=models.CASCADE,
         related_name='managed_houses'
     )
+
     residents = models.ManyToManyField(User, related_name='houses', blank=True, verbose_name='ساکنین')
     name = models.CharField(max_length=100, verbose_name='نام ساختمان')
     floor_counts = models.PositiveIntegerField(default=1)
@@ -152,10 +153,69 @@ class MyHouse(models.Model):
     is_active = models.BooleanField(default=True, verbose_name='فعال/غیرفعال')
 
     subdomain = models.CharField(max_length=50, unique=True, null=True, blank=True, verbose_name='زیردامنه')
-    enamad_code = models.TextField(null=True, blank=True, verbose_name="کد اینماد")
 
     def __str__(self):
         return self.name
+
+
+class HouseLicense(models.Model):
+    LICENSE_TYPES = (
+        ('enamad', 'اینماد'),
+        ('samandehi', 'ساماندهی'),
+        ('business', 'جواز کسب'),
+    )
+
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.CASCADE,
+        related_name='licenses'
+    )
+
+    license_type = models.CharField(
+        max_length=50,
+        choices=LICENSE_TYPES
+    )
+
+    html_code = models.TextField()
+
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.house.name}"
+
+
+class HousePaymentGateway(models.Model):
+    class GatewayType(models.TextChoices):
+        ZARINPAL = "zarinpal", "زرین‌پال"
+        IDPAY = "idpay", "آی‌دی‌پی"
+        NEXTPAY = "nextpay", "نکست‌پی"
+        STRIPE = "stripe", "Stripe"
+        MELLAT = "mellat", "به پرداخت ملت"
+
+    house = models.ForeignKey(
+        MyHouse,
+        on_delete=models.CASCADE,
+        related_name='gateways'
+    )
+
+    gateway_type = models.CharField(
+        max_length=50,
+        choices=GatewayType.choices,
+        verbose_name="نوع درگاه"
+    )
+
+    merchant_id = models.CharField(max_length=255, verbose_name="Merchant ID")
+    api_key = models.CharField(max_length=500, verbose_name="API Key")
+
+    is_active = models.BooleanField(default=True, verbose_name="فعال")
+    is_sandbox = models.BooleanField(default=False, verbose_name="حالت تست")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.house.name} - {self.gateway_type}"
 
 
 class Unit(models.Model):

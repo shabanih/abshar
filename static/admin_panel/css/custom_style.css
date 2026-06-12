@@ -1149,3 +1149,21 @@ body.sidebar-icon-only .sidebar-subscription-box {
 .zero-bill{
     margin: 0 20px;
 }
+
+.blink-dot {
+    position: absolute;
+    top: 50%;
+    right: -2px;
+    width: 20px;
+    height: 20px;
+    background-color: red;
+    border-radius: 50%;
+    border: 2px solid white;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.2; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1); }
+}

@@ -56,7 +56,7 @@ class Choice(models.Model):
         return self.vote_set.count()
 
     def percentage(self):
-        total = Vote.objects.filter(question=self.question).count()
+        total = Vote.objects.filter(question=self.question).values('user').distinct().count()
         if total == 0:
             return 0
         return round((self.vote_count() / total) * 100, 1)
@@ -64,7 +64,11 @@ class Choice(models.Model):
 
 class Vote(models.Model):
     poll = models.ForeignKey(Poll, on_delete=models.CASCADE)
-    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+        related_name="votes"
+    )
     choice = models.ForeignKey(Choice, on_delete=models.CASCADE)
 
     unit = models.ForeignKey(Unit, on_delete=models.CASCADE)
@@ -73,4 +77,9 @@ class Vote(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('question', 'user')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['question', 'user', 'choice'],
+                name='unique_vote_per_choice'
+            )
+        ]

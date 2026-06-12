@@ -93,25 +93,58 @@ def switch_to_manager(request):
 
 
 def mobile_login(request):
-    form = MobileLoginForm(request.POST or None)
-    if request.method == 'POST':
-        mobile = request.POST.get('mobile')
-        if mobile:
-            user = User.objects.filter(mobile=mobile).first()
-            if user:
-                otp = helper.get_random_otp()
-                # helper.send_otp(mobile, otp)  # Uncomment to send OTP
-                print("OTP1:", otp)
-                user.otp = otp
-                user.otp_create_time = timezone.now()
-                user.save()
 
-                request.session['user_mobile'] = user.mobile
-                return HttpResponseRedirect(reverse('verify_otp'))
-            else:
-                messages.error(request, 'کاربر با این شماره همراه یافت نشد!')
-                return redirect(reverse('mobile_login'))
-    return render(request, 'mobile_Login.html', {'form': form})
+    house = request.house
+
+    if not house:
+        messages.error(request, 'دسترسی نامعتبر')
+        return redirect('home')
+
+    form = MobileLoginForm(request.POST or None)
+
+    if request.method == 'POST' and form.is_valid():
+
+        mobile = form.cleaned_data['mobile']
+
+        # 🔥 بهتر: get (نه first)
+        user = User.objects.filter(mobile=mobile).first()
+
+        if not user:
+            messages.error(request, 'کاربر با این شماره یافت نشد')
+            return redirect('mobile_login')
+
+        # 🔥 بررسی عضویت واقعی
+        is_owner = house.user_id == user.id
+        is_resident = (user.house_id == house.id)
+
+        if not (is_owner or is_resident):
+            messages.error(
+                request,
+                'شما عضو این ساختمان نیستید!'
+            )
+            return redirect('mobile_login')
+
+        # OTP
+        otp = helper.get_random_otp()
+        # helper.send_otp(mobile, otp)
+        print("OTP1:", otp)
+        user.otp = otp
+        user.otp_create_time = timezone.now()
+        user.save()
+
+        #
+        # user.otp = otp
+        # user.otp_create_time = timezone.now()
+        # user.save()
+
+        request.session['user_mobile'] = user.mobile
+
+        return HttpResponseRedirect(reverse('verify_otp'))
+
+    return render(request, 'mobile_Login.html', {
+        'form': form,
+        'house': house
+    })
 
 
 def verify_otp(request):
@@ -285,6 +318,25 @@ def user_panel(request):
         }
         for unit in units
     ]
+    house = MyHouse.objects.filter(
+        Q(units__user=request.user) |
+        Q(units__renters__user=request.user,
+          units__renters__renter_is_active=True)
+    ).distinct().first()
+
+    pending_polls = Poll.objects.filter(
+        house=house,
+        is_active=True
+    ).annotate(
+        total_q=Count('questions', distinct=True),
+        user_votes=Count(
+            'questions__votes',
+            filter=Q(questions__votes__user=request.user),
+            distinct=True
+        )
+    ).filter(
+        ~Q(total_q=F('user_votes'))
+    )
 
     # -------------------------
     # CONTEXT
@@ -296,7 +348,7 @@ def user_panel(request):
 
         "tickets": tickets,
         "ticket": ticket_count,
-
+        "pending_polls":pending_polls,
         "announcements": announcements,
 
         "total_charge": total_charge,

@@ -26,10 +26,19 @@
             </form>
         </div>
         <div class="col-12 col-md-2 col-xl-2 pt-1">
+            {% if page_obj %}
+         
           <a href="{% url 'user_civil_charge_pdf' %}?{{ request.GET.urlencode }}"
                    class="btn btn-gradient-danger px-4 py-2">
                     خروجی PDF 
                 </a>
+                      {% else %}
+            	       <a
+                   class="btn btn-gradient-danger px-4 py-2" disabled>
+                    خروجی PDF 
+                </a>
+            {% endif %} 
+            
 </div>
         <!-- بخش تعداد نمایش → فقط دسکتاپ -->
         <div class="col-12 col-md-2 col-xl-2 p-0 d-none d-md-block">

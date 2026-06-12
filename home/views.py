@@ -7,6 +7,7 @@ from django.shortcuts import redirect, render, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, UpdateView
 
+from admin_panel.helper import get_house_by_subdomain
 from home.forms import FreeRequestForm, ContactUsForm, ArticleForm
 from home.models import SliderText, FreeRequest, ContactUs, Articles
 from user_app.forms import LoginForm
@@ -23,18 +24,21 @@ def house_required(view_func):
 
 
 def index(request):
-    articles = Articles.objects.filter(is_active=True).order_by('-created_at')[:3]
+    if request.house:
+        return redirect('house_login_subdomain')
+
+    articles = Articles.objects.filter(
+        is_active=True
+    ).order_by('-created_at')[:3]
+
     sliders = SliderText.objects.all().order_by('-id')
-    form = FreeRequestForm()
-    if request.method == 'POST':
-        form = FreeRequestForm(request.POST)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'درخواست شما با موفقیت ثبت گردید. پس از بررسی با شما تماس خواهیم گرفت')
-            return redirect('home')
-        else:
-            messages.error(request, 'oxg')
-            return redirect('home')
+
+    form = FreeRequestForm(request.POST or None)
+
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'درخواست شما ثبت شد')
+        return redirect('home')
 
     return render(request, 'home.html', {
         'form': form,
@@ -43,57 +47,219 @@ def index(request):
     })
 
 
-def house_home(request):
+def house_login(request):
+
+    house = request.house
+
+    if not house:
+        return render(request, '404_house.html', status=404)
+
+    if request.user.is_authenticated:
+
+        if house.user_id == request.user.id:
+            return redirect('middle_admin_dashboard')
+
+        if request.user.house_id == house.id:
+            return redirect('user_panel')
+
+        messages.error(request, 'شما به این ساختمان دسترسی ندارید')
 
     form = LoginForm(request.POST or None)
 
     if request.method == 'POST' and form.is_valid():
+
         mobile = form.cleaned_data['mobile']
         password = form.cleaned_data['password']
 
-        user = authenticate(request, username=mobile, password=password)
+        user = authenticate(
+            request,
+            username=mobile,
+            password=password
+        )
 
-        if user:
-            if user.is_superuser:
-                messages.error(request, 'شما مجوز ورود از این صفحه را ندارید.')
+        if not user:
+            messages.error(request, 'اطلاعات کاربری اشتباه است')
 
-            elif not user.is_active:
-                messages.error(request, 'حساب کاربری شما غیرفعال است.')
+        elif not user.is_active:
+            messages.error(request, 'حساب غیرفعال است')
 
-            # # ⛔ مالک با مستاجر فعال
-            # elif Unit.objects.filter(
-            #         user=user,
-            #         renters__renter_is_active=True
-            # ).exists():
-            #     messages.error(
-            #         request,
-            #         'برای واحد شما مستاجر فعال ثبت شده است و امکان ورود مالک وجود ندارد.'
-            #     )
+        elif user.is_superuser:
+            messages.error(request, 'ورود از این بخش مجاز نیست')
+
+        else:
+
+            # 🔥 مهم‌ترین اصلاح
+            is_owner = house.user_id == user.id
+            is_resident = user.house_id == house.id
+
+            if not (is_owner or is_resident):
+                messages.error(request, 'شما عضو این ساختمان نیستید')
 
             else:
                 login(request, user)
 
-                if user.is_middle_admin:
-                    has_house = MyHouse.objects.filter(user=user).exists()
-                    if has_house:
-                        return redirect('middle_admin_dashboard')
-                    else:
-                        return redirect('middle_manage_house')
+                if is_owner:
+                    return redirect('middle_admin_dashboard')
 
                 return redirect('user_panel')
 
-
-        else:
-            messages.error(request, 'ورود ناموفق: شماره موبایل یا کلمه عبور نادرست است.')
-    context = {
+    return render(request, 'login_subdomain.html', {
         'form': form,
-        "house": request.house,
-    }
-    return render(request, 'building_page.html', context)
+        'house': house
+    })
+
+
+# def index(request):
+#     articles = Articles.objects.filter(is_active=True).order_by('-created_at')[:3]
+#     sliders = SliderText.objects.all().order_by('-id')
+#
+#     if request.house:
+#         return redirect('house_login_subdomain')
+#
+#     form = FreeRequestForm()
+#     if request.method == 'POST':
+#         form = FreeRequestForm(request.POST)
+#         if form.is_valid():
+#             form.save()
+#             messages.success(request, 'درخواست شما با موفقیت ثبت گردید. پس از بررسی با شما تماس خواهیم گرفت')
+#             return redirect('home')
+#         else:
+#             messages.error(request, 'oxg')
+#             return redirect('home')
+#
+#     return render(request, 'home.html', {
+#         'form': form,
+#         'articles': articles,
+#         'sliders': sliders
+#     })
+#
+#
+# def house_home(request):
+#     house = get_house_by_subdomain(getattr(request, 'subdomain', None))
+#
+#     # house = request.house
+#
+#     # اگر ساب‌دامین معتبر نبود
+#     if not house:
+#         return render(request, '404_house.html', status=404)
+#
+#     # اگر قبلا لاگین کرده
+#     if request.user.is_authenticated:
+#
+#         # مدیر همین ساختمان
+#         if house.user == request.user:
+#             return redirect('middle_admin_dashboard')
+#
+#         # ساکن همین ساختمان
+#         if house.residents.filter(id=request.user.id).exists():
+#             return redirect('user_panel')
+#
+#         messages.error(
+#             request,
+#             'شما به این ساختمان دسترسی ندارید.'
+#         )
+#
+#     form = LoginForm(request.POST or None)
+#
+#     if request.method == 'POST' and form.is_valid():
+#
+#         mobile = form.cleaned_data['mobile']
+#         password = form.cleaned_data['password']
+#
+#         user = authenticate(
+#             request,
+#             username=mobile,
+#             password=password
+#         )
+#
+#         if not user:
+#             messages.error(
+#                 request,
+#                 'شماره موبایل یا رمز عبور صحیح نیست.'
+#             )
+#
+#         elif not user.is_active:
+#             messages.error(
+#                 request,
+#                 'حساب کاربری شما غیرفعال است.'
+#             )
+#
+#         elif user.is_superuser:
+#             messages.error(
+#                 request,
+#                 'از پنل مدیریت وارد شوید.'
+#             )
+#
+#         else:
+#
+#             # مدیر ساختمان
+#             is_house_owner = house.user_id == user.id
+#
+#             # ساکن ساختمان
+#             is_resident = house.residents.filter(
+#                 id=user.id
+#             ).exists()
+#
+#             if not (is_house_owner or is_resident):
+#                 messages.error(
+#                     request,
+#                     'شما عضو این ساختمان نیستید.'
+#                 )
+#
+#             else:
+#
+#                 login(request, user)
+#
+#                 # مدیر ساختمان
+#                 if is_house_owner:
+#                     return redirect(
+#                         'middle_admin_dashboard'
+#                     )
+#
+#                 # ساکنین
+#                 return redirect(
+#                     'user_panel'
+#                 )
+#
+#     context = {
+#         'form': form,
+#         'house': house,
+#     }
+#
+#     return render(
+#         request,
+#         'building_page.html',
+#         context
+#     )
+#
+#
+# def house_login(request):
+#     house = get_house_by_subdomain(getattr(request, 'subdomain', None))
+#
+#     if not house:
+#         return render(request, "404_house.html")
+#
+#     if request.method == "POST":
+#         username = request.POST.get("username")
+#         password = request.POST.get("password")
+#
+#         user = authenticate(request, username=username, password=password)
+#
+#         if user and user in house.residents.all():
+#             login(request, user)
+#             return redirect("dashboard")
+#
+#         return render(request, "middle_login.html", {
+#             "house": house,
+#             "error": "اطلاعات اشتباه است"
+#         })
+#
+#     return render(request, "middle_login.html", {
+#         "house": house
+#     })
 
 
 def site_header_component(request):
-
     return render(request, 'renter_partials/site_header.html')
 
 
@@ -191,4 +357,3 @@ def article_details_view(request, article_id):
     article = Articles.objects.get(pk=article_id)
     similar_articles = Articles.objects.filter(is_active=True).exclude(pk=article.pk)
     return render(request, 'article_details.html', {'article': article, 'similar_articles': similar_articles})
-

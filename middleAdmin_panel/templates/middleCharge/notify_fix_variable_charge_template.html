@@ -159,13 +159,16 @@
                 {% endif %}
                 <br>
                 {#                مبلغ شارژ: {{ item.total_charge|three_digit_currency }} تومان#}
-                شارژ این ماه: {{ item.current_charge|three_digit_currency }}
+                شارژ این ماه: {{ item.current_charge|three_digit_currency }} تومان 
                 {% if item.previous_debt > 0 %}
                 <br>
-                <span style='color:#dc3545;'>بدهی معوقه: {{ item.previous_debt|three_digit_currency }}</span>
+                <span style='color:#dc3545;'>بدهی معوقه: {{ item.previous_debt|three_digit_currency }} تومان </span>
+                {% else %}
+                <br>
+                  <span style='color:#dc3545;'>بدهی معوقه: --  </span>
                 {% endif %}
                 <br>
-                <b>جمع کل: {{ item.total_payable|three_digit_currency }}</b>
+                <b>جمع کل: {{ item.total_payable|three_digit_currency }}</b> تومان 
                 ">
                 <input class="form-check-input unit-checkbox mx-2"
                        type="checkbox"

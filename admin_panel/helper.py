@@ -1,6 +1,6 @@
 from kavenegar import KavenegarAPI, APIException, HTTPException
 from absharProject.settings import Kavenegar_API
-from user_app.models import User
+from user_app.models import User, MyHouse
 
 
 def send_notify_user_by_sms(mobile, name, amount):
@@ -121,3 +121,13 @@ def send_sms_to_middle(mobile, message, full_name, otp=None):
     except HTTPException as e:
         print(f"HTTPException: {e}")
         return {"error": "HTTPException", "message": str(e)}
+
+
+def get_house_by_subdomain(subdomain):
+    if not subdomain:
+        return None
+
+    try:
+        return MyHouse.objects.get(subdomain=subdomain, is_active=True)
+    except MyHouse.DoesNotExist:
+        return None

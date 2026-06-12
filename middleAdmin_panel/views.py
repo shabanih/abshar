@@ -1191,12 +1191,14 @@ class MiddleUnitRegisterView(CreateView):
 
                     renter_user, renter_created = User.objects.get_or_create(
                         mobile=renter_mobile,
+
                         defaults={
                             'username': renter_mobile,
                             'full_name': renter_name,
                             'is_active': True,
                             'manager': self.request.user,
                             'is_unit': True,
+                            'house': house
                         }
                     )
                     renter_password = form.cleaned_data.get('renter_password')
@@ -5483,7 +5485,11 @@ def middle_send_sewage(request, pk):
                 base_date = sewage.first_due_date or timezone.now()
 
                 installments = []
+                print(sewage.first_due_date)
+                print(type(sewage.first_due_date))
 
+                print("installment_count:", installment_count)
+                print("type:", type(installment_count))
                 # ✅ 1️⃣ ایجاد رکورد پیش‌پرداخت (فقط یکبار)
                 if prepayment_per_unit > 0:
                     installments.append(
@@ -5680,6 +5686,7 @@ def middle_delete_civil_document(request):
             return JsonResponse({'status': 'error', 'message': f'خطا در حذف تصویر: {str(e)}'})
 
     return JsonResponse({'status': 'error', 'message': 'درخواست معتبر نیست'})
+
 
 @login_required(login_url=settings.LOGIN_URL_MIDDLE_ADMIN)
 def middle_civil_delete(request, pk):
@@ -6927,7 +6934,6 @@ def middle_remove_send_notification_area(request, pk):
     charge = get_object_or_404(AreaCharge, id=pk, user=request.user)
     selected_units = request.POST.getlist('units[]')
 
-
     if not selected_units:
         return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
 
@@ -7443,7 +7449,6 @@ def middle_remove_send_notification_person(request, pk):
 
     charge = get_object_or_404(PersonCharge, id=pk, user=request.user)
     selected_units = request.POST.getlist('units[]')
-
 
     if not selected_units:
         return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
@@ -7971,7 +7976,6 @@ def middle_remove_send_notification_fix_area(request, pk):
     charge = get_object_or_404(FixAreaCharge, id=pk, user=request.user)
     selected_units = request.POST.getlist('units[]')
 
-
     if not selected_units:
         return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
 
@@ -8494,7 +8498,6 @@ def middle_remove_send_notification_fix_person(request, pk):
     charge = get_object_or_404(FixPersonCharge, id=pk, user=request.user)
     selected_units = request.POST.getlist('units[]')
 
-
     if not selected_units:
         return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
 
@@ -9016,7 +9019,6 @@ def middle_remove_send_notification_person_area(request, pk):
 
     charge = get_object_or_404(ChargeByPersonArea, id=pk, user=request.user)
     selected_units = request.POST.getlist('units[]')
-
 
     if not selected_units:
         return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
@@ -9541,7 +9543,6 @@ def middle_remove_send_notification_fix_person_area(request, pk):
     charge = get_object_or_404(ChargeByFixPersonArea, id=pk, user=request.user)
     selected_units = request.POST.getlist('units[]')
 
-
     if not selected_units:
         return JsonResponse({'warning': 'هیچ واحدی انتخاب نشده است.'})
 
@@ -10043,9 +10044,10 @@ def middle_show_fix_variable_notification_form(request, pk):
         current_charge = uc.total_charge_month if uc else 0
 
         # جمع عددی بدهی‌های معوقه
-        previous_debt_total = sum(uc.get_previous_debt_by_type().values()) if uc else 0
+        previous_debt = sum(uc.get_previous_debt_by_type().values()) if uc else 0
+        print(f'p-{previous_debt}')
 
-        total_payable = current_charge + previous_debt_total
+        total_payable = current_charge + previous_debt
 
         page_units.object_list[i] = {
             'unit': unit,
@@ -10055,7 +10057,7 @@ def middle_show_fix_variable_notification_form(request, pk):
             'send_sms': uc.send_sms if uc else False,
             'sms_date': uc.send_sms_date if uc else None,
             'current_charge': current_charge,
-            'previous_debt': previous_debt_total,  # عددی
+            'previous_debt': previous_debt,  # عددی
             'total_payable': total_payable,
         }
 

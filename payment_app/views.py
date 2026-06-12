@@ -18,9 +18,10 @@ from admin_panel.forms import UnifiedChargePaymentForm
 from admin_panel.models import Fund, UnifiedCharge, CivilInstallment, SewageInstallment, BankFund
 from middleAdmin_panel.services.bank_services import BankTransactionService
 from user_app.forms import UserPayMoneyForm, UserPayGateForm, MiddlePayCivilForm, MiddlePaySewageForm
-from user_app.models import Bank, UserPayMoney
+from user_app.models import Bank, UserPayMoney, HousePaymentGateway
 
-MERCHANT = "3d6d6a26-c139-49ac-9d8d-b03a8cdf0fdd"
+# MERCHANT = "3d6d6a26-c139-49ac-9d8d-b03a8cdf0fdd"
+# MERCHANT = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
 # ZP_API_REQUEST = "https://api.zarinpal.com/pg/v4/payment/request.json"
 # ZP_API_VERIFY = "https://api.zarinpal.com/pg/v4/payment/verify.json"
@@ -55,9 +56,12 @@ def request_pay(request: HttpRequest, charge_id):
         total_fix_charge = charge.total_charge_month
         # charge.save()
         callback_url = f"{CallbackURLCharge}?charge_id={charge.id}"  # اضافه کردن charge_id
-
+        gateway = HousePaymentGateway.objects.filter(
+            house=charge.house,
+            is_active=True
+        ).first()
         req_data = {
-            "merchant_id": MERCHANT,  # Ensure MERCHANT is defined
+            "merchant_id": gateway.merchant_id,
             "amount": total_fix_charge * 10,
             "callback_url": callback_url,  # Ensure CallbackURL is defined
             "description": description,  # Ensure description is defined
@@ -99,11 +103,14 @@ def verify_pay(request: HttpRequest):
     total_fix_charge = payment_charge.total_charge_month
 
     t_authority = request.GET.get('Authority')
-
+    gateway = HousePaymentGateway.objects.filter(
+        house=payment_charge.house,
+        is_active=True
+    ).first()
     if request.GET.get('Status') == 'OK':
         req_header = {"accept": "application/json", "content-type": "application/json"}
         req_data = {
-            "merchant_id": MERCHANT,
+            "merchant_id": gateway.merchant_id,
             "amount": total_fix_charge * 10,
             "authority": t_authority
         }
@@ -146,7 +153,7 @@ def verify_pay(request: HttpRequest):
                         amount=payment_charge.total_charge_month,
                         creditor_amount=0,
                         user=request.user,
-                        payer_name=payment_charge.unit.get_label(),
+                        payer_name=payment_charge.unit.get_label,
                         payment_date=payment_charge.payment_date,
                         payment_description=f"{payment_charge.title}",
                         transaction_no=payment_charge.transaction_reference,
@@ -161,7 +168,8 @@ def verify_pay(request: HttpRequest):
                         payment_date=payment_charge.payment_date,
                         transaction_no=payment_charge.transaction_reference,
                         gateway="شارژ ماهیانه",
-                        house=payment_charge.house
+                        house=payment_charge.house,
+                        unit=payment_charge.unit
                     )
 
                     messages.success(
@@ -331,9 +339,12 @@ def request_user_pay_money(request: HttpRequest, pay_id):
         return HttpResponse("مبلغ پرداخت نامعتبر است.", status=400)
 
     callback_url = f"{CallbackURLUserPay}?pay_id={pay.id}"
-
+    gateway = HousePaymentGateway.objects.filter(
+        house=pay.house,
+        is_active=True
+    ).first()
     req_data = {
-        "merchant_id": MERCHANT,
+        "merchant_id": gateway.merchant_id,
         "amount": pay.amount * 10,  # تومان → ریال
         "callback_url": callback_url,
         "description": pay.description or "پرداخت اینترنتی",
@@ -376,13 +387,16 @@ def verify_user_pay_money(request: HttpRequest):
         })
 
     pay = get_object_or_404(UserPayMoney, id=pay_id, is_paid=False)
-
+    gateway = HousePaymentGateway.objects.filter(
+        house=pay.house,
+        is_active=True
+    ).first()
     if status != 'OK':
         messages.error(request, 'پرداخت لغو شد')
         return redirect('user_pay_money')
 
     req_data = {
-        "merchant_id": MERCHANT,
+        "merchant_id": gateway.merchant_id,
         "amount": pay.amount * 10,
         "authority": authority
     }
@@ -827,9 +841,12 @@ def request_user_pay_installment(request: HttpRequest, inst_id):
         return HttpResponse("مبلغ پرداخت نامعتبر است.", status=400)
 
     callback_url = f"{CallbackURLUserPayInstallment}?inst_id={installment.id}"
-
+    gateway = HousePaymentGateway.objects.filter(
+        house=installment.house,
+        is_active=True
+    ).first()
     req_data = {
-        "merchant_id": MERCHANT,
+        "merchant_id": gateway.merchant_id,
         "amount": installment.amount * 10,  # تومان → ریال
         "callback_url": callback_url,
         "description": installment.civil_manage.name or "پرداخت اینترنتی",
@@ -877,7 +894,10 @@ def verify_user_pay_installment(request: HttpRequest):
         CivilInstallment.objects.select_for_update(),
         id=inst_id
     )
-
+    gateway = HousePaymentGateway.objects.filter(
+        house=installment.house,
+        is_active=True
+    ).first()
     # اگر قبلاً پرداخت شده
     if installment.is_paid:
         messages.info(request, 'این قسط قبلاً پرداخت شده است')
@@ -888,7 +908,7 @@ def verify_user_pay_installment(request: HttpRequest):
         return redirect('user_pay_civil_charge')
 
     req_data = {
-        "merchant_id": MERCHANT,
+        "merchant_id": gateway.merchant_id,
         "amount": installment.amount * 10,
         "authority": authority
     }
@@ -1243,9 +1263,12 @@ def request_user_pay_sewage_installment(request: HttpRequest, inst_id):
         return HttpResponse("مبلغ پرداخت نامعتبر است.", status=400)
 
     callback_url = f"{CallbackURLUserPaySewageInstallment}?inst_id={installment.id}"
-
+    gateway = HousePaymentGateway.objects.filter(
+        house=installment.house,
+        is_active=True
+    ).first()
     req_data = {
-        "merchant_id": MERCHANT,
+        "merchant_id": gateway.merchant_id,
         "amount": installment.amount * 10,  # تومان → ریال
         "callback_url": callback_url,
         "description": installment.sewage_manage.name or "پرداخت اینترنتی",
@@ -1302,9 +1325,12 @@ def verify_user_pay_sewage_installment(request: HttpRequest):
     if status != 'OK':
         messages.error(request, 'پرداخت لغو شد')
         return redirect('user_pay_sewage_installment')
-
+    gateway = HousePaymentGateway.objects.filter(
+        house=installment.house,
+        is_active=True
+    ).first()
     req_data = {
-        "merchant_id": MERCHANT,
+        "merchant_id": gateway.merchant_id,
         "amount": installment.amount * 10,
         "authority": authority
     }

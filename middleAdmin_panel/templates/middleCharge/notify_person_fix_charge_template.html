@@ -163,6 +163,9 @@
                 {% if item.previous_debt > 0 %}
                 <br>
                 <span style='color:#dc3545;'>بدهی معوقه: {{ item.previous_debt|three_digit_currency }}</span>تومان 
+                   {% else %}
+                <br>
+                  <span style='color:#dc3545;'>بدهی معوقه: --  </span>
                 {% endif %}
                 <br>
                 <b>جمع کل قابل پرداخت: {{ item.total_payable|three_digit_currency }}  تومان</b> 
