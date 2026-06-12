@@ -1,0 +1,115 @@
+{% extends 'shared/base_template.html' %}
+{% load static %}
+{% load poll_extras %}
+
+{% block page_title %}
+ ثبت مجوز برای ساختمان {{ house.name }}
+{% endblock %}
+
+{% block main_content %}
+
+<div class="container-fluid mt-4">
+
+    <div class="row justify-content-center py-4">
+
+        <div class="col-lg-12">
+
+            <div class="card shadow border-0 rounded-4">
+            
+                <div class="card-body">
+             
+
+<form method="post">
+    {% csrf_token %}
+   <div class="row g-2">
+                  <div class="col">
+                      {{ form.license_type.label_tag }}
+                      {{ form.license_type }}
+                      {{ form.license_type.errors }}
+                  </div>
+           <div class="col">
+                      {{ form.title.label_tag }}
+                      {{ form.title }}
+                      {{ form.title.errors }}
+                  </div>
+              </div>
+       <div class="row g-2">
+                  <div class="col-12">
+                      {{ form.html_code.label_tag }}
+                      {{ form.html_code }}
+                      {{ form.html_code.errors }}
+                  </div>
+           <div class="col">
+                      {{ form.is_active.label_tag }}
+                      {{ form.is_active }}
+                      {{ form.is_active.errors }}
+                  </div>
+              </div>
+
+    <button type="submit" class="btn btn-success">
+        ذخیره مجوز
+    </button>
+</form>
+
+           
+
+                </div>
+
+            </div>
+            <div class="row">
+                      <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="text-center">
+                                    <tr>
+                                        <th>#</th>
+                                         <th>نام مجوز</th>
+                                        <th>آدرس لینک</th>
+                                        <th>فعال/غیرفعال</th>
+                                        <th>تاریخ ایجاد</th>
+                                        <th>دستورات</th>
+                                    </tr>
+                                </thead>
+                            {% if licenses %}
+                           {% for house in licenses %}
+                                    <tbody class="text-center">
+                                        <tr>
+                                            <td>{{ forloop.counter }}</td>
+                                           <td>{{house.license_type }}</td>
+                                           <td>{{house.html_code }}</td>
+                                           <td>{{house.is_active }}</td>
+                                           <td>{{house.created_at|show_jalali }}</td>
+                                   
+
+                                               <td>
+                                        
+                                                            <a href="{% url 'update_house_license' house.id %}"
+                                           class="btn btn-gradient-info p-1">
+                                    <i class="fas fa-pencil-alt"></i>
+                                        
+                                        </a>
+
+                  <a href="{% url 'delete_house_license' house.id %}" class="btn btn-gradient-danger p-1"
+                                        onclick="return confirmDeleteWithSweetAlert(event)">
+                                              <i class="mdi mdi-delete" aria-hidden="true"></i>
+                                            </a>                   
+
+                                        </td>
+                                        </tr>
+
+                                    {% endfor %}
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="6" class="text-center">هیچ رکوردی برای نمایش وجود ندارد.</td>
+                                        </tr>
+                                 <tbody>
+                                {% endif %}
+                            </table>
+               </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
