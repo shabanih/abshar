@@ -645,12 +645,12 @@ a:focus {
     z-index: 2;   /* متن بیاد روی عکس */
 }
 
-.arrival_section .arrival_bg_box img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center left;
-}
+/*.arrival_section .arrival_bg_box img {*/
+/*    width: 100%;*/
+/*    height: 100%;*/
+/*    object-fit: cover;*/
+/*    object-position: center left;*/
+/*}*/
 
 .arrival_section a {
   /*display: inline-block;*/
@@ -795,7 +795,7 @@ a:focus {
       -ms-flex-align: center;
           align-items: center;
   text-align: center;
-  margin-top: 55px;
+  margin-top: 20px;
 }
 
 .client_section .box .img_container {
@@ -1824,7 +1824,7 @@ form input[type="submit"]:focus {
 .faq .faq-container .faq-item .faq-toggle {
   position: absolute;
   top: 20px;
-  right: 20px;
+  left: 40px;
   font-size: 14px;
   line-height: 0;
   transition: 0.3s;
@@ -1858,7 +1858,7 @@ form input[type="submit"]:focus {
 
 /*.about {padding-top: 90px;}*/
 .about .about_box figure {margin: 0;}
-.about .about_box figure img {width: 100%;}
+/*.about .about_box figure img {width: 100%;}*/
 .about .about_box h3 {
     /*color: #000; font-weight: bold; font-size: 30px; line-height: 35px; */
        font-weight: 600;
@@ -1970,8 +1970,8 @@ form input[type="submit"]:focus {
 }
 .choose_bg .white_bg {
     background: #fff;
-    padding: 40px 20px;
-    box-shadow: #ddd 0px 0px 10px 3px;
+    padding: 40px 10px;
+    /*box-shadow: #ddd 0px 0px 10px 3px;*/
     margin-bottom: 5px;
 }
 
@@ -1989,3 +1989,4 @@ form input[type="submit"]:focus {
 .gray-placeholder::-ms-input-placeholder {
     color: #808080 !important;
 }
+/*========================================*/

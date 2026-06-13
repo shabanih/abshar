@@ -4,6 +4,8 @@ import uuid
 from ckeditor_uploader.fields import RichTextUploadingField
 from django.db import models
 
+from user_app.models import User
+
 
 class SliderText(models.Model):
     title = models.CharField(max_length=500)
@@ -60,3 +62,16 @@ class Articles(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class CommentSite(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    full_name = models.CharField(max_length=100, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    message = models.TextField()
+    is_approved = models.BooleanField(default=False)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.full_name

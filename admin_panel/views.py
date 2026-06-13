@@ -49,7 +49,7 @@ from admin_panel.models import Announcement, Expense, ExpenseCategory, ExpenseDo
     SmsManagement, Fund, UnifiedCharge, AdminSmsManagement, SmsCredit, ImpersonationLog, SubscriptionPlan, Subscription, \
     AdminFund, Coupon
 from home.forms import ArticleForm
-from home.models import SliderText, ContactUs, FreeRequest, Articles
+from home.models import SliderText, ContactUs, FreeRequest, Articles, CommentSite
 from notifications.models import AdminTicket
 from polls.templatetags.poll_extras import jalali_to_gregorian
 from user_app.models import Unit, Bank, Renter, User, MyHouse, ChargeMethod, CalendarNote, UnitResidenceHistory, \
@@ -743,7 +743,6 @@ class MiddleAdminListView(ListView):
                 filters |= Q(is_resident=False)
 
             if query in ['رایگان', 'بله', 'true', '1']:
-
                 filters |= Q(is_trial=True)
 
             queryset = queryset.filter(filters).distinct()
@@ -814,17 +813,19 @@ def update_house_license(request, pk):
         'licenses': licenses
     })
 
+
 def delete_house_license(request, pk):
     license_obj = get_object_or_404(HouseLicense, id=pk)
     house_id = license_obj.house.id
 
     license_obj.delete()
     messages.success(
-                request,
-                'مجوز با موفقیت حذف شد.'
-            )
+        request,
+        'مجوز با موفقیت حذف شد.'
+    )
 
     return redirect('add_house_license', house_id=house_id)
+
 
 # views.py
 
@@ -863,6 +864,7 @@ def add_house_gateway(request, house_id):
             'gateways': gateways,
         }
     )
+
 
 def update_house_gateway(request, pk):
     gateway = get_object_or_404(
@@ -913,13 +915,15 @@ def delete_house_gateway(request, pk):
 
     gateway_obj.delete()
     messages.success(
-                request,
-                'درگاه پرداخت با موفقیت حذف شد.'
-            )
+        request,
+        'درگاه پرداخت با موفقیت حذف شد.'
+    )
 
     return redirect('add_house_gateway', house_id=house_id)
 
+
 # ============================================================
+
 class SliderTextCreateView(CreateView):
     model = SliderText
     template_name = 'admin_panel/slider_text.html'
@@ -5887,6 +5891,7 @@ class AdminBillanReport(ListView):
         # ).first()
         return context
 
+
 @method_decorator(admin_required, name='dispatch')
 def admin_house_balance(request, house_id):
     house = get_object_or_404(MyHouse, id=house_id)
@@ -6023,6 +6028,7 @@ class ContactUsManagement(ListView):
     ordering = ['-created_at']
     paginate_by = 50
 
+
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def approved_comment(request: HttpRequest, comment_code: str):
     comment = get_object_or_404(ContactUs, id=comment_code)
@@ -6035,6 +6041,7 @@ def approved_comment(request: HttpRequest, comment_code: str):
         messages.success(request, 'مشاوره با موفقیت انجام گردید.')
 
     return redirect(reverse('contact_management'))
+
 
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def disapproved_comment(request: HttpRequest, comment_code: str):
@@ -6061,6 +6068,7 @@ class FreeRequestManagement(ListView):
     ordering = ['-created']
     paginate_by = 50
 
+
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def approved_request_management(request: HttpRequest, cons_code: str):
     consultant = get_object_or_404(FreeRequest, id=cons_code)
@@ -6074,6 +6082,7 @@ def approved_request_management(request: HttpRequest, cons_code: str):
 
     return redirect(reverse('consultant_management'))
 
+
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def disapproved_request_management(request: HttpRequest, cons_code: str):
     consultant = get_object_or_404(FreeRequest, id=cons_code)
@@ -6086,6 +6095,7 @@ def disapproved_request_management(request: HttpRequest, cons_code: str):
         messages.success(request, 'عدم تایید انجام گردید.')
 
     return redirect(reverse('consultant_management'))
+
 
 @method_decorator(admin_required, name='dispatch')
 class ArticleCreateView(CreateView):
@@ -6117,6 +6127,7 @@ class ArticleCreateView(CreateView):
     #     context['articles'] = page_obj.object_list
     #     return context
 
+
 @login_required(login_url=settings.LOGIN_URL_ADMIN)
 def manage_articles(request):
     articles = Articles.objects.all()
@@ -6127,6 +6138,7 @@ def manage_articles(request):
     page_obj = page_obj
     articles = page_obj.object_list
     return render(request, 'admin_panel/manage_articles.html', {'articles': articles, 'page_obj': page_obj})
+
 
 @method_decorator(admin_required, name='dispatch')
 class ArticleUpdateView(UpdateView):
@@ -6176,6 +6188,7 @@ def article_delete(request, pk):
         messages.error(request, " امکان حذف وجود ندارد! ")
     return redirect(reverse('manage_articles'))
 
+
 # ===================== Coupon ==============================
 
 @method_decorator(admin_required, name='dispatch')
@@ -6185,6 +6198,7 @@ class CouponListView(CreateView):
     form_class = CouponApplyForm
     success_url = reverse_lazy('register_coupon')
     paginate_by = 10
+
     # copen_count = Coupon.objects.count()
 
     def form_valid(self, form):
@@ -6228,3 +6242,39 @@ def delete_coupon(request, pk):
     except ProtectedError:
         messages.error(request, " امکان حذف وجود ندارد! ")
     return redirect(reverse('register_coupon'))
+
+
+#
+# =======================================================
+class CommentListView(LoginRequiredMixin, ListView):
+    model = CommentSite
+    template_name = 'admin_panel/approved_comment.html'
+    context_object_name = 'comments'
+    paginate_by = 50
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def approved_comment(request, pk):
+    comment = get_object_or_404(CommentSite, id=pk)
+    if comment.is_approved:
+        messages.warning(request, 'قبلا ثبت شده است!.')
+    else:
+        comment.is_approved = True
+        comment.approved_at = timezone.now()
+        comment.save()
+        messages.success(request, 'تایید با موفقیت انجام گردید.')
+
+    return redirect(reverse('admin_comment_management'))
+
+
+@login_required(login_url=settings.LOGIN_URL_ADMIN)
+def disapproved_comment(request, pk):
+    comment = get_object_or_404(CommentSite, id=pk)
+    if not comment.is_approved:
+        messages.warning(request, 'قبلا ثبت شده است!.')
+    else:
+        comment.is_approved = False
+        comment.approved_at = None
+        comment.save()
+        messages.success(request, 'عدم تایید انجام گردید.')
+
+    return redirect(reverse('admin_comment_management'))

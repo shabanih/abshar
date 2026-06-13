@@ -336,6 +336,11 @@ urlpatterns = [
     path('subscriptions/edit/<int:subscription_id>/', views.admin_edit_subscription, name='admin_edit_subscription'),
     # path('subscriptions/create/<int:user_id>/', views.admin_create_subscription, name='admin_create_subscription'),
 
+    path('admin/comment/management/', views.CommentListView.as_view(), name='admin_comment_management'),
+    path('admin/comment/approved/<int:pk>/', views.approved_comment, name='admin_comment_approved'),
+    path('admin/comment/disapproved/<int:pk>/', views.disapproved_comment, name='admin_comment_disapproved'),
+
+
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

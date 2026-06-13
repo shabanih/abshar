@@ -8,8 +8,8 @@ from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, UpdateView
 
 from admin_panel.helper import get_house_by_subdomain
-from home.forms import FreeRequestForm, ContactUsForm, ArticleForm
-from home.models import SliderText, FreeRequest, ContactUs, Articles
+from home.forms import FreeRequestForm, ContactUsForm, ArticleForm, CommentSiteForm
+from home.models import SliderText, FreeRequest, ContactUs, Articles, CommentSite
 from user_app.forms import LoginForm
 from user_app.models import Unit, MyHouse
 
@@ -24,6 +24,7 @@ def house_required(view_func):
 
 
 def index(request):
+
     if request.house:
         return redirect('house_login_subdomain')
 
@@ -32,8 +33,10 @@ def index(request):
     ).order_by('-created_at')[:3]
 
     sliders = SliderText.objects.all().order_by('-id')
+    comments = CommentSite.objects.filter(is_approved=True).order_by('-id')
 
-    form = FreeRequestForm(request.POST or None)
+    form = FreeRequestForm()
+    form2 = CommentSiteForm()
 
     if request.method == 'POST' and form.is_valid():
         form.save()
@@ -42,13 +45,27 @@ def index(request):
 
     return render(request, 'home.html', {
         'form': form,
+        'form2': form2,
         'articles': articles,
-        'sliders': sliders
+        'comments': comments,
+        'sliders': sliders,
     })
 
 
-def house_login(request):
+def add_comment(request):
+    if request.method == 'POST':
+        form = CommentSiteForm(request.POST)
 
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.save()
+
+            messages.success(request, 'نظر شما با موفقیت ثبت شد.')
+
+    return redirect('home')
+
+
+def house_login(request):
     house = request.house
 
     if not house:

@@ -1,7 +1,7 @@
 from ckeditor_uploader.widgets import CKEditorUploadingWidget
 from django import forms
 
-from home.models import FreeRequest, ContactUs, Articles
+from home.models import FreeRequest, ContactUs, Articles, CommentSite
 
 error_message = {
     'required': "تکمیل این فیلد ضروری است!",
@@ -30,13 +30,15 @@ class FreeRequestForm(forms.ModelForm):
 
 class ContactUsForm(forms.ModelForm):
     name = forms.CharField(required=True, error_messages=error_message,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'نام و نام خانوادگی'}))
+                           widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'نام و نام خانوادگی'}))
     subject = forms.CharField(required=True, error_messages=error_message,
                               widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'موضوع'}))
     mobile = forms.CharField(required=True, error_messages=error_message,
-                             widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'شماره همراه یا ایمیل (درصورت نیاز به تماس شماره همراه را وارد نمایید)'}))
+                             widget=forms.TextInput(attrs={'class': 'form-control',
+                                                           'placeholder': 'شماره همراه یا ایمیل (درصورت نیاز به تماس شماره همراه را وارد نمایید)'}))
     message = forms.CharField(required=True, error_messages=error_message,
-                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': '6', 'cols': '10', 'placeholder': 'پیام شما'}))
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': '6', 'cols': '10',
+                                                           'placeholder': 'پیام شما'}))
 
     class Meta:
         model = ContactUs
@@ -53,10 +55,51 @@ class ArticleForm(forms.ModelForm):
     short_description = forms.CharField(required=False, error_messages=error_message,
                                         widget=forms.Textarea(attrs=attr4), label='شرح کوتاه')
     keywords = forms.CharField(required=False, error_messages=error_message,
-                                        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': '6', 'cols': '10'}), label='کلمات کلیدی')
+                               widget=forms.Textarea(attrs={'class': 'form-control', 'rows': '6', 'cols': '10'}),
+                               label='کلمات کلیدی')
     image = forms.ImageField(required=True, error_messages=error_message, label='تصویر ')
     is_active = forms.BooleanField(required=False, error_messages=error_message, label='فعال/غیر فعال')
 
     class Meta:
         model = Articles
         fields = ['title', 'short_description', 'image', 'is_active', 'description', 'keywords']
+
+
+CITY_CHOICES = [
+    ('', '--- انتخاب کنید ---'),
+    ('تهران', 'تهران'),
+    ('مشهد', 'مشهد'),
+    ('شیراز', 'شیراز'),
+    ('اصفهان', 'اصفهان'),
+    ('کرج', 'کرج'),
+    ('قم', 'قم'),
+    ('رشت', 'رشت'),
+    ('اهواز', 'اهواز'),
+    ('تبریز', 'تبریز'),
+    ('یزد', 'یزد'),
+    ('کرمان', 'کرمان'),
+    ('گرگان', 'گرگان'),
+    ('سنندج', 'سنندج'),
+    ('بندرعباس', 'بندرعباس'),
+    ('زاهدان', 'زاهدان'),
+    ('اردبیل', 'اردبیل'),
+    ('بوشهر', 'بوشهر'),
+    ('قزوین', 'قزوین'),
+    ('ارومیه', 'ارومیه'),
+    ('ساری', 'ساری'),
+]
+
+
+class CommentSiteForm(forms.ModelForm):
+    full_name = forms.CharField(required=True, error_messages=error_message,
+                           widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'نام و نام خانوادگی'}))
+    city = forms.ChoiceField(error_messages=error_message, choices=CITY_CHOICES, required=True,
+                      widget=forms.Select(attrs=attr3),
+                      label='شهر')
+    message = forms.CharField(required=True, error_messages=error_message,
+                              widget=forms.Textarea(attrs={'class': 'form-control', 'rows': '1',
+                                                           'placeholder': 'پیام شما'}))
+
+    class Meta:
+        model = CommentSite
+        fields = ['full_name', 'city', 'message']

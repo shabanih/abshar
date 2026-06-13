@@ -1572,3 +1572,5 @@ class CouponUsage(models.Model):
 
     class Meta:
         unique_together = ('user', 'coupon')
+
+

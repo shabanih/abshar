@@ -34,6 +34,13 @@
               </a>
             </li>
              <li class="nav-item mt-0">
+                 {% url 'admin_comment_management' as address_url %}
+                <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
+                <i class="menu-title"> مدیریت نظرات</i>
+                <i class="mdi mdi mdi-comment menu-icon"></i>
+              </a>
+            </li>
+             <li class="nav-item mt-0">
                  {% url 'contact_management' as address_url %}
                 <a class="nav-link {% if request.path == address_url %}active{% endif %}" href="{{ address_url }}">
                 <i class="menu-title"> مدیریت ارتباط با ما</i>

@@ -475,6 +475,7 @@ class MyHouseForm(forms.ModelForm):
         widget=forms.Select(attrs=attr),
         label='فعال باشد؟'
     )
+
     # enamad_code = forms.CharField(
     #     required=False,
     #     widget=forms.Textarea(
@@ -491,7 +492,6 @@ class MyHouseForm(forms.ModelForm):
         model = MyHouse
         fields = ['name', 'address', 'user_type', 'city', 'is_active', 'floor_counts', 'unit_counts', 'subdomain',
                   'phone']
-
 
     def clean_subdomain(self):
         subdomain = self.cleaned_data.get('subdomain')
@@ -514,19 +514,24 @@ class MyHouseForm(forms.ModelForm):
 
         return subdomain
 
+
 class HouseLicenseForm(forms.ModelForm):
-    html_code = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 10, 'cols':6 }), required=False,
-                                   )
+    html_code = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 10, 'cols': 6}),
+                                required=False,
+                                )
+
     class Meta:
         model = HouseLicense
         fields = ['license_type', 'html_code', 'is_active']
 
+
 class HousePaymentGatewayForm(forms.ModelForm):
     api_key = forms.CharField(widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 10, 'cols': 6}),
-                                required=False,
-                                )
+                              required=False,
+                              )
     merchant_id = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr),
-                         )
+                                  )
+
     class Meta:
         model = HousePaymentGateway
         fields = [
@@ -540,6 +545,7 @@ class HousePaymentGatewayForm(forms.ModelForm):
         widgets = {
             'api_key': forms.Textarea(attrs={'rows': 8}),
         }
+
 
 class UnitForm(forms.ModelForm):
     unit = forms.CharField(error_messages=error_message, required=True, widget=forms.TextInput(attrs=attr0),
@@ -769,7 +775,6 @@ class UnitForm(forms.ModelForm):
 
             if qs.exists():
                 self.add_error('renter_mobile', 'این شماره موبایل قبلاً ثبت شده است.')
-
 
         if owner_password or confirm_owner_password:
             if owner_password != confirm_owner_password:
@@ -1064,7 +1069,6 @@ class RenterAddForm(forms.ModelForm):
                     "renter_payment_date",
                     "تاریخ پرداخت نباید از تاریخ امروز بیشتر باشد."
                 )
-
 
         # -------------------------
         # بررسی تاریخ اجاره (اختیاری ولی پیشنهاد میشه)
@@ -2132,7 +2136,7 @@ class MaintenancePayForm(forms.ModelForm):
             if maintenance_start_date and payment_date < maintenance_start_date:
                 raise ValidationError("تاریخ پرداخت نمی‌تواند قبل از تاریخ شروع باشد.")
 
-         # بررسی تاریخ افتتاح حساب بانکی
+        # بررسی تاریخ افتتاح حساب بانکی
         if bank:
             try:
                 validate_bank_transaction_date(bank, payment_date)
@@ -3065,10 +3069,9 @@ class CouponApplyForm(forms.ModelForm):
         label='مبلغ تخفیف'
     )
     active = forms.ChoiceField(label='فعال /غیرفعال  ', required=True,
-                                  error_messages=error_message, choices=CHOICES,
+                               error_messages=error_message, choices=CHOICES,
                                widget=forms.Select(attrs={'class': 'form-control form-control-sm'}))
 
     class Meta:
         model = Coupon
         fields = ['code', 'valid_from', 'valid_to', 'discount', 'active']
-
